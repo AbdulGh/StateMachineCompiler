@@ -1,0 +1,33 @@
+program -> {body}.
+
+body ->
+    VariableType ident {"," ident} ";"
+    "function" ident "(" [VariableType ident] {"," VariableType ident} ")" VariableType statement.
+ 
+statement ->
+    ident "=" expression
+    "call" ident "(" {ident} ")"
+    "{" statement {";" statement } "}"
+    "if" condition "then" statement
+    "while" condition "do" statement
+    "return" ident.
+ 
+condition ->
+    "even" expression
+    expression relop expression.
+
+relop -> "=="|"!="|"<"|"<="|">"|">=".
+ 
+expression -> ["+"|"-"] term {("+"|"-") term}.
+ 
+term -> factor {("*"|"/") factor} .
+ 
+factor ->
+    ident
+    number
+    "(" expression ")" .
+
+VariableType ->
+ "string"
+ "int"
+ "double".
