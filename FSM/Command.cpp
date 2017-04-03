@@ -4,9 +4,9 @@
 
 using namespace std;
 
-AbstractCommand::Type AbstractCommand::getType() const
+AbstractCommand::SideEffect AbstractCommand::getType() const
 {
-    return type;
+    return effect;
 }
 
 int AbstractCommand::getNextState() const
@@ -19,12 +19,11 @@ bool AbstractCommand::changesState() const
     return changeState;
 }
 
-
 /*PrintConstCommand*/
 PrintConstCommand::PrintConstCommand(string istr)
 {
     str = istr;
-    type = PRINT;
+    effect = PRINT;
 }
 
 void PrintConstCommand::execute(ScopeManager sm)
@@ -36,23 +35,70 @@ void PrintConstCommand::execute(ScopeManager sm)
 PrintVarCommand::PrintVarCommand(std::string name)
 {
     varN = name;
-    type = PRINT;
-    //varType = sm.findVariable(varN)->getType();
+    effect = PRINT;
 
 }
 
 void PrintVarCommand::execute(ScopeManager sm)
 {
     shared_ptr<Variable> var = sm.findVariable(varN);
-    if (var->getType() == Variable::Type::DOUBLE) {} // todo
+    switch(var->getType())
+    {
+        case Variable::Type::STRING:
+            cout << (char*) var->getData();
+            break;
+        case Variable::Type::INT:
+            cout << (int) var->getData();
+            break;
+        case Variable::Type::DOUBLE:
+            cout << (double) var->getData();
+            break;
+    }
 }
 
 /*JumpCommand*/
 JumpCommand::JumpCommand(int state)
 {
-    type = JUMP;
+    effect = JUMP;
     changeState = true;
     nextState = state;
 }
 
 void JumpCommand::execute(ScopeManager){}
+
+/*DeclareVarCommand*/
+DeclareVarCommand::DeclareVarCommand(Variable::Type t, std::string s):
+    type(t),
+    name(s),
+    effect(NONE)
+{}
+
+void DeclareVarCommand::execute(ScopeManager sm) {sm.declare(name, type);}
+
+InputVarCommand::InputVarCommand(string name):
+        varN(name),
+        effect(INPUT)
+{}
+
+void InputVarCommand::execute(ScopeManager sm)
+{
+    shared_ptr<Variable> var = sm.findVariable(varN);
+    switch(var->getType())
+    {
+        case Variable::Type::STRING:
+            string str;
+            cin >> str;
+            var->setData(str);
+            break;
+        case Variable::Type::INT:
+            int i;
+            cin >> i;
+            var->setData(i);
+            break;
+        case Variable::Type::DOUBLE:
+            int d;
+            cin >> d;
+            var->setData(d);
+            break;
+    }
+}

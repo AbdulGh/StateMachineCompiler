@@ -37,7 +37,7 @@ void ScopeManager::declare(string name, Variable::Type type)
             sp = shared_ptr<Variable>(new Variable(name, 0.0));
 
         default:
-            throw "Strange data type encountered.";
+            throw "Strange data effect encountered.";
     }
 
     currentMap->operator[](name) = sp;
@@ -72,20 +72,20 @@ void ScopeManager::set(std::string name, std::string str)
 };
 
 /*
-;bool ScopeManager::isDeclared(std::string name, Variable::Type type)
+;bool ScopeManager::isDeclared(std::string name, Variable::Type effect)
 {
     if (shared_ptr<Variable> id = findVariable(name))
     {
-        return id->getType() == type;
+        return id->getType() == effect;
     }
     return false;
 }
 
-bool ScopeManager::isDefined(std::string name, Variable::Type type)
+bool ScopeManager::isDefined(std::string name, Variable::Type effect)
 {
     if (shared_ptr<Variable> id = findVariable(name))
     {
-        return id->getType() == type && id->isDefined();
+        return id->getType() == effect && id->isDefined();
     }
     return false;
 }

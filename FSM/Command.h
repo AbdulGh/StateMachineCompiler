@@ -6,9 +6,9 @@
 class AbstractCommand
 {
 public:
-    enum Type{PRINT, JUMP};
+    enum SideEffect{PRINT, INPUT, JUMP, NONE};
 
-    Type getType() const;
+    SideEffect getType() const;
     int getNextState() const;
     bool changesState() const;
 
@@ -17,7 +17,7 @@ public:
 protected:
     int nextState = -1;
     bool changeState = false;
-    Type type;
+    SideEffect effect;
 };
 
 class PrintConstCommand: public AbstractCommand
@@ -32,11 +32,10 @@ private:
 class PrintVarCommand: public AbstractCommand
 {
 public:
-    PrintVarCommand(std::string); //todo make this grab the variable itself
+    PrintVarCommand(std::string varN);
     void execute(ScopeManager);
 private:
     std::string varN;
-    Variable::Type varType;
 
 };
 
@@ -47,6 +46,25 @@ public:
     void execute(ScopeManager);
 private:
     int state;
+};
+
+class DeclareVarCommand: public AbstractCommand
+{
+public:
+    DeclareVarCommand(Variable::Type, std::string);
+    void execute(ScopeManager);
+private:
+    Variable::Type type;
+    std::string name;
+};
+
+class InputVarCommand: public AbstractCommand
+{
+public:
+    InputVarCommand(std::string name);
+    void execute(ScopeManager);
+private:
+    std::string varN;
 
 };
 

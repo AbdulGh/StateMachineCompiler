@@ -19,6 +19,10 @@ public:
         DU(int in): i(in) {};
         DU(double doub): d(doub) {};
         DU(char* st): str(st) {};
+
+        operator int() const {return i;}
+        operator double() const {return d;}
+        operator char*() const {return str;}
     } DataUnion;
 
     Variable(std::string vname, int vi):
@@ -90,8 +94,8 @@ public:
     void set(std::string name, int d);
     void set(std::string name, std::string d);
     void set(std::string name, double d);
-    //bool isDeclared(std::string name, Variable::Type type);
-    //bool isDefined(std::string name, Variable::Type type);
+    //bool isDeclared(std::string name, Variable::Type effect);
+    //bool isDefined(std::string name, Variable::Type effect);
 };
 
 

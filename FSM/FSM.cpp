@@ -14,7 +14,7 @@ FSM::FSM(std::string filename)
 
     unordered_map<string, int> stateMap;
     int nextUnusedState = 0;
-    auto checkState = [] (std::string str) -> int
+    auto checkState = [&stateMap, &nextUnusedState] (std::string str) -> int
     {
         unordered_map<string,int>::const_iterator pair = stateMap.find(str);
         if (pair == stateMap.end())
@@ -23,6 +23,33 @@ FSM::FSM(std::string filename)
             return nextUnusedState++;
         }
         return pair->second;
+    };
+
+    auto getUntilSemic = [] (std::ifstream infile) -> string
+    {
+        char c;
+        infile.get(c);
+        while (isspace(c))
+        {
+            infile.get(c);
+            if (infile.eof()) throw runtime_error("command not finished.");
+        }
+
+        string ident;
+
+        while (!isspace(c))
+        {
+            if (c == ';')
+            {
+                infile.unget();
+                break;
+            }
+            ident += c;
+            infile.get(c);
+            if (infile.eof()) throw runtime_error("identifier not finished.");
+        }
+
+        return ident;
     };
 
     while (!infile.eof())
@@ -82,15 +109,30 @@ FSM::FSM(std::string filename)
             }
             else if (str == "goto")
             {
-                //todo read state, find name, create command
+                string stateName = getUntilSemic(infile);
 
-                infile.get(c);
-                while (isspace(c))
-                {
-                    if (infile.eof()) throw runtime_error("goto command not finished.");
-                    infile.get(c);
-                }
+                int state = checkState(stateName);
 
+                shared_ptr<AbstractCommand> ref (new JumpCommand(state));
+                commands.push_back(ref);
+            }
+            else if (str == "string")
+            {
+                string ident = getUntilSemic(infile);
+                shared_ptr<AbstractCommand> ref (new DeclareVarCommand(Variable::Type::STRING, ident));
+                commands.push_back(ref);
+            }
+            else if (str == "int")
+            {
+                string ident = getUntilSemic(infile);
+                shared_ptr<AbstractCommand> ref (new DeclareVarCommand(Variable::Type::INT, ident));
+                commands.push_back(ref);
+            }
+            else if (str == "double")
+            {
+                string ident = getUntilSemic(infile);
+                shared_ptr<AbstractCommand> ref (new DeclareVarCommand(Variable::Type::DOUBLE, ident));
+                commands.push_back(ref);
             }
 
             infile.get(c);
