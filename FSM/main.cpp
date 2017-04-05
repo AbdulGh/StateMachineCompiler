@@ -1,10 +1,10 @@
 #include <iostream>
 
 #include "FSM.h"
-
+#include "FSMParser.h"
 int main()
 {
-    FSM test("../misc/test1.fs");
+    FSM test = FSMParser("../misc/test1.fs").readFSM();
     test.run();
     return 0;
 }

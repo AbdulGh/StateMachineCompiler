@@ -36,7 +36,6 @@ PrintVarCommand::PrintVarCommand(std::string name)
 {
     varN = name;
     effect = PRINT;
-
 }
 
 void PrintVarCommand::execute(ScopeManager sm)
@@ -70,7 +69,7 @@ void JumpCommand::execute(ScopeManager){}
 DeclareVarCommand::DeclareVarCommand(Variable::Type t, std::string s):
     type(t),
     name(s),
-    effect(NONE)
+    effect(SETVAR)
 {}
 
 void DeclareVarCommand::execute(ScopeManager sm) {sm.declare(name, type);}
@@ -86,19 +85,25 @@ void InputVarCommand::execute(ScopeManager sm)
     switch(var->getType())
     {
         case Variable::Type::STRING:
+        {
             string str;
             cin >> str;
             var->setData(str);
             break;
+        }
         case Variable::Type::INT:
+        {
             int i;
             cin >> i;
             var->setData(i);
             break;
+        }
         case Variable::Type::DOUBLE:
+        {
             int d;
             cin >> d;
             var->setData(d);
             break;
+        }
     }
 }

@@ -36,6 +36,20 @@ string
 State.h
 /home/abdul/CLionProjects/FSM/State.h
 
+/home/abdul/CLionProjects/FSM/FSMParser.cpp
+FSMParser.h
+/home/abdul/CLionProjects/FSM/FSMParser.h
+
+/home/abdul/CLionProjects/FSM/FSMParser.h
+fstream
+-
+map
+-
+memory
+-
+FSM.h
+/home/abdul/CLionProjects/FSM/FSM.h
+
 /home/abdul/CLionProjects/FSM/ScopeManager.cpp
 ScopeManager.h
 /home/abdul/CLionProjects/FSM/ScopeManager.h
@@ -71,4 +85,6 @@ iostream
 -
 FSM.h
 /home/abdul/CLionProjects/FSM/FSM.h
+FSMParser.h
+/home/abdul/CLionProjects/FSM/FSMParser.h
 

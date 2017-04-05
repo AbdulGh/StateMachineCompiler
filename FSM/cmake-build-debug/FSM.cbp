@@ -94,6 +94,12 @@
 		<Unit filename="/home/abdul/CLionProjects/FSM/FSM.h">
 			<Option target="FSM"/>
 		</Unit>
+		<Unit filename="/home/abdul/CLionProjects/FSM/FSMParser.cpp">
+			<Option target="FSM"/>
+		</Unit>
+		<Unit filename="/home/abdul/CLionProjects/FSM/FSMParser.h">
+			<Option target="FSM"/>
+		</Unit>
 		<Unit filename="/home/abdul/CLionProjects/FSM/ScopeManager.cpp">
 			<Option target="FSM"/>
 		</Unit>

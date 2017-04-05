@@ -177,6 +177,33 @@ FSM.cpp.s:
 	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/FSM.cpp.s
 .PHONY : FSM.cpp.s
 
+FSMParser.o: FSMParser.cpp.o
+
+.PHONY : FSMParser.o
+
+# target to build an object file
+FSMParser.cpp.o:
+	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/FSMParser.cpp.o
+.PHONY : FSMParser.cpp.o
+
+FSMParser.i: FSMParser.cpp.i
+
+.PHONY : FSMParser.i
+
+# target to preprocess a source file
+FSMParser.cpp.i:
+	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/FSMParser.cpp.i
+.PHONY : FSMParser.cpp.i
+
+FSMParser.s: FSMParser.cpp.s
+
+.PHONY : FSMParser.s
+
+# target to generate assembly for a file
+FSMParser.cpp.s:
+	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/FSMParser.cpp.s
+.PHONY : FSMParser.cpp.s
+
 ScopeManager.o: ScopeManager.cpp.o
 
 .PHONY : ScopeManager.o
@@ -273,6 +300,9 @@ help:
 	@echo "... FSM.o"
 	@echo "... FSM.i"
 	@echo "... FSM.s"
+	@echo "... FSMParser.o"
+	@echo "... FSMParser.i"
+	@echo "... FSMParser.s"
 	@echo "... ScopeManager.o"
 	@echo "... ScopeManager.i"
 	@echo "... ScopeManager.s"

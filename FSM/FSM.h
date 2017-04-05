@@ -11,10 +11,9 @@ class FSM
 private:
     int state;
     std::vector<std::shared_ptr<State>> states;
-    int checkState(std::string);
 
 public:
-    FSM(std::string);
+    FSM(std::vector<std::shared_ptr<State>> st);
     void run();
 };
 

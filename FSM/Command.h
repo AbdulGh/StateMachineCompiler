@@ -6,7 +6,7 @@
 class AbstractCommand
 {
 public:
-    enum SideEffect{PRINT, INPUT, JUMP, NONE};
+    enum SideEffect{PRINT, INPUT, JUMP, SETVAR};
 
     SideEffect getType() const;
     int getNextState() const;
@@ -27,6 +27,7 @@ public:
     void execute(ScopeManager);
 private:
     std::string str;
+    SideEffect effect;
 };
 
 class PrintVarCommand: public AbstractCommand
@@ -36,6 +37,7 @@ public:
     void execute(ScopeManager);
 private:
     std::string varN;
+    SideEffect effect;
 
 };
 
@@ -46,6 +48,7 @@ public:
     void execute(ScopeManager);
 private:
     int state;
+    SideEffect effect;
 };
 
 class DeclareVarCommand: public AbstractCommand
@@ -56,6 +59,7 @@ public:
 private:
     Variable::Type type;
     std::string name;
+    SideEffect effect;
 };
 
 class InputVarCommand: public AbstractCommand
@@ -65,7 +69,7 @@ public:
     void execute(ScopeManager);
 private:
     std::string varN;
-
+    SideEffect effect;
 };
 
 

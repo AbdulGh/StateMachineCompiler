@@ -11,6 +11,13 @@ CMakeFiles/FSM.dir/FSM.cpp.o: ../FSM.h
 CMakeFiles/FSM.dir/FSM.cpp.o: ../ScopeManager.h
 CMakeFiles/FSM.dir/FSM.cpp.o: ../State.h
 
+CMakeFiles/FSM.dir/FSMParser.cpp.o: ../Command.h
+CMakeFiles/FSM.dir/FSMParser.cpp.o: ../FSM.h
+CMakeFiles/FSM.dir/FSMParser.cpp.o: ../FSMParser.cpp
+CMakeFiles/FSM.dir/FSMParser.cpp.o: ../FSMParser.h
+CMakeFiles/FSM.dir/FSMParser.cpp.o: ../ScopeManager.h
+CMakeFiles/FSM.dir/FSMParser.cpp.o: ../State.h
+
 CMakeFiles/FSM.dir/ScopeManager.cpp.o: ../ScopeManager.cpp
 CMakeFiles/FSM.dir/ScopeManager.cpp.o: ../ScopeManager.h
 
@@ -21,6 +28,7 @@ CMakeFiles/FSM.dir/State.cpp.o: ../State.h
 
 CMakeFiles/FSM.dir/main.cpp.o: ../Command.h
 CMakeFiles/FSM.dir/main.cpp.o: ../FSM.h
+CMakeFiles/FSM.dir/main.cpp.o: ../FSMParser.h
 CMakeFiles/FSM.dir/main.cpp.o: ../ScopeManager.h
 CMakeFiles/FSM.dir/main.cpp.o: ../State.h
 CMakeFiles/FSM.dir/main.cpp.o: ../main.cpp
