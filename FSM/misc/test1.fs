@@ -1,3 +1,7 @@
+int counter;
+
+states
+
 one
 print "Hello World\n";
 goto two;
