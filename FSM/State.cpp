@@ -8,7 +8,7 @@ State::State(string str)
     name = str;
 }
 
-void State::run(ScopeManager sm)
+void State::run(VariableManager sm)
 {
     for (shared_ptr<AbstractCommand> &command : instructions)
     {

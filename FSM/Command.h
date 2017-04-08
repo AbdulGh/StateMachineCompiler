@@ -1,7 +1,7 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
-#include "ScopeManager.h"
+#include "VariableManager.h"
 
 class AbstractCommand
 {
@@ -12,7 +12,7 @@ public:
     int getNextState() const;
     bool changesState() const;
 
-    virtual void execute(ScopeManager) = 0;
+    virtual void execute() = 0;
 
 protected:
     int nextState = -1;
@@ -24,7 +24,7 @@ class PrintConstCommand: public AbstractCommand
 {
 public:
     PrintConstCommand(std::string);
-    void execute(ScopeManager);
+    void execute();
 private:
     std::string str;
     SideEffect effect;
@@ -33,10 +33,10 @@ private:
 class PrintVarCommand: public AbstractCommand
 {
 public:
-    PrintVarCommand(std::string varN);
-    void execute(ScopeManager);
+    PrintVarCommand(std::shared_ptr<Variable> varPtr);
+    void execute();
 private:
-    std::string varN;
+    std::shared_ptr<Variable> var;
     SideEffect effect;
 
 };
@@ -45,31 +45,33 @@ class JumpCommand: public AbstractCommand
 {
 public:
     JumpCommand(int);
-    void execute(ScopeManager);
+    void execute();
 private:
-    int state;
     SideEffect effect;
 };
 
-class DeclareVarCommand: public AbstractCommand
-{
-public:
-    DeclareVarCommand(Variable::Type, std::string);
-    void execute(ScopeManager);
-private:
-    Variable::Type type;
-    std::string name;
-    SideEffect effect;
-};
 
 class InputVarCommand: public AbstractCommand
 {
 public:
-    InputVarCommand(std::string name);
-    void execute(ScopeManager);
+    InputVarCommand(std::shared_ptr<Variable> varPtr);
+    void execute();
 private:
-    std::string varN;
+    std::shared_ptr<Variable> var;
     SideEffect effect;
+};
+
+class JumpOnConstComparisonCommand: public AbstractCommand
+{
+public:
+    enum ComparisonType{GT, GE, LT, LE, EQ, NEQ};
+    JumpOnConstComparisonCommand(std::shared_ptr<Variable> varPtr, int constInt, int state, JumpOnConstComparisonCommand::ComparisonType type);
+    void execute();
+private:
+    std::shared_ptr<Variable> var;
+    int compareTo;
+    SideEffect effect;
+    JumpOnConstComparisonCommand::ComparisonType ctype;
 };
 
 

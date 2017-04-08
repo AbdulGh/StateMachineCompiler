@@ -18,7 +18,7 @@ public:
     void setInstructions(const std::vector<std::shared_ptr<AbstractCommand>> &instructions);
 
     State(std::string);
-    void run(ScopeManager);
+    void run(VariableManager);
     int nextState() const;
 };
 

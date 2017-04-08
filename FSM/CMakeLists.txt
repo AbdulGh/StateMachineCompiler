@@ -3,5 +3,5 @@ project(FSM)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(SOURCE_FILES main.cpp Command.cpp Command.h State.cpp State.h ScopeManager.cpp ScopeManager.h FSM.cpp FSM.h FSMParser.cpp FSMParser.h)
+set(SOURCE_FILES main.cpp Command.cpp Command.h State.cpp State.h VariableManager.cpp VariableManager.h FSM.cpp FSM.h FSMParser.cpp FSMParser.h)
 add_executable(FSM ${SOURCE_FILES})

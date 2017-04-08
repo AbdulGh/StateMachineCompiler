@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "Command.h"
+#include "VariableManager.h"
 
 using namespace std;
 
@@ -26,21 +27,20 @@ PrintConstCommand::PrintConstCommand(string istr)
     effect = PRINT;
 }
 
-void PrintConstCommand::execute(ScopeManager sm)
+void PrintConstCommand::execute()
 {
     cout << str;
 }
 
 /*PrintVarCommand*/
-PrintVarCommand::PrintVarCommand(std::string name)
+PrintVarCommand::PrintVarCommand(std::shared_ptr<Variable> varPtr)
 {
-    varN = name;
+    var = varPtr;
     effect = PRINT;
 }
 
-void PrintVarCommand::execute(ScopeManager sm)
+void PrintVarCommand::execute()
 {
-    shared_ptr<Variable> var = sm.findVariable(varN);
     switch(var->getType())
     {
         case Variable::Type::STRING:
@@ -63,25 +63,17 @@ JumpCommand::JumpCommand(int state)
     nextState = state;
 }
 
-void JumpCommand::execute(ScopeManager){}
+void JumpCommand::execute(){}
 
-/*DeclareVarCommand*/
-DeclareVarCommand::DeclareVarCommand(Variable::Type t, std::string s):
-    type(t),
-    name(s),
-    effect(SETVAR)
-{}
 
-void DeclareVarCommand::execute(ScopeManager sm) {sm.declare(name, type);}
-
-InputVarCommand::InputVarCommand(string name):
-        varN(name),
+/*InputVarCommand*/
+InputVarCommand::InputVarCommand(std::shared_ptr<Variable> varPtr):
+        var(varPtr),
         effect(INPUT)
 {}
 
-void InputVarCommand::execute(ScopeManager sm)
+void InputVarCommand::execute()
 {
-    shared_ptr<Variable> var = sm.findVariable(varN);
     switch(var->getType())
     {
         case Variable::Type::STRING:
@@ -105,5 +97,44 @@ void InputVarCommand::execute(ScopeManager sm)
             var->setData(d);
             break;
         }
+    }
+}
+
+/*JumpOnConstComparisonCommand*/
+JumpOnConstComparisonCommand::JumpOnConstComparisonCommand(std::shared_ptr<Variable> varPtr, int constInt, int jstate,
+                                                           JumpOnConstComparisonCommand::ComparisonType type)
+{
+    if (var->getType() != Variable::Type::INT) throw "Cannot compare this var.";
+    effect = JUMP;
+    ctype = type;
+    var = varPtr;
+    nextState = jstate;
+    compareTo = constInt;
+}
+
+void JumpOnConstComparisonCommand::execute()
+{
+    int data = (int)var->getData();
+
+    switch (ctype)
+    {
+        case GT:
+            changeState = data > compareTo;
+            break;
+        case GE:
+            changeState = data >= compareTo;
+            break;
+        case LT:
+            changeState = data < compareTo;
+            break;
+        case LE:
+            changeState = data <= compareTo;
+            break;
+        case EQ:
+            changeState = data == compareTo;
+            break;
+        case NEQ:
+            changeState = data != compareTo;
+            break;
     }
 }
