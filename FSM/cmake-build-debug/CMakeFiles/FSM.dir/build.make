@@ -129,28 +129,28 @@ CMakeFiles/FSM.dir/State.cpp.o.provides: CMakeFiles/FSM.dir/State.cpp.o.requires
 CMakeFiles/FSM.dir/State.cpp.o.provides.build: CMakeFiles/FSM.dir/State.cpp.o
 
 
-CMakeFiles/FSM.dir/ScopeManager.cpp.o: CMakeFiles/FSM.dir/flags.make
-CMakeFiles/FSM.dir/ScopeManager.cpp.o: ../ScopeManager.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/abdul/CLionProjects/FSM/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/FSM.dir/ScopeManager.cpp.o"
-	/usr/bin/c++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/FSM.dir/ScopeManager.cpp.o -c /home/abdul/CLionProjects/FSM/ScopeManager.cpp
+CMakeFiles/FSM.dir/VariableManager.cpp.o: CMakeFiles/FSM.dir/flags.make
+CMakeFiles/FSM.dir/VariableManager.cpp.o: ../VariableManager.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/abdul/CLionProjects/FSM/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_4) "Building CXX object CMakeFiles/FSM.dir/VariableManager.cpp.o"
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/FSM.dir/VariableManager.cpp.o -c /home/abdul/CLionProjects/FSM/VariableManager.cpp
 
-CMakeFiles/FSM.dir/ScopeManager.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/FSM.dir/ScopeManager.cpp.i"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/abdul/CLionProjects/FSM/ScopeManager.cpp > CMakeFiles/FSM.dir/ScopeManager.cpp.i
+CMakeFiles/FSM.dir/VariableManager.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/FSM.dir/VariableManager.cpp.i"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/abdul/CLionProjects/FSM/VariableManager.cpp > CMakeFiles/FSM.dir/VariableManager.cpp.i
 
-CMakeFiles/FSM.dir/ScopeManager.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/FSM.dir/ScopeManager.cpp.s"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/abdul/CLionProjects/FSM/ScopeManager.cpp -o CMakeFiles/FSM.dir/ScopeManager.cpp.s
+CMakeFiles/FSM.dir/VariableManager.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/FSM.dir/VariableManager.cpp.s"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/abdul/CLionProjects/FSM/VariableManager.cpp -o CMakeFiles/FSM.dir/VariableManager.cpp.s
 
-CMakeFiles/FSM.dir/ScopeManager.cpp.o.requires:
+CMakeFiles/FSM.dir/VariableManager.cpp.o.requires:
 
-.PHONY : CMakeFiles/FSM.dir/ScopeManager.cpp.o.requires
+.PHONY : CMakeFiles/FSM.dir/VariableManager.cpp.o.requires
 
-CMakeFiles/FSM.dir/ScopeManager.cpp.o.provides: CMakeFiles/FSM.dir/ScopeManager.cpp.o.requires
-	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/ScopeManager.cpp.o.provides.build
-.PHONY : CMakeFiles/FSM.dir/ScopeManager.cpp.o.provides
+CMakeFiles/FSM.dir/VariableManager.cpp.o.provides: CMakeFiles/FSM.dir/VariableManager.cpp.o.requires
+	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/VariableManager.cpp.o.provides.build
+.PHONY : CMakeFiles/FSM.dir/VariableManager.cpp.o.provides
 
-CMakeFiles/FSM.dir/ScopeManager.cpp.o.provides.build: CMakeFiles/FSM.dir/ScopeManager.cpp.o
+CMakeFiles/FSM.dir/VariableManager.cpp.o.provides.build: CMakeFiles/FSM.dir/VariableManager.cpp.o
 
 
 CMakeFiles/FSM.dir/FSM.cpp.o: CMakeFiles/FSM.dir/flags.make
@@ -206,7 +206,7 @@ FSM_OBJECTS = \
 "CMakeFiles/FSM.dir/main.cpp.o" \
 "CMakeFiles/FSM.dir/Command.cpp.o" \
 "CMakeFiles/FSM.dir/State.cpp.o" \
-"CMakeFiles/FSM.dir/ScopeManager.cpp.o" \
+"CMakeFiles/FSM.dir/VariableManager.cpp.o" \
 "CMakeFiles/FSM.dir/FSM.cpp.o" \
 "CMakeFiles/FSM.dir/FSMParser.cpp.o"
 
@@ -216,7 +216,7 @@ FSM_EXTERNAL_OBJECTS =
 FSM: CMakeFiles/FSM.dir/main.cpp.o
 FSM: CMakeFiles/FSM.dir/Command.cpp.o
 FSM: CMakeFiles/FSM.dir/State.cpp.o
-FSM: CMakeFiles/FSM.dir/ScopeManager.cpp.o
+FSM: CMakeFiles/FSM.dir/VariableManager.cpp.o
 FSM: CMakeFiles/FSM.dir/FSM.cpp.o
 FSM: CMakeFiles/FSM.dir/FSMParser.cpp.o
 FSM: CMakeFiles/FSM.dir/build.make
@@ -232,7 +232,7 @@ CMakeFiles/FSM.dir/build: FSM
 CMakeFiles/FSM.dir/requires: CMakeFiles/FSM.dir/main.cpp.o.requires
 CMakeFiles/FSM.dir/requires: CMakeFiles/FSM.dir/Command.cpp.o.requires
 CMakeFiles/FSM.dir/requires: CMakeFiles/FSM.dir/State.cpp.o.requires
-CMakeFiles/FSM.dir/requires: CMakeFiles/FSM.dir/ScopeManager.cpp.o.requires
+CMakeFiles/FSM.dir/requires: CMakeFiles/FSM.dir/VariableManager.cpp.o.requires
 CMakeFiles/FSM.dir/requires: CMakeFiles/FSM.dir/FSM.cpp.o.requires
 CMakeFiles/FSM.dir/requires: CMakeFiles/FSM.dir/FSMParser.cpp.o.requires
 

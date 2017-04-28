@@ -204,33 +204,6 @@ FSMParser.cpp.s:
 	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/FSMParser.cpp.s
 .PHONY : FSMParser.cpp.s
 
-ScopeManager.o: ScopeManager.cpp.o
-
-.PHONY : ScopeManager.o
-
-# target to build an object file
-ScopeManager.cpp.o:
-	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/ScopeManager.cpp.o
-.PHONY : ScopeManager.cpp.o
-
-ScopeManager.i: ScopeManager.cpp.i
-
-.PHONY : ScopeManager.i
-
-# target to preprocess a source file
-ScopeManager.cpp.i:
-	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/ScopeManager.cpp.i
-.PHONY : ScopeManager.cpp.i
-
-ScopeManager.s: ScopeManager.cpp.s
-
-.PHONY : ScopeManager.s
-
-# target to generate assembly for a file
-ScopeManager.cpp.s:
-	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/ScopeManager.cpp.s
-.PHONY : ScopeManager.cpp.s
-
 State.o: State.cpp.o
 
 .PHONY : State.o
@@ -257,6 +230,33 @@ State.s: State.cpp.s
 State.cpp.s:
 	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/State.cpp.s
 .PHONY : State.cpp.s
+
+VariableManager.o: VariableManager.cpp.o
+
+.PHONY : VariableManager.o
+
+# target to build an object file
+VariableManager.cpp.o:
+	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/VariableManager.cpp.o
+.PHONY : VariableManager.cpp.o
+
+VariableManager.i: VariableManager.cpp.i
+
+.PHONY : VariableManager.i
+
+# target to preprocess a source file
+VariableManager.cpp.i:
+	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/VariableManager.cpp.i
+.PHONY : VariableManager.cpp.i
+
+VariableManager.s: VariableManager.cpp.s
+
+.PHONY : VariableManager.s
+
+# target to generate assembly for a file
+VariableManager.cpp.s:
+	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/VariableManager.cpp.s
+.PHONY : VariableManager.cpp.s
 
 main.o: main.cpp.o
 
@@ -303,12 +303,12 @@ help:
 	@echo "... FSMParser.o"
 	@echo "... FSMParser.i"
 	@echo "... FSMParser.s"
-	@echo "... ScopeManager.o"
-	@echo "... ScopeManager.i"
-	@echo "... ScopeManager.s"
 	@echo "... State.o"
 	@echo "... State.i"
 	@echo "... State.s"
+	@echo "... VariableManager.o"
+	@echo "... VariableManager.i"
+	@echo "... VariableManager.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"

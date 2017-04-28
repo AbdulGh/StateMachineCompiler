@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "Command.h"
-#include "VariableManager.h"
+#include "Variable.h"
 
 using namespace std;
 
@@ -100,41 +100,111 @@ void InputVarCommand::execute()
     }
 }
 
-/*JumpOnConstComparisonCommand*/
-JumpOnConstComparisonCommand::JumpOnConstComparisonCommand(std::shared_ptr<Variable> varPtr, int constInt, int jstate,
-                                                           JumpOnConstComparisonCommand::ComparisonType type)
+//todo deal with strings
+/*JumpOnComparisonCommand*/
+JumpOnComparisonCommand::JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, int constInt, int jstate,
+                                                           JumpOnComparisonCommand::ComparisonOp type):
+    effect(JUMP),
+    compareTo(constInt),
+    nextState(jstate),
+    cop(type),
+    ctype(INT)
+
 {
-    if (var->getType() != Variable::Type::INT) throw "Cannot compare this var.";
-    effect = JUMP;
-    ctype = type;
+    if (varPtr->getType() != Variable::Type::INT && varPtr->getType() != Variable::Type::DOUBLE) throw "Cannot compare this var.";
     var = varPtr;
-    nextState = jstate;
-    compareTo = constInt;
 }
 
-void JumpOnConstComparisonCommand::execute()
+JumpOnComparisonCommand::JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, double constDouble, int jstate,
+                                                 JumpOnComparisonCommand::ComparisonOp type):
+        effect(JUMP),
+        compareTo(constDouble),
+        nextState(jstate),
+        cop(type),
+        ctype(DOUBLE)
+
+{
+    if (varPtr->getType() != Variable::Type::INT && varPtr->getType() != Variable::Type::DOUBLE) throw "Cannot compare this var.";
+    var = varPtr;
+}
+
+JumpOnComparisonCommand::JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr1, std::shared_ptr<Variable> varPtr2, int jstate,
+                                                 JumpOnComparisonCommand::ComparisonOp type):
+        effect(JUMP),
+        compareTo(varPtr2),
+        nextState(jstate),
+        cop(type),
+        ctype(VAR)
+
+{
+    if (varPtr1->getType() != Variable::Type::INT && varPtr1->getType() != Variable::Type::DOUBLE) throw "Cannot compare this var.";
+    var = varPtr1;
+    if (varPtr2->getType() != Variable::Type::INT && varPtr2->getType() != Variable::Type::DOUBLE) throw "Cannot compare this var.";
+}
+
+void JumpOnComparisonCommand::execute()
 {
     int data = (int)var->getData();
-
     switch (ctype)
     {
-        case GT:
-            changeState = data > compareTo;
+        case INT: case DOUBLE:
+        {
+            double compareTo = (double) compareTo;
+
+            switch (cop)
+            {
+                case GT:
+                    changeState = data > compareTo;
+                    break;
+                case GE:
+                    changeState = data >= compareTo;
+                    break;
+                case LT:
+                    changeState = data < compareTo;
+                    break;
+                case LE:
+                    changeState = data <= compareTo;
+                    break;
+                case EQ:
+                    changeState = data == compareTo;
+                    break;
+                case NEQ:
+                    changeState = data != compareTo;
+                    break;
+            }
             break;
-        case GE:
-            changeState = data >= compareTo;
+        }
+
+        case VAR:
+        {
+            shared_ptr<Variable> vptr = (shared_ptr<Variable>)compareTo;
+            double compareTo = (double) vptr->getData();
+
+            switch (cop)
+            {
+                case GT:
+                    changeState = data > compareTo;
+                    break;
+                case GE:
+                    changeState = data >= compareTo;
+                    break;
+                case LT:
+                    changeState = data < compareTo;
+                    break;
+                case LE:
+                    changeState = data <= compareTo;
+                    break;
+                case EQ:
+                    changeState = data == compareTo;
+                    break;
+                case NEQ:
+                    changeState = data != compareTo;
+                    break;
+            }
+
             break;
-        case LT:
-            changeState = data < compareTo;
-            break;
-        case LE:
-            changeState = data <= compareTo;
-            break;
-        case EQ:
-            changeState = data == compareTo;
-            break;
-        case NEQ:
-            changeState = data != compareTo;
-            break;
+        }
     }
+
+
 }

@@ -7,8 +7,8 @@ set(CMAKE_DEPENDS_CHECK_CXX
   "/home/abdul/CLionProjects/FSM/Command.cpp" "/home/abdul/CLionProjects/FSM/cmake-build-debug/CMakeFiles/FSM.dir/Command.cpp.o"
   "/home/abdul/CLionProjects/FSM/FSM.cpp" "/home/abdul/CLionProjects/FSM/cmake-build-debug/CMakeFiles/FSM.dir/FSM.cpp.o"
   "/home/abdul/CLionProjects/FSM/FSMParser.cpp" "/home/abdul/CLionProjects/FSM/cmake-build-debug/CMakeFiles/FSM.dir/FSMParser.cpp.o"
-  "/home/abdul/CLionProjects/FSM/ScopeManager.cpp" "/home/abdul/CLionProjects/FSM/cmake-build-debug/CMakeFiles/FSM.dir/ScopeManager.cpp.o"
   "/home/abdul/CLionProjects/FSM/State.cpp" "/home/abdul/CLionProjects/FSM/cmake-build-debug/CMakeFiles/FSM.dir/State.cpp.o"
+  "/home/abdul/CLionProjects/FSM/VariableManager.cpp" "/home/abdul/CLionProjects/FSM/cmake-build-debug/CMakeFiles/FSM.dir/VariableManager.cpp.o"
   "/home/abdul/CLionProjects/FSM/main.cpp" "/home/abdul/CLionProjects/FSM/cmake-build-debug/CMakeFiles/FSM.dir/main.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
