@@ -48,6 +48,7 @@ public:
     void execute();
 private:
     SideEffect effect;
+    int nextState;
 };
 
 
@@ -60,6 +61,19 @@ private:
     std::shared_ptr<Variable> var;
     SideEffect effect;
 };
+
+template <class T>
+class AssignVarCommand: public AbstractCommand
+{
+public:
+    AssignVarCommand(std::shared_ptr<Variable> varPtr, T value);
+    void execute();
+private:
+    std::shared_ptr<Variable> var;
+    SideEffect effect;
+    T val;
+};
+
 
 class JumpOnComparisonCommand: public AbstractCommand
 {
@@ -87,6 +101,7 @@ private:
     ComparingType ctype;
     SideEffect effect;
     JumpOnComparisonCommand::ComparisonOp cop;
+    int nextState;
 };
 
 

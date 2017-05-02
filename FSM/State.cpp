@@ -8,11 +8,11 @@ State::State(string str)
     name = str;
 }
 
-void State::run(VariableManager sm)
+void State::run()
 {
     for (shared_ptr<AbstractCommand> &command : instructions)
     {
-        command->execute(sm);
+        command->execute();
         if (command->changesState())
         {
             mnextState = command->getNextState();

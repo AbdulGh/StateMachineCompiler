@@ -13,11 +13,10 @@ FSM::FSM(vector<shared_ptr<State>> st)
 void FSM::run()
 {
     int currentStateNum = 0;
-    VariableManager sm;
     while (currentStateNum != -1)
     {
         auto& currentState = states.at(currentStateNum);
-        currentState->run(sm);
+        currentState->run();
         currentStateNum = currentState->nextState();
     }
 }

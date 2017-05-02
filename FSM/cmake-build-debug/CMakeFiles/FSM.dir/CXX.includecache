@@ -11,10 +11,12 @@ iostream
 -
 Command.h
 /home/abdul/CLionProjects/FSM/Command.h
+Variable.h
+/home/abdul/CLionProjects/FSM/Variable.h
 
 /home/abdul/CLionProjects/FSM/Command.h
-ScopeManager.h
-/home/abdul/CLionProjects/FSM/ScopeManager.h
+Variable.h
+/home/abdul/CLionProjects/FSM/Variable.h
 
 /home/abdul/CLionProjects/FSM/FSM.cpp
 iostream
@@ -49,22 +51,8 @@ memory
 -
 FSM.h
 /home/abdul/CLionProjects/FSM/FSM.h
-
-/home/abdul/CLionProjects/FSM/ScopeManager.cpp
-ScopeManager.h
-/home/abdul/CLionProjects/FSM/ScopeManager.h
-iostream
--
-
-/home/abdul/CLionProjects/FSM/ScopeManager.h
-forward_list
--
-unordered_map
--
-string
--
-memory
--
+Variable.h
+/home/abdul/CLionProjects/FSM/Variable.h
 
 /home/abdul/CLionProjects/FSM/State.cpp
 State.h
@@ -79,6 +67,16 @@ vector
 -
 Command.h
 /home/abdul/CLionProjects/FSM/Command.h
+
+/home/abdul/CLionProjects/FSM/Variable.h
+forward_list
+-
+unordered_map
+-
+string
+-
+memory
+-
 
 /home/abdul/CLionProjects/FSM/main.cpp
 iostream

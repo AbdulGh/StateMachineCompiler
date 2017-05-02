@@ -3,6 +3,8 @@
 #include "Command.h"
 #include "Variable.h"
 
+//todo refactor to use templates
+
 using namespace std;
 
 AbstractCommand::SideEffect AbstractCommand::getType() const
@@ -100,6 +102,18 @@ void InputVarCommand::execute()
     }
 }
 
+template <class T>
+AssignVarCommand<T>::AssignVarCommand(std::shared_ptr<Variable> varPtr, T value):
+    var(varPtr),
+    effect(SETVAR),
+    val(value) {}
+
+template <class T>
+void AssignVarCommand<T>::execute()
+{
+    var->setData(val);
+}
+
 //todo deal with strings
 /*JumpOnComparisonCommand*/
 JumpOnComparisonCommand::JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, int constInt, int jstate,
@@ -108,7 +122,7 @@ JumpOnComparisonCommand::JumpOnComparisonCommand(std::shared_ptr<Variable> varPt
     compareTo(constInt),
     nextState(jstate),
     cop(type),
-    ctype(INT)
+    ctype(JumpOnComparisonCommand::ComparingType::INT)
 
 {
     if (varPtr->getType() != Variable::Type::INT && varPtr->getType() != Variable::Type::DOUBLE) throw "Cannot compare this var.";
@@ -121,7 +135,7 @@ JumpOnComparisonCommand::JumpOnComparisonCommand(std::shared_ptr<Variable> varPt
         compareTo(constDouble),
         nextState(jstate),
         cop(type),
-        ctype(DOUBLE)
+        ctype(JumpOnComparisonCommand::ComparingType::DOUBLE)
 
 {
     if (varPtr->getType() != Variable::Type::INT && varPtr->getType() != Variable::Type::DOUBLE) throw "Cannot compare this var.";
@@ -134,7 +148,7 @@ JumpOnComparisonCommand::JumpOnComparisonCommand(std::shared_ptr<Variable> varPt
         compareTo(varPtr2),
         nextState(jstate),
         cop(type),
-        ctype(VAR)
+        ctype(JumpOnComparisonCommand::ComparingType::VAR)
 
 {
     if (varPtr1->getType() != Variable::Type::INT && varPtr1->getType() != Variable::Type::DOUBLE) throw "Cannot compare this var.";
@@ -201,10 +215,7 @@ void JumpOnComparisonCommand::execute()
                     changeState = data != compareTo;
                     break;
             }
-
             break;
         }
     }
-
-
 }
