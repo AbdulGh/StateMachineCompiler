@@ -2,6 +2,7 @@
 #define COMMAND_H
 
 #include "Variable.h"
+#include "Enums.h"
 
 class AbstractCommand
 {
@@ -51,7 +52,6 @@ private:
     int nextState;
 };
 
-
 class InputVarCommand: public AbstractCommand
 {
 public:
@@ -74,35 +74,18 @@ private:
     T val;
 };
 
-
+template <typename T>
 class JumpOnComparisonCommand: public AbstractCommand
 {
 public:
-    enum ComparisonOp{GT, GE, LT, LE, EQ, NEQ};
-    enum ComparingType{INT, DOUBLE, VAR};
-    JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, int constInt, int state, JumpOnComparisonCommand::ComparisonOp type);
-    JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, double constDouble, int state, JumpOnComparisonCommand::ComparisonOp type);
-    JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr1, std::shared_ptr<Variable> varPtr2, int state, JumpOnComparisonCommand::ComparisonOp type);
+    JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, T compareTo, int state, ComparisonOp type);
     void execute();
-
-    typedef union CT
-    {
-        int i;
-        double d;
-        std::shared_ptr<Variable> var;
-
-        CT(int in): i(in) {}
-        CT(double in): d(in) {}
-        CT(std::shared_ptr<Variable> in): var(in) {}
-    } CompareUnion;
 private:
     std::shared_ptr<Variable> var;
-    CompareUnion compareTo;
-    ComparingType ctype;
+    T compareTo;
     SideEffect effect;
-    JumpOnComparisonCommand::ComparisonOp cop;
+    ComparisonOp cop;
     int nextState;
 };
-
 
 #endif

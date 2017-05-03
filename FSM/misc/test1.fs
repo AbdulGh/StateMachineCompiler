@@ -10,7 +10,7 @@ counter = 5;
 print "Counter is now equal to ";
 printVar counter;
 print "\n";
-jumpIf counter > 4 two
+jumpIf counter > 4 two;
 end
 
 two

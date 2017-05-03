@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include "Command.h"
-#include "Variable.h"
 
 //todo refactor to use templates
 
@@ -45,13 +44,13 @@ void PrintVarCommand::execute()
 {
     switch(var->getType())
     {
-        case Variable::Type::STRING:
+        case Type::STRING:
             cout << (char*) var->getData();
             break;
-        case Variable::Type::INT:
+        case Type::INT:
             cout << (int) var->getData();
             break;
-        case Variable::Type::DOUBLE:
+        case Type::DOUBLE:
             cout << (double) var->getData();
             break;
     }
@@ -78,21 +77,21 @@ void InputVarCommand::execute()
 {
     switch(var->getType())
     {
-        case Variable::Type::STRING:
+        case Type::STRING:
         {
             string str;
             cin >> str;
             var->setData(str);
             break;
         }
-        case Variable::Type::INT:
+        case Type::INT:
         {
             int i;
             cin >> i;
             var->setData(i);
             break;
         }
-        case Variable::Type::DOUBLE:
+        case Type::DOUBLE:
         {
             int d;
             cin >> d;
@@ -104,9 +103,9 @@ void InputVarCommand::execute()
 
 template <class T>
 AssignVarCommand<T>::AssignVarCommand(std::shared_ptr<Variable> varPtr, T value):
-    var(varPtr),
-    effect(SETVAR),
-    val(value) {}
+        var(varPtr),
+        effect(SETVAR),
+        val(value) {}
 
 template <class T>
 void AssignVarCommand<T>::execute()
@@ -115,107 +114,80 @@ void AssignVarCommand<T>::execute()
 }
 
 //todo deal with strings
+
+//todo carry on refactoring this w/ templates(HERE)
 /*JumpOnComparisonCommand*/
-JumpOnComparisonCommand::JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, int constInt, int jstate,
-                                                           JumpOnComparisonCommand::ComparisonOp type):
-    effect(JUMP),
-    compareTo(constInt),
-    nextState(jstate),
-    cop(type),
-    ctype(JumpOnComparisonCommand::ComparingType::INT)
+template <typename T>
+JumpOnComparisonCommand<T>::JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, T compare, int jstate, ComparisonOp type):
+        effect(JUMP),
+        compareTo(compare),
+        nextState(jstate),
+        cop(type)
 
 {
-    if (varPtr->getType() != Variable::Type::INT && varPtr->getType() != Variable::Type::DOUBLE) throw "Cannot compare this var.";
+    if (varPtr->getType() != Type::INT && varPtr->getType() != Type::DOUBLE) throw "Cannot compare this var.";
     var = varPtr;
 }
 
-JumpOnComparisonCommand::JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, double constDouble, int jstate,
-                                                 JumpOnComparisonCommand::ComparisonOp type):
-        effect(JUMP),
-        compareTo(constDouble),
-        nextState(jstate),
-        cop(type),
-        ctype(JumpOnComparisonCommand::ComparingType::DOUBLE)
-
-{
-    if (varPtr->getType() != Variable::Type::INT && varPtr->getType() != Variable::Type::DOUBLE) throw "Cannot compare this var.";
-    var = varPtr;
-}
-
-JumpOnComparisonCommand::JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr1, std::shared_ptr<Variable> varPtr2, int jstate,
-                                                 JumpOnComparisonCommand::ComparisonOp type):
-        effect(JUMP),
-        compareTo(varPtr2),
-        nextState(jstate),
-        cop(type),
-        ctype(JumpOnComparisonCommand::ComparingType::VAR)
-
-{
-    if (varPtr1->getType() != Variable::Type::INT && varPtr1->getType() != Variable::Type::DOUBLE) throw "Cannot compare this var.";
-    var = varPtr1;
-    if (varPtr2->getType() != Variable::Type::INT && varPtr2->getType() != Variable::Type::DOUBLE) throw "Cannot compare this var.";
-}
-
-void JumpOnComparisonCommand::execute()
+template <typename T>
+void JumpOnComparisonCommand<T>::execute()
 {
     int data = (int)var->getData();
-    switch (ctype)
+    double RHS = (double) compareTo;
+
+    switch (cop)
     {
-        case INT: case DOUBLE:
-        {
-            double compareTo = (double) compareTo;
-
-            switch (cop)
-            {
-                case GT:
-                    changeState = data > compareTo;
-                    break;
-                case GE:
-                    changeState = data >= compareTo;
-                    break;
-                case LT:
-                    changeState = data < compareTo;
-                    break;
-                case LE:
-                    changeState = data <= compareTo;
-                    break;
-                case EQ:
-                    changeState = data == compareTo;
-                    break;
-                case NEQ:
-                    changeState = data != compareTo;
-                    break;
-            }
+        case GT:
+            changeState = data > RHS;
             break;
-        }
-
-        case VAR:
-        {
-            shared_ptr<Variable> vptr = (shared_ptr<Variable>)compareTo;
-            double compareTo = (double) vptr->getData();
-
-            switch (cop)
-            {
-                case GT:
-                    changeState = data > compareTo;
-                    break;
-                case GE:
-                    changeState = data >= compareTo;
-                    break;
-                case LT:
-                    changeState = data < compareTo;
-                    break;
-                case LE:
-                    changeState = data <= compareTo;
-                    break;
-                case EQ:
-                    changeState = data == compareTo;
-                    break;
-                case NEQ:
-                    changeState = data != compareTo;
-                    break;
-            }
+        case GE:
+            changeState = data >= RHS;
             break;
-        }
+        case LT:
+            changeState = data < RHS;
+            break;
+        case LE:
+            changeState = data <= RHS;
+            break;
+        case EQ:
+            changeState = data == RHS;
+            break;
+        case NEQ:
+            changeState = data != RHS;
+            break;
     }
 }
+
+template<>
+void JumpOnComparisonCommand<std::shared_ptr<Variable>>::execute()
+{
+    double data = (double) var->getData();
+    double RHS = compareTo->getData();
+
+    switch (cop)
+    {
+        case GT:
+            changeState = data > RHS;
+            break;
+        case GE:
+            changeState = data >= RHS;
+            break;
+        case LT:
+            changeState = data < RHS;
+            break;
+        case LE:
+            changeState = data <= RHS;
+            break;
+        case EQ:
+            changeState = data == RHS;
+            break;
+        case NEQ:
+            changeState = data != RHS;
+            break;
+    }
+}
+
+template class JumpOnComparisonCommand<double>;
+template class JumpOnComparisonCommand<std::shared_ptr<Variable>>;
+template class AssignVarCommand<double>;
+template class AssignVarCommand<std::shared_ptr<Variable>>;

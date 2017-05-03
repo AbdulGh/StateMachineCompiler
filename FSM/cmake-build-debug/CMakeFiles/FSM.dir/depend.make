@@ -3,15 +3,18 @@
 
 CMakeFiles/FSM.dir/Command.cpp.o: ../Command.cpp
 CMakeFiles/FSM.dir/Command.cpp.o: ../Command.h
+CMakeFiles/FSM.dir/Command.cpp.o: ../Enums.h
 CMakeFiles/FSM.dir/Command.cpp.o: ../Variable.h
 
 CMakeFiles/FSM.dir/FSM.cpp.o: ../Command.h
+CMakeFiles/FSM.dir/FSM.cpp.o: ../Enums.h
 CMakeFiles/FSM.dir/FSM.cpp.o: ../FSM.cpp
 CMakeFiles/FSM.dir/FSM.cpp.o: ../FSM.h
 CMakeFiles/FSM.dir/FSM.cpp.o: ../State.h
 CMakeFiles/FSM.dir/FSM.cpp.o: ../Variable.h
 
 CMakeFiles/FSM.dir/FSMParser.cpp.o: ../Command.h
+CMakeFiles/FSM.dir/FSMParser.cpp.o: ../Enums.h
 CMakeFiles/FSM.dir/FSMParser.cpp.o: ../FSM.h
 CMakeFiles/FSM.dir/FSMParser.cpp.o: ../FSMParser.cpp
 CMakeFiles/FSM.dir/FSMParser.cpp.o: ../FSMParser.h
@@ -19,11 +22,13 @@ CMakeFiles/FSM.dir/FSMParser.cpp.o: ../State.h
 CMakeFiles/FSM.dir/FSMParser.cpp.o: ../Variable.h
 
 CMakeFiles/FSM.dir/State.cpp.o: ../Command.h
+CMakeFiles/FSM.dir/State.cpp.o: ../Enums.h
 CMakeFiles/FSM.dir/State.cpp.o: ../State.cpp
 CMakeFiles/FSM.dir/State.cpp.o: ../State.h
 CMakeFiles/FSM.dir/State.cpp.o: ../Variable.h
 
 CMakeFiles/FSM.dir/main.cpp.o: ../Command.h
+CMakeFiles/FSM.dir/main.cpp.o: ../Enums.h
 CMakeFiles/FSM.dir/main.cpp.o: ../FSM.h
 CMakeFiles/FSM.dir/main.cpp.o: ../FSMParser.h
 CMakeFiles/FSM.dir/main.cpp.o: ../State.h
