@@ -1,4 +1,4 @@
-int counter;
+double counter;
 
 states
 
@@ -11,6 +11,7 @@ print "Counter is now equal to ";
 printVar counter;
 print "\n";
 jumpIf counter > 4 two;
+print "Didn't work\n";
 end
 
 two

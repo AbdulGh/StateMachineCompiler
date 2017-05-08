@@ -2,8 +2,6 @@
 
 #include "Command.h"
 
-//todo refactor to use templates
-
 using namespace std;
 
 AbstractCommand::SideEffect AbstractCommand::getType() const
@@ -134,25 +132,26 @@ void JumpOnComparisonCommand<T>::execute()
 {
     int data = (int)var->getData();
     double RHS = (double) compareTo;
+    ComparisonOp meme = cop;
 
     switch (cop)
     {
-        case GT:
+        case ComparisonOp::GT:
             changeState = data > RHS;
             break;
-        case GE:
+        case ComparisonOp::GE:
             changeState = data >= RHS;
             break;
-        case LT:
+        case ComparisonOp::LT:
             changeState = data < RHS;
             break;
-        case LE:
+        case ComparisonOp::LE:
             changeState = data <= RHS;
             break;
-        case EQ:
+        case ComparisonOp::EQ:
             changeState = data == RHS;
             break;
-        case NEQ:
+        case ComparisonOp::NEQ:
             changeState = data != RHS;
             break;
     }
