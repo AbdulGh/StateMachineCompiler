@@ -9,6 +9,8 @@
 /home/abdul/CLionProjects/FSM/Command.cpp
 iostream
 -
+math.h
+-
 Command.h
 /home/abdul/CLionProjects/FSM/Command.h
 
@@ -59,8 +61,8 @@ Variable.h
 /home/abdul/CLionProjects/FSM/State.cpp
 State.h
 /home/abdul/CLionProjects/FSM/State.h
-Command.h
-/home/abdul/CLionProjects/FSM/Command.h
+iostream
+-
 
 /home/abdul/CLionProjects/FSM/State.h
 string

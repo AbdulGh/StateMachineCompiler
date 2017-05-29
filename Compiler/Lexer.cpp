@@ -7,6 +7,7 @@ Lexer::Lexer(string str)
     infile.open(str);
     if (!infile.good()) throw runtime_error("Could not open filename '" + str + "' for lexing.");
     initResWords();
+    currentLine = 0;
 }
 
 Lexer::~Lexer()
@@ -27,16 +28,24 @@ void Lexer::initResWords()
     resWords["even"] = Token(RETURN);
     resWords["input"] = Token(INPUT);
     resWords["print"] = Token(PRINT);
+    resWords["endif"] = Token(ENDIF);
+    resWords["done"] = Token(DONE);
 }
 
 Token Lexer::getNextToken()
 {
     if (infile.eof()) return Token(END);
 
+    this->lastPos = infile.tellg();
+
     char c;
     infile.get(c);
 
-    while (isspace(c) && !infile.eof()) infile.get(c);
+    while (isspace(c) && !infile.eof())
+    {
+        if (c == '\n') currentLine++;
+        infile.get(c);
+    }
 
     switch(c)
     {
@@ -50,6 +59,7 @@ Token Lexer::getNextToken()
         case '-': return Token(MINUS);
         case '/': return Token(DIV);
         case '*': return Token(MULT);
+        case '%': return Token(MOD);
         case '=':
             infile.get(c);
             if (c == '=') return Token(EQ);
@@ -82,6 +92,8 @@ Token Lexer::getNextToken()
                 infile.unget();
                 return Token(NOT);
             }
+        case ',':
+            return Token(COMMA);
         default:
             string str = "";
             while (!isspace(c))
@@ -89,8 +101,20 @@ Token Lexer::getNextToken()
                 str += c;
                 infile.get(c);
             }
+            if (c == '\n') currentLine++;
             unordered_map<string, Token>::const_iterator found = resWords.find(str);
             if (found == resWords.end()) return Token(IDENT);
             else return found->second;
     }
+}
+
+void Lexer::unget()
+{
+    infile.seekg(lastPos);
+    //todo fix line counter
+}
+
+int Lexer::getLine()
+{
+    return currentLine;
 }

@@ -88,6 +88,12 @@
 		<Unit filename="/home/abdul/CLionProjects/Compiler/Lexer.h">
 			<Option target="Project"/>
 		</Unit>
+		<Unit filename="/home/abdul/CLionProjects/Compiler/Parser.cpp">
+			<Option target="Project"/>
+		</Unit>
+		<Unit filename="/home/abdul/CLionProjects/Compiler/Parser.h">
+			<Option target="Project"/>
+		</Unit>
 		<Unit filename="/home/abdul/CLionProjects/Compiler/SymbolTable.cpp">
 			<Option target="Project"/>
 		</Unit>

@@ -4,10 +4,10 @@
 #include <string>
 
 enum Type {IDENT, OP, RELOP, LBRACE, RBRACE,
-            LPAREN, RPAREN, IF, WHILE,
-            SEMIC, FUNCTION, DTYPE, CALL,
+            LPAREN, RPAREN, IF, WHILE, DO,
+            SEMIC, FUNCTION, DTYPE, CALL, THEN,
             RETURN, EVEN, ASSIGN, END, QUOTE,
-            INPUT, PRINT, NOT};
+            INPUT, PRINT, NOT, ENDIF, DONE, COMMA};
 
 extern std::string TypeEnumNames[];
 
@@ -15,7 +15,7 @@ enum VariableType {INT, DOUBLE, STRING};
 
 enum Relop {EQ, NE, LT, LE, GT, GE};
 
-enum Op {PLUS, MINUS, MULT, DIV};
+enum Op {PLUS, MINUS, MULT, DIV, MOD};
 
 class Token
 {

@@ -4,16 +4,16 @@ states
 
 one
 print "Counter is equal to ";
-printVar counter;
+printvar counter;
 print "\n";
 counter = 5;
 print "Counter is now equal to ";
-printVar counter;
+printvar counter;
 print "\n";
-jumpIf counter > 4 two;
+jumpif counter > 4 two;
 print "Didn't work\n";
 end
 
 two
-print "Holy moly it works";
+print "Holy moly it works\n";
 end

@@ -7,39 +7,32 @@
 class AbstractCommand
 {
 public:
-    enum SideEffect{PRINT, INPUT, JUMP, SETVAR};
+    //enum SideEffect{PRINT, INPUT, JUMP, SETVAR};
 
-    SideEffect getType() const;
+    //SideEffect getType() const;
     int getNextState() const;
     bool changesState() const;
 
     virtual void execute() = 0;
 
-protected:
+private:
     int nextState = -1;
     bool changeState = false;
-    SideEffect effect;
+    //SideEffect effect;
+
+protected:
+    void setState(int);
+    void setChangeState(bool);
 };
 
-class PrintConstCommand: public AbstractCommand
+template <class T>
+class PrintCommand: public AbstractCommand
 {
 public:
-    PrintConstCommand(std::string);
+    PrintCommand(T);
     void execute();
 private:
-    std::string str;
-    SideEffect effect;
-};
-
-class PrintVarCommand: public AbstractCommand
-{
-public:
-    PrintVarCommand(std::shared_ptr<Variable> varPtr);
-    void execute();
-private:
-    std::shared_ptr<Variable> var;
-    SideEffect effect;
-
+    T toPrint;
 };
 
 class JumpCommand: public AbstractCommand
@@ -47,9 +40,6 @@ class JumpCommand: public AbstractCommand
 public:
     JumpCommand(int);
     void execute();
-private:
-    SideEffect effect;
-    int nextState;
 };
 
 class InputVarCommand: public AbstractCommand
@@ -59,7 +49,6 @@ public:
     void execute();
 private:
     std::shared_ptr<Variable> var;
-    SideEffect effect;
 };
 
 template <class T>
@@ -70,8 +59,21 @@ public:
     void execute();
 private:
     std::shared_ptr<Variable> var;
-    SideEffect effect;
     T val;
+};
+
+template <class T>
+class EvaluateExprCommand: public AbstractCommand
+{
+public:
+    EvaluateExprCommand(std::shared_ptr<Variable> varPtr, std::shared_ptr<Variable> RHSVar, T b, ExpressionType t);
+    void execute();
+private:
+    void evaluate(double one, double two);
+    std::shared_ptr<Variable> var;
+    ExpressionType type;
+    std::shared_ptr<Variable> term1;
+    T term2;
 };
 
 template <typename T>
@@ -81,11 +83,10 @@ public:
     JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, T compareTo, int state, ComparisonOp type);
     void execute();
 private:
+    void evaluate(double RHS);
     std::shared_ptr<Variable> var;
     T compareTo;
-    SideEffect effect;
     ComparisonOp cop;
-    int nextState;
 };
 
 #endif

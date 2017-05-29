@@ -3,6 +3,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/Project.dir/SymbolTable.cpp.o"
   "CMakeFiles/Project.dir/Lexer.cpp.o"
   "CMakeFiles/Project.dir/Token.cpp.o"
+  "CMakeFiles/Project.dir/Parser.cpp.o"
   "Project.pdb"
   "Project"
 )

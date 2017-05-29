@@ -1,13 +1,9 @@
 #include <iostream>
+#include <math.h>
 
 #include "Command.h"
 
 using namespace std;
-
-AbstractCommand::SideEffect AbstractCommand::getType() const
-{
-    return effect;
-}
 
 int AbstractCommand::getNextState() const
 {
@@ -19,47 +15,51 @@ bool AbstractCommand::changesState() const
     return changeState;
 }
 
-/*PrintConstCommand*/
-PrintConstCommand::PrintConstCommand(string istr)
+void AbstractCommand::setState(int i)
 {
-    str = istr;
-    effect = PRINT;
+    nextState = i;
 }
 
-void PrintConstCommand::execute()
+void AbstractCommand::setChangeState(bool b)
 {
-    cout << str;
+    changeState = b;
 }
 
-/*PrintVarCommand*/
-PrintVarCommand::PrintVarCommand(std::shared_ptr<Variable> varPtr)
+/*PrintCommand*/
+template <class T>
+PrintCommand<T>::PrintCommand(T toPrint)
 {
-    var = varPtr;
-    effect = PRINT;
+    this->toPrint = toPrint;
 }
 
-void PrintVarCommand::execute()
+template<>
+void PrintCommand<std::shared_ptr<Variable>>::execute()
 {
-    switch(var->getType())
+    switch(toPrint->getType())
     {
         case Type::STRING:
-            cout << (char*) var->getData();
+            cout << (char*) toPrint->getData();
             break;
         case Type::INT:
-            cout << (int) var->getData();
+            cout << (int) toPrint->getData();
             break;
         case Type::DOUBLE:
-            cout << (double) var->getData();
+            cout << (double) toPrint->getData();
             break;
     }
+}
+
+template <class T>
+void PrintCommand<T>::execute()
+{
+    cout << toPrint;
 }
 
 /*JumpCommand*/
 JumpCommand::JumpCommand(int state)
 {
-    effect = JUMP;
-    changeState = true;
-    nextState = state;
+    setState(state);
+    setChangeState(true);
 }
 
 void JumpCommand::execute(){}
@@ -67,9 +67,7 @@ void JumpCommand::execute(){}
 
 /*InputVarCommand*/
 InputVarCommand::InputVarCommand(std::shared_ptr<Variable> varPtr):
-        var(varPtr),
-        effect(INPUT)
-{}
+        var(varPtr) {}
 
 void InputVarCommand::execute()
 {
@@ -99,10 +97,10 @@ void InputVarCommand::execute()
     }
 }
 
+/*AssignVarCommand*/
 template <class T>
 AssignVarCommand<T>::AssignVarCommand(std::shared_ptr<Variable> varPtr, T value):
         var(varPtr),
-        effect(SETVAR),
         val(value) {}
 
 template <class T>
@@ -111,48 +109,95 @@ void AssignVarCommand<T>::execute()
     var->setData(val);
 }
 
-//todo deal with strings
+/*EvaluateExprCommand*/
+//todo check types
+template <class T>
+EvaluateExprCommand<T>::EvaluateExprCommand(std::shared_ptr<Variable> varPtr, std::shared_ptr<Variable> LHSVar, T b, ExpressionType t):
+    var(varPtr),
+    term1(LHSVar),
+    term2(b),
+    type(t) {}
 
-//todo carry on refactoring this w/ templates(HERE)
+
+template <class T>
+void EvaluateExprCommand<T>::evaluate(double one, double two)
+{
+    switch(type)
+    {
+        case MUL:
+            var->setData(one * two);
+            break;
+        case DIV:
+            var->setData(one / two);
+            break;
+        case PLUS:
+            var->setData(one + two);
+            break;
+        case MINUS:
+            var->setData(one - two);
+            break;
+        case MOD:
+            var->setData(fmod(one, two));
+            break;
+        case POW:
+            var->setData(pow(one, two));
+            break;
+        case AND:
+            var->setData((int)one & (int)two);
+            break;
+        case OR:
+            var->setData((int)one | (int)two);
+            break;
+    }
+}
+
+template <>
+void EvaluateExprCommand<std::shared_ptr<Variable>>::execute()
+{
+    double d1 = (double) term1->getData();
+    double d2 = (double) term2->getData();
+    evaluate(d1, d2);
+}
+
+template <>
+void EvaluateExprCommand<double>::execute()
+{
+    double d1 = (double) term1->getData();
+    evaluate(d1, term2);
+}
+
+//todo deal with strings
 /*JumpOnComparisonCommand*/
 template <typename T>
 JumpOnComparisonCommand<T>::JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, T compare, int jstate, ComparisonOp type):
-        effect(JUMP),
         compareTo(compare),
-        nextState(jstate),
-        cop(type)
-
-{
-    if (varPtr->getType() != Type::INT && varPtr->getType() != Type::DOUBLE) throw "Cannot compare this var.";
-    var = varPtr;
-}
+        cop(type),
+        var(varPtr) {setState(jstate);}
 
 template <typename T>
-void JumpOnComparisonCommand<T>::execute()
+void JumpOnComparisonCommand<T>::evaluate(double RHS)
 {
-    int data = (int)var->getData();
-    double RHS = (double) compareTo;
-    ComparisonOp meme = cop;
+    double data = (double) var->getData();
 
     switch (cop)
     {
-        case ComparisonOp::GT:
-            changeState = data > RHS;
+        case GT:
+            setChangeState(data > RHS);
             break;
-        case ComparisonOp::GE:
-            changeState = data >= RHS;
+        case GE:
+            setChangeState(data >= RHS);
             break;
-        case ComparisonOp::LT:
-            changeState = data < RHS;
+        case LT:
+            setChangeState(data < RHS);
             break;
-        case ComparisonOp::LE:
-            changeState = data <= RHS;
+        case LE:
+            setChangeState(data <= RHS);
             break;
-        case ComparisonOp::EQ:
-            changeState = data == RHS;
+        case EQ:
+            setChangeState(data == RHS);
             break;
-        case ComparisonOp::NEQ:
-            changeState = data != RHS;
+        case NEQ:
+            setChangeState(data != RHS);
             break;
     }
 }
@@ -160,33 +205,20 @@ void JumpOnComparisonCommand<T>::execute()
 template<>
 void JumpOnComparisonCommand<std::shared_ptr<Variable>>::execute()
 {
-    double data = (double) var->getData();
-    double RHS = compareTo->getData();
+    evaluate(compareTo->getData());
+}
 
-    switch (cop)
-    {
-        case GT:
-            changeState = data > RHS;
-            break;
-        case GE:
-            changeState = data >= RHS;
-            break;
-        case LT:
-            changeState = data < RHS;
-            break;
-        case LE:
-            changeState = data <= RHS;
-            break;
-        case EQ:
-            changeState = data == RHS;
-            break;
-        case NEQ:
-            changeState = data != RHS;
-            break;
-    }
+template <typename T>
+void JumpOnComparisonCommand<T>::execute()
+{
+    evaluate((double) compareTo);
 }
 
 template class JumpOnComparisonCommand<double>;
 template class JumpOnComparisonCommand<std::shared_ptr<Variable>>;
 template class AssignVarCommand<double>;
 template class AssignVarCommand<std::shared_ptr<Variable>>;
+template class EvaluateExprCommand<std::shared_ptr<Variable>>;
+template class EvaluateExprCommand<double>;
+template class PrintCommand<string>;
+template class PrintCommand<std::shared_ptr<Variable>>;
