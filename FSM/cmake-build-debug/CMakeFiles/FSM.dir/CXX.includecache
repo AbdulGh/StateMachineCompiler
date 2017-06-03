@@ -17,6 +17,8 @@ Command.h
 /home/abdul/CLionProjects/FSM/Command.h
 Variable.h
 /home/abdul/CLionProjects/FSM/Variable.h
+State.h
+/home/abdul/CLionProjects/FSM/State.h
 Enums.h
 /home/abdul/CLionProjects/FSM/Enums.h
 
@@ -25,26 +27,28 @@ Enums.h
 /home/abdul/CLionProjects/FSM/FSM.cpp
 iostream
 -
-fstream
--
-unordered_map
--
 memory
 -
 FSM.h
 /home/abdul/CLionProjects/FSM/FSM.h
+State.h
+/home/abdul/CLionProjects/FSM/State.h
 
 /home/abdul/CLionProjects/FSM/FSM.h
 vector
 -
 string
 -
-State.h
-/home/abdul/CLionProjects/FSM/State.h
+stack
+-
+Variable.h
+/home/abdul/CLionProjects/FSM/Variable.h
 
 /home/abdul/CLionProjects/FSM/FSMParser.cpp
 FSMParser.h
 /home/abdul/CLionProjects/FSM/FSMParser.h
+Command.h
+/home/abdul/CLionProjects/FSM/Command.h
 
 /home/abdul/CLionProjects/FSM/FSMParser.h
 fstream
@@ -59,18 +63,22 @@ Variable.h
 /home/abdul/CLionProjects/FSM/Variable.h
 
 /home/abdul/CLionProjects/FSM/State.cpp
-State.h
-/home/abdul/CLionProjects/FSM/State.h
 iostream
 -
+State.h
+/home/abdul/CLionProjects/FSM/State.h
+FSM.h
+/home/abdul/CLionProjects/FSM/FSM.h
+Command.h
+/home/abdul/CLionProjects/FSM/Command.h
 
 /home/abdul/CLionProjects/FSM/State.h
 string
 -
 vector
 -
-Command.h
-/home/abdul/CLionProjects/FSM/Command.h
+memory
+-
 
 /home/abdul/CLionProjects/FSM/Variable.h
 forward_list

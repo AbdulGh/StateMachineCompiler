@@ -1,12 +1,15 @@
-#include "State.h"
 #include <iostream>
+
+#include "State.h"
+#include "FSM.h"
+#include "Command.h"
 
 using namespace std;
 
-State::State(string str)
-{
-    name = str;
-}
+class FSM;
+State::State(string str, FSM& owner):
+    parent(owner),
+    name(str) {}
 
 void State::run()
 {

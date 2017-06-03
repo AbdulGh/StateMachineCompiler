@@ -1,15 +1,16 @@
 #include <iostream>
-#include <fstream>
-#include <unordered_map>
 #include <memory>
+
 #include "FSM.h"
+#include "State.h"
 
 using namespace std;
 
-FSM::FSM(vector<shared_ptr<State>> st)
+void FSM::setStates(vector<shared_ptr<State>> st)
 {
     this->states = st;
 }
+
 void FSM::run()
 {
     int currentStateNum = 0;

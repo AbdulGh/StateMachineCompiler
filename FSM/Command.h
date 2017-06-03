@@ -2,6 +2,7 @@
 #define COMMAND_H
 
 #include "Variable.h"
+#include "State.h"
 #include "Enums.h"
 
 class AbstractCommand

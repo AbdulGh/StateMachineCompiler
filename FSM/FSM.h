@@ -3,17 +3,23 @@
 
 #include <vector>
 #include <string>
+#include <stack>
 
-#include "State.h"
+#include "Variable.h"
 
+
+class State;
 class FSM
 {
 private:
     int state;
     std::vector<std::shared_ptr<State>> states;
+    std::stack<std::shared_ptr<Variable>> sharedStack;
+    friend class State;
 
 public:
-    FSM(std::vector<std::shared_ptr<State>> st);
+    void setStates(std::vector<std::shared_ptr<State>>);
+
     void run();
 };
 
