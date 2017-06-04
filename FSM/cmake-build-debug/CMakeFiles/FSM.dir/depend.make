@@ -4,6 +4,7 @@
 CMakeFiles/FSM.dir/Command.cpp.o: ../Command.cpp
 CMakeFiles/FSM.dir/Command.cpp.o: ../Command.h
 CMakeFiles/FSM.dir/Command.cpp.o: ../Enums.h
+CMakeFiles/FSM.dir/Command.cpp.o: ../FSM.h
 CMakeFiles/FSM.dir/Command.cpp.o: ../State.h
 CMakeFiles/FSM.dir/Command.cpp.o: ../Variable.h
 

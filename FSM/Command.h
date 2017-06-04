@@ -1,6 +1,8 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
+#include <stack>
+
 #include "Variable.h"
 #include "State.h"
 #include "Enums.h"
@@ -51,6 +53,27 @@ public:
 private:
     std::shared_ptr<Variable> var;
 };
+
+/*todo implement these two
+class PushVarCommand: public AbstractCommand
+{
+public:
+    PushVarCommand(std::shared_ptr<Variable> varPtr, FSM& stackOwner);
+    void execute();
+private:
+    std::shared_ptr<Variable> var;
+    std::stack pushTo;
+};
+
+class PopVarCommand: public AbstractCommand
+{
+public:
+    PopVarCommand(std::shared_ptr<Variable> varPtr, FSM& stackOwner);
+    void execute();
+private:
+    std::shared_ptr<Variable> var;
+    std::stack popFrom;
+};*/
 
 template <class T>
 class AssignVarCommand: public AbstractCommand

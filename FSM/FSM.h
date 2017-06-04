@@ -9,14 +9,18 @@
 
 
 class State;
+class PushVarCommand;
+class PopVarCommand;
+
 class FSM
 {
+    friend class State;
+    friend class PushVarCommand;
+    friend class PopVarCommand;
 private:
     int state;
     std::vector<std::shared_ptr<State>> states;
     std::stack<std::shared_ptr<Variable>> sharedStack;
-    friend class State;
-
 public:
     void setStates(std::vector<std::shared_ptr<State>>);
 

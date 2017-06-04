@@ -13,8 +13,12 @@ math.h
 -
 Command.h
 /home/abdul/CLionProjects/FSM/Command.h
+FSM.h
+/home/abdul/CLionProjects/FSM/FSM.h
 
 /home/abdul/CLionProjects/FSM/Command.h
+stack
+-
 Variable.h
 /home/abdul/CLionProjects/FSM/Variable.h
 State.h

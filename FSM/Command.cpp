@@ -2,6 +2,7 @@
 #include <math.h>
 
 #include "Command.h"
+#include "FSM.h"
 
 using namespace std;
 
@@ -64,7 +65,6 @@ JumpCommand::JumpCommand(int state)
 
 void JumpCommand::execute(){}
 
-
 /*InputVarCommand*/
 InputVarCommand::InputVarCommand(std::shared_ptr<Variable> varPtr):
         var(varPtr) {}
@@ -96,6 +96,29 @@ void InputVarCommand::execute()
         }
     }
 }
+
+/*PushVarCommand
+PushVarCommand::PushVarCommand(std::shared_ptr<Variable> varPtr, FSM &stackOwner):
+    var(varPtr),
+    pushTo(stackOwner.sharedStack)
+{}
+
+void PushVarCommand::execute()
+{
+    pushTo.push(var);
+}
+
+/*PopVarCommand
+PopVarCommand::PopVarCommand(std::shared_ptr<Variable> varPtr, FSM &stackOwner):
+        var(varPtr),
+        popFrom(stackOwner.sharedStack)
+{}
+
+void PopVarCommand::execute()
+{
+    //var->setData(popFrom.pop());
+}*/
+
 
 /*AssignVarCommand*/
 template <class T>
@@ -151,6 +174,7 @@ void EvaluateExprCommand<T>::evaluate(double one, double two)
     }
 }
 
+/*EvaluateExprCommand*/
 template <>
 void EvaluateExprCommand<std::shared_ptr<Variable>>::execute()
 {
