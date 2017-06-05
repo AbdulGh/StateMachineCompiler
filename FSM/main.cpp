@@ -4,7 +4,7 @@
 #include "FSMParser.h"
 int main()
 {
-    FSM test = FSMParser("../misc/test2.fs").readFSM();
+    FSM test = FSMParser("../misc/stacktest.fs").readFSM();
     test.run();
     return 0;
 }

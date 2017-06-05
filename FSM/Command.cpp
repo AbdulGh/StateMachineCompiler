@@ -39,7 +39,7 @@ void PrintCommand<std::shared_ptr<Variable>>::execute()
     switch(toPrint->getType())
     {
         case Type::STRING:
-            cout << (char*) toPrint->getData();
+            cout << (std::string) *(toPrint->getData());
             break;
         case Type::INT:
             cout << (int) toPrint->getData();
@@ -97,28 +97,36 @@ void InputVarCommand::execute()
     }
 }
 
-/*PushVarCommand
-PushVarCommand::PushVarCommand(std::shared_ptr<Variable> varPtr, FSM &stackOwner):
-    var(varPtr),
-    pushTo(stackOwner.sharedStack)
+/*PushCommand*/
+template <class T>
+PushCommand<T>::PushCommand(T in, FSM &stackOwner):
+    var(in),
+    pushTo(&stackOwner.sharedStack)
 {}
 
-void PushVarCommand::execute()
+template<>
+void PushCommand<std::shared_ptr<Variable>>::execute()
 {
-    pushTo.push(var);
+    pushTo->push(var->getTaggedDataUnion());
 }
 
-/*PopVarCommand
-PopVarCommand::PopVarCommand(std::shared_ptr<Variable> varPtr, FSM &stackOwner):
+template<class T>
+void PushCommand<T>::execute()
+{
+    pushTo->push(Variable::TaggedDataUnion(var));
+}
+
+/*PopCommand*/
+PopCommand::PopCommand(std::shared_ptr<Variable> varPtr, FSM &stackOwner):
         var(varPtr),
-        popFrom(stackOwner.sharedStack)
+        popFrom(&stackOwner.sharedStack)
 {}
 
-void PopVarCommand::execute()
+void PopCommand::execute()
 {
-    //var->setData(popFrom.pop());
-}*/
-
+    var->setData(popFrom->top());
+    popFrom->pop();
+}
 
 /*AssignVarCommand*/
 template <class T>
@@ -140,7 +148,6 @@ EvaluateExprCommand<T>::EvaluateExprCommand(std::shared_ptr<Variable> varPtr, st
     term1(LHSVar),
     term2(b),
     type(t) {}
-
 
 template <class T>
 void EvaluateExprCommand<T>::evaluate(double one, double two)
@@ -198,10 +205,39 @@ JumpOnComparisonCommand<T>::JumpOnComparisonCommand(std::shared_ptr<Variable> va
         cop(type),
         var(varPtr) {setState(jstate);}
 
-template <typename T>
+template <class T>
 void JumpOnComparisonCommand<T>::evaluate(double RHS)
 {
-    double data = (double) var->getData();
+    double data = var->getData();
+
+    switch (cop)
+    {
+        case GT:
+            setChangeState(data > RHS);
+            break;
+        case GE:
+            setChangeState(data >= RHS);
+            break;
+        case LT:
+            setChangeState(data < RHS);
+            break;
+        case LE:
+            setChangeState(data <= RHS);
+            break;
+        case EQ:
+            setChangeState(data == RHS);
+            break;
+        case NEQ:
+            setChangeState(data != RHS);
+            break;
+    }
+}
+
+template <class T>
+void JumpOnComparisonCommand<T>::evaluate(string RHS)
+{
+    string* dataP = var->getData();
+    string data = *dataP;
 
     switch (cop)
     {
@@ -229,20 +265,38 @@ void JumpOnComparisonCommand<T>::evaluate(double RHS)
 template<>
 void JumpOnComparisonCommand<std::shared_ptr<Variable>>::execute()
 {
-    evaluate(compareTo->getData());
+    if (compareTo->getType() == STRING)
+    {
+        string* p = compareTo->getData();
+        evaluate(*p);
+    }
+    else if (compareTo->getType() == DOUBLE) evaluate((double)compareTo->getData());
+    else throw runtime_error("Weird data type");
 }
 
-template <typename T>
-void JumpOnComparisonCommand<T>::execute()
+template <>
+void JumpOnComparisonCommand<double>::execute()
 {
-    evaluate((double) compareTo);
+    evaluate(compareTo);
 }
 
+template <>
+void JumpOnComparisonCommand<string>::execute()
+{
+    evaluate(compareTo);
+}
+
+//todo test strings
 template class JumpOnComparisonCommand<double>;
+template class JumpOnComparisonCommand<string>;
 template class JumpOnComparisonCommand<std::shared_ptr<Variable>>;
 template class AssignVarCommand<double>;
+template class AssignVarCommand<string>;
 template class AssignVarCommand<std::shared_ptr<Variable>>;
 template class EvaluateExprCommand<std::shared_ptr<Variable>>;
 template class EvaluateExprCommand<double>;
 template class PrintCommand<string>;
 template class PrintCommand<std::shared_ptr<Variable>>;
+template class PushCommand<double>;
+template class PushCommand<string>;
+template class PushCommand<std::shared_ptr<Variable>>;

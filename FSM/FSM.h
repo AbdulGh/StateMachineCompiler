@@ -9,18 +9,18 @@
 
 
 class State;
-class PushVarCommand;
-class PopVarCommand;
+template<class T> class PushCommand;
+class PopCommand;
 
 class FSM
 {
     friend class State;
-    friend class PushVarCommand;
-    friend class PopVarCommand;
+    template<class T> friend class PushCommand;
+    friend class PopCommand;
 private:
     int state;
     std::vector<std::shared_ptr<State>> states;
-    std::stack<std::shared_ptr<Variable>> sharedStack;
+    std::stack<Variable::TaggedDataUnion> sharedStack;
 public:
     void setStates(std::vector<std::shared_ptr<State>>);
 

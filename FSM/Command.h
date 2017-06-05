@@ -54,26 +54,26 @@ private:
     std::shared_ptr<Variable> var;
 };
 
-/*todo implement these two
-class PushVarCommand: public AbstractCommand
+template <class T>
+class PushCommand: public AbstractCommand
 {
 public:
-    PushVarCommand(std::shared_ptr<Variable> varPtr, FSM& stackOwner);
+    PushCommand(T in, FSM& stackOwner);
     void execute();
 private:
-    std::shared_ptr<Variable> var;
-    std::stack pushTo;
+    T var;
+    std::stack<Variable::TaggedDataUnion>* pushTo;
 };
 
-class PopVarCommand: public AbstractCommand
+class PopCommand: public AbstractCommand
 {
 public:
-    PopVarCommand(std::shared_ptr<Variable> varPtr, FSM& stackOwner);
+    PopCommand(std::shared_ptr<Variable> varPtr, FSM& stackOwner);
     void execute();
 private:
     std::shared_ptr<Variable> var;
-    std::stack popFrom;
-};*/
+    std::stack<Variable::TaggedDataUnion>* popFrom;
+};
 
 template <class T>
 class AssignVarCommand: public AbstractCommand
@@ -108,6 +108,7 @@ public:
     void execute();
 private:
     void evaluate(double RHS);
+    void evaluate(std::string RHS);
     std::shared_ptr<Variable> var;
     T compareTo;
     ComparisonOp cop;
