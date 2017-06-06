@@ -231,6 +231,33 @@ State.cpp.s:
 	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/State.cpp.s
 .PHONY : State.cpp.s
 
+Variable.o: Variable.cpp.o
+
+.PHONY : Variable.o
+
+# target to build an object file
+Variable.cpp.o:
+	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/Variable.cpp.o
+.PHONY : Variable.cpp.o
+
+Variable.i: Variable.cpp.i
+
+.PHONY : Variable.i
+
+# target to preprocess a source file
+Variable.cpp.i:
+	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/Variable.cpp.i
+.PHONY : Variable.cpp.i
+
+Variable.s: Variable.cpp.s
+
+.PHONY : Variable.s
+
+# target to generate assembly for a file
+Variable.cpp.s:
+	$(MAKE) -f CMakeFiles/FSM.dir/build.make CMakeFiles/FSM.dir/Variable.cpp.s
+.PHONY : Variable.cpp.s
+
 main.o: main.cpp.o
 
 .PHONY : main.o
@@ -279,6 +306,9 @@ help:
 	@echo "... State.o"
 	@echo "... State.i"
 	@echo "... State.s"
+	@echo "... Variable.o"
+	@echo "... Variable.i"
+	@echo "... Variable.s"
 	@echo "... main.o"
 	@echo "... main.i"
 	@echo "... main.s"

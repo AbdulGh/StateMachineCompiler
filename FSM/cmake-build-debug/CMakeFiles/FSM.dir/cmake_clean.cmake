@@ -4,6 +4,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/FSM.dir/State.cpp.o"
   "CMakeFiles/FSM.dir/FSM.cpp.o"
   "CMakeFiles/FSM.dir/FSMParser.cpp.o"
+  "CMakeFiles/FSM.dir/Variable.cpp.o"
   "FSM.pdb"
   "FSM"
 )

@@ -39,14 +39,16 @@ void PrintCommand<std::shared_ptr<Variable>>::execute()
     switch(toPrint->getType())
     {
         case Type::STRING:
-            cout << (std::string) *(toPrint->getData());
+        {
+            string *ref = toPrint->getData();
+            cout << *ref;
             break;
-        case Type::INT:
-            cout << (int) toPrint->getData();
-            break;
+        }
         case Type::DOUBLE:
+        {
             cout << (double) toPrint->getData();
             break;
+        }
     }
 }
 
@@ -80,13 +82,6 @@ void InputVarCommand::execute()
             var->setData(str);
             break;
         }
-        case Type::INT:
-        {
-            int i;
-            cin >> i;
-            var->setData(i);
-            break;
-        }
         case Type::DOUBLE:
         {
             int d;
@@ -94,6 +89,8 @@ void InputVarCommand::execute()
             var->setData(d);
             break;
         }
+        default:
+            throw runtime_error("Strange type");
     }
 }
 
@@ -141,13 +138,15 @@ void AssignVarCommand<T>::execute()
 }
 
 /*EvaluateExprCommand*/
-//todo check types
 template <class T>
 EvaluateExprCommand<T>::EvaluateExprCommand(std::shared_ptr<Variable> varPtr, std::shared_ptr<Variable> LHSVar, T b, ExpressionType t):
     var(varPtr),
     term1(LHSVar),
     term2(b),
-    type(t) {}
+    type(t)
+{
+    if (varPtr->getType() != LHSVar->getType()) throw runtime_error("Incompatible types in evaluation");
+}
 
 template <class T>
 void EvaluateExprCommand<T>::evaluate(double one, double two)
@@ -178,6 +177,8 @@ void EvaluateExprCommand<T>::evaluate(double one, double two)
         case OR:
             var->setData((int)one | (int)two);
             break;
+        default:
+            throw runtime_error("Weird comparison");
     }
 }
 
@@ -197,7 +198,6 @@ void EvaluateExprCommand<double>::execute()
     evaluate(d1, term2);
 }
 
-//todo deal with strings
 /*JumpOnComparisonCommand*/
 template <typename T>
 JumpOnComparisonCommand<T>::JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, T compare, int jstate, ComparisonOp type):
@@ -286,7 +286,6 @@ void JumpOnComparisonCommand<string>::execute()
     evaluate(compareTo);
 }
 
-//todo test strings
 template class JumpOnComparisonCommand<double>;
 template class JumpOnComparisonCommand<string>;
 template class JumpOnComparisonCommand<std::shared_ptr<Variable>>;
