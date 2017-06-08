@@ -61,6 +61,8 @@ map
 -
 memory
 -
+set
+-
 FSM.h
 /home/abdul/CLionProjects/FSM/FSM.h
 Variable.h
