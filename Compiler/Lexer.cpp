@@ -100,11 +100,25 @@ Token Lexer::getNextToken()
             {
                 str += c;
                 infile.get(c);
+                if (c == ';')
+                {
+                    infile.unget();
+                    break;
+                }
             }
             if (c == '\n') currentLine++;
-            unordered_map<string, Token>::const_iterator found = resWords.find(str);
-            if (found == resWords.end()) return Token(IDENT);
-            else return found->second;
+
+            try //number
+            {
+                double d = stod(str);
+                return Token(NUMBER);
+            }
+            catch(invalid_argument e)
+            {
+                unordered_map<string, Token>::const_iterator found = resWords.find(str);
+                if (found == resWords.end()) return Token(IDENT);
+                else return found->second;
+            }
     }
 }
 

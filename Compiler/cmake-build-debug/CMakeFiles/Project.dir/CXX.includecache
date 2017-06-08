@@ -20,6 +20,20 @@ unordered_map
 Token.h
 /home/abdul/CLionProjects/Compiler/Token.h
 
+/home/abdul/CLionProjects/Compiler/Parser.cpp
+sstream
+-
+Parser.h
+/home/abdul/CLionProjects/Compiler/Parser.h
+Token.h
+/home/abdul/CLionProjects/Compiler/Token.h
+
+/home/abdul/CLionProjects/Compiler/Parser.h
+Lexer.h
+/home/abdul/CLionProjects/Compiler/Lexer.h
+Token.h
+/home/abdul/CLionProjects/Compiler/Token.h
+
 /home/abdul/CLionProjects/Compiler/SymbolTable.cpp
 SymbolTable.h
 /home/abdul/CLionProjects/Compiler/SymbolTable.h

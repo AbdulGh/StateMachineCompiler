@@ -10,7 +10,7 @@ class FSM;
 class State
 {
 private:
-    int mnextState = -1;
+    int mnextState;
     std::string name;
     std::vector<std::shared_ptr<AbstractCommand>> instructions;
     FSM& parent;

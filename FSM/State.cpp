@@ -13,6 +13,7 @@ State::State(string str, FSM& owner):
 
 void State::run()
 {
+    mnextState = -1;
     for (shared_ptr<AbstractCommand> &command : instructions)
     {
         command->execute();

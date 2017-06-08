@@ -6,7 +6,7 @@
 enum Type {IDENT, OP, RELOP, LBRACE, RBRACE,
             LPAREN, RPAREN, IF, WHILE, DO,
             SEMIC, FUNCTION, DTYPE, CALL, THEN,
-            RETURN, EVEN, ASSIGN, END, QUOTE,
+            RETURN, EVEN, ASSIGN, END, QUOTE, NUMBER,
             INPUT, PRINT, NOT, ENDIF, DONE, COMMA};
 
 extern std::string TypeEnumNames[];
@@ -30,6 +30,10 @@ public:
         at(Op op): opType(op) {};
         at(VariableType vt): vType (vt) {};
         at(): opType{} {};
+
+        operator Relop () const {return relType;}
+        operator Op () const {return opType;}
+        operator VariableType () const {return vType;}
     } AuxTypeUnion;
 
     Type type;
