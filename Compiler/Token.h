@@ -6,16 +6,17 @@
 enum Type {IDENT, OP, RELOP, LBRACE, RBRACE,
             LPAREN, RPAREN, IF, WHILE, DO,
             SEMIC, FUNCTION, DTYPE, CALL, THEN,
-            RETURN, EVEN, ASSIGN, END, QUOTE, NUMBER,
-            INPUT, PRINT, NOT, ENDIF, DONE, COMMA};
+            RETURN, ASSIGN, END, QUOTE, NUMBER,
+            INPUT, PRINT, NOT, ENDIF, DONE, COMMA,
+            COMPAND, COMPOR};
 
 extern std::string TypeEnumNames[];
 
-enum VariableType {INT, DOUBLE, STRING};
+enum VariableType {DOUBLE, STRING};
 
 enum Relop {EQ, NE, LT, LE, GT, GE};
 
-enum Op {PLUS, MINUS, MULT, DIV, MOD};
+enum Op {PLUS, MINUS, MULT, DIV, MOD, AND, OR};
 
 class Token
 {

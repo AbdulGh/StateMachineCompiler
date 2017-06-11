@@ -18,7 +18,7 @@ CMakeFiles/Project.dir/Token.cpp.o: ../Token.cpp
 CMakeFiles/Project.dir/Token.cpp.o: ../Token.h
 
 CMakeFiles/Project.dir/main.cpp.o: ../Lexer.h
-CMakeFiles/Project.dir/main.cpp.o: ../SymbolTable.h
+CMakeFiles/Project.dir/main.cpp.o: ../Parser.h
 CMakeFiles/Project.dir/main.cpp.o: ../Token.h
 CMakeFiles/Project.dir/main.cpp.o: ../main.cpp
 

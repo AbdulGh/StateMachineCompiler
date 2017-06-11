@@ -1,19 +1,13 @@
 #include <iostream>
-#include "Token.h"
-#include "SymbolTable.h"
-#include "Lexer.h"
+
+#include "Parser.h"
 
 using namespace std;
 
 int main()
 {
     Lexer lexer("../misc/test.f");
-    Token next;
-
-    while (next.type != END)
-    {
-        next = lexer.getNextToken();
-        cout << next << " ";
-    }
+    Parser p(lexer);
+    p.compile();
     return 0;
 }

@@ -19,6 +19,6 @@ CMakeFiles/Project.dir/Token.cpp.o
  /home/abdul/CLionProjects/Compiler/Token.h
 CMakeFiles/Project.dir/main.cpp.o
  /home/abdul/CLionProjects/Compiler/Lexer.h
- /home/abdul/CLionProjects/Compiler/SymbolTable.h
+ /home/abdul/CLionProjects/Compiler/Parser.h
  /home/abdul/CLionProjects/Compiler/Token.h
  /home/abdul/CLionProjects/Compiler/main.cpp

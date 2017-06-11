@@ -21,10 +21,8 @@ void Lexer::initResWords()
     resWords["while"] = Token(WHILE);
     resWords["function"] = Token(FUNCTION);
     resWords["string"] = Token(STRING);
-    resWords["int"] = Token(INT);
     resWords["double"] = Token(DOUBLE);
     resWords["call"] = Token(CALL);
-    resWords["even"] = Token(EVEN);
     resWords["even"] = Token(RETURN);
     resWords["input"] = Token(INPUT);
     resWords["print"] = Token(PRINT);
@@ -35,8 +33,6 @@ void Lexer::initResWords()
 Token Lexer::getNextToken()
 {
     if (infile.eof()) return Token(END);
-
-    this->lastPos = infile.tellg();
 
     char c;
     infile.get(c);
@@ -54,12 +50,29 @@ Token Lexer::getNextToken()
         case ';': return Token(SEMIC);
         case '(': return Token(LPAREN);
         case ')': return Token(RPAREN);
-        case '"': return Token(QUOTE); //todo other quote
+        case '"': return Token(QUOTE);
         case '+': return Token(PLUS);
         case '-': return Token(MINUS);
         case '/': return Token(DIV);
         case '*': return Token(MULT);
         case '%': return Token(MOD);
+        case ',': return Token(COMMA);
+        case '|':
+            infile.get(c);
+            if (c == '|') return Token(COMPOR);
+            else
+            {
+                infile.unget();
+                return Token(OR);
+            }
+        case '&':
+            infile.get(c);
+            if (c == '&') return Token(COMPAND);
+            else
+            {
+                infile.unget();
+                return Token(AND);
+            }
         case '=':
             infile.get(c);
             if (c == '=') return Token(EQ);
@@ -92,8 +105,6 @@ Token Lexer::getNextToken()
                 infile.unget();
                 return Token(NOT);
             }
-        case ',':
-            return Token(COMMA);
         default:
             string str = "";
             while (!isspace(c))
@@ -120,12 +131,6 @@ Token Lexer::getNextToken()
                 else return found->second;
             }
     }
-}
-
-void Lexer::unget()
-{
-    infile.seekg(lastPos);
-    //todo fix line counter
 }
 
 int Lexer::getLine()

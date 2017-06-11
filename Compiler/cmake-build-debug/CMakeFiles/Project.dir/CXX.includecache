@@ -25,8 +25,6 @@ sstream
 -
 Parser.h
 /home/abdul/CLionProjects/Compiler/Parser.h
-Token.h
-/home/abdul/CLionProjects/Compiler/Token.h
 
 /home/abdul/CLionProjects/Compiler/Parser.h
 Lexer.h
@@ -63,10 +61,6 @@ string
 /home/abdul/CLionProjects/Compiler/main.cpp
 iostream
 -
-Token.h
-/home/abdul/CLionProjects/Compiler/Token.h
-SymbolTable.h
-/home/abdul/CLionProjects/Compiler/SymbolTable.h
-Lexer.h
-/home/abdul/CLionProjects/Compiler/Lexer.h
+Parser.h
+/home/abdul/CLionProjects/Compiler/Parser.h
 
