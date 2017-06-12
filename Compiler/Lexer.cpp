@@ -1,4 +1,5 @@
 #include "Lexer.h"
+#include <iostream>
 
 using namespace std;
 
@@ -28,20 +29,42 @@ void Lexer::initResWords()
     resWords["print"] = Token(PRINT);
     resWords["endif"] = Token(ENDIF);
     resWords["done"] = Token(DONE);
+    resWords["return"] = Token(RETURN);
+}
+
+Token Lexer::getNextTokenDebug()
+{
+    Token t = getNextToken();
+    cout << t << endl;
+    return t;
+}
+
+char Lexer::getChar()
+{
+    char c;
+    if(infile.get(c))
+    {
+        if (c == '\n') currentLine++;
+        lastChar = c;
+        return c;
+    }
+    else return 0;
+}
+
+void Lexer::unget()
+{
+    if (lastChar == 0) throw runtime_error("Cannot unget twice");
+    if (lastChar == '\n') currentLine--;
+    lastChar = 0;
+    infile.unget();
 }
 
 Token Lexer::getNextToken()
 {
-    if (infile.eof()) return Token(END);
-
     char c;
-    infile.get(c);
-
-    while (isspace(c) && !infile.eof())
-    {
-        if (c == '\n') currentLine++;
-        infile.get(c);
-    }
+    if (!(c = getChar())) return Token(END);
+    while (isspace(c) && (c = getChar()));
+    if (c == 0) return Token(END);
 
     switch(c)
     {
@@ -50,7 +73,6 @@ Token Lexer::getNextToken()
         case ';': return Token(SEMIC);
         case '(': return Token(LPAREN);
         case ')': return Token(RPAREN);
-        case '"': return Token(QUOTE);
         case '+': return Token(PLUS);
         case '-': return Token(MINUS);
         case '/': return Token(DIV);
@@ -58,66 +80,64 @@ Token Lexer::getNextToken()
         case '%': return Token(MOD);
         case ',': return Token(COMMA);
         case '|':
-            infile.get(c);
-            if (c == '|') return Token(COMPOR);
+            if ((c = getChar()) && c == '|') return Token(COMPOR);
             else
             {
-                infile.unget();
+                unget();
                 return Token(OR);
             }
         case '&':
-            infile.get(c);
-            if (c == '&') return Token(COMPAND);
+            if ((c = getChar()) && c == '&') return Token(COMPAND);
             else
             {
-                infile.unget();
+                unget();
                 return Token(AND);
             }
         case '=':
-            infile.get(c);
-            if (c == '=') return Token(EQ);
+            if ((c = getChar()) && c == '=') return Token(EQ);
             else
             {
-                infile.unget();
+                unget();
                 return Token(ASSIGN);
             }
         case '<':
-            infile.get(c);
-            if (c == '=') return Token(LE);
+            if ((c = getChar()) && c == '=') return Token(LE);
             else
             {
-                infile.unget();
+                unget();
                 return Token(LT);
             }
         case '>':
-            infile.get(c);
-            if (c == '=') return Token(GE);
+            if ((c = getChar()) && c == '=') return Token(GE);
             else
             {
-                infile.unget();
+                unget();
                 return Token(GT);
             }
         case '!':
-            infile.get(c);
-            if (c == '=') return Token(NE);
+            if ((c = getChar()) && c == '=') return Token(NE);
             else
             {
-                infile.unget();
+                unget();
                 return Token(NOT);
             }
-        default:
-            string str = "";
-            while (!isspace(c))
+        case '"': case '\'':
+        {
+            char delim = c;
+            string lit = "";
+            while ((c = getChar()) && c != delim) lit += c;
+            return Token(STRINGLIT);
+        }
+        default: //todo handle numbers by checking c
+            string str(1, c);
+            while ((c = getChar()) && isalnum(c)) str += c;
+            if (!infile.eof()) unget();
+
+            if (str == "")
             {
-                str += c;
-                infile.get(c);
-                if (c == ';')
-                {
-                    infile.unget();
-                    break;
-                }
+                int debug = 1;
+                return getNextToken();
             }
-            if (c == '\n') currentLine++;
 
             try //number
             {

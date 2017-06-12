@@ -2,15 +2,18 @@ program -> {body}
 
 body ->
     variableType ident {"," ident} ";"
-    "function" ident "(" [variableType ident] {"," variableType ident} ")" {variableType} "{" {statement} "}"
+    "function" ident "(" [variableType ident] {"," variableType ident} ")" [variableType] statement
 
 statement ->
+    "{" statement {statement} "}"
     variableType ident ";"
     ident "=" expression ";"
+    ident "=" stringlit ";"
     "call" ident "("[ident] {"," ident} ")" ";"
-    "if" "(" ands ")" "then" statement "endif"
-    "while" "(" ands ")" "do" statement "done"
+    "if" "(" ands ")" statement
+    "while" "(" ands ")" statement
     "return" ident ";"
+    "print" "(" ident ")" ";"
  
 ands ->
     ors {"&&" ors}
@@ -33,6 +36,7 @@ term ->
 factor ->
     ident
     number
+    "call" ident "("[ident] {"," ident} ")" ";"
     "(" expression ")"
 
 variableType ->

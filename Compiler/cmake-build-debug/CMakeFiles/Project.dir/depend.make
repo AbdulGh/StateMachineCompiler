@@ -8,6 +8,7 @@ CMakeFiles/Project.dir/Lexer.cpp.o: ../Token.h
 CMakeFiles/Project.dir/Parser.cpp.o: ../Lexer.h
 CMakeFiles/Project.dir/Parser.cpp.o: ../Parser.cpp
 CMakeFiles/Project.dir/Parser.cpp.o: ../Parser.h
+CMakeFiles/Project.dir/Parser.cpp.o: ../SymbolTable.h
 CMakeFiles/Project.dir/Parser.cpp.o: ../Token.h
 
 CMakeFiles/Project.dir/SymbolTable.cpp.o: ../SymbolTable.cpp
@@ -19,6 +20,7 @@ CMakeFiles/Project.dir/Token.cpp.o: ../Token.h
 
 CMakeFiles/Project.dir/main.cpp.o: ../Lexer.h
 CMakeFiles/Project.dir/main.cpp.o: ../Parser.h
+CMakeFiles/Project.dir/main.cpp.o: ../SymbolTable.h
 CMakeFiles/Project.dir/main.cpp.o: ../Token.h
 CMakeFiles/Project.dir/main.cpp.o: ../main.cpp
 

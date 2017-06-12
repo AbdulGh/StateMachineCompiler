@@ -5,9 +5,9 @@ using namespace std;
 string TypeEnumNames[] = {"IDENT", "OP", "RELOP", "LBRACE", "RBRACE",
                         "LPAREN", "RPAREN", "IF", "WHILE", "DO",
                         "SEMIC", "FUNCTION", "DTYPE", "CALL", "THEN",
-                        "RETURN", "ASSIGN", "END", "QUOTE", "NUMBER",
+                        "RETURN", "ASSIGN", "END", "NUMBER",
                         "INPUT", "PRINT", "NOT", "ENDIF", "DONE", "COMMA",
-                        "COMPAND", "COMPOR"};
+                        "COMPAND", "COMPOR", "STRINGLIT"};
 
 std::ostream& operator<< (std::ostream& stream, const Token& token)
 {

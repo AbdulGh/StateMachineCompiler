@@ -9,6 +9,7 @@ CMakeFiles/Project.dir/Parser.cpp.o
  /home/abdul/CLionProjects/Compiler/Lexer.h
  /home/abdul/CLionProjects/Compiler/Parser.cpp
  /home/abdul/CLionProjects/Compiler/Parser.h
+ /home/abdul/CLionProjects/Compiler/SymbolTable.h
  /home/abdul/CLionProjects/Compiler/Token.h
 CMakeFiles/Project.dir/SymbolTable.cpp.o
  /home/abdul/CLionProjects/Compiler/SymbolTable.cpp
@@ -20,5 +21,6 @@ CMakeFiles/Project.dir/Token.cpp.o
 CMakeFiles/Project.dir/main.cpp.o
  /home/abdul/CLionProjects/Compiler/Lexer.h
  /home/abdul/CLionProjects/Compiler/Parser.h
+ /home/abdul/CLionProjects/Compiler/SymbolTable.h
  /home/abdul/CLionProjects/Compiler/Token.h
  /home/abdul/CLionProjects/Compiler/main.cpp

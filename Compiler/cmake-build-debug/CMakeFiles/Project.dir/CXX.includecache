@@ -9,6 +9,8 @@
 /home/abdul/CLionProjects/Compiler/Lexer.cpp
 Lexer.h
 /home/abdul/CLionProjects/Compiler/Lexer.h
+iostream
+-
 
 /home/abdul/CLionProjects/Compiler/Lexer.h
 fstream
@@ -31,6 +33,8 @@ Lexer.h
 /home/abdul/CLionProjects/Compiler/Lexer.h
 Token.h
 /home/abdul/CLionProjects/Compiler/Token.h
+SymbolTable.h
+/home/abdul/CLionProjects/Compiler/SymbolTable.h
 
 /home/abdul/CLionProjects/Compiler/SymbolTable.cpp
 SymbolTable.h
