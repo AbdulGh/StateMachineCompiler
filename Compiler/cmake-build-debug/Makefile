@@ -123,6 +123,60 @@ Project/fast:
 	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/build
 .PHONY : Project/fast
 
+CodeGen.o: CodeGen.cpp.o
+
+.PHONY : CodeGen.o
+
+# target to build an object file
+CodeGen.cpp.o:
+	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/CodeGen.cpp.o
+.PHONY : CodeGen.cpp.o
+
+CodeGen.i: CodeGen.cpp.i
+
+.PHONY : CodeGen.i
+
+# target to preprocess a source file
+CodeGen.cpp.i:
+	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/CodeGen.cpp.i
+.PHONY : CodeGen.cpp.i
+
+CodeGen.s: CodeGen.cpp.s
+
+.PHONY : CodeGen.s
+
+# target to generate assembly for a file
+CodeGen.cpp.s:
+	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/CodeGen.cpp.s
+.PHONY : CodeGen.cpp.s
+
+FunctionSymbol.o: FunctionSymbol.cpp.o
+
+.PHONY : FunctionSymbol.o
+
+# target to build an object file
+FunctionSymbol.cpp.o:
+	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/FunctionSymbol.cpp.o
+.PHONY : FunctionSymbol.cpp.o
+
+FunctionSymbol.i: FunctionSymbol.cpp.i
+
+.PHONY : FunctionSymbol.i
+
+# target to preprocess a source file
+FunctionSymbol.cpp.i:
+	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/FunctionSymbol.cpp.i
+.PHONY : FunctionSymbol.cpp.i
+
+FunctionSymbol.s: FunctionSymbol.cpp.s
+
+.PHONY : FunctionSymbol.s
+
+# target to generate assembly for a file
+FunctionSymbol.cpp.s:
+	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/FunctionSymbol.cpp.s
+.PHONY : FunctionSymbol.cpp.s
+
 Lexer.o: Lexer.cpp.o
 
 .PHONY : Lexer.o
@@ -150,32 +204,32 @@ Lexer.cpp.s:
 	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/Lexer.cpp.s
 .PHONY : Lexer.cpp.s
 
-Parser.o: Parser.cpp.o
+Parsing.o: Parsing.cpp.o
 
-.PHONY : Parser.o
+.PHONY : Parsing.o
 
 # target to build an object file
-Parser.cpp.o:
-	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/Parser.cpp.o
-.PHONY : Parser.cpp.o
+Parsing.cpp.o:
+	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/Parsing.cpp.o
+.PHONY : Parsing.cpp.o
 
-Parser.i: Parser.cpp.i
+Parsing.i: Parsing.cpp.i
 
-.PHONY : Parser.i
+.PHONY : Parsing.i
 
 # target to preprocess a source file
-Parser.cpp.i:
-	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/Parser.cpp.i
-.PHONY : Parser.cpp.i
+Parsing.cpp.i:
+	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/Parsing.cpp.i
+.PHONY : Parsing.cpp.i
 
-Parser.s: Parser.cpp.s
+Parsing.s: Parsing.cpp.s
 
-.PHONY : Parser.s
+.PHONY : Parsing.s
 
 # target to generate assembly for a file
-Parser.cpp.s:
-	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/Parser.cpp.s
-.PHONY : Parser.cpp.s
+Parsing.cpp.s:
+	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/Parsing.cpp.s
+.PHONY : Parsing.cpp.s
 
 SymbolTable.o: SymbolTable.cpp.o
 
@@ -267,12 +321,18 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... edit_cache"
 	@echo "... Project"
+	@echo "... CodeGen.o"
+	@echo "... CodeGen.i"
+	@echo "... CodeGen.s"
+	@echo "... FunctionSymbol.o"
+	@echo "... FunctionSymbol.i"
+	@echo "... FunctionSymbol.s"
 	@echo "... Lexer.o"
 	@echo "... Lexer.i"
 	@echo "... Lexer.s"
-	@echo "... Parser.o"
-	@echo "... Parser.i"
-	@echo "... Parser.s"
+	@echo "... Parsing.o"
+	@echo "... Parsing.i"
+	@echo "... Parsing.s"
 	@echo "... SymbolTable.o"
 	@echo "... SymbolTable.i"
 	@echo "... SymbolTable.s"

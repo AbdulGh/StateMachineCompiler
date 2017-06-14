@@ -153,28 +153,76 @@ CMakeFiles/Project.dir/Token.cpp.o.provides: CMakeFiles/Project.dir/Token.cpp.o.
 CMakeFiles/Project.dir/Token.cpp.o.provides.build: CMakeFiles/Project.dir/Token.cpp.o
 
 
-CMakeFiles/Project.dir/Parser.cpp.o: CMakeFiles/Project.dir/flags.make
-CMakeFiles/Project.dir/Parser.cpp.o: ../Parser.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/abdul/CLionProjects/Compiler/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/Project.dir/Parser.cpp.o"
-	/usr/bin/c++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Project.dir/Parser.cpp.o -c /home/abdul/CLionProjects/Compiler/Parser.cpp
+CMakeFiles/Project.dir/Parsing.cpp.o: CMakeFiles/Project.dir/flags.make
+CMakeFiles/Project.dir/Parsing.cpp.o: ../Parsing.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/abdul/CLionProjects/Compiler/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_5) "Building CXX object CMakeFiles/Project.dir/Parsing.cpp.o"
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Project.dir/Parsing.cpp.o -c /home/abdul/CLionProjects/Compiler/Parsing.cpp
 
-CMakeFiles/Project.dir/Parser.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Project.dir/Parser.cpp.i"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/abdul/CLionProjects/Compiler/Parser.cpp > CMakeFiles/Project.dir/Parser.cpp.i
+CMakeFiles/Project.dir/Parsing.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Project.dir/Parsing.cpp.i"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/abdul/CLionProjects/Compiler/Parsing.cpp > CMakeFiles/Project.dir/Parsing.cpp.i
 
-CMakeFiles/Project.dir/Parser.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Project.dir/Parser.cpp.s"
-	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/abdul/CLionProjects/Compiler/Parser.cpp -o CMakeFiles/Project.dir/Parser.cpp.s
+CMakeFiles/Project.dir/Parsing.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Project.dir/Parsing.cpp.s"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/abdul/CLionProjects/Compiler/Parsing.cpp -o CMakeFiles/Project.dir/Parsing.cpp.s
 
-CMakeFiles/Project.dir/Parser.cpp.o.requires:
+CMakeFiles/Project.dir/Parsing.cpp.o.requires:
 
-.PHONY : CMakeFiles/Project.dir/Parser.cpp.o.requires
+.PHONY : CMakeFiles/Project.dir/Parsing.cpp.o.requires
 
-CMakeFiles/Project.dir/Parser.cpp.o.provides: CMakeFiles/Project.dir/Parser.cpp.o.requires
-	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/Parser.cpp.o.provides.build
-.PHONY : CMakeFiles/Project.dir/Parser.cpp.o.provides
+CMakeFiles/Project.dir/Parsing.cpp.o.provides: CMakeFiles/Project.dir/Parsing.cpp.o.requires
+	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/Parsing.cpp.o.provides.build
+.PHONY : CMakeFiles/Project.dir/Parsing.cpp.o.provides
 
-CMakeFiles/Project.dir/Parser.cpp.o.provides.build: CMakeFiles/Project.dir/Parser.cpp.o
+CMakeFiles/Project.dir/Parsing.cpp.o.provides.build: CMakeFiles/Project.dir/Parsing.cpp.o
+
+
+CMakeFiles/Project.dir/CodeGen.cpp.o: CMakeFiles/Project.dir/flags.make
+CMakeFiles/Project.dir/CodeGen.cpp.o: ../CodeGen.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/abdul/CLionProjects/Compiler/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Building CXX object CMakeFiles/Project.dir/CodeGen.cpp.o"
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Project.dir/CodeGen.cpp.o -c /home/abdul/CLionProjects/Compiler/CodeGen.cpp
+
+CMakeFiles/Project.dir/CodeGen.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Project.dir/CodeGen.cpp.i"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/abdul/CLionProjects/Compiler/CodeGen.cpp > CMakeFiles/Project.dir/CodeGen.cpp.i
+
+CMakeFiles/Project.dir/CodeGen.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Project.dir/CodeGen.cpp.s"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/abdul/CLionProjects/Compiler/CodeGen.cpp -o CMakeFiles/Project.dir/CodeGen.cpp.s
+
+CMakeFiles/Project.dir/CodeGen.cpp.o.requires:
+
+.PHONY : CMakeFiles/Project.dir/CodeGen.cpp.o.requires
+
+CMakeFiles/Project.dir/CodeGen.cpp.o.provides: CMakeFiles/Project.dir/CodeGen.cpp.o.requires
+	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/CodeGen.cpp.o.provides.build
+.PHONY : CMakeFiles/Project.dir/CodeGen.cpp.o.provides
+
+CMakeFiles/Project.dir/CodeGen.cpp.o.provides.build: CMakeFiles/Project.dir/CodeGen.cpp.o
+
+
+CMakeFiles/Project.dir/FunctionSymbol.cpp.o: CMakeFiles/Project.dir/flags.make
+CMakeFiles/Project.dir/FunctionSymbol.cpp.o: ../FunctionSymbol.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/abdul/CLionProjects/Compiler/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_7) "Building CXX object CMakeFiles/Project.dir/FunctionSymbol.cpp.o"
+	/usr/bin/c++   $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/Project.dir/FunctionSymbol.cpp.o -c /home/abdul/CLionProjects/Compiler/FunctionSymbol.cpp
+
+CMakeFiles/Project.dir/FunctionSymbol.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/Project.dir/FunctionSymbol.cpp.i"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/abdul/CLionProjects/Compiler/FunctionSymbol.cpp > CMakeFiles/Project.dir/FunctionSymbol.cpp.i
+
+CMakeFiles/Project.dir/FunctionSymbol.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/Project.dir/FunctionSymbol.cpp.s"
+	/usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/abdul/CLionProjects/Compiler/FunctionSymbol.cpp -o CMakeFiles/Project.dir/FunctionSymbol.cpp.s
+
+CMakeFiles/Project.dir/FunctionSymbol.cpp.o.requires:
+
+.PHONY : CMakeFiles/Project.dir/FunctionSymbol.cpp.o.requires
+
+CMakeFiles/Project.dir/FunctionSymbol.cpp.o.provides: CMakeFiles/Project.dir/FunctionSymbol.cpp.o.requires
+	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/FunctionSymbol.cpp.o.provides.build
+.PHONY : CMakeFiles/Project.dir/FunctionSymbol.cpp.o.provides
+
+CMakeFiles/Project.dir/FunctionSymbol.cpp.o.provides.build: CMakeFiles/Project.dir/FunctionSymbol.cpp.o
 
 
 # Object files for target Project
@@ -183,7 +231,9 @@ Project_OBJECTS = \
 "CMakeFiles/Project.dir/SymbolTable.cpp.o" \
 "CMakeFiles/Project.dir/Lexer.cpp.o" \
 "CMakeFiles/Project.dir/Token.cpp.o" \
-"CMakeFiles/Project.dir/Parser.cpp.o"
+"CMakeFiles/Project.dir/Parsing.cpp.o" \
+"CMakeFiles/Project.dir/CodeGen.cpp.o" \
+"CMakeFiles/Project.dir/FunctionSymbol.cpp.o"
 
 # External object files for target Project
 Project_EXTERNAL_OBJECTS =
@@ -192,10 +242,12 @@ Project: CMakeFiles/Project.dir/main.cpp.o
 Project: CMakeFiles/Project.dir/SymbolTable.cpp.o
 Project: CMakeFiles/Project.dir/Lexer.cpp.o
 Project: CMakeFiles/Project.dir/Token.cpp.o
-Project: CMakeFiles/Project.dir/Parser.cpp.o
+Project: CMakeFiles/Project.dir/Parsing.cpp.o
+Project: CMakeFiles/Project.dir/CodeGen.cpp.o
+Project: CMakeFiles/Project.dir/FunctionSymbol.cpp.o
 Project: CMakeFiles/Project.dir/build.make
 Project: CMakeFiles/Project.dir/link.txt
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/abdul/CLionProjects/Compiler/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_6) "Linking CXX executable Project"
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --bold --progress-dir=/home/abdul/CLionProjects/Compiler/cmake-build-debug/CMakeFiles --progress-num=$(CMAKE_PROGRESS_8) "Linking CXX executable Project"
 	$(CMAKE_COMMAND) -E cmake_link_script CMakeFiles/Project.dir/link.txt --verbose=$(VERBOSE)
 
 # Rule to build all files generated by this target.
@@ -207,7 +259,9 @@ CMakeFiles/Project.dir/requires: CMakeFiles/Project.dir/main.cpp.o.requires
 CMakeFiles/Project.dir/requires: CMakeFiles/Project.dir/SymbolTable.cpp.o.requires
 CMakeFiles/Project.dir/requires: CMakeFiles/Project.dir/Lexer.cpp.o.requires
 CMakeFiles/Project.dir/requires: CMakeFiles/Project.dir/Token.cpp.o.requires
-CMakeFiles/Project.dir/requires: CMakeFiles/Project.dir/Parser.cpp.o.requires
+CMakeFiles/Project.dir/requires: CMakeFiles/Project.dir/Parsing.cpp.o.requires
+CMakeFiles/Project.dir/requires: CMakeFiles/Project.dir/CodeGen.cpp.o.requires
+CMakeFiles/Project.dir/requires: CMakeFiles/Project.dir/FunctionSymbol.cpp.o.requires
 
 .PHONY : CMakeFiles/Project.dir/requires
 

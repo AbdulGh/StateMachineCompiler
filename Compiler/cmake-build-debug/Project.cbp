@@ -82,16 +82,25 @@
 				</MakeCommands>
 			</Target>
 		</Build>
+		<Unit filename="/home/abdul/CLionProjects/Compiler/CodeGen.cpp">
+			<Option target="Project"/>
+		</Unit>
+		<Unit filename="/home/abdul/CLionProjects/Compiler/Compiler.h">
+			<Option target="Project"/>
+		</Unit>
+		<Unit filename="/home/abdul/CLionProjects/Compiler/FunctionSymbol.cpp">
+			<Option target="Project"/>
+		</Unit>
+		<Unit filename="/home/abdul/CLionProjects/Compiler/FunctionSymbol.h">
+			<Option target="Project"/>
+		</Unit>
 		<Unit filename="/home/abdul/CLionProjects/Compiler/Lexer.cpp">
 			<Option target="Project"/>
 		</Unit>
 		<Unit filename="/home/abdul/CLionProjects/Compiler/Lexer.h">
 			<Option target="Project"/>
 		</Unit>
-		<Unit filename="/home/abdul/CLionProjects/Compiler/Parser.cpp">
-			<Option target="Project"/>
-		</Unit>
-		<Unit filename="/home/abdul/CLionProjects/Compiler/Parser.h">
+		<Unit filename="/home/abdul/CLionProjects/Compiler/Parsing.cpp">
 			<Option target="Project"/>
 		</Unit>
 		<Unit filename="/home/abdul/CLionProjects/Compiler/SymbolTable.cpp">

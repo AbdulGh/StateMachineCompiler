@@ -6,6 +6,32 @@
 
 #IncludeRegexTransform: 
 
+/home/abdul/CLionProjects/Compiler/CodeGen.cpp
+Compiler.h
+/home/abdul/CLionProjects/Compiler/Compiler.h
+
+/home/abdul/CLionProjects/Compiler/Compiler.h
+unordered_map
+-
+Lexer.h
+/home/abdul/CLionProjects/Compiler/Lexer.h
+Token.h
+/home/abdul/CLionProjects/Compiler/Token.h
+SymbolTable.h
+/home/abdul/CLionProjects/Compiler/SymbolTable.h
+FunctionSymbol.h
+/home/abdul/CLionProjects/Compiler/FunctionSymbol.h
+
+/home/abdul/CLionProjects/Compiler/FunctionSymbol.cpp
+FunctionSymbol.h
+/home/abdul/CLionProjects/Compiler/FunctionSymbol.h
+
+/home/abdul/CLionProjects/Compiler/FunctionSymbol.h
+Token.h
+/home/abdul/CLionProjects/Compiler/Token.h
+vector
+-
+
 /home/abdul/CLionProjects/Compiler/Lexer.cpp
 Lexer.h
 /home/abdul/CLionProjects/Compiler/Lexer.h
@@ -19,22 +45,18 @@ string
 -
 unordered_map
 -
+vector
+-
 Token.h
 /home/abdul/CLionProjects/Compiler/Token.h
 
-/home/abdul/CLionProjects/Compiler/Parser.cpp
+/home/abdul/CLionProjects/Compiler/Parsing.cpp
 sstream
 -
-Parser.h
-/home/abdul/CLionProjects/Compiler/Parser.h
-
-/home/abdul/CLionProjects/Compiler/Parser.h
-Lexer.h
-/home/abdul/CLionProjects/Compiler/Lexer.h
-Token.h
-/home/abdul/CLionProjects/Compiler/Token.h
-SymbolTable.h
-/home/abdul/CLionProjects/Compiler/SymbolTable.h
+iostream
+-
+Compiler.h
+/home/abdul/CLionProjects/Compiler/Compiler.h
 
 /home/abdul/CLionProjects/Compiler/SymbolTable.cpp
 SymbolTable.h
@@ -65,6 +87,6 @@ string
 /home/abdul/CLionProjects/Compiler/main.cpp
 iostream
 -
-Parser.h
-/home/abdul/CLionProjects/Compiler/Parser.h
+Compiler.h
+/home/abdul/CLionProjects/Compiler/Compiler.h
 

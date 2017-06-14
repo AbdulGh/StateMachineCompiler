@@ -3,21 +3,11 @@
 
 using namespace std;
 
-Lexer::Lexer(string str)
+Lexer::Lexer()
 {
-    infile.open(str);
-    if (!infile.good()) throw runtime_error("Could not open filename '" + str + "' for lexing.");
-    initResWords();
-    currentLine = 0;
-}
+    currentLine = 1;
+    lastChar = 0;
 
-Lexer::~Lexer()
-{
-    infile.close();
-}
-
-void Lexer::initResWords()
-{
     resWords["if"] = Token(IF);
     resWords["while"] = Token(WHILE);
     resWords["function"] = Token(FUNCTION);
@@ -32,11 +22,23 @@ void Lexer::initResWords()
     resWords["return"] = Token(RETURN);
 }
 
-Token Lexer::getNextTokenDebug()
+vector<Token> Lexer::tokenize(string str)
 {
-    Token t = getNextToken();
-    cout << t << endl;
-    return t;
+    infile.open(str);
+    if (!infile.good()) throw runtime_error("Could not open filename '" + str + "' for lexing.");
+
+    vector<Token> stream;
+
+    while(infile)
+    {
+        Token t = parseToken();
+        t.setLine(currentLine);
+        stream.push_back(t);
+        if (t.type == END) break;
+    }
+
+    infile.close();
+    return stream;
 }
 
 char Lexer::getChar()
@@ -59,7 +61,7 @@ void Lexer::unget()
     infile.unget();
 }
 
-Token Lexer::getNextToken()
+Token Lexer::parseToken()
 {
     char c;
     if (!(c = getChar())) return Token(END);
@@ -126,7 +128,7 @@ Token Lexer::getNextToken()
             char delim = c;
             string lit = "";
             while ((c = getChar()) && c != delim) lit += c;
-            return Token(STRINGLIT);
+            return Token(STRINGLIT, lit);
         }
         default: //todo handle numbers by checking c
             string str(1, c);
@@ -136,24 +138,19 @@ Token Lexer::getNextToken()
             if (str == "")
             {
                 int debug = 1;
-                return getNextToken();
+                return parseToken();
             }
 
             try //number
             {
                 double d = stod(str);
-                return Token(NUMBER);
+                return Token(NUMBER, d);
             }
             catch(invalid_argument e)
             {
                 unordered_map<string, Token>::const_iterator found = resWords.find(str);
-                if (found == resWords.end()) return Token(IDENT);
+                if (found == resWords.end()) return Token(IDENT, str);
                 else return found->second;
             }
     }
-}
-
-int Lexer::getLine()
-{
-    return currentLine;
 }

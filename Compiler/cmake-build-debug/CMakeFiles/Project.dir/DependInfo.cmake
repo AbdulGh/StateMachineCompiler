@@ -4,8 +4,10 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
+  "/home/abdul/CLionProjects/Compiler/CodeGen.cpp" "/home/abdul/CLionProjects/Compiler/cmake-build-debug/CMakeFiles/Project.dir/CodeGen.cpp.o"
+  "/home/abdul/CLionProjects/Compiler/FunctionSymbol.cpp" "/home/abdul/CLionProjects/Compiler/cmake-build-debug/CMakeFiles/Project.dir/FunctionSymbol.cpp.o"
   "/home/abdul/CLionProjects/Compiler/Lexer.cpp" "/home/abdul/CLionProjects/Compiler/cmake-build-debug/CMakeFiles/Project.dir/Lexer.cpp.o"
-  "/home/abdul/CLionProjects/Compiler/Parser.cpp" "/home/abdul/CLionProjects/Compiler/cmake-build-debug/CMakeFiles/Project.dir/Parser.cpp.o"
+  "/home/abdul/CLionProjects/Compiler/Parsing.cpp" "/home/abdul/CLionProjects/Compiler/cmake-build-debug/CMakeFiles/Project.dir/Parsing.cpp.o"
   "/home/abdul/CLionProjects/Compiler/SymbolTable.cpp" "/home/abdul/CLionProjects/Compiler/cmake-build-debug/CMakeFiles/Project.dir/SymbolTable.cpp.o"
   "/home/abdul/CLionProjects/Compiler/Token.cpp" "/home/abdul/CLionProjects/Compiler/cmake-build-debug/CMakeFiles/Project.dir/Token.cpp.o"
   "/home/abdul/CLionProjects/Compiler/main.cpp" "/home/abdul/CLionProjects/Compiler/cmake-build-debug/CMakeFiles/Project.dir/main.cpp.o"

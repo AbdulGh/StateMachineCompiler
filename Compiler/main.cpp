@@ -1,12 +1,13 @@
 #include <iostream>
 
-#include "Parser.h"
+#include "Compiler.h"
 
 using namespace std;
 
 int main()
 {
-    Lexer lexer("../misc/test.f");
+    Lexer lexer;
+
     /*Token n;
 
     while (n.type != END)
@@ -15,7 +16,8 @@ int main()
         cout << n << endl;
     }*/
 
-    Parser p(lexer);
-    p.compile();
+    vector<Token> st = lexer.tokenize("../misc/test.f");
+    Compiler c(st);
+    c.compile();
     return 0;
 }
