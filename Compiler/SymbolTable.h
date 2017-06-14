@@ -15,7 +15,6 @@ private:
     int lineNum;
     VariableType type;
     bool defined;
-    int arity;
 
 public:
     Identifier(std::string identifier, VariableType datatype, int line) :
@@ -48,11 +47,6 @@ public:
     {
         return defined;
     }
-
-    int getArity() const
-    {
-        return arity;
-    }
 };
 
 class SymbolTable
@@ -60,10 +54,10 @@ class SymbolTable
 private:
     std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<Identifier>>> currentMap;
     std::forward_list<std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<Identifier>>>> sTable;
-    std::shared_ptr<Identifier> findIdentifier(std::string name);
 
 public:
     SymbolTable();
+    std::shared_ptr<Identifier> findIdentifier(std::string name);
     void pushScope();
     void popScope();
     void declare(std::string name, VariableType type, int lineNum);

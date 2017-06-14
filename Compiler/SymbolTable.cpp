@@ -58,12 +58,14 @@ bool SymbolTable::define(std::string name)
 
 shared_ptr<Identifier> SymbolTable::findIdentifier(std::string name)
 {
-    if (currentMap->count(name)) return currentMap->at(name);
+    unordered_map<string, shared_ptr<Identifier>>::const_iterator it = currentMap->find(name);
+    if (it != currentMap->cend()) return it->second;
     else
     {
         for (auto scope: sTable)
         {
-            if (scope->count(name)) return scope->at(name);
+            unordered_map<string, shared_ptr<Identifier>>::const_iterator it = scope->find(name);
+            if (it != currentMap->cend()) return it->second;
         }
     }
     return nullptr;

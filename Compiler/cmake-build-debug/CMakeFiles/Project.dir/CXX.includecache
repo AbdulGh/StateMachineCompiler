@@ -27,10 +27,12 @@ FunctionSymbol.h
 /home/abdul/CLionProjects/Compiler/FunctionSymbol.h
 
 /home/abdul/CLionProjects/Compiler/FunctionSymbol.h
-Token.h
-/home/abdul/CLionProjects/Compiler/Token.h
 vector
 -
+sstream
+-
+Token.h
+/home/abdul/CLionProjects/Compiler/Token.h
 
 /home/abdul/CLionProjects/Compiler/Lexer.cpp
 Lexer.h
