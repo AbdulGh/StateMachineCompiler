@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <string>
 #include <memory>
+#include <vector>
 
 #include "Token.h"
 
@@ -12,20 +13,29 @@ class Identifier
 {
 private:
     std::string lexeme;
-    int lineNum;
+    unsigned int lineNum;
     VariableType type;
     bool defined;
+    unsigned int scopeDepthLevel;
+    unsigned int scopeNumber;
 
 public:
-    Identifier(std::string identifier, VariableType datatype, int line) :
+    Identifier(std::string identifier, VariableType datatype, unsigned int line,unsigned int depth,unsigned int scopenum) :
             lexeme(identifier),
             lineNum(line),
             type(datatype),
+            scopeDepthLevel(depth),
+            scopeNumber(scopenum),
             defined(false) {}
 
     const std::string &getLexeme() const
     {
         return lexeme;
+    }
+
+    const std::string &genName() const
+    {
+        return std::to_string(scopeNumber) + "_" + std::to_string(scopeDepthLevel) + "_" + lexeme;
     }
 
     int getLineNum() const
@@ -54,13 +64,16 @@ class SymbolTable
 private:
     std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<Identifier>>> currentMap;
     std::forward_list<std::shared_ptr<std::unordered_map<std::string, std::shared_ptr<Identifier>>>> sTable;
+    //used for generating identifiers
+    std::vector<unsigned int> scopeDepths;
+    unsigned int depth;
 
 public:
     SymbolTable();
     std::shared_ptr<Identifier> findIdentifier(std::string name);
     void pushScope();
     void popScope();
-    void declare(std::string name, VariableType type, int lineNum);
+    std::shared_ptr<Identifier> declare(std::string name, VariableType type, unsigned int lineNum);
     bool define(std::string name);
     bool isDeclared(std::string name, VariableType type);
     bool isDefined(std::string name, VariableType type);

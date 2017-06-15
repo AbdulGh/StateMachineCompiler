@@ -39,9 +39,8 @@ public:
 
     Type type;
     AuxTypeUnion auxType;
-    int line;
+    unsigned int line;
     std::string lexemeString;
-    double lexemeNumber;
 
     Token(Type t, std::string s = ""):
             type(t),
@@ -51,7 +50,7 @@ public:
     Token(Type t, double d):
             type(t),
             auxType{},
-            lexemeNumber(d){}
+            lexemeString(std::to_string(d)){}
 
 
     Token(VariableType t, std::string s = ""):
@@ -71,7 +70,7 @@ public:
             type{},
             auxType{} {}
 
-    void setLine(int);
+    void setLine(unsigned int);
 
     friend std::ostream& operator<< (std::ostream& stream, const Token& token);
 };

@@ -9,7 +9,7 @@ string TypeEnumNames[] = {"IDENT", "OP", "RELOP", "LBRACE", "RBRACE",
                         "INPUT", "PRINT", "NOT", "ENDIF", "DONE", "COMMA",
                         "COMPAND", "COMPOR", "STRINGLIT"};
 
-void Token::setLine(int line)
+void Token::setLine(unsigned int line)
 {
     this->line = line;
 }
