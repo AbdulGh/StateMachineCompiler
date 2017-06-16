@@ -57,6 +57,8 @@ sstream
 -
 iostream
 -
+stack
+-
 Compiler.h
 /home/abdul/CLionProjects/Compiler/Compiler.h
 

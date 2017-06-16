@@ -9,6 +9,8 @@ string TypeEnumNames[] = {"IDENT", "OP", "RELOP", "LBRACE", "RBRACE",
                         "INPUT", "PRINT", "NOT", "ENDIF", "DONE", "COMMA",
                         "COMPAND", "COMPOR", "STRINGLIT"};
 
+string VariableTypeEnumNames[] = {"double", "string"};
+
 void Token::setLine(unsigned int line)
 {
     this->line = line;

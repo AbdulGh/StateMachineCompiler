@@ -18,6 +18,8 @@ int main()
 
     vector<Token> st = lexer.tokenize("../misc/test.f");
     Compiler c(st);
-    c.compile();
+    stringstream pleaseWork;
+    c.compile(pleaseWork);
+    cout << pleaseWork.str();
     return 0;
 }

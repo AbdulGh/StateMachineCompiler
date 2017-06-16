@@ -144,7 +144,7 @@ Token Lexer::parseToken()
             try //number
             {
                 double d = stod(str);
-                return Token(NUMBER, d);
+                return Token(NUMBER, str);
             }
             catch(invalid_argument e)
             {
