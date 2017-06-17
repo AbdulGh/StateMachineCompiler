@@ -13,29 +13,29 @@ class Identifier
 {
 private:
     std::string lexeme;
+    std::string uniqueID;
     unsigned int lineNum;
     VariableType type;
     bool defined;
-    unsigned int scopeDepthLevel;
-    unsigned int scopeNumber;
+    //unsigned int scopeDepthLevel;
+    //unsigned int scopeNumber;
 
 public:
     Identifier(std::string identifier, VariableType datatype, unsigned int line,unsigned int depth,unsigned int scopenum) :
             lexeme(identifier),
             lineNum(line),
             type(datatype),
-            scopeDepthLevel(depth),
-            scopeNumber(scopenum),
-            defined(false) {}
+            defined(false),
+            uniqueID(std::to_string(scopenum) + "_" + std::to_string(depth) + "_" + lexeme){}
 
     const std::string &getLexeme() const
     {
         return lexeme;
     }
 
-    const std::string &genName() const
+    const std::string &getUniqueID() const
     {
-        return std::to_string(scopeNumber) + "_" + std::to_string(scopeDepthLevel) + "_" + lexeme;
+        return uniqueID;
     }
 
     int getLineNum() const

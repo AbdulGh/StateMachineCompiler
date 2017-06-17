@@ -20,6 +20,7 @@ Lexer::Lexer()
     resWords["endif"] = Token(ENDIF);
     resWords["done"] = Token(DONE);
     resWords["return"] = Token(RETURN);
+    resWords["void"] = Token(VOID);
 }
 
 vector<Token> Lexer::tokenize(string str)
@@ -143,7 +144,7 @@ Token Lexer::parseToken()
 
             try //number
             {
-                double d = stod(str);
+                stod(str);
                 return Token(NUMBER, str);
             }
             catch(invalid_argument e)
