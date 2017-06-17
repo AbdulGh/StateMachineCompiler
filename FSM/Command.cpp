@@ -58,6 +58,8 @@ void PrintCommand<T>::execute()
     cout << toPrint;
 }
 
+
+
 /*JumpCommand*/
 JumpCommand::JumpCommand(int state)
 {
@@ -66,6 +68,17 @@ JumpCommand::JumpCommand(int state)
 }
 
 void JumpCommand::execute(){}
+
+/*JumpTopCommand - jumps to the number on top of the stack*/
+JumpTopCommand::JumpTopCommand(FSM &stackOwner):
+        popFrom(&stackOwner.sharedStack) {}
+
+void JumpTopCommand::execute()
+{
+    setState((int)popFrom->top().contents);
+    popFrom->pop();
+    setChangeState(true);
+}
 
 /*InputVarCommand*/
 InputVarCommand::InputVarCommand(std::shared_ptr<Variable> varPtr):
@@ -203,7 +216,15 @@ template <typename T>
 JumpOnComparisonCommand<T>::JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, T compare, int jstate, ComparisonOp type):
         compareTo(compare),
         cop(type),
-        var(varPtr) {setState(jstate);}
+        var(varPtr)
+        {setState(jstate);}
+
+template <typename T>
+JumpOnComparisonCommand<T>::JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, T compare, FSM& stackOwner, ComparisonOp type):
+        compareTo(compare),
+        cop(type),
+        var(varPtr),
+        popFrom(&stackOwner.sharedStack){}
 
 template <class T>
 void JumpOnComparisonCommand<T>::evaluate(double RHS)
@@ -230,6 +251,12 @@ void JumpOnComparisonCommand<T>::evaluate(double RHS)
         case NEQ:
             setChangeState(data != RHS);
             break;
+    }
+
+    if (changesState() && getNextState() == -1)
+    {
+        setState((int)popFrom->top().contents);
+        popFrom->pop();
     }
 }
 
@@ -259,6 +286,12 @@ void JumpOnComparisonCommand<T>::evaluate(string RHS)
         case NEQ:
             setChangeState(data != RHS);
             break;
+    }
+
+    if (changesState() && getNextState() == -1)
+    {
+        setState((int)popFrom->top().contents);
+        popFrom->pop();
     }
 }
 

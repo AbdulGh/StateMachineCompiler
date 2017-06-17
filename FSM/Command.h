@@ -45,6 +45,15 @@ public:
     void execute();
 };
 
+class JumpTopCommand: public AbstractCommand
+{
+public:
+    JumpTopCommand(FSM& stackOwner);
+    void execute();
+private:
+    std::stack<Variable::TaggedDataUnion>* popFrom;
+};
+
 class InputVarCommand: public AbstractCommand
 {
 public:
@@ -105,6 +114,7 @@ class JumpOnComparisonCommand: public AbstractCommand
 {
 public:
     JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, T compareTo, int state, ComparisonOp type);
+    JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, T compareTo, FSM& stackOwner, ComparisonOp type);
     void execute();
 private:
     void evaluate(double RHS);
@@ -112,6 +122,7 @@ private:
     std::shared_ptr<Variable> var;
     T compareTo;
     ComparisonOp cop;
+    std::stack<Variable::TaggedDataUnion>* popFrom;
 };
 
 #endif

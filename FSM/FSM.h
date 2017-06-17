@@ -11,12 +11,16 @@
 class State;
 template<class T> class PushCommand;
 class PopCommand;
+class JumpTopCommand;
+template<class T> class JumpOnComparisonCommand;
 
 class FSM
 {
     friend class State;
     template<class T> friend class PushCommand;
     friend class PopCommand;
+    friend class JumpTopCommand;
+    template<class T> friend class JumpOnComparisonCommand;
 private:
     int state;
     std::vector<std::shared_ptr<State>> states;
