@@ -76,7 +76,7 @@ JumpTopCommand::JumpTopCommand(FSM &stackOwner):
 void JumpTopCommand::execute()
 {
     setState((int)popFrom->top().contents);
-    popFrom->pop();
+    popFrom->pop(); //todo die if stack is empty
     setChangeState(true);
 }
 
