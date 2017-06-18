@@ -1,5 +1,5 @@
-#ifndef TOKEN_H
-#define TOKEN_H
+#ifndef PROJECT_TOKEN_H
+#define PROJECT_TOKEN_H
 
 #include <string>
 
@@ -18,7 +18,7 @@ extern std::string VariableTypeEnumNames[];
 
 enum Relop {EQ, NE, LT, LE, GT, GE};
 
-enum Op {PLUS, MINUS, MULT, DIV, MOD, AND, OR};
+enum Op {PLUS, MULT, MINUS, DIV, MOD, AND, OR};
 
 class Token
 {

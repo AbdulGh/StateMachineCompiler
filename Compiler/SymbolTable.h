@@ -1,5 +1,5 @@
-#ifndef SYMBOLTABLE_H
-#define SYMBOLTABLE_H
+#ifndef PROJECT_SYMBOLTABLE_H
+#define PROJECT_SYMBOLTABLE_H
 
 #include <forward_list>
 #include <unordered_map>

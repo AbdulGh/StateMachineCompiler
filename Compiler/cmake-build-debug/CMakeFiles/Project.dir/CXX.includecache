@@ -21,6 +21,18 @@ SymbolTable.h
 /home/abdul/CLionProjects/Compiler/SymbolTable.h
 FunctionSymbol.h
 /home/abdul/CLionProjects/Compiler/FunctionSymbol.h
+ExpressionCodeGenerator.h
+/home/abdul/CLionProjects/Compiler/ExpressionCodeGenerator.h
+
+/home/abdul/CLionProjects/Compiler/ExpressionCodeGenerator.cpp
+Compiler.h
+/home/abdul/CLionProjects/Compiler/Compiler.h
+FunctionSymbol.h
+/home/abdul/CLionProjects/Compiler/FunctionSymbol.h
+
+/home/abdul/CLionProjects/Compiler/ExpressionCodeGenerator.h
+Token.h
+/home/abdul/CLionProjects/Compiler/Token.h
 
 /home/abdul/CLionProjects/Compiler/FunctionSymbol.cpp
 FunctionSymbol.h

@@ -6,6 +6,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/Project.dir/Parsing.cpp.o"
   "CMakeFiles/Project.dir/CodeGen.cpp.o"
   "CMakeFiles/Project.dir/FunctionSymbol.cpp.o"
+  "CMakeFiles/Project.dir/ExpressionCodeGenerator.cpp.o"
   "Project.pdb"
   "Project"
 )

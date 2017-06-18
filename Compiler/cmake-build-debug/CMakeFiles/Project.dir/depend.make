@@ -3,10 +3,19 @@
 
 CMakeFiles/Project.dir/CodeGen.cpp.o: ../CodeGen.cpp
 CMakeFiles/Project.dir/CodeGen.cpp.o: ../Compiler.h
+CMakeFiles/Project.dir/CodeGen.cpp.o: ../ExpressionCodeGenerator.h
 CMakeFiles/Project.dir/CodeGen.cpp.o: ../FunctionSymbol.h
 CMakeFiles/Project.dir/CodeGen.cpp.o: ../Lexer.h
 CMakeFiles/Project.dir/CodeGen.cpp.o: ../SymbolTable.h
 CMakeFiles/Project.dir/CodeGen.cpp.o: ../Token.h
+
+CMakeFiles/Project.dir/ExpressionCodeGenerator.cpp.o: ../Compiler.h
+CMakeFiles/Project.dir/ExpressionCodeGenerator.cpp.o: ../ExpressionCodeGenerator.cpp
+CMakeFiles/Project.dir/ExpressionCodeGenerator.cpp.o: ../ExpressionCodeGenerator.h
+CMakeFiles/Project.dir/ExpressionCodeGenerator.cpp.o: ../FunctionSymbol.h
+CMakeFiles/Project.dir/ExpressionCodeGenerator.cpp.o: ../Lexer.h
+CMakeFiles/Project.dir/ExpressionCodeGenerator.cpp.o: ../SymbolTable.h
+CMakeFiles/Project.dir/ExpressionCodeGenerator.cpp.o: ../Token.h
 
 CMakeFiles/Project.dir/FunctionSymbol.cpp.o: ../FunctionSymbol.cpp
 CMakeFiles/Project.dir/FunctionSymbol.cpp.o: ../FunctionSymbol.h
@@ -17,6 +26,7 @@ CMakeFiles/Project.dir/Lexer.cpp.o: ../Lexer.h
 CMakeFiles/Project.dir/Lexer.cpp.o: ../Token.h
 
 CMakeFiles/Project.dir/Parsing.cpp.o: ../Compiler.h
+CMakeFiles/Project.dir/Parsing.cpp.o: ../ExpressionCodeGenerator.h
 CMakeFiles/Project.dir/Parsing.cpp.o: ../FunctionSymbol.h
 CMakeFiles/Project.dir/Parsing.cpp.o: ../Lexer.h
 CMakeFiles/Project.dir/Parsing.cpp.o: ../Parsing.cpp
@@ -31,6 +41,7 @@ CMakeFiles/Project.dir/Token.cpp.o: ../Token.cpp
 CMakeFiles/Project.dir/Token.cpp.o: ../Token.h
 
 CMakeFiles/Project.dir/main.cpp.o: ../Compiler.h
+CMakeFiles/Project.dir/main.cpp.o: ../ExpressionCodeGenerator.h
 CMakeFiles/Project.dir/main.cpp.o: ../FunctionSymbol.h
 CMakeFiles/Project.dir/main.cpp.o: ../Lexer.h
 CMakeFiles/Project.dir/main.cpp.o: ../SymbolTable.h

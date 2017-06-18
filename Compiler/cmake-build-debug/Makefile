@@ -150,6 +150,33 @@ CodeGen.cpp.s:
 	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/CodeGen.cpp.s
 .PHONY : CodeGen.cpp.s
 
+ExpressionCodeGenerator.o: ExpressionCodeGenerator.cpp.o
+
+.PHONY : ExpressionCodeGenerator.o
+
+# target to build an object file
+ExpressionCodeGenerator.cpp.o:
+	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/ExpressionCodeGenerator.cpp.o
+.PHONY : ExpressionCodeGenerator.cpp.o
+
+ExpressionCodeGenerator.i: ExpressionCodeGenerator.cpp.i
+
+.PHONY : ExpressionCodeGenerator.i
+
+# target to preprocess a source file
+ExpressionCodeGenerator.cpp.i:
+	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/ExpressionCodeGenerator.cpp.i
+.PHONY : ExpressionCodeGenerator.cpp.i
+
+ExpressionCodeGenerator.s: ExpressionCodeGenerator.cpp.s
+
+.PHONY : ExpressionCodeGenerator.s
+
+# target to generate assembly for a file
+ExpressionCodeGenerator.cpp.s:
+	$(MAKE) -f CMakeFiles/Project.dir/build.make CMakeFiles/Project.dir/ExpressionCodeGenerator.cpp.s
+.PHONY : ExpressionCodeGenerator.cpp.s
+
 FunctionSymbol.o: FunctionSymbol.cpp.o
 
 .PHONY : FunctionSymbol.o
@@ -324,6 +351,9 @@ help:
 	@echo "... CodeGen.o"
 	@echo "... CodeGen.i"
 	@echo "... CodeGen.s"
+	@echo "... ExpressionCodeGenerator.o"
+	@echo "... ExpressionCodeGenerator.i"
+	@echo "... ExpressionCodeGenerator.s"
 	@echo "... FunctionSymbol.o"
 	@echo "... FunctionSymbol.i"
 	@echo "... FunctionSymbol.s"

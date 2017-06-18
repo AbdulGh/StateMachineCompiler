@@ -4,6 +4,15 @@
 CMakeFiles/Project.dir/CodeGen.cpp.o
  /home/abdul/CLionProjects/Compiler/CodeGen.cpp
  /home/abdul/CLionProjects/Compiler/Compiler.h
+ /home/abdul/CLionProjects/Compiler/ExpressionCodeGenerator.h
+ /home/abdul/CLionProjects/Compiler/FunctionSymbol.h
+ /home/abdul/CLionProjects/Compiler/Lexer.h
+ /home/abdul/CLionProjects/Compiler/SymbolTable.h
+ /home/abdul/CLionProjects/Compiler/Token.h
+CMakeFiles/Project.dir/ExpressionCodeGenerator.cpp.o
+ /home/abdul/CLionProjects/Compiler/Compiler.h
+ /home/abdul/CLionProjects/Compiler/ExpressionCodeGenerator.cpp
+ /home/abdul/CLionProjects/Compiler/ExpressionCodeGenerator.h
  /home/abdul/CLionProjects/Compiler/FunctionSymbol.h
  /home/abdul/CLionProjects/Compiler/Lexer.h
  /home/abdul/CLionProjects/Compiler/SymbolTable.h
@@ -18,6 +27,7 @@ CMakeFiles/Project.dir/Lexer.cpp.o
  /home/abdul/CLionProjects/Compiler/Token.h
 CMakeFiles/Project.dir/Parsing.cpp.o
  /home/abdul/CLionProjects/Compiler/Compiler.h
+ /home/abdul/CLionProjects/Compiler/ExpressionCodeGenerator.h
  /home/abdul/CLionProjects/Compiler/FunctionSymbol.h
  /home/abdul/CLionProjects/Compiler/Lexer.h
  /home/abdul/CLionProjects/Compiler/Parsing.cpp
@@ -32,6 +42,7 @@ CMakeFiles/Project.dir/Token.cpp.o
  /home/abdul/CLionProjects/Compiler/Token.h
 CMakeFiles/Project.dir/main.cpp.o
  /home/abdul/CLionProjects/Compiler/Compiler.h
+ /home/abdul/CLionProjects/Compiler/ExpressionCodeGenerator.h
  /home/abdul/CLionProjects/Compiler/FunctionSymbol.h
  /home/abdul/CLionProjects/Compiler/Lexer.h
  /home/abdul/CLionProjects/Compiler/SymbolTable.h
