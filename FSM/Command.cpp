@@ -58,8 +58,6 @@ void PrintCommand<T>::execute()
     cout << toPrint;
 }
 
-
-
 /*JumpCommand*/
 JumpCommand::JumpCommand(int state)
 {
@@ -134,7 +132,7 @@ PopCommand::PopCommand(std::shared_ptr<Variable> varPtr, FSM &stackOwner):
 
 void PopCommand::execute()
 {
-    var->setData(popFrom->top());
+    if (var != nullptr) var->setData(popFrom->top());
     popFrom->pop();
 }
 
