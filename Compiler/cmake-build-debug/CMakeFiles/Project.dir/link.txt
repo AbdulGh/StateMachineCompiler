@@ -1,1 +1,0 @@
-/usr/bin/c++   -g   CMakeFiles/Project.dir/main.cpp.o CMakeFiles/Project.dir/SymbolTable.cpp.o CMakeFiles/Project.dir/Lexer.cpp.o CMakeFiles/Project.dir/Token.cpp.o CMakeFiles/Project.dir/Parsing.cpp.o CMakeFiles/Project.dir/CodeGen.cpp.o CMakeFiles/Project.dir/FunctionSymbol.cpp.o CMakeFiles/Project.dir/ExpressionCodeGenerator.cpp.o  -o Project 
