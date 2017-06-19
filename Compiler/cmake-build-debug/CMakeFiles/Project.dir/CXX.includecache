@@ -23,12 +23,12 @@ FunctionSymbol.h
 /home/abdul/CLionProjects/Compiler/FunctionSymbol.h
 ExpressionCodeGenerator.h
 /home/abdul/CLionProjects/Compiler/ExpressionCodeGenerator.h
+FunctionSymbol.h
+/home/abdul/CLionProjects/Compiler/FunctionSymbol.h
 
 /home/abdul/CLionProjects/Compiler/ExpressionCodeGenerator.cpp
 Compiler.h
 /home/abdul/CLionProjects/Compiler/Compiler.h
-FunctionSymbol.h
-/home/abdul/CLionProjects/Compiler/FunctionSymbol.h
 
 /home/abdul/CLionProjects/Compiler/ExpressionCodeGenerator.h
 Token.h
