@@ -252,9 +252,13 @@ bool Compiler::statement(FunctionPointer fs)
                     genFunctionCall(t, fs);
                     fs->emit(idPtr->getUniqueID() + "= retS;\n");
                 }
-                else match(STRINGLIT);
+                else
+                {
+                    fs->emit(idPtr->getUniqueID() + " = \"" + lookahead.lexemeString + "\";\n");
+                    match(STRINGLIT);
+                }
             }
-            else expression(fs);
+            else expression(fs, idPtr->getUniqueID());
         }
         match(SEMIC);
     }
@@ -276,7 +280,7 @@ bool Compiler::statement(FunctionPointer fs)
             }
             else error("Malformed assignment to string");
         }
-        else expression(fs);
+        else expression(fs, id->getUniqueID());
         match(SEMIC);
     }
     else if (lookahead.type == CALL)
@@ -363,9 +367,11 @@ void Compiler::ors(FunctionPointer fs)
 
 void Compiler::condition(FunctionPointer fs)
 {
-    expression(fs);
-    relop(); //todo no need for this
-    expression(fs);
+    //todo conditions
+    string todo = "todo";
+    expression(fs, todo);
+    relop();
+    expression(fs, todo);
 }
 
 void Compiler::relop()
@@ -373,78 +379,10 @@ void Compiler::relop()
     match(RELOP);
 }
 
-void Compiler::expression(FunctionPointer fs)
+void Compiler::expression(FunctionPointer fs, const std::string& to)
 {
-    if (lookahead.type == OP)
-    {
-        if ((Op)lookahead.auxType == Op::PLUS) match(OP);
-        else if ((Op)lookahead.auxType == Op::MINUS) match(OP);
-    }
-
-    term(fs);
-
-    while (lookahead.type == OP)
-    {
-        if ((Op)lookahead.auxType == Op::PLUS)
-        {
-            match(OP);
-            term(fs);
-        }
-
-        else if ((Op)lookahead.auxType == Op::MINUS)
-        {
-            match(OP);
-            term(fs);
-        }
-    }
-}
-
-void Compiler::term(FunctionPointer fs)
-{
-    if (lookahead.type == OP)
-    {
-        if ((Op)lookahead.auxType == Op::PLUS) match(OP);
-        else if ((Op)lookahead.auxType == Op::MINUS) match(OP);
-    }
-
-    factor(fs);
-
-    while (lookahead.type == OP)
-    {
-        if ((Op)lookahead.auxType == Op::MULT)
-        {
-            match(OP);
-            factor(fs);
-        }
-
-        else if ((Op)lookahead.auxType == Op::DIV)
-        {
-            match(OP);
-            factor(fs);
-        }
-
-        else if ((Op)lookahead.auxType == Op::MOD)
-        {
-            match(OP);
-            factor(fs);
-        }
-    }
-}
-
-void Compiler::factor(FunctionPointer fs)
-{
-    if (lookahead.type == IDENT) ident();
-    else if (lookahead.type == NUMBER) match(NUMBER);
-    else if (lookahead.type == CALL)
-    {
-        genFunctionCall(VariableType::DOUBLE, fs);
-    }
-    else
-    {
-        match(LPAREN);
-        expression(fs);
-        match(RPAREN);
-    }
+    ExpressionCodeGenerator gen(*this, to);
+    gen.CompileExpression(fs);
 }
 
 VariableType Compiler::vtype()

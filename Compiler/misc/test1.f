@@ -1,48 +1,21 @@
-string message = "Hello world\n";
+double globalT1 = 4;
 
-function getReturnVarWorkingPercentage() double
+function getstr(double integer) string
 {
-    double omg = 100;
-    return omg;
+	string str = "good\n";
+	if (integer < 5) return str;
+	return "bad\n";
 }
 
-function getReturnLiteralWorkingAmount() string
+string globalT2;
+
+function main() double
 {
-    return "One hundred percent";
+    string str = call getstr(4);
+    print(str);
+    str = call getstr(5);
+    print(str);
+    return 0;
 }
 
-function returnArgument(double d) double
-{
-    return d;
-}
-
-function check() void
-{
-    print(message);
-    message = "testing overwriting\n";
-    print(message);
-    string message = "testing scopes\n";
-    print(message);
-
-    print("getReturnVarWorkingPercentage: ");
-    double d = call getReturnVarWorkingPercentage();
-    print(d);
-
-    print("%\ngetReturnLiteralWorkingAmount: ");
-    string message2 = call getReturnLiteralWorkingAmount();
-    print(message2);
-
-    print("\nreturnLiteral correctness percentage: ");
-    d = call returnArgument(100);
-    print(d);
-
-    print("%\nreturnDouble correcness percentage * 0.5: ");
-    d = 50;
-    double d2 = call returnArgument(d);
-    print(d);
-}
-
-function main() void
-{
-    call check();
-}
+string globalT3 = "wow";

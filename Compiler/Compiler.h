@@ -41,9 +41,7 @@ private:
     void ors(FunctionPointer fs);
     void condition(FunctionPointer fs);
     void relop();
-    void expression(FunctionPointer fs);
-    void term(FunctionPointer fs);
-    void factor(FunctionPointer fs);
+    void expression(FunctionPointer fs, const std::string& to);
     VariableType vtype();
     std::string ident();
 

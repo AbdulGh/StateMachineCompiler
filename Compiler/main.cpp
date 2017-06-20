@@ -16,7 +16,7 @@ int main()
         cout << n << endl;
     }*/
 
-    vector<Token> st = lexer.tokenize("../misc/test1.f");
+    vector<Token> st = lexer.tokenize("../misc/expressiontest.f");
     Compiler c(st);
     stringstream pleaseWork;
     c.compile(pleaseWork);
