@@ -1,0 +1,4 @@
+FSM/.idea/*
+FSM/cmake-build-debug/*
+Compiler/.idea/*
+Compiler/cmake-build-debug/*

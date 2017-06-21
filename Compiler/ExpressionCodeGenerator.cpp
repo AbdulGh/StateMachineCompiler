@@ -316,6 +316,10 @@ string ExpressionCodeGenerator::genUnique(FunctionPointer fs)
 
 void ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer fs, unsigned int reg)
 {
+    if (p == nullptr)
+    {
+        return;
+    }
     string thisone = genTemp(fs, reg);
     if (p->getType() == LITERAL || p->getType() == IDENTIFIER)
     {
