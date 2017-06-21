@@ -9,7 +9,7 @@ typedef std::shared_ptr<FunctionSymbol> FunctionPointer;
 
 class Compiler;
 
-enum NodeType{COMM, NOTCOMM, IDENTIFIER, LITERAL};
+enum NodeType{COMM, NOTCOMM, ATOM};
 
 class AbstractExprNode
 {
@@ -24,29 +24,13 @@ public:
     NodeType getType() const;
     virtual std::shared_ptr<AbstractExprNode> getLeft() = 0;
     virtual std::shared_ptr<AbstractExprNode> getRight() = 0;
-    virtual std::vector<std::shared_ptr<AbstractExprNode>> getRest() = 0;
     unsigned int getVarsRequired() const;
 
     Op getOp() const;
 };
 typedef std::shared_ptr<AbstractExprNode> ExprNodePointer;
 
-class CommOperatorNode : public AbstractExprNode
-{
-private:
-    ExprNodePointer left;
-    std::vector<ExprNodePointer> right;
-
-public:
-    ExprNodePointer getLeft();
-    ExprNodePointer getRight();
-    std::vector<ExprNodePointer> getRest();
-
-    CommOperatorNode(Op);
-    void addNode(ExprNodePointer);
-};
-
-class NotCommOperatorNode : public AbstractExprNode
+class OperatorNode : public AbstractExprNode
 {
 private:
     ExprNodePointer left;
@@ -55,27 +39,26 @@ private:
 public:
     ExprNodePointer getLeft();
     ExprNodePointer getRight();
-    std::vector<ExprNodePointer> getRest();
 
-    NotCommOperatorNode(Op);
+    OperatorNode(Op);
     void addNode(ExprNodePointer);
 };
 
-template <typename T>
 class AtomNode : public AbstractExprNode
 {
 private:
-    T data;
-
+    std::string data;
+    bool isNum;
+    int varsRequired;
 public:
     ExprNodePointer getLeft();
     ExprNodePointer getRight();
-    std::vector<ExprNodePointer> getRest();
 
-    AtomNode(T);
-    std::string getData();
-    void combine(std::shared_ptr<AtomNode<double>>, Op op);
+    AtomNode(std::string, bool);
+    const std::string getData() const;
     void addNode(ExprNodePointer);
+
+    bool isNumber() const;
 };
 
 class ExpressionCodeGenerator

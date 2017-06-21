@@ -24,170 +24,107 @@ Op AbstractExprNode::getOp() const
     return op;
 }
 
-CommOperatorNode::CommOperatorNode(Op o): left(nullptr)
+OperatorNode::OperatorNode(Op o): left(nullptr), right(nullptr)
 {
-    if (o == PLUS || o == MULT)
-    {
-        op = o;
-        setType(COMM);
-    }
-    else throw "Not commutative";
+    op = o;
+    if (op == PLUS || op == MULT) setType(COMM);
+    else setType(NOTCOMM);
 }
 
-void CommOperatorNode::addNode(ExprNodePointer p)
+void OperatorNode::addNode(ExprNodePointer p)
 {
     if (left == nullptr)
     {
         left = p;
-        varsRequired = left->getVarsRequired();
+        if (left->getType() == ATOM) varsRequired = 1;
+        else varsRequired = left->getVarsRequired();
     }
-    else if (p->getVarsRequired() > left->getVarsRequired())
+    else if (getType() == COMM && (p->getType() == ATOM || op == p->getOp()))
     {
-        right.push_back(left);
-        left = p;
-        varsRequired = p->getVarsRequired();
+        if (p->getVarsRequired() > left->getVarsRequired())
+        {
+            left->addNode(p);
+            varsRequired = left->getVarsRequired();
+        }
+        else
+        {
+            if (right == nullptr) right = p;
+            else if (right->getVarsRequired() > p->getVarsRequired())
+            {
+                ExprNodePointer newP(new OperatorNode(op));
+                newP->addNode(left);
+                newP->addNode(right);
+                left = newP;
+                right = p;
+            }
+            else
+            {
+                ExprNodePointer newP(new OperatorNode(op));
+                newP->addNode(left);
+                newP->addNode(p);
+                left = newP;
+            }
+
+            if (left->getVarsRequired() < right->getVarsRequired()) throw "Disaster";
+            else if (left->getVarsRequired() == right->getVarsRequired()) varsRequired = left->getVarsRequired() + 1;
+            else varsRequired = left->getVarsRequired();
+        }
     }
     else
     {
-        right.push_back(p);
-        if (p->getVarsRequired() == left->getVarsRequired()) varsRequired = left->getVarsRequired() + 1;
+        if (right == nullptr) right = p;
+        else
+        {
+            ExprNodePointer newP(new OperatorNode(op));
+            newP->addNode(left);
+            newP->addNode(right);
+            left = newP;
+            right = p;
+        }
     }
 }
 
-ExprNodePointer CommOperatorNode::getLeft()
+ExprNodePointer OperatorNode::getLeft()
 {
     return left;
 }
 
-ExprNodePointer CommOperatorNode::getRight()
-{
-    throw "No single right node";
-}
-
-vector<ExprNodePointer> CommOperatorNode::getRest()
+ExprNodePointer OperatorNode::getRight()
 {
     return right;
 }
 
-NotCommOperatorNode::NotCommOperatorNode(Op o): left(nullptr)
+AtomNode::AtomNode(string in, bool num):
+    varsRequired(0),
+    data(in),
+    isNum(num)
 {
-    if (o == MINUS || o == DIV || o == MULT)
-    {
-        op = o;
-        setType(NOTCOMM);
-    }
-    else throw "Commutative";
+    setType(ATOM);
 }
 
-void NotCommOperatorNode::addNode(ExprNodePointer p) //todo refine this w/ associativity
-{
-    if (left == nullptr)
-    {
-        left = p;
-        varsRequired = left->getVarsRequired();
-    }
-    else if (right != nullptr)
-    {
-        ExprNodePointer newP(new NotCommOperatorNode(op));
-        newP->addNode(this->left);
-        newP->addNode(this->right);
-        this->left = newP;
-        this->right = p;
-    }
-}
-
-ExprNodePointer NotCommOperatorNode::getLeft()
-{
-    return left;
-}
-
-ExprNodePointer NotCommOperatorNode::getRight()
-{
-    return right;
-}
-
-vector<ExprNodePointer> NotCommOperatorNode::getRest()
-{
-    throw "Only two nodes";
-}
-
-
-template <>
-AtomNode<string>::AtomNode(string in)
-{
-    varsRequired = 0;
-    data = in;
-    type = IDENTIFIER;
-}
-
-template <>
-AtomNode<double>::AtomNode(double in)
-{
-    varsRequired = 0;
-    data = in;
-    type = LITERAL;
-}
-
-template <typename T>
-AtomNode<T>::AtomNode(T)
-{
-    throw "Strange use of template";
-}
-
-template <typename T>
-ExprNodePointer AtomNode<T>::getLeft()
+ExprNodePointer AtomNode::getLeft()
 {
     return nullptr;
 }
 
-template <typename T>
-ExprNodePointer AtomNode<T>::getRight()
+ExprNodePointer AtomNode::getRight()
 {
     return nullptr;
 }
 
-template <typename T>
-vector<ExprNodePointer> AtomNode<T>::getRest()
-{
-    throw "nothing here";
-}
-
-template <typename T>
-void AtomNode<T>::combine(shared_ptr<AtomNode<double>> p, Op o)
-{
-    if (getType() != LITERAL || p->getType() != LITERAL) throw "Cannot combine w/ identifier";
-    switch(o)
-    {
-        case PLUS:
-            data += p->data;
-            break;
-        case MINUS:
-            data -= p->data;
-            break;
-        case MULT:
-            data *= p->data;
-            break;
-        case DIV:
-            data /= p->data;
-            break;
-        case MOD:
-            data =(int)data %  (int)p->data;
-            break;
-        default: throw "Weird op";
-    }
-    p.reset();
-}
-
-template <typename T>
-void AtomNode<T>::addNode(ExprNodePointer)
+void AtomNode::addNode(ExprNodePointer)
 {
     throw "Atoms have no children";
 }
 
-template <typename T>
-string AtomNode<T>::getData()
+const string AtomNode::getData() const
 {
-    return to_string(data);
+    return data;
+}
+
+bool AtomNode::isNumber() const
+{
+    return isNum;
 }
 
 /*generation*/
@@ -196,51 +133,82 @@ ExpressionCodeGenerator::ExpressionCodeGenerator(Compiler &p, const string& asig
         currentUnique(0),
         goingto(asignee){}
 
+string printTree(ExprNodePointer p) //debug
+{
+    string s = "";
+    if (p == nullptr) s = "null";
+    else if (p->getType() == ATOM) s += static_pointer_cast<AtomNode>(p)->getData();
+    else
+    {
+        s += "[";
+        switch (p->getOp())
+        {
+            case PLUS:
+                s += " + ";
+                break;
+            case MULT:
+                s += " * ";
+                break;
+            case MINUS:
+                s += " - ";
+                break;
+            case DIV:
+                s += " / ";
+                break;
+            case MOD:
+                s += " % ";
+                break;
+            default:
+                throw "Strange op";
+        }
+        s += "(" + to_string(p->getVarsRequired()) + ") ";
+        s += printTree(p->getLeft()) + " " + printTree(p->getRight()) + " ]";
+    }
+    return s;
+}
+
 void ExpressionCodeGenerator::CompileExpression(FunctionPointer fs)
 {
     ExprNodePointer tree = expression(fs);
+    printf(printTree(tree).c_str());
+    printf("\n");
     translateTree(tree, fs,  0);
 }
 
 ExprNodePointer ExpressionCodeGenerator::expression(FunctionPointer fs)
 {
     ExprNodePointer currentLeft = term(fs);
-    Op lastOp;
     if (!(parent.lookahead.type == OP)) return currentLeft;
-
     else while (parent.lookahead.type == OP
                 && ((Op)parent.lookahead.auxType == PLUS || (Op)parent.lookahead.auxType == MINUS))
+    {
+        ExprNodePointer ref;
+        Op lastOp = (Op)parent.lookahead.auxType;
+        ref.reset(new OperatorNode(lastOp));
+        ref->addNode(currentLeft);
+
+        do
         {
-            lastOp = (Op)parent.lookahead.auxType;
-            ExprNodePointer ref;
-            if (lastOp == PLUS) ref.reset(new CommOperatorNode(lastOp));
-            else ref.reset(new NotCommOperatorNode(lastOp));
-            ref->addNode(currentLeft);
+            parent.match(OP);
+            ref->addNode(term(fs));
+        } while (parent.lookahead.type == OP && (Op)parent.lookahead.auxType == lastOp);
 
-            do
-            {
-                parent.match(OP);
-                ref->addNode(term(fs));
-            } while (parent.lookahead.type == OP && (Op)parent.lookahead.auxType == lastOp);
-
-            currentLeft = ref;
-        }
+        currentLeft = ref;
+    }
     return currentLeft;
 }
 
 ExprNodePointer ExpressionCodeGenerator::term(FunctionPointer fs)
 {
     ExprNodePointer currentLeft = factor(fs);
-    Op lastOp;
     if (!(parent.lookahead.type == OP)) return currentLeft;
 
-    while (parent.lookahead.type == OP && ((Op)parent.lookahead.auxType == MULT
+    else while (parent.lookahead.type == OP && ((Op)parent.lookahead.auxType == MULT
                 || (Op)parent.lookahead.auxType == DIV || (Op)parent.lookahead.auxType == MOD))
     {
-        lastOp = (Op)parent.lookahead.auxType;
+        Op lastOp = (Op)parent.lookahead.auxType;
         ExprNodePointer ref;
-        if (lastOp == MULT) ref.reset(new CommOperatorNode(lastOp));
-        else ref.reset(new NotCommOperatorNode(lastOp));
+        ref.reset(new OperatorNode(lastOp));
         ref->addNode(currentLeft);
 
         do
@@ -259,13 +227,14 @@ ExprNodePointer ExpressionCodeGenerator::factor(FunctionPointer fs)
     if (parent.lookahead.type == IDENT)
     {
         shared_ptr<Identifier> id = parent.findVariable(parent.ident());
-        return shared_ptr<AbstractExprNode>(new AtomNode<string>(id->getUniqueID()));
+        //const char* dbg = id->getUniqueID().c_str();
+        return ExprNodePointer(new AtomNode(id->getUniqueID(), false));
     }
     else if (parent.lookahead.type == NUMBER)
     {
-        double d = stod(parent.lookahead.lexemeString);
+        ExprNodePointer ref(new AtomNode(parent.lookahead.lexemeString, true));
         parent.match(NUMBER);
-        return shared_ptr<AbstractExprNode>(new AtomNode<double>(d));
+        return ref;
     }
     else if (parent.lookahead.type == LPAREN)
     {
@@ -279,7 +248,7 @@ ExprNodePointer ExpressionCodeGenerator::factor(FunctionPointer fs)
         parent.genFunctionCall(DOUBLE, fs);
         string uni = genUnique(fs);
         fs->emit(uni + " = retD;\n");
-        return shared_ptr<AbstractExprNode>(new AtomNode<string>(uni));
+        return shared_ptr<AbstractExprNode>(new AtomNode(uni, false));
     }
     else parent.error("Expected identifier or double in expression");
 }
@@ -321,15 +290,21 @@ void ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer f
         return;
     }
     string thisone = genTemp(fs, reg);
-    if (p->getType() == LITERAL || p->getType() == IDENTIFIER)
+    if (p->getType() == ATOM)
     {
-        fs->emit(thisone + " = " + static_pointer_cast<AtomNode<double>>(p)->getData() + ";\n");
+        fs->emit(thisone + " = " + static_pointer_cast<AtomNode>(p)->getData() + ";\n");
     }
-    else if (p->getType() == COMM)
+    else
     {
-        string nextone = genTemp(fs, reg + 1);
+        string nextone;
         translateTree(p->getLeft(), fs, reg);
-        vector<ExprNodePointer> list = p->getRest();
+        if (p->getRight()->getType() == ATOM) nextone = static_pointer_cast<AtomNode>(p->getRight())->getData();
+        else
+        {
+            translateTree(p->getRight(), fs, reg+1);
+            nextone = genTemp(fs, reg + 1);
+        }
+
         string c;
         switch (p->getOp())
         {
@@ -339,25 +314,6 @@ void ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer f
             case MULT:
                 c = " * ";
                 break;
-            default:
-                throw "Impostor commutative op";
-        }
-        for (auto it = list.cbegin(); it != list.cend(); ++it)
-        {
-            translateTree(*it, fs, reg + 1);
-            fs->emit(thisone + " = " + thisone + c + nextone + ";\n");
-        }
-    }
-
-    else if (p->getType() == NOTCOMM)
-    {
-        string nextone = genTemp(fs, reg + 1);
-        translateTree(p->getLeft(), fs, reg);
-        translateTree(p->getRight(), fs, reg + 1);
-
-        string c;
-        switch (p->getOp())
-        {
             case MINUS:
                 c = " - ";
                 break;
@@ -368,8 +324,9 @@ void ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer f
                 c = " % ";
                 break;
             default:
-                throw "Impostor not-commutative op";
+                throw "Strange op";
         }
-        fs->emit(thisone + " = " + thisone + c + nextone);
+        fs->emit(thisone + " = " + thisone + c + nextone + ";\n");
     }
 }
+
