@@ -56,7 +56,30 @@ public:
 
     Token(Relop rel):
             type(RELOP),
-            auxType(rel) {}
+            auxType(rel)
+    {
+        switch((Relop)auxType)
+        {
+            case EQ:
+                lexemeString = "==";
+                break;
+            case NE:
+                lexemeString = "!=";
+                break;
+            case LT:
+                lexemeString = "<";
+                break;
+            case LE:
+                lexemeString = "<=";
+                break;
+            case GT:
+                lexemeString = ">";
+                break;
+            case GE:
+                lexemeString = ">=";
+                break;
+        }
+    }
 
     Token(Op op):
             type(OP),

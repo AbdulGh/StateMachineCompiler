@@ -31,20 +31,34 @@ string FSMParser::nextString()
     if (infile.eof()) throw runtime_error("command not finished");
 
     string ident;
-    while (!isspace(c) && c != ';')
+    if (c == '"')
     {
         ident += c;
-        infile.get(c);
-        if (infile.eof()) throw runtime_error("identifier not finished");
+        while (infile.get(c))
+        {
+            ident += c;
+            if (c == '"') break;
+            else if (infile.eof()) throw runtime_error("identifier not finished");
+        }
     }
-    infile.unget();
+
+    else
+    {
+        while (!isspace(c) && c != ';')
+        {
+            ident += c;
+            infile.get(c);
+            if (infile.eof()) throw runtime_error("identifier not finished");
+        }
+        infile.unget();
+    }
 
     return ident;
 }
 
-string FSMParser::nextCommand()
+string FSMParser::nextCommand(bool expecting)
 {
-    char c = nextRealChar("End expected");
+    char c = nextRealChar(expecting ? "End expected" : "");
 
     string str;
     while (!isspace(c) && !infile.eof())
@@ -57,14 +71,18 @@ string FSMParser::nextCommand()
     return str;
 }
 
-char FSMParser::nextRealChar(string error)
+char FSMParser::nextRealChar(string error = "")
 {
     char c;
     infile.get(c);
     while (isspace(c))
     {
         infile.get(c);
-        if (infile.eof()) throw runtime_error(error);
+        if (infile.eof())
+        {
+            if (error != "") throw runtime_error(error);
+            else return -1;
+        }
     }
     return c;
 }
@@ -130,11 +148,13 @@ FSM FSMParser::readFSM()
         }
         else if (str == "end")
         {
-            str = nextCommand();
-
-            unordered_map<string, int>::const_iterator it = stateNameMap.find(str);
-            if (it == stateNameMap.cend()) stateNameMap[str] = nextUnusedState++;
-            else throw runtime_error("State '" + str + "' defined multiple times");
+            if (infile >> str && str != "")
+            {
+                unordered_map<string, int>::const_iterator it = stateNameMap.find(str);
+                if (it == stateNameMap.cend()) stateNameMap[str] = nextUnusedState++;
+                else throw runtime_error("State '" + str + "' defined multiple times");
+            }
+            else break;
         }
         else while (infile.get(c) && c != ';' && c != '\n');
         str = nextCommand();
@@ -205,11 +225,7 @@ FSM FSMParser::readFSM()
                         {
                             infile.get(c);
                             if (c == 'n') c = '\n';
-                            else
-                            {
-                                infile.unget();
-                                c = '\\';
-                            }
+                            else if (c == '\\') c = '\\';
                         }
                         strToPrint += c;
                         infile.get(c);

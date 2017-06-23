@@ -28,6 +28,7 @@ private:
     std::unordered_map<std::string, FunctionPointer> functionTable;
 
     void error(std::string);
+    void warning(std::string);
     Token nextToken();
     void findFunctionsAndMakeFirstStates(std::stringstream&);
     std::shared_ptr<Identifier> findVariable(std::string);
@@ -37,16 +38,18 @@ private:
     void match(Type t);
     void body();
     bool statement(FunctionPointer fs); //returns true if the state has been ended
-    void ands(FunctionPointer fs);
-    void ors(FunctionPointer fs);
-    void condition(FunctionPointer fs);
-    void relop();
+    std::string relop();
     void expression(FunctionPointer fs, const std::string& to);
     VariableType vtype();
     std::string ident();
 
     /*code generation*/
     VariableType genFunctionCall(VariableType, FunctionPointer);
+    void genIf(FunctionPointer);
+    void genWhile(FunctionPointer);
+    void ands(FunctionPointer fs, std::string success, std::string fail);
+    void ors(FunctionPointer fs, std::string success, std::string fail);
+    void condition(FunctionPointer fs, std::string success, std::string fail);
 };
 
 

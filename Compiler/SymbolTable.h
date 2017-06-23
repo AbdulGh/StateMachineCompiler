@@ -26,7 +26,7 @@ public:
             lineNum(line),
             type(datatype),
             defined(false),
-            uniqueID(std::to_string(scopenum) + "_" + std::to_string(depth) + "_" + lexeme){}
+            uniqueID("_" + std::to_string(scopenum) + "_" + std::to_string(depth) + "_" + lexeme){}
 
     const std::string &getLexeme() const
     {

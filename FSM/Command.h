@@ -28,13 +28,14 @@ protected:
     void setChangeState(bool);
 };
 
-template <class T>
+template <typename T>
 class PrintCommand: public AbstractCommand
 {
 public:
     PrintCommand(T);
     void execute();
 private:
+    static std::string unescape(const std::string&);
     T toPrint;
 };
 
@@ -63,7 +64,7 @@ private:
     std::shared_ptr<Variable> var;
 };
 
-template <class T>
+template <typename T>
 class PushCommand: public AbstractCommand
 {
 public:
@@ -84,7 +85,7 @@ private:
     std::stack<Variable::TaggedDataUnion>* popFrom;
 };
 
-template <class T>
+template <typename T>
 class AssignVarCommand: public AbstractCommand
 {
 public:
@@ -95,7 +96,7 @@ private:
     T val;
 };
 
-template <class T>
+template <typename T>
 class EvaluateExprCommand: public AbstractCommand
 {
 public:

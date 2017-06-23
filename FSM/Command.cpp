@@ -27,7 +27,33 @@ void AbstractCommand::setChangeState(bool b)
 }
 
 /*PrintCommand*/
-template <class T>
+template <typename T>
+std::string PrintCommand<T>::unescape(const string& in) //omg
+{
+    string ret;
+    string::const_iterator it = in.begin();
+    while (it != in.end())
+    {
+        char c = *it++;
+        if (c == '\\' && it != in.end())
+        {
+            if (++it != in.end() && *it == '\\'
+                    && ++it != in.end() && *it != 'n') ret += "\n";
+            else ret += "\\";
+        }
+        else ret += c;
+    }
+
+    return ret;
+}
+
+template<>
+PrintCommand<string>::PrintCommand(string s)
+{
+    this->toPrint = s;//unescape(s);
+}
+
+template <typename T>
 PrintCommand<T>::PrintCommand(T toPrint)
 {
     this->toPrint = toPrint;
@@ -52,7 +78,7 @@ void PrintCommand<std::shared_ptr<Variable>>::execute()
     }
 }
 
-template <class T>
+template <typename T>
 void PrintCommand<T>::execute()
 {
     cout << toPrint;
@@ -73,9 +99,13 @@ JumpTopCommand::JumpTopCommand(FSM &stackOwner):
 
 void JumpTopCommand::execute()
 {
-    setState((int)popFrom->top().contents);
-    popFrom->pop(); //todo die if stack is empty
-    setChangeState(true);
+    if (popFrom->empty()) setChangeState(false);
+    else
+    {
+        setState((int)popFrom->top().contents);
+        popFrom->pop();
+        setChangeState(true);
+    }
 }
 
 /*InputVarCommand*/
@@ -106,7 +136,7 @@ void InputVarCommand::execute()
 }
 
 /*PushCommand*/
-template <class T>
+template <typename T>
 PushCommand<T>::PushCommand(T in, FSM &stackOwner):
     var(in),
     pushTo(&stackOwner.sharedStack)
@@ -137,19 +167,19 @@ void PopCommand::execute()
 }
 
 /*AssignVarCommand*/
-template <class T>
+template <typename T>
 AssignVarCommand<T>::AssignVarCommand(std::shared_ptr<Variable> varPtr, T value):
         var(varPtr),
         val(value) {}
 
-template <class T>
+template <typename T>
 void AssignVarCommand<T>::execute()
 {
     var->setData(val);
 }
 
 /*EvaluateExprCommand*/
-template <class T>
+template <typename T>
 EvaluateExprCommand<T>::EvaluateExprCommand(std::shared_ptr<Variable> varPtr, std::shared_ptr<Variable> LHSVar, T b, ExpressionType t):
     var(varPtr),
     term1(LHSVar),
@@ -159,7 +189,7 @@ EvaluateExprCommand<T>::EvaluateExprCommand(std::shared_ptr<Variable> varPtr, st
     if (varPtr->getType() != LHSVar->getType()) throw runtime_error("Incompatible types in evaluation");
 }
 
-template <class T>
+template <typename T>
 void EvaluateExprCommand<T>::evaluate(double one, double two)
 {
     switch(type)
@@ -224,7 +254,7 @@ JumpOnComparisonCommand<T>::JumpOnComparisonCommand(std::shared_ptr<Variable> va
         var(varPtr),
         popFrom(&stackOwner.sharedStack){}
 
-template <class T>
+template <typename T>
 void JumpOnComparisonCommand<T>::evaluate(double RHS)
 {
     double data = var->getData();
@@ -258,7 +288,7 @@ void JumpOnComparisonCommand<T>::evaluate(double RHS)
     }
 }
 
-template <class T>
+template <typename T>
 void JumpOnComparisonCommand<T>::evaluate(string RHS)
 {
     string* dataP = var->getData();

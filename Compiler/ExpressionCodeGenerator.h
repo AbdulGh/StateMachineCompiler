@@ -2,8 +2,10 @@
 #define PROJECT_EXPRESSIONTREE_H
 
 #include <stack>
+#include <memory>
 
 #include "Token.h"
+#include "FunctionSymbol.h"
 
 typedef std::shared_ptr<FunctionSymbol> FunctionPointer;
 

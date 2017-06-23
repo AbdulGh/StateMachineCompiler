@@ -3,131 +3,7 @@
 #include "Compiler.h"
 
 using namespace std;
-/*expression tree stuff*/
-NodeType AbstractExprNode::getType() const
-{
-    return type;
-}
 
-void AbstractExprNode::setType(NodeType type)
-{
-    AbstractExprNode::type = type;
-}
-
-unsigned int AbstractExprNode::getVarsRequired() const
-{
-    return varsRequired;
-}
-
-Op AbstractExprNode::getOp() const
-{
-    return op;
-}
-
-OperatorNode::OperatorNode(Op o): left(nullptr), right(nullptr)
-{
-    op = o;
-    if (op == PLUS || op == MULT) setType(COMM);
-    else setType(NOTCOMM);
-}
-
-void OperatorNode::addNode(ExprNodePointer p)
-{
-    if (left == nullptr)
-    {
-        left = p;
-        if (left->getType() == ATOM) varsRequired = 1;
-        else varsRequired = left->getVarsRequired();
-    }
-    else if (getType() == COMM && (p->getType() == ATOM || op == p->getOp()))
-    {
-        if (p->getVarsRequired() > left->getVarsRequired())
-        {
-            left->addNode(p);
-            varsRequired = left->getVarsRequired();
-        }
-        else
-        {
-            if (right == nullptr) right = p;
-            else if (right->getVarsRequired() > p->getVarsRequired())
-            {
-                ExprNodePointer newP(new OperatorNode(op));
-                newP->addNode(left);
-                newP->addNode(right);
-                left = newP;
-                right = p;
-            }
-            else
-            {
-                ExprNodePointer newP(new OperatorNode(op));
-                newP->addNode(left);
-                newP->addNode(p);
-                left = newP;
-            }
-
-            if (left->getVarsRequired() < right->getVarsRequired()) throw "Disaster";
-            else if (left->getVarsRequired() == right->getVarsRequired()) varsRequired = left->getVarsRequired() + 1;
-            else varsRequired = left->getVarsRequired();
-        }
-    }
-    else
-    {
-        if (right == nullptr) right = p;
-        else
-        {
-            ExprNodePointer newP(new OperatorNode(op));
-            newP->addNode(left);
-            newP->addNode(right);
-            left = newP;
-            right = p;
-        }
-    }
-}
-
-ExprNodePointer OperatorNode::getLeft()
-{
-    return left;
-}
-
-ExprNodePointer OperatorNode::getRight()
-{
-    return right;
-}
-
-AtomNode::AtomNode(string in, bool num):
-    varsRequired(0),
-    data(in),
-    isNum(num)
-{
-    setType(ATOM);
-}
-
-ExprNodePointer AtomNode::getLeft()
-{
-    return nullptr;
-}
-
-ExprNodePointer AtomNode::getRight()
-{
-    return nullptr;
-}
-
-void AtomNode::addNode(ExprNodePointer)
-{
-    throw "Atoms have no children";
-}
-
-const string AtomNode::getData() const
-{
-    return data;
-}
-
-bool AtomNode::isNumber() const
-{
-    return isNum;
-}
-
-/*generation*/
 ExpressionCodeGenerator::ExpressionCodeGenerator(Compiler &p, const string& asignee):
         parent(p),
         currentUnique(0),
@@ -170,8 +46,6 @@ string printTree(ExprNodePointer p) //debug
 void ExpressionCodeGenerator::CompileExpression(FunctionPointer fs)
 {
     ExprNodePointer tree = expression(fs);
-    printf(printTree(tree).c_str());
-    printf("\n");
     translateTree(tree, fs,  0);
 }
 
@@ -278,9 +152,8 @@ string ExpressionCodeGenerator::genUnique(FunctionPointer fs)
         fs->emit("double " + s + ";\n");
         return s;
     }
-    if (currentUnique > nextUnique) throw "Something went wrong somehow";
-    currentUnique++;
-    return "unique" + to_string(currentUnique);
+    else if (currentUnique > nextUnique) throw "Something went wrong somehow";
+    return "unique" + to_string(currentUnique++);
 }
 
 void ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer fs, unsigned int reg)

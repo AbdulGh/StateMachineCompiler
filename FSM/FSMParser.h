@@ -27,7 +27,7 @@ private:
     std::shared_ptr<Variable> getVar(std::string varN);
 
     std::string nextString();
-    std::string nextCommand();
+    std::string nextCommand(bool expecting = true);
     std::string getVarName();
     std::string peelQuotes(std::string);
     int checkState(std::string);

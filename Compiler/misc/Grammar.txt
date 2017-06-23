@@ -13,6 +13,7 @@ statement ->
     "if" "(" ands ")" statement
     "while" "(" ands ")" statement
     "return" ident ";"
+    "input" ident ";"
     "print" "(" ident ")" ";"
  
 ands ->

@@ -41,7 +41,7 @@ VariableType Compiler::genFunctionCall(VariableType expectedType, shared_ptr<Fun
         if (lookahead.type == Type::COMMA)
         {
             match(Type::COMMA);
-            if (lookahead.type == Type::RPAREN) error("Unexpected comma"); //todo warnings
+            if (lookahead.type == Type::RPAREN) warning("Unexpected comma in arguments for function '" + fid + "' - ignoring");
         }
     }
     match(Type::RPAREN);
@@ -51,4 +51,68 @@ VariableType Compiler::genFunctionCall(VariableType expectedType, shared_ptr<Fun
     fromFS->emit("jump F_" + fid + "_0;\nend\n\n");
     fromFS->emit(nextState + "\n");
     return toFS.getReturnType();
+}
+
+void Compiler::genIf(FunctionPointer fs)
+{
+    string success = fs->genNewStateName();
+    string fail = fs->genNewStateName();
+
+    match(IF);
+    match(LPAREN);
+    ors(fs, success, fail);
+    match(RPAREN);
+
+    fs->emit(success +  "\n");
+    statement(fs);
+    fs->emit("jump " + fail + ";\nend\n\n" + fail + "\n");
+}
+
+void Compiler::genWhile(FunctionPointer fs) //todo
+{
+    match(WHILE);
+    match(LPAREN);
+
+    string success = fs->genNewStateName();
+    string fail = fs->genNewStateName();
+    ors(fs, success, fail);
+    match(RPAREN);
+    statement(fs);
+}
+
+void Compiler::ors(FunctionPointer fs, string success, string fail)
+{
+    string IM = fs->genNewStateName();
+    ands(fs, success, IM);
+    while (lookahead.type == COMPOR)
+    {
+        match(COMPOR);
+        fs->emit("end\n\n" + IM + "\n");
+        IM = fs->genNewStateName();
+        ands(fs, success, IM);
+    }
+    fs->emit("\n" + IM + "\njump " + fail + ";\nend\n\n");
+}
+
+void Compiler::ands(FunctionPointer fs, string success, string fail)
+{
+    string IM = fs->genNewStateName();
+    condition(fs, IM, fail);
+    while (lookahead.type == COMPAND)
+    {
+        fs->emit("end\n\n" + IM + "\n");
+        match(COMPAND);
+        IM = fs->genNewStateName();
+        condition(fs, IM, fail);
+    }
+    fs->emit("\n" + IM + "\njump " + success + ";\nend\n");
+}
+
+void Compiler::condition(FunctionPointer fs, string success, string fail)
+{
+    expression(fs, "LHS");
+    string r = relop();
+    expression(fs, "RHS");
+    fs->emit("jumpif LHS " + r + " RHS " + success + ";\n");
+    fs->emit("jump " + fail + ";\nend\n");
 }
