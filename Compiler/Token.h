@@ -8,7 +8,8 @@ enum Type {IDENT, OP, RELOP, LBRACE, RBRACE,
             SEMIC, FUNCTION, DTYPE, CALL,
             RETURN, ASSIGN, END, NUMBER,
             INPUT, PRINT, NOT, ENDIF, DONE, COMMA,
-            COMPAND, COMPOR, STRINGLIT};
+            COMPAND, COMPOR, STRINGLIT,
+            THEN, DO, ELSE};
 
 extern std::string TypeEnumNames[];
 

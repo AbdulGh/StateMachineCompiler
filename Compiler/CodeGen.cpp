@@ -62,22 +62,38 @@ void Compiler::genIf(FunctionPointer fs)
     match(LPAREN);
     ors(fs, success, fail);
     match(RPAREN);
+    match(THEN);
 
     fs->emit(success +  "\n");
     statement(fs);
-    fs->emit("jump " + fail + ";\nend\n\n" + fail + "\n");
+
+    if (lookahead.type == ELSE)
+    {
+        match(ELSE);
+        string skip = fs->genNewStateName();
+        fs->emit("jump " + skip + ";\nend\n\n" + fail + "\n");
+        statement(fs);
+        fs->emit("jump " + skip + ";\nend\n\n" + skip + "\n");
+    }
+    else fs->emit("jump " + fail + ";\nend\n\n" + fail + "\n");
+    match(DONE);
 }
 
 void Compiler::genWhile(FunctionPointer fs) //todo
 {
+    string loopcheck = fs->genNewStateName();
+    string body = fs->genNewStateName();
+    string end = fs->genNewStateName();
+    fs->emit("jump " + loopcheck + ";\n\n" + loopcheck + "\n");
+
     match(WHILE);
     match(LPAREN);
-
-    string success = fs->genNewStateName();
-    string fail = fs->genNewStateName();
-    ors(fs, success, fail);
+    ors(fs, body, end);
     match(RPAREN);
+
+    fs->emit(body + "\n");
     statement(fs);
+    fs->emit("jump " + loopcheck + ";\nend\n\n" + end + "\n");
 }
 
 void Compiler::ors(FunctionPointer fs, string success, string fail)
@@ -87,11 +103,11 @@ void Compiler::ors(FunctionPointer fs, string success, string fail)
     while (lookahead.type == COMPOR)
     {
         match(COMPOR);
-        fs->emit("end\n\n" + IM + "\n");
+        fs->emit(IM + "\n");
         IM = fs->genNewStateName();
         ands(fs, success, IM);
     }
-    fs->emit("\n" + IM + "\njump " + fail + ";\nend\n\n");
+    fs->emit(IM + "\njump " + fail + ";\nend\n\n");
 }
 
 void Compiler::ands(FunctionPointer fs, string success, string fail)
@@ -100,12 +116,12 @@ void Compiler::ands(FunctionPointer fs, string success, string fail)
     condition(fs, IM, fail);
     while (lookahead.type == COMPAND)
     {
-        fs->emit("end\n\n" + IM + "\n");
         match(COMPAND);
+        fs->emit(IM + "\n");
         IM = fs->genNewStateName();
         condition(fs, IM, fail);
     }
-    fs->emit("\n" + IM + "\njump " + success + ";\nend\n");
+    fs->emit(IM + "\njump " + success + ";\nend\n\n");
 }
 
 void Compiler::condition(FunctionPointer fs, string success, string fail)
@@ -114,5 +130,5 @@ void Compiler::condition(FunctionPointer fs, string success, string fail)
     string r = relop();
     expression(fs, "RHS");
     fs->emit("jumpif LHS " + r + " RHS " + success + ";\n");
-    fs->emit("jump " + fail + ";\nend\n");
+    fs->emit("jump " + fail + ";\nend\n\n");
 }

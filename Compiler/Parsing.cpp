@@ -19,7 +19,7 @@ void Compiler::error(string err)
 void Compiler::warning(string warn)
 {
     ostringstream o;
-    o << "Warning: " << warn << " (line " << lookahead.line +")\n";
+    o << "Warning: " << warn << " (line " << lookahead.line << ")\n";
     cout << o.str();
 }
 
@@ -245,6 +245,7 @@ bool Compiler::statement(FunctionPointer fs)
         string id = ident();
         shared_ptr<Identifier> idPtr = findVariable(id);
         fs->emit("input " + idPtr->getUniqueID() + ";\n");
+        idPtr->setDefined();
         match(SEMIC);
     }
     else if (lookahead.type == DTYPE)
@@ -271,6 +272,7 @@ bool Compiler::statement(FunctionPointer fs)
                 }
             }
             else expression(fs, idPtr->getUniqueID());
+            idPtr->setDefined();
         }
         match(SEMIC);
     }
@@ -293,6 +295,7 @@ bool Compiler::statement(FunctionPointer fs)
             else error("Malformed assignment to string");
         }
         else expression(fs, id->getUniqueID());
+        id->setDefined();
         match(SEMIC);
     }
     else if (lookahead.type == CALL)

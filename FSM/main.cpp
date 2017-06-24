@@ -4,7 +4,7 @@
 #include "FSMParser.h"
 int main()
 {
-    FSM test = FSMParser("../misc/functioncallresult.fs").readFSM();
+    FSM test = FSMParser("../misc/expressionresult.fs").readFSM();
     test.run();
     return 0;
 }

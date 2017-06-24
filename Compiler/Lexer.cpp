@@ -21,6 +21,8 @@ Lexer::Lexer()
     resWords["done"] = Token(DONE);
     resWords["return"] = Token(RETURN);
     resWords["void"] = Token(VOID);
+    resWords["then"] = Token(THEN);
+    resWords["else"] = Token(ELSE);
 }
 
 vector<Token> Lexer::tokenize(string str)

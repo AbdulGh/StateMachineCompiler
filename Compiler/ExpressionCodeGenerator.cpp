@@ -101,7 +101,7 @@ ExprNodePointer ExpressionCodeGenerator::factor(FunctionPointer fs)
     if (parent.lookahead.type == IDENT)
     {
         shared_ptr<Identifier> id = parent.findVariable(parent.ident());
-        //const char* dbg = id->getUniqueID().c_str();
+        if (!id->isDefined()) parent.warning(id->getLexeme() + " may not be defined");
         return ExprNodePointer(new AtomNode(id->getUniqueID(), false));
     }
     else if (parent.lookahead.type == NUMBER)
