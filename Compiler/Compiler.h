@@ -6,11 +6,11 @@
 #include "Lexer.h"
 #include "Token.h"
 #include "SymbolTable.h"
-#include "FunctionSymbol.h"
+#include "FunctionCodeGen.h"
 #include "ExpressionCodeGenerator.h"
-#include "FunctionSymbol.h"
+#include "FunctionCodeGen.h"
 
-typedef std::shared_ptr<FunctionSymbol> FunctionPointer;
+typedef std::shared_ptr<FunctionCodeGen> FunctionPointer;
 
 class Compiler
 {
@@ -33,12 +33,13 @@ private:
     void findFunctionsAndMakeFirstStates(std::stringstream&);
     std::shared_ptr<Identifier> findVariable(std::string);
     FunctionPointer findFunction(std::string);
+    std::string quoteString(std::string& s);
 
     /*parsing*/
     void match(Type t);
     void body();
     bool statement(FunctionPointer fs); //returns true if the state has been ended
-    std::string relop();
+    Relop relop();
     void expression(FunctionPointer fs, const std::string& to);
     VariableType vtype();
     std::string ident();

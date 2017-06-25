@@ -121,7 +121,7 @@ ExprNodePointer ExpressionCodeGenerator::factor(FunctionPointer fs)
     {
         parent.genFunctionCall(DOUBLE, fs);
         string uni = genUnique(fs);
-        fs->emit(uni + " = retD;\n");
+        fs->genAssignment(uni, "retD");
         return shared_ptr<AbstractExprNode>(new AtomNode(uni, false));
     }
     else parent.error("Expected identifier or double in expression");
@@ -135,7 +135,7 @@ string ExpressionCodeGenerator::genTemp(FunctionPointer fs, unsigned int i)
     if (i == nextTemp)
     {
         string s = "temp" + to_string(nextTemp++);
-        fs->emit("double " + s + ";\n");
+        fs->genVariableDecl(DOUBLE, s);
         return s;
     }
     if (i > nextTemp) throw "Something went wrong somehow";
@@ -149,7 +149,7 @@ string ExpressionCodeGenerator::genUnique(FunctionPointer fs)
     {
         string s = "unique" + to_string(nextUnique++);
         currentUnique++;
-        fs->emit("double " + s + ";\n");
+        fs->genVariableDecl(DOUBLE, s);
         return s;
     }
     else if (currentUnique > nextUnique) throw "Something went wrong somehow";
@@ -165,7 +165,7 @@ void ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer f
     string thisone = genTemp(fs, reg);
     if (p->getType() == ATOM)
     {
-        fs->emit(thisone + " = " + static_pointer_cast<AtomNode>(p)->getData() + ";\n");
+        fs->genAssignment(thisone, static_pointer_cast<AtomNode>(p)->getData());
     }
     else
     {
@@ -178,28 +178,7 @@ void ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer f
             nextone = genTemp(fs, reg + 1);
         }
 
-        string c;
-        switch (p->getOp())
-        {
-            case PLUS:
-                c = " + ";
-                break;
-            case MULT:
-                c = " * ";
-                break;
-            case MINUS:
-                c = " - ";
-                break;
-            case DIV:
-                c = " / ";
-                break;
-            case MOD:
-                c = " % ";
-                break;
-            default:
-                throw "Strange op";
-        }
-        fs->emit(thisone + " = " + thisone + c + nextone + ";\n");
+        fs->genExpr(thisone, thisone, p->getOp(), nextone);
     }
 }
 

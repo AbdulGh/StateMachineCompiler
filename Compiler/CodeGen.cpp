@@ -2,17 +2,17 @@
 
 using namespace std;
 
-VariableType Compiler::genFunctionCall(VariableType expectedType, shared_ptr<FunctionSymbol> fromFS)
+VariableType Compiler::genFunctionCall(VariableType expectedType, shared_ptr<FunctionCodeGen> fromFS)
 {
     match(Type::CALL);
     string fid = ident();
-    FunctionSymbol& toFS = *(findFunction(fid));
+    FunctionCodeGen& toFS = *(findFunction(fid));
     if (expectedType != ANY && !toFS.isOfType(expectedType)) error("Type error");
         //error ("Function '" + fid + "' returns type " + toFS.getReturnType() + ", expected " + expectedType);
     match(Type::LPAREN);
 
-    string nextState = fromFS->genNewStateName();
-    fromFS->emit("push state " + nextState + ";\n");
+    string nextState = fromFS->newStateName();
+    fromFS->genPush("state " + nextState);
 
     vector<VariableType> paramTypes;
     while (lookahead.type != Type::RPAREN)
@@ -22,21 +22,21 @@ VariableType Compiler::genFunctionCall(VariableType expectedType, shared_ptr<Fun
             string toPush = lookahead.lexemeString;
             match(Type::NUMBER);
             paramTypes.push_back(VariableType::DOUBLE);
-            fromFS->emit("push " + toPush + ";\n");
+            fromFS->genPush(toPush);
         }
         else if (lookahead.type == Type::STRINGLIT)
         {
             string toPush = lookahead.lexemeString;
             match(Type::STRINGLIT);
             paramTypes.push_back(VariableType::STRING);
-            fromFS->emit("push \"" + toPush + "\";\n");
+            fromFS->genPush(quoteString(toPush));
         }
         else
         {
             string iid = ident();
             shared_ptr<Identifier> idp = findVariable(iid);
             paramTypes.push_back(idp->getType());
-            fromFS->emit("push " + idp->getUniqueID() + ";\n");
+            fromFS->genPush(idp->getUniqueID());
         }
         if (lookahead.type == Type::COMMA)
         {
@@ -48,15 +48,16 @@ VariableType Compiler::genFunctionCall(VariableType expectedType, shared_ptr<Fun
 
     if (!toFS.checkTypes(paramTypes)) error("Type mismatch for function '" + fid + "'");
 
-    fromFS->emit("jump F_" + fid + "_0;\nend\n\n");
-    fromFS->emit(nextState + "\n");
+    fromFS->genJump("jump F_" + fid + "_0");
+    fromFS->genEndState();
+    fromFS->genNewState(nextState);
     return toFS.getReturnType();
 }
 
 void Compiler::genIf(FunctionPointer fs)
 {
-    string success = fs->genNewStateName();
-    string fail = fs->genNewStateName();
+    string success = fs->newStateName();
+    string fail = fs->newStateName();
 
     match(IF);
     match(LPAREN);
@@ -64,71 +65,94 @@ void Compiler::genIf(FunctionPointer fs)
     match(RPAREN);
     match(THEN);
 
-    fs->emit(success +  "\n");
+    fs->genNewState(success);
     statement(fs);
 
     if (lookahead.type == ELSE)
     {
         match(ELSE);
-        string skip = fs->genNewStateName();
-        fs->emit("jump " + skip + ";\nend\n\n" + fail + "\n");
+        string skip = fs->newStateName();
+        fs->genJump(skip);
+        fs->genEndState();
+        fs->genNewState(fail);
         statement(fs);
-        fs->emit("jump " + skip + ";\nend\n\n" + skip + "\n");
+        fs->genJump(skip);
+        fs->genEndState();
+        fs->genNewState(skip);
     }
-    else fs->emit("jump " + fail + ";\nend\n\n" + fail + "\n");
+    else
+    {
+        fs->genJump(fail);
+        fs->genEndState();
+        fs->genNewState(fail);
+    }
     match(DONE);
 }
 
-void Compiler::genWhile(FunctionPointer fs) //todo
+void Compiler::genWhile(FunctionPointer fs)
 {
-    string loopcheck = fs->genNewStateName();
-    string body = fs->genNewStateName();
-    string end = fs->genNewStateName();
-    fs->emit("jump " + loopcheck + ";\n\n" + loopcheck + "\n");
+    string loopcheck = fs->newStateName();
+    string body = fs->newStateName();
+    string end = fs->newStateName();
+
+    fs->genJump(loopcheck);
+    fs->genEndState();
+    fs->genNewState(loopcheck);
 
     match(WHILE);
     match(LPAREN);
     ors(fs, body, end);
     match(RPAREN);
 
-    fs->emit(body + "\n");
+    fs->genNewState(body);
     statement(fs);
-    fs->emit("jump " + loopcheck + ";\nend\n\n" + end + "\n");
+
+    fs->genJump(loopcheck);
+    fs->genEndState();
+    fs->genNewState(end);
 }
 
 void Compiler::ors(FunctionPointer fs, string success, string fail)
 {
-    string IM = fs->genNewStateName();
+    string IM = fs->newStateName();
     ands(fs, success, IM);
     while (lookahead.type == COMPOR)
     {
         match(COMPOR);
-        fs->emit(IM + "\n");
-        IM = fs->genNewStateName();
+        fs->genNewState(IM);
+        IM = fs->newStateName();
         ands(fs, success, IM);
     }
-    fs->emit(IM + "\njump " + fail + ";\nend\n\n");
+
+    fs->genNewState(IM);
+    fs->genJump(fail);
+    fs->genEndState();
 }
 
 void Compiler::ands(FunctionPointer fs, string success, string fail)
 {
-    string IM = fs->genNewStateName();
+    string IM = fs->newStateName();
     condition(fs, IM, fail);
     while (lookahead.type == COMPAND)
     {
         match(COMPAND);
-        fs->emit(IM + "\n");
-        IM = fs->genNewStateName();
+        fs->genNewState(IM);
+        IM = fs->newStateName();
         condition(fs, IM, fail);
     }
-    fs->emit(IM + "\njump " + success + ";\nend\n\n");
+
+    fs->genNewState(IM);
+    fs->genJump(success);
+    fs->genEndState();
 }
 
 void Compiler::condition(FunctionPointer fs, string success, string fail)
 {
     expression(fs, "LHS");
-    string r = relop();
+    Relop r = relop();
     expression(fs, "RHS");
-    fs->emit("jumpif LHS " + r + " RHS " + success + ";\n");
-    fs->emit("jump " + fail + ";\nend\n\n");
+
+    fs->genConditionalJump(success, "LHS", r, "RHS");
+    fs->genJump(fail);
+    fs->genEndState();
 }

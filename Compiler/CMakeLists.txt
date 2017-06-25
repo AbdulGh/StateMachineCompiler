@@ -3,5 +3,7 @@ project(Project)
 
 set(CMAKE_CXX_STANDARD 11)
 
-set(SOURCE_FILES main.cpp SymbolTable.cpp SymbolTable.h Lexer.cpp Lexer.h Token.cpp Lexer.cpp Lexer.h Parsing.cpp Compiler.h CodeGen.cpp FunctionSymbol.cpp FunctionSymbol.h ExpressionCodeGenerator.cpp ExpressionCodeGenerator.h ExpressionTreeNodes.cpp)
+set(SOURCE_FILES main.cpp SymbolTable.cpp SymbolTable.h Lexer.cpp Lexer.h Token.cpp Lexer.cpp Lexer.h Parsing.cpp
+    Compiler.h CodeGen.cpp FunctionCodeGen.cpp FunctionCodeGen.h ExpressionCodeGenerator.cpp ExpressionCodeGenerator.h
+    ExpressionTreeNodes.cpp Command.cpp Command.h State.cpp State.h)
 add_executable(Project ${SOURCE_FILES})

@@ -19,7 +19,11 @@ extern std::string VariableTypeEnumNames[];
 
 enum Relop {EQ, NE, LT, LE, GT, GE};
 
+extern std::string relEnumStrs[];
+
 enum Op {PLUS, MULT, MINUS, DIV, MOD, AND, OR};
+
+extern char opEnumChars[];
 
 class Token
 {

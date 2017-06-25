@@ -5,9 +5,9 @@
 #include <memory>
 
 #include "Token.h"
-#include "FunctionSymbol.h"
+#include "FunctionCodeGen.h"
 
-typedef std::shared_ptr<FunctionSymbol> FunctionPointer;
+typedef std::shared_ptr<FunctionCodeGen> FunctionPointer;
 
 class Compiler;
 

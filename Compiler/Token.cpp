@@ -11,6 +11,10 @@ string TypeEnumNames[] = {"IDENT", "OP", "RELOP", "LBRACE", "RBRACE",
 
 string VariableTypeEnumNames[] = {"double", "string"};
 
+char opEnumChars[] = {'+', '*','-', '/', '%', '&', '|'};
+
+std::string relEnumStrs[] = {" = ", " != ", " < ", " <= ", " > ", " >= "};
+
 void Token::setLine(unsigned int line)
 {
     this->line = line;

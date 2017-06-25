@@ -23,6 +23,11 @@ void Compiler::warning(string warn)
     cout << o.str();
 }
 
+string Compiler::quoteString(std::string &s)
+{
+    return "\"" + s + "\"";
+}
+
 void Compiler::compile(stringstream& out)
 {
     tp = stream.cbegin();
@@ -110,7 +115,7 @@ void Compiler::findFunctionsAndMakeFirstStates(std::stringstream& out)
                 }
                 else warning("Function '" + id + "' has no dtype - assuming void");
 
-                FunctionPointer ptr(new FunctionSymbol(ret, paramTypes, id));
+                FunctionPointer ptr(new FunctionCodeGen(ret, paramTypes, id));
                 functionTable[id] = ptr;
             }
 
@@ -141,7 +146,7 @@ void Compiler::findFunctionsAndMakeFirstStates(std::stringstream& out)
         }
     }
     out << "jump F_main_0;\nend\n\n";
-    out << "funFinish\njump pop;\nend";
+    out << "funFinish\njump pop;\nend\n\n";
 }
 
 void Compiler::match(Type t)
@@ -170,20 +175,19 @@ void Compiler::body()
         match(FUNCTION);
         string funName = ident();
         FunctionPointer fs = functionTable[funName];
-        fs->emit("\n\n" + fs->genNewStateName() + "\n");
 
         //get stack parameters into variables
         symbolTable.pushScope();
         match(LPAREN);
-        stack<string> argumentStack;
+        stack<shared_ptr<AbstractCommand>> argumentStack;
         while (lookahead.type != RPAREN)
         {
             VariableType t = vtype();
             unsigned int line = lookahead.line;
             string s = ident();
             shared_ptr<Identifier> vid = symbolTable.declare(s, t, line);
-            argumentStack.push("pop " + vid->getUniqueID() + ";\n");
-            argumentStack.push(VariableTypeEnumNames[t] + " " + vid->getUniqueID() + ";\n");
+            argumentStack.push(shared_ptr<AbstractCommand>(new PopCommand(vid->getUniqueID())));
+            argumentStack.push(shared_ptr<AbstractCommand>(new DeclareVariableCommand(t, vid->getUniqueID())));
             if (lookahead.type == COMMA)
             {
                 match(COMMA);
@@ -195,11 +199,15 @@ void Compiler::body()
 
         while (!argumentStack.empty())
         {
-            fs->emit(argumentStack.top());
+            fs->addCommand(argumentStack.top());
             argumentStack.pop();
         }
 
-        if (!statement(fs)) fs->emit("jump funFinish;\nend");
+        if (!statement(fs))
+        {
+            fs->genJump("funFinish");
+            fs->genEndState();
+        }
         symbolTable.popScope();
     }
     else match(END);
@@ -223,18 +231,18 @@ bool Compiler::statement(FunctionPointer fs)
         match(LPAREN);
         if (lookahead.type == STRINGLIT)
         {
-            fs->emit("print \"" + lookahead.lexemeString + "\";\n");
+            fs->genPrint(quoteString(lookahead.lexemeString));
             match(STRINGLIT);
         }
         else if (lookahead.type == NUMBER)
         {
-            fs->emit("print " + lookahead.lexemeString + ";\n");
+            fs->genPrint(lookahead.lexemeString);
             match(NUMBER);
         }
         else
         {
             shared_ptr<Identifier> id = findVariable(ident());
-            fs->emit("print " + id->getUniqueID() + ";\n");
+            fs->genPrint(id->getUniqueID());
         }
         match(RPAREN);
         match(SEMIC);
@@ -244,7 +252,7 @@ bool Compiler::statement(FunctionPointer fs)
         match(INPUT);
         string id = ident();
         shared_ptr<Identifier> idPtr = findVariable(id);
-        fs->emit("input " + idPtr->getUniqueID() + ";\n");
+        fs->genInput(idPtr->getUniqueID());
         idPtr->setDefined();
         match(SEMIC);
     }
@@ -253,7 +261,7 @@ bool Compiler::statement(FunctionPointer fs)
         VariableType t = vtype();
         string id = ident();
         shared_ptr<Identifier> idPtr =  symbolTable.declare(id, t, lookahead.line);
-        fs->emit(VariableTypeEnumNames[t] + " " + idPtr->getUniqueID() + ";\n");
+        fs->genVariableDecl(t, idPtr->getUniqueID());
 
         if (lookahead.type == ASSIGN)
         {
@@ -263,11 +271,11 @@ bool Compiler::statement(FunctionPointer fs)
                 if (lookahead.type == CALL)
                 {
                     genFunctionCall(t, fs);
-                    fs->emit(idPtr->getUniqueID() + " = retS;\n");
+                    fs->genAssignment(idPtr->getUniqueID(), "retS");
                 }
                 else
                 {
-                    fs->emit(idPtr->getUniqueID() + " = \"" + lookahead.lexemeString + "\";\n");
+                    fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString));
                     match(STRINGLIT);
                 }
             }
@@ -278,24 +286,24 @@ bool Compiler::statement(FunctionPointer fs)
     }
     else if (lookahead.type == IDENT)
     {
-        shared_ptr<Identifier> id = findVariable(ident());
+        shared_ptr<Identifier> idPtr = findVariable(ident());
         match(ASSIGN);
-        if (id->getType() == VariableType::STRING)
+        if (idPtr->getType() == VariableType::STRING)
         {
             if (lookahead.type == STRINGLIT)
             {
-                fs->emit(id->getUniqueID() + " = \"" + lookahead.lexemeString + "\";\n");
+                fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString));
                 match(STRINGLIT);
             }
             else if (lookahead.type == CALL)
             {
                 genFunctionCall(VariableType::STRING, fs);
-                fs->emit(id->getUniqueID() + "= retS;\n");
+                fs->genAssignment(idPtr->getUniqueID(), "retS");
             }
             else error("Malformed assignment to string");
         }
-        else expression(fs, id->getUniqueID());
-        id->setDefined();
+        else expression(fs, idPtr->getUniqueID());
+        idPtr->setDefined();
         match(SEMIC);
     }
     else if (lookahead.type == CALL)
@@ -314,13 +322,13 @@ bool Compiler::statement(FunctionPointer fs)
             if (lookahead.type == STRINGLIT)
             {
                 if (fs->getReturnType() != STRING) error("Cannot return string in function of type " + fs->getReturnType());
-                fs->emit("retS = \"" + lookahead.lexemeString + "\";\n");
+                fs->genAssignment("retS", quoteString(lookahead.lexemeString));
                 match(STRINGLIT);
             }
             else if (lookahead.type == NUMBER)
             {
                 if (fs->getReturnType() != DOUBLE) error("Cannot return double in function of type " + fs->getReturnType());
-                fs->emit("retD = " + lookahead.lexemeString + ";\n");
+                fs->genAssignment("retD", lookahead.lexemeString);
                 match(NUMBER);
             }
             else
@@ -330,27 +338,28 @@ bool Compiler::statement(FunctionPointer fs)
                 if (id->getType() == DOUBLE)
                 {
                     if (fs->getReturnType() != DOUBLE) error("Cannot return double in function of type " + fs->getReturnType());
-                    fs->emit("retD = " + id->getUniqueID() + ";\n");
+                    fs->genAssignment("retD", id->getUniqueID());
                 }
                 else
                 {
                     if (fs->getReturnType() != STRING) error("Cannot return string in function of type " + fs->getReturnType());
-                    fs->emit("retS = \"" + id->getUniqueID() + "\";\n");
+                    fs->genAssignment("retS", id->getUniqueID());
                     match(STRINGLIT);
                 }
             }
         }
         match(SEMIC);
-        fs->emit("jump funFinish;\nend");
+        fs->genJump("funFinish");
+        fs->genEndState();
     }
     return finishedState;
 }
 
-string Compiler::relop()
+Relop Compiler::relop()
 {
-    string s = lookahead.lexemeString;
+    Relop r = (Relop)lookahead.auxType;
     match(RELOP);
-    return s;
+    return r;
 }
 
 void Compiler::expression(FunctionPointer fs, const std::string& to)
