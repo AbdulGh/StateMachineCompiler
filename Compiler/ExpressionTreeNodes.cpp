@@ -17,6 +17,11 @@ unsigned int AbstractExprNode::getVarsRequired() const
     return varsRequired;
 }
 
+bool AbstractExprNode::isAtom()
+{
+    return (type == LITERAL || type == IDENTIFIER);
+}
+
 Op AbstractExprNode::getOp() const
 {
     return op;
@@ -34,15 +39,37 @@ void OperatorNode::addNode(ExprNodePointer p)
     if (left == nullptr)
     {
         left = p;
-        if (left->getType() == ATOM) varsRequired = 1;
+        if (left->isAtom()) varsRequired = 1;
         else varsRequired = left->getVarsRequired();
     }
-    else if (getType() == COMM && (p->getType() == ATOM || op == p->getOp()))
+    else if (getType() == COMM && (p->isAtom() || op == p->getOp()))
     {
         if (p->getVarsRequired() > left->getVarsRequired())
         {
-            left->addNode(p);
-            varsRequired = left->getVarsRequired();
+            if (right == nullptr)
+            {
+                right = left;
+                left = p;
+            }
+            else if (right->getType() == LITERAL && p->getType() == LITERAL)
+            {
+                shared_ptr<AtomNode> ap = static_pointer_cast<AtomNode>(p);
+                shared_ptr<AtomNode> rp = static_pointer_cast<AtomNode>(right);
+                double pd = stod(ap->getData());
+                double rd = stod(rp->getData());
+                switch(getOp()) //{PLUS, MULT, MINUS, DIV, MOD, AND, OR};
+                {
+                    case PLUS:
+                        rp->setData(to_string(pd + rd));
+                        break;
+                    case MULT:
+                        rp->setData(to_string(pd * rd));
+                        break;
+                    default:
+                        throw "Impostor";
+                }
+            }
+            else left->addNode(p);
         }
         else
         {
@@ -94,10 +121,9 @@ ExprNodePointer OperatorNode::getRight()
 
 AtomNode::AtomNode(string in, bool num):
         varsRequired(0),
-        data(in),
-        isNum(num)
+        data(in)
 {
-    setType(ATOM);
+    setType(num? LITERAL : IDENTIFIER);
 }
 
 ExprNodePointer AtomNode::getLeft()
@@ -120,7 +146,7 @@ const string AtomNode::getData() const
     return data;
 }
 
-bool AtomNode::isNumber() const
+void AtomNode::setData(std::string s)
 {
-    return isNum;
+    data = s;
 }

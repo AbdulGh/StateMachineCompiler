@@ -8,17 +8,17 @@ using namespace std;
 State::State(string str):
     name(str) {}
 
-State::~State()
+/*State::~State()
 {
     for (shared_ptr<AbstractCommand> a : instructions)  a.reset();
-}
+}*/
 
 const std::string& State::getName() const
 {
     return name;
 }
 
-const vector<shared_ptr<AbstractCommand>>& State::getInstructions() const
+vector<shared_ptr<AbstractCommand>>& State::getInstructions()
 {
     return instructions;
 }

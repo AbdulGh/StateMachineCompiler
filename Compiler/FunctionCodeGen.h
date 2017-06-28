@@ -43,6 +43,8 @@ public:
     void genAssignment(std::string LHS, std::string RHS);
     void addCommand(std::shared_ptr<AbstractCommand> ac);
     std::string getSource();
+
+    std::vector<State>& getFinStates();
 };
 
 

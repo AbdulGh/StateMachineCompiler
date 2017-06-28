@@ -14,12 +14,12 @@ private:
     std::vector<std::shared_ptr<AbstractCommand>> instructions;
 
 public:
-    const std::vector<std::shared_ptr<AbstractCommand>> &getInstructions() const;
+    std::vector<std::shared_ptr<AbstractCommand>> &getInstructions();
     const std::string &getName() const;
     void setInstructions(const std::vector<std::shared_ptr<AbstractCommand>> &instructions);
 
     State(std::string);
-    ~State();
+    //~State();
 };
 
 

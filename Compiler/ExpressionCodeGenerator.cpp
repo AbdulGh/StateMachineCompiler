@@ -9,44 +9,11 @@ ExpressionCodeGenerator::ExpressionCodeGenerator(Compiler &p, const string& asig
         currentUnique(0),
         goingto(asignee){}
 
-string printTree(ExprNodePointer p) //debug
-{
-    string s = "";
-    if (p == nullptr) s = "null";
-    else if (p->getType() == ATOM) s += static_pointer_cast<AtomNode>(p)->getData();
-    else
-    {
-        s += "[";
-        switch (p->getOp())
-        {
-            case PLUS:
-                s += " + ";
-                break;
-            case MULT:
-                s += " * ";
-                break;
-            case MINUS:
-                s += " - ";
-                break;
-            case DIV:
-                s += " / ";
-                break;
-            case MOD:
-                s += " % ";
-                break;
-            default:
-                throw "Strange op";
-        }
-        s += "(" + to_string(p->getVarsRequired()) + ") ";
-        s += printTree(p->getLeft()) + " " + printTree(p->getRight()) + " ]";
-    }
-    return s;
-}
-
 void ExpressionCodeGenerator::CompileExpression(FunctionPointer fs)
 {
     ExprNodePointer tree = expression(fs);
     translateTree(tree, fs,  0);
+    fs->genAssignment(goingto, "temp0");
 }
 
 ExprNodePointer ExpressionCodeGenerator::expression(FunctionPointer fs)
@@ -130,8 +97,8 @@ ExprNodePointer ExpressionCodeGenerator::factor(FunctionPointer fs)
 unsigned int ExpressionCodeGenerator::nextTemp = 0;
 string ExpressionCodeGenerator::genTemp(FunctionPointer fs, unsigned int i)
 {
-    if (i == 0) return goingto;
-    i -= 1;
+    //if (i == 0) return goingto;
+    //i -= 1;
     if (i == nextTemp)
     {
         string s = "temp" + to_string(nextTemp++);
@@ -163,7 +130,7 @@ void ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer f
         return;
     }
     string thisone = genTemp(fs, reg);
-    if (p->getType() == ATOM)
+    if (p->isAtom())
     {
         fs->genAssignment(thisone, static_pointer_cast<AtomNode>(p)->getData());
     }
@@ -171,7 +138,7 @@ void ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer f
     {
         string nextone;
         translateTree(p->getLeft(), fs, reg);
-        if (p->getRight()->getType() == ATOM) nextone = static_pointer_cast<AtomNode>(p->getRight())->getData();
+        if (p->getRight()->isAtom()) nextone = static_pointer_cast<AtomNode>(p->getRight())->getData();
         else
         {
             translateTree(p->getRight(), fs, reg+1);

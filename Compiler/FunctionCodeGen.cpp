@@ -122,3 +122,8 @@ void FunctionCodeGen::genAssignment(std::string LHS, std::string RHS)
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(shared_ptr<AbstractCommand>(new AssignVarCommand(LHS, RHS)));
 }
+
+vector<State>& FunctionCodeGen::getFinStates()
+{
+    return finStates;
+}

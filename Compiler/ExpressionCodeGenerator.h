@@ -11,7 +11,7 @@ typedef std::shared_ptr<FunctionCodeGen> FunctionPointer;
 
 class Compiler;
 
-enum NodeType{COMM, NOTCOMM, ATOM};
+enum NodeType{COMM, NOTCOMM, LITERAL, IDENTIFIER};
 
 class AbstractExprNode
 {
@@ -22,8 +22,10 @@ protected:
     void setType(NodeType);
 
 public:
+    virtual ~AbstractExprNode(){}
     virtual void addNode(std::shared_ptr<AbstractExprNode>) = 0;
     NodeType getType() const;
+    bool isAtom();
     virtual std::shared_ptr<AbstractExprNode> getLeft() = 0;
     virtual std::shared_ptr<AbstractExprNode> getRight() = 0;
     unsigned int getVarsRequired() const;
@@ -50,7 +52,6 @@ class AtomNode : public AbstractExprNode
 {
 private:
     std::string data;
-    bool isNum;
     int varsRequired;
 public:
     ExprNodePointer getLeft();
@@ -58,9 +59,8 @@ public:
 
     AtomNode(std::string, bool);
     const std::string getData() const;
+    void setData(std::string);
     void addNode(ExprNodePointer);
-
-    bool isNumber() const;
 };
 
 class ExpressionCodeGenerator

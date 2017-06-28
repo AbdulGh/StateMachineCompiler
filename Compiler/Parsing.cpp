@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "Compiler.h"
+#include "Optimiser.h"
 
 using namespace std;
 
@@ -35,6 +36,9 @@ void Compiler::compile(stringstream& out)
     tp = stream.cbegin();
     lookahead = nextToken();
     while (lookahead.type != END) body();
+
+    Optimiser o(symbolTable, functionTable);
+    o.optimise();
 
     for (unordered_map<string, FunctionPointer>::const_iterator it = functionTable.cbegin();
          it != functionTable.cend(); ++it)

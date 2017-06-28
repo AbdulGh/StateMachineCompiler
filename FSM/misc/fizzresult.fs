@@ -15,7 +15,7 @@ print "Limit?\n>";
 double _0_2_limit;
 input _0_2_limit;
 double _0_2_current;
-_0_2_current = 0;
+_0_2_current = 1;
 jump F_main_1;
 end
 
@@ -51,7 +51,7 @@ jump F_main_7;
 end
 
 F_main_6
-print "FizzBuzz\n";
+print "FizzBuzz";
 jump F_main_10;
 end
 
@@ -72,7 +72,7 @@ jump F_main_12;
 end
 
 F_main_11
-print "Fizz\n";
+print "Fizz";
 jump F_main_15;
 end
 
@@ -93,7 +93,7 @@ jump F_main_17;
 end
 
 F_main_16
-print "Buzz\n";
+print "Buzz";
 jump F_main_20;
 end
 
@@ -111,6 +111,7 @@ jump F_main_10;
 end
 
 F_main_10
+print "\n";
 _0_2_current = _0_2_current;
 _0_2_current = _0_2_current + 1;
 jump F_main_1;

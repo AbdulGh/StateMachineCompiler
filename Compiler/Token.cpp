@@ -7,7 +7,7 @@ string TypeEnumNames[] = {"IDENT", "OP", "RELOP", "LBRACE", "RBRACE",
                         "SEMIC", "FUNCTION", "DTYPE", "CALL",
                         "RETURN", "ASSIGN", "END", "NUMBER",
                         "INPUT", "PRINT", "NOT", "ENDIF", "DONE", "COMMA",
-                        "COMPAND", "COMPOR", "STRINGLIT"};
+                        "COMPAND", "COMPOR", "STRINGLIT", "THEN", "ELSE"};
 
 string VariableTypeEnumNames[] = {"double", "string"};
 
