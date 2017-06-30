@@ -4,7 +4,7 @@
 #include "FSMParser.h"
 int main()
 {
-    FSM test = FSMParser("../misc/fizzoptimised1.fs").readFSM();
+    FSM test = FSMParser("../misc/fizzresult.fs").readFSM();
     test.run();
     return 0;
 }

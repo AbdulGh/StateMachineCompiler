@@ -2,9 +2,8 @@
 #define COMMAND_H
 
 #include "Token.h"
-#include "Enums.h"
 
-enum class CommandSideEffect{NONE, JUMP, CONDJUMP, CHANGEVAR};
+enum class CommandSideEffect{NONE, JUMP, CHANGEVAR};
 
 class AbstractCommand
 {

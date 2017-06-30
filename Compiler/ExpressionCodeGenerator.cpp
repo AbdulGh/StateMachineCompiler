@@ -13,7 +13,7 @@ void ExpressionCodeGenerator::CompileExpression(FunctionPointer fs)
 {
     ExprNodePointer tree = expression(fs);
     translateTree(tree, fs,  0);
-    fs->genAssignment(goingto, "temp0");
+    //fs->genAssignment(goingto, "temp0");
 }
 
 ExprNodePointer ExpressionCodeGenerator::expression(FunctionPointer fs)
@@ -97,8 +97,8 @@ ExprNodePointer ExpressionCodeGenerator::factor(FunctionPointer fs)
 unsigned int ExpressionCodeGenerator::nextTemp = 0;
 string ExpressionCodeGenerator::genTemp(FunctionPointer fs, unsigned int i)
 {
-    //if (i == 0) return goingto;
-    //i -= 1;
+    if (i == 0) return goingto;
+    i -= 1;
     if (i == nextTemp)
     {
         string s = "temp" + to_string(nextTemp++);
@@ -125,27 +125,26 @@ string ExpressionCodeGenerator::genUnique(FunctionPointer fs)
 
 void ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer fs, unsigned int reg)
 {
-    if (p == nullptr)
-    {
-        return;
-    }
-    string thisone = genTemp(fs, reg);
-    if (p->isAtom())
-    {
-        fs->genAssignment(thisone, static_pointer_cast<AtomNode>(p)->getData());
-    }
+    if (p == nullptr) return;
+    if (p->isAtom()) fs->genAssignment(genTemp(fs, reg), static_pointer_cast<AtomNode>(p)->getData());
     else
     {
-        string nextone;
-        translateTree(p->getLeft(), fs, reg);
-        if (p->getRight()->isAtom()) nextone = static_pointer_cast<AtomNode>(p->getRight())->getData();
+        string thisone = genTemp(fs, reg);
+        string left, right;
+        if (p->getLeft()->isAtom()) left = static_pointer_cast<AtomNode>(p->getLeft())->getData();
+        else
+        {
+            translateTree(p->getLeft(), fs, reg);
+            left = thisone;
+        }
+        if (p->getRight()->isAtom()) right = static_pointer_cast<AtomNode>(p->getRight())->getData();
         else
         {
             translateTree(p->getRight(), fs, reg+1);
-            nextone = genTemp(fs, reg + 1);
+            right = genTemp(fs, reg + 1);
         }
 
-        fs->genExpr(thisone, thisone, p->getOp(), nextone);
+        fs->genExpr(thisone, left, p->getOp(), right);
     }
 }
 

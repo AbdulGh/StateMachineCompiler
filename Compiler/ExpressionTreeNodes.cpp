@@ -57,7 +57,7 @@ void OperatorNode::addNode(ExprNodePointer p)
                 shared_ptr<AtomNode> rp = static_pointer_cast<AtomNode>(right);
                 double pd = stod(ap->getData());
                 double rd = stod(rp->getData());
-                switch(getOp()) //{PLUS, MULT, MINUS, DIV, MOD, AND, OR};
+                switch(getOp())
                 {
                     case PLUS:
                         rp->setData(to_string(pd + rd));
