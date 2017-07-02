@@ -49,7 +49,8 @@ void Optimiser::replaceJumps(std::string sName, std::string replaceWith)
             while (it != instructions.end())
             {
                 shared_ptr<AbstractCommand> ACPtr = (*it);
-                if (ACPtr->getEffect() == CommandSideEffect::JUMP && ACPtr->getData() == sName) ACPtr->setData(replaceWith);
+                if ((ACPtr->getEffect() == CommandSideEffect::JUMP || ACPtr->getEffect() == CommandSideEffect::JUMP)
+                    && ACPtr->getData() == sName) ACPtr->setData(replaceWith);
                 else it++;
             }
         }

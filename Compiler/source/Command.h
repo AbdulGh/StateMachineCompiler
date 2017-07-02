@@ -3,7 +3,7 @@
 
 #include "compile/Token.h"
 
-enum class CommandSideEffect{NONE, JUMP, CHANGEVAR};
+enum class CommandSideEffect{NONE, JUMP, CONDJUMP, CHANGEVAR};
 
 class AbstractCommand
 {
@@ -144,7 +144,7 @@ public:
         term1 = t1;
         term2 = t2; 
         op = o; 
-        setEffect(CommandSideEffect::JUMP);
+        setEffect(CommandSideEffect::CONDJUMP);
     }
 
     std::string translation() const override {return "jumpif " + term1 + relEnumStrs[op] + term2 + " " + getData() + ";\n";}

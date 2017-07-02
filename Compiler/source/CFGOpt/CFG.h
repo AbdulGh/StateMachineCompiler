@@ -13,16 +13,12 @@ private:
     struct Comparison
     {
         std::string left;
-        bool leftIsConst;
         std::string right;
-        bool rightIsConst;
         Relop rel;
 
-        Comparison(std::string left, bool leftconst, std::string right, bool rightconst, Relop r):
+        Comparison(std::string left, std::string right, Relop r):
                 left(left),
-                leftIsConst(leftconst),
                 right(right),
-                rightIsConst(rightconst),
                 rel(r) {}
     };
 
@@ -39,7 +35,7 @@ private:
 
     public:
         CFGNode(ControlFlowGraph& p, std::string n):
-            parent(p), name(n), comp{} {}
+            parent(p), name(n), comp{}, compSuccess{}, compFail{} {}
         ~CFGNode();
         void addParent(std::shared_ptr<CFGNode>);
         void setInstructions(const std::vector<std::shared_ptr<AbstractCommand>> &in);
