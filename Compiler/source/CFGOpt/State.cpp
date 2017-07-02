@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "State.h"
-#include "Command.h"
+#include "../Command.h"
 
 using namespace std;
 

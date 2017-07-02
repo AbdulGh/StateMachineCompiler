@@ -5,8 +5,8 @@
 #include <sstream>
 
 #include "Token.h"
-#include "State.h"
-#include "Command.h"
+#include "../CFGOpt/State.h"
+#include "../Command.h"
 
 
 class FunctionCodeGen

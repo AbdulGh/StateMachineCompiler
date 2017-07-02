@@ -4,7 +4,7 @@
 #include <iostream>
 
 #include "Compiler.h"
-#include "Optimiser.h"
+#include "../CFGOpt/Optimiser.h"
 
 using namespace std;
 

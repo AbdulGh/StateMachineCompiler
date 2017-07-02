@@ -1,7 +1,7 @@
 #ifndef COMMAND_H
 #define COMMAND_H
 
-#include "Token.h"
+#include "compile/Token.h"
 
 enum class CommandSideEffect{NONE, JUMP, CHANGEVAR};
 

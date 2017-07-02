@@ -1,11 +1,12 @@
 #include "Optimiser.h"
-#include "Command.h"
+#include "../Command.h"
 
 using namespace std;
 
 void Optimiser::optimise()
 {
     collapseSmallStates();
+    propogateConstants();
 }
 
 void Optimiser::collapseSmallStates()
@@ -36,23 +37,6 @@ void Optimiser::collapseSmallStates()
     }
 }
 
-/*void Optimiser::removeJumps(std::string sName)
-{
-    for (auto &f : functionTable)
-    {
-        for (auto &s : f.second->getFinStates())
-        {
-            vector<shared_ptr<AbstractCommand>> instructions = s.getInstructions();
-            vector<shared_ptr<AbstractCommand>>::const_iterator it = instructions.cbegin();
-            while (++it != instructions.cend())
-            {
-                shared_ptr<AbstractCommand> ACPtr = (*it);
-                if (ACPtr->getEffect() == CommandSideEffect::JUMP && ACPtr->getData() == sName) instructions.erase(it);
-            }
-        }
-    }
-}*/
-
 void Optimiser::replaceJumps(std::string sName, std::string replaceWith)
 {
     for (auto &f : functionTable)
@@ -70,4 +54,9 @@ void Optimiser::replaceJumps(std::string sName, std::string replaceWith)
             }
         }
     }
+}
+
+void Optimiser::propogateConstants()
+{
+    //todo
 }
