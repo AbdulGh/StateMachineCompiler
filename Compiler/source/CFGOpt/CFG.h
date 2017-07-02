@@ -18,22 +18,32 @@ private:
         bool rightIsConst;
         Relop rel;
 
-        Comparison(std::string, bool, std::string, bool, Relop);
+        Comparison(std::string left, bool leftconst, std::string right, bool rightconst, Relop r):
+                left(left),
+                leftIsConst(leftconst),
+                right(right),
+                rightIsConst(rightconst),
+                rel(r) {}
     };
 
     class CFGNode: public std::enable_shared_from_this<CFGNode>
     {
     private:
         std::string name;
-        Comparison comp;
+        Comparison* comp;
         std::vector<std::shared_ptr<CFGNode>> incoming;
-        std::shared_ptr<CFGNode> left;
-        std::shared_ptr<CFGNode> right;
+        std::shared_ptr<CFGNode> compSuccess;
+        std::shared_ptr<CFGNode> compFail;
         std::vector<std::shared_ptr<AbstractCommand>> instrs;
+        ControlFlowGraph& parent;
 
     public:
-        CFGNode(ControlFlowGraph& p, std::string n); //std::vector<std::shared_ptr<AbstractCommand>> instructions);
+        CFGNode(ControlFlowGraph& p, std::string n):
+            parent(p), name(n), comp{} {}
+        ~CFGNode();
         void addParent(std::shared_ptr<CFGNode>);
+        void setInstructions(const std::vector<std::shared_ptr<AbstractCommand>> &in);
+
     };
 
     SymbolTable& symTable;
