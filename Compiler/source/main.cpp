@@ -8,14 +8,6 @@ int main()
 {
     Lexer lexer;
 
-    /*Token n;
-
-    while (n.type != END)
-    {
-        n = lexer.getNextToken();
-        cout << n << endl;
-    }*/
-
     vector<Token> st = lexer.tokenize("../misc/fizzbuzz.f");
     Compiler c(st);
     stringstream pleaseWork;

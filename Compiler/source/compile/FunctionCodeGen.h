@@ -8,7 +8,6 @@
 #include "../CFGOpt/State.h"
 #include "../Command.h"
 
-
 class FunctionCodeGen
 {
 private:
@@ -47,5 +46,6 @@ public:
     std::vector<State>& getFinStates();
 };
 
+typedef std::shared_ptr<FunctionCodeGen> FunctionPointer;
 
 #endif

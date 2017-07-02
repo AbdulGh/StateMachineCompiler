@@ -5,8 +5,6 @@
 #include "../compile/FunctionCodeGen.h"
 #include "../Command.h"
 
-typedef std::shared_ptr<FunctionCodeGen> FunctionPointer;
-
 class Optimiser
 {
 private:

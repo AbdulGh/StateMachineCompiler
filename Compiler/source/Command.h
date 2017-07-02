@@ -131,7 +131,6 @@ public:
     std::string translation() const override{return getData() + " = " + term1 + ' ' + opEnumChars[op]  + ' ' + term2 + ";\n";}
 };
 
-
 class JumpOnComparisonCommand: public AbstractCommand
 {
 public:
