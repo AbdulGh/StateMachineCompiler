@@ -5,6 +5,7 @@
 #include <sstream>
 
 #include "Token.h"
+#include "../CFGOpt/CFG.h"
 #include "../CFGOpt/State.h"
 #include "../Command.h"
 
@@ -17,16 +18,18 @@ private:
     std::string ident;
     bool endedState;
 
-    std::vector<State> finStates;
+    //std::vector<State> finStates;
     std::vector<std::shared_ptr<AbstractCommand>> currentInstrs;
     std::string currentStateName;
+    ControlFlowGraph& cfg;
 public:
-    FunctionCodeGen(VariableType returnType, std::vector<VariableType> types, std::string ident);
+    FunctionCodeGen(VariableType returnType, std::vector<VariableType> types, std::string ident, ControlFlowGraph& cfg);
     const std::string newStateName();
     const std::string& getIdentifier() const;
     bool checkTypes(std::vector<VariableType>& potential);
     bool isOfType(VariableType c);
     VariableType getReturnType() const;
+    //std::vector<State>& getFinStates();
 
     //codegen
     void genNewState(std::string);
@@ -41,9 +44,6 @@ public:
     void genVariableDecl(VariableType t, std::string n);
     void genAssignment(std::string LHS, std::string RHS);
     void addCommand(std::shared_ptr<AbstractCommand> ac);
-    std::string getSource();
-
-    std::vector<State>& getFinStates();
 };
 
 typedef std::shared_ptr<FunctionCodeGen> FunctionPointer;

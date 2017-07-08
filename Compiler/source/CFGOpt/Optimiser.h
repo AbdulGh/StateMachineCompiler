@@ -5,20 +5,12 @@
 #include "../compile/FunctionCodeGen.h"
 #include "../Command.h"
 
-class Optimiser
+namespace Optimise
 {
-private:
-    SymbolTable& symbolTable;
-    std::unordered_map<std::string, FunctionPointer>& functionTable;
-
-    void collapseSmallStates();
-    void replaceJumps(std::string sName, std::string replaceWith);
-
-    void propogateConstants();
-public:
-    Optimiser(SymbolTable& s, std::unordered_map<std::string, FunctionPointer>& f):
-            symbolTable(s), functionTable(f) {}
-    void optimise();
+    void optimise(SymbolTable& symbolTable, ControlFlowGraph& controlFlowGraph);
+    void collapseSmallStates(ControlFlowGraph& controlFlowGraph);
+    void propogateConstants(SymbolTable& symbolTable, ControlFlowGraph& controlFlowGraph);
+    //void replaceJumps(std::string sName, std::string replaceWith);
 };
 
 

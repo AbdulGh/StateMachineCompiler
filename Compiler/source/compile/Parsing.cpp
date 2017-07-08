@@ -32,19 +32,14 @@ string Compiler::quoteString(std::string &s)
 void Compiler::compile(stringstream& out)
 {
     tp = stream.cbegin();
-    findFunctionsAndMakeFirstStates(out);
+    findGlobalsAndMakeFirstState();
     tp = stream.cbegin();
     lookahead = nextToken();
     while (lookahead.type != END) body();
 
-    Optimiser o(symbolTable, functionTable);
-    o.optimise();
+    Optimise::optimise(symbolTable, cfg);
 
-    for (unordered_map<string, FunctionPointer>::const_iterator it = functionTable.cbegin();
-         it != functionTable.cend(); ++it)
-    {
-        out << it->second->getSource();
-    }
+    out << cfg.getSource();
 }
 
 Token Compiler::nextToken()
@@ -66,9 +61,16 @@ FunctionPointer Compiler::findFunction(string fid)
     return it->second;
 }
 
-void Compiler::findFunctionsAndMakeFirstStates(std::stringstream& out)
+void Compiler::findGlobalsAndMakeFirstState()
 {
-    out << "start\ndouble retD;\nstring retS;\ndouble LHS;\ndouble RHS;\n";
+    std::vector<shared_ptr<AbstractCommand>> initialState =
+    {
+            shared_ptr<AbstractCommand>(new DeclareVariableCommand(DOUBLE, "retD")),
+            shared_ptr<AbstractCommand>(new DeclareVariableCommand(STRING, "retS")),
+            shared_ptr<AbstractCommand>(new DeclareVariableCommand(DOUBLE, "LHS")),
+            shared_ptr<AbstractCommand>(new DeclareVariableCommand(DOUBLE, "RHS"))
+    };
+
     lookahead = nextToken();
     int depth = 0;
     while (lookahead.type != END)
@@ -119,7 +121,7 @@ void Compiler::findFunctionsAndMakeFirstStates(std::stringstream& out)
                 }
                 else warning("Function '" + id + "' has no dtype - assuming void");
 
-                FunctionPointer ptr(new FunctionCodeGen(ret, paramTypes, id));
+                FunctionPointer ptr(new FunctionCodeGen(ret, paramTypes, id, cfg));
                 functionTable[id] = ptr;
             }
 
@@ -128,19 +130,21 @@ void Compiler::findFunctionsAndMakeFirstStates(std::stringstream& out)
                 VariableType t = vtype();
                 string id = ident();
                 shared_ptr<Identifier> i = symbolTable.declare(id, t, lookahead.line);
-                out << VariableTypeEnumNames[t] << " " << i->getUniqueID() << ";\n";
+                initialState.push_back(shared_ptr<AbstractCommand>(new DeclareVariableCommand(t, i->getUniqueID())));
                 if (lookahead.type == ASSIGN)
                 {
                     match(ASSIGN);
                     i->setDefined();
                     if (t == STRING && lookahead.type == STRINGLIT)
                     {
-                        out << i->getUniqueID() << " = \"" << lookahead.lexemeString << "\";\n";
+                        initialState.push_back(shared_ptr<AbstractCommand>
+                                                       (new AssignVarCommand(i->getUniqueID(), lookahead.lexemeString)));
                         match(STRINGLIT);
                     }
                     else if (t == DOUBLE && lookahead.type == NUMBER)
                     {
-                        out << i->getUniqueID() << " = " << lookahead.lexemeString << ";\n";
+                        initialState.push_back(shared_ptr<AbstractCommand>
+                                                       (new AssignVarCommand(i->getUniqueID(), lookahead.lexemeString)));
                         match(NUMBER);
                     }
                     else error("Can only assign literals in global scope");
@@ -149,8 +153,10 @@ void Compiler::findFunctionsAndMakeFirstStates(std::stringstream& out)
             }
         }
     }
-    out << "jump F_main_0;\nend\n\n";
-    out << "funFinish\njump pop;\nend\n\n";
+
+    initialState.push_back(shared_ptr<AbstractCommand>(new JumpCommand("F_main_0")));
+
+    cfg.addNode("start", initialState);
 }
 
 void Compiler::match(Type t)
@@ -209,7 +215,7 @@ void Compiler::body()
 
         if (!statement(fs))
         {
-            fs->genJump("funFinish");
+            fs->genJump("pop");
             fs->genEndState();
         }
         symbolTable.popScope();
@@ -353,7 +359,7 @@ bool Compiler::statement(FunctionPointer fs)
             }
         }
         match(SEMIC);
-        fs->genJump("funFinish");
+        fs->genJump("pop");
         fs->genEndState();
     }
     return finishedState;

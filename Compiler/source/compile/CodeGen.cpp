@@ -1,7 +1,6 @@
 #include "Compiler.h"
 
 using namespace std;
-
 VariableType Compiler::genFunctionCall(VariableType expectedType, shared_ptr<FunctionCodeGen> fromFS)
 {
     match(Type::CALL);

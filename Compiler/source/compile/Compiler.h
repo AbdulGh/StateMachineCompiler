@@ -10,8 +10,6 @@
 #include "ExpressionCodeGenerator.h"
 #include "FunctionCodeGen.h"
 
-typedef std::shared_ptr<FunctionCodeGen> FunctionPointer;
-
 class Compiler
 {
     friend class ExpressionCodeGenerator;
@@ -26,11 +24,12 @@ private:
     Token lookahead;
     SymbolTable symbolTable;
     std::unordered_map<std::string, FunctionPointer> functionTable;
+    ControlFlowGraph cfg;
 
     void error(std::string);
     void warning(std::string);
     Token nextToken();
-    void findFunctionsAndMakeFirstStates(std::stringstream&);
+    void findGlobalsAndMakeFirstState();
     std::shared_ptr<Identifier> findVariable(std::string);
     FunctionPointer findFunction(std::string);
     std::string quoteString(std::string& s);

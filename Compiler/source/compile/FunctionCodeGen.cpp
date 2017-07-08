@@ -2,8 +2,10 @@
 
 using namespace std;
 
-FunctionCodeGen::FunctionCodeGen(VariableType rt, std::vector<VariableType> types, std::string in):
-    returnType(rt), paramTypes(types), ident(in), currentStates(1), currentStateName("F_" + ident + "_0"), endedState(false){}
+FunctionCodeGen::FunctionCodeGen(VariableType rt, std::vector<VariableType> types, std::string in, ControlFlowGraph& c):
+    returnType(rt), paramTypes(types), ident(in),
+    currentStates(1), currentStateName("F_" + ident + "_0"),
+    endedState(false), cfg(c){}
 
 bool FunctionCodeGen::checkTypes(std::vector<VariableType>& potential)
 {
@@ -25,6 +27,7 @@ bool FunctionCodeGen::isOfType(VariableType c)
     return (c == returnType);
 }
 
+/*
 string FunctionCodeGen::getSource()
 {
     if (currentInstrs.size() != 0) throw "Not done";
@@ -37,7 +40,7 @@ string FunctionCodeGen::getSource()
         outs << "end" << endl << endl;
     }
     return outs.str();
-}
+}*/
 
 VariableType FunctionCodeGen::getReturnType() const
 {
@@ -56,9 +59,7 @@ void FunctionCodeGen::genNewState(std::string n)
 void FunctionCodeGen::genEndState()
 {
     if (endedState) throw "No state to end";
-    State s(currentStateName);
-    s.setInstructions(currentInstrs);
-    finStates.push_back(s);
+    cfg.addNode(currentStateName, currentInstrs);
     currentInstrs.clear();
     endedState = true;
 }
@@ -121,9 +122,4 @@ void FunctionCodeGen::genAssignment(std::string LHS, std::string RHS)
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(shared_ptr<AbstractCommand>(new AssignVarCommand(LHS, RHS)));
-}
-
-vector<State>& FunctionCodeGen::getFinStates()
-{
-    return finStates;
 }
