@@ -26,7 +26,9 @@ string CFGNode::getSource()
 
 void CFGNode::addParent(std::shared_ptr<CFGNode> parent)
 {
-    predecessors.push_back(parent); //todo consider the possibility of duplication
+    auto it = find(predecessors.begin(), predecessors.end(), parent);
+    if (it != predecessors.end()) throw "Parent already in";
+    predecessors.push_back(parent);
 }
 
 void CFGNode::removeParent(std::shared_ptr<CFGNode> leaving)
@@ -38,6 +40,7 @@ void CFGNode::removeParent(std::shared_ptr<CFGNode> leaving)
         swap(*it, predecessors.back());
         predecessors.pop_back();
     }
+    else  throw "Parent is not in";
 }
 
 void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in)
