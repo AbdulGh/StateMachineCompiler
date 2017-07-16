@@ -6,7 +6,6 @@
 
 #include "Token.h"
 #include "../CFGOpt/CFG.h"
-//#include "../CFGOpt/State.h"
 #include "../Command.h"
 
 class FunctionCodeGen

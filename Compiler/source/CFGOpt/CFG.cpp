@@ -48,7 +48,7 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
     vector<std::shared_ptr<AbstractCommand>>::const_iterator it = in.cbegin();
 
     while (it != in.cend() &&
-            (*it)->getEffect() != CommandSideEffect::JUMP && (*it)->getEffect() != CommandSideEffect::CONDJUMP)
+            (*it)->getEffectFlag() != CommandSideEffect::JUMP && (*it)->getEffectFlag() != CommandSideEffect::CONDJUMP)
     {
         instrs.push_back(*it);
         it++;
@@ -59,7 +59,7 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
         return;
     }
 
-    if ((*it)->getEffect() == CommandSideEffect::CONDJUMP) //todo consider pop
+    if ((*it)->getEffectFlag() == CommandSideEffect::CONDJUMP) //todo consider pop
     {
         comp = static_pointer_cast<JumpOnComparisonCommand>(*it);
         compSuccess = parent.createNodeIfNotExists(comp->getData());
@@ -68,7 +68,7 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
         if (++it == in.cend()) return;
     }
 
-    if ((*it)->getEffect() == CommandSideEffect::JUMP)
+    if ((*it)->getEffectFlag() == CommandSideEffect::JUMP)
     {
         compFail = parent.createNodeIfNotExists((*it)->getData());
         compFail->addParent(shared_from_this());

@@ -111,7 +111,7 @@ namespace Optimise
                 while (it != instructions.end())
                 {
                     shared_ptr<AbstractCommand> ACPtr = (*it);
-                    if ((ACPtr->getEffect() == CommandSideEffect::JUMP || ACPtr->getEffect() == CommandSideEffect::JUMP)
+                    if ((ACPtr->getEffect() == CommandSideEffect::JUMP || ACPtr->getEffectFlag() == CommandSideEffect::JUMP)
                         && ACPtr->getData() == sName) ACPtr->setData(replaceWith);
                     else it++;
                 }

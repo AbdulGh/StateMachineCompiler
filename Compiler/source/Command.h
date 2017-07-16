@@ -4,17 +4,35 @@
 #include "compile/Token.h"
 
 enum class CommandSideEffect{NONE, JUMP, CONDJUMP, CHANGEVAR};
+/*
+struct effect
+{
+    std::string varName;
+    Relop relop;
+    VariableType type;
+    union
+    {
+        const char* compString; //strings will only be compared to literals, which will not be changed during analysis
+        double compDouble;
+    };
+
+    effect(std::string varN, Relop rel, double d):
+            varName(varN), relop(rel), compDouble(d), type(DOUBLE) {}
+
+    effect(std::string varN, Relop rel, std::string& s):
+            varName(varN), relop(rel), compString(s.c_str()), type(STRING) {}
+};*/
 
 class AbstractCommand
 {
 private:
     std::string data;
-    CommandSideEffect effect;
+    CommandSideEffect effectFlag;
 
 protected:
     void setEffect(CommandSideEffect effect)
     {
-        AbstractCommand::effect = effect;
+        AbstractCommand::effectFlag = effect;
     }
 
 public:
@@ -27,15 +45,20 @@ public:
         return data;
     }
 
-    CommandSideEffect getEffect() const
+    CommandSideEffect getEffectFlag() const
     {
-        return effect;
+        return effectFlag;
     }
 
     void setData(const std::string &data)
     {
         AbstractCommand::data = data;
     }
+};
+
+class AbstractVarEffectCommand : public AbstractCommand
+{
+    //public
 };
 
 class PrintCommand: public AbstractCommand
