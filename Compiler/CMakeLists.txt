@@ -5,7 +5,7 @@ set(CMAKE_CXX_STANDARD 11)
 
 set(SOURCE_FILES source/main.cpp source/compile/SymbolTable.cpp source/compile/SymbolTable.h source/compile/Lexer.cpp source/compile/Lexer.h source/compile/Token.cpp source/compile/Lexer.cpp source/compile/Lexer.h source/compile/Parsing.cpp
         source/compile/Compiler.h source/compile/CodeGen.cpp source/compile/FunctionCodeGen.cpp source/compile/FunctionCodeGen.h source/compile/ExpressionCodeGenerator.cpp source/compile/ExpressionCodeGenerator.h
-        source/compile/ExpressionTreeNodes.cpp source/Command.h source/CFGOpt/State.cpp source/CFGOpt/State.h source/CFGOpt/Optimiser.cpp source/CFGOpt/Optimiser.h source/verify/SymbolicVariable.cpp source/verify/SymbolicVariable.h source/CFGOpt/CFG.cpp source/CFGOpt/CFG.h source/CFGOpt/SymbolicVariable.cpp source/CFGOpt/SymbolicVariable.h)
+        source/compile/ExpressionTreeNodes.cpp source/Command.h source/CFGOpt/State.cpp source/CFGOpt/State.h source/CFGOpt/Optimiser.cpp source/CFGOpt/Optimiser.h source/CFGOpt/CFG.cpp source/CFGOpt/CFG.h source/symbolic/SymbolicVariable.cpp source/symbolic/SymbolicVariable.h)
 add_executable(Project ${SOURCE_FILES})
 
 include (CTest)
