@@ -88,6 +88,13 @@ void FunctionCodeGen::genPop(std::string s)
     currentInstrs.push_back(shared_ptr<AbstractCommand>(new PopCommand(s)));
 }
 
+void FunctionCodeGen::genReturn()
+{
+    if (endedState) throw "No state to add to";
+    currentInstrs.push_back(shared_ptr<AbstractCommand>(new ReturnCommand()));
+}
+
+
 void FunctionCodeGen::genPush(std::string s)
 {
     if (endedState) throw "No state to add to";

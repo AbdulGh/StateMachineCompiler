@@ -46,10 +46,10 @@ public:
     void execute();
 };
 
-class JumpTopCommand: public AbstractCommand
+class ReturnCommand: public AbstractCommand
 {
 public:
-    JumpTopCommand(FSM& stackOwner);
+    ReturnCommand(FSM& stackOwner);
     void execute();
 private:
     std::stack<Variable::TaggedDataUnion>* popFrom;

@@ -11,7 +11,7 @@
 class State;
 template<class T> class PushCommand;
 class PopCommand;
-class JumpTopCommand;
+class ReturnCommand;
 template<class T> class JumpOnComparisonCommand;
 
 class FSM
@@ -19,7 +19,7 @@ class FSM
     friend class State;
     template<class T> friend class PushCommand;
     friend class PopCommand;
-    friend class JumpTopCommand;
+    friend class ReturnCommand;
     template<class T> friend class JumpOnComparisonCommand;
 private:
     int state;

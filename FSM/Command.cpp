@@ -93,11 +93,11 @@ JumpCommand::JumpCommand(int state)
 
 void JumpCommand::execute(){}
 
-/*JumpTopCommand - jumps to the number on top of the stack*/
-JumpTopCommand::JumpTopCommand(FSM &stackOwner):
+/*ReturnCommand - jumps to the number on top of the stack if it is not empty*/
+ReturnCommand::ReturnCommand(FSM &stackOwner):
         popFrom(&stackOwner.sharedStack) {}
 
-void JumpTopCommand::execute()
+void ReturnCommand::execute()
 {
     if (popFrom->empty()) setChangeState(false);
     else

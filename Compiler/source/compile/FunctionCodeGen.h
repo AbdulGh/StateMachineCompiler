@@ -38,6 +38,7 @@ public:
     void genConditionalJump(std::string, std::string, Relop r, std::string);
     void genPush(std::string);
     void genPop(std::string);
+    void genReturn();
     void genInput(std::string);
     void genExpr(std::string lh, std::string t1, Op o, std::string t2);
     void genVariableDecl(VariableType t, std::string n);

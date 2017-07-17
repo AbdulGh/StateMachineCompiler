@@ -104,7 +104,7 @@ string FSMParser::getVarName()
     return varN;
 }
 
-set<string> FSMParser::resWords = {"end", "double", "string", "print", "jump", "jumpif", "push", "pop", "state"};
+set<string> FSMParser::resWords = {"end", "double", "string", "print", "jump", "jumpif", "push", "pop", "state", "return"};
 bool FSMParser::isReserved(const string& s)
 {
     return (resWords.find(s) != resWords.end());
@@ -244,18 +244,20 @@ FSM FSMParser::readFSM()
                 commands.push_back(ref);
             }
 
+            else if (str == "return")
+            {
+                commands.push_back(shared_ptr<AbstractCommand>(new ReturnCommand(fsm)));
+            }
+
             else if (str == "jump")
             {
                 string stateName = nextString();
-
-                if (stateName == "pop") commands.push_back(shared_ptr<AbstractCommand>(new JumpTopCommand(fsm)));
-                else
-                {
-                    int state = checkState(stateName);
-                    shared_ptr<AbstractCommand> ref (new JumpCommand(state));
-                    commands.push_back(ref);
-                }
+                if (stateName == "pop") throw "depreciated";
+                int state = checkState(stateName);
+                shared_ptr<AbstractCommand> ref (new JumpCommand(state));
+                commands.push_back(ref);
             }
+
             else if (str == "jumpif")
             {
                 c = nextRealChar("Unfinished jumpif command");

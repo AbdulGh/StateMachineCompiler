@@ -215,7 +215,7 @@ void Compiler::body()
 
         if (!statement(fs))
         {
-            fs->genJump("pop");
+            fs->genReturn();
             fs->genEndState();
         }
         symbolTable.popScope();
@@ -359,7 +359,7 @@ bool Compiler::statement(FunctionPointer fs)
             }
         }
         match(SEMIC);
-        fs->genJump("pop");
+        fs->genReturn();
         fs->genEndState();
     }
     return finishedState;

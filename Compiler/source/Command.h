@@ -4,24 +4,6 @@
 #include "compile/Token.h"
 
 enum class CommandSideEffect{NONE, JUMP, CONDJUMP, CHANGEVAR};
-/*
-struct effect
-{
-    std::string varName;
-    Relop relop;
-    VariableType type;
-    union
-    {
-        const char* compString; //strings will only be compared to literals, which will not be changed during analysis
-        double compDouble;
-    };
-
-    effect(std::string varN, Relop rel, double d):
-            varName(varN), relop(rel), compDouble(d), type(DOUBLE) {}
-
-    effect(std::string varN, Relop rel, std::string& s):
-            varName(varN), relop(rel), compString(s.c_str()), type(STRING) {}
-};*/
 
 class AbstractCommand
 {
@@ -56,10 +38,35 @@ public:
     }
 };
 
+/*
 class AbstractVarEffectCommand : public AbstractCommand
 {
-    //public
-};
+public:
+    struct VarEffect
+    {
+        std::string varName;
+        bool constrained;
+        bool literal;
+        Relop relop;
+        VariableType type;
+        union
+        {
+            const char* compString; //strings will only be compared to literals, which will not be changed during analysis
+            double compDouble;
+        };
+
+        VarEffect(std::string varN, Relop rel, double d):
+                varName(varN), relop(rel), compDouble(d), type(DOUBLE), constrained(true) {}
+
+        VarEffect(std::string varN, Relop rel, std::string& s, bool literal):
+                varName(varN), relop(rel), compString(s.c_str()), type(STRING), constrained(true) {}
+
+        VarEffect(std::string varN): constrained(false) {}
+
+    };
+
+    virtual VarEffect getVarEffect() = 0;
+};*/
 
 class PrintCommand: public AbstractCommand
 {
@@ -71,6 +78,12 @@ public:
     }
 
     std::string translation() const override {return "print " + getData() + ";\n";};
+};
+
+class ReturnCommand: public AbstractCommand
+{
+public:
+    std::string translation() const override {return "return;\n";}
 };
 
 class JumpCommand: public AbstractCommand
@@ -121,7 +134,7 @@ public:
 };
 
 
-class AssignVarCommand: public AbstractCommand
+class AssignVarCommand : public AbstractCommand
 {
 public:
     std::string RHS;
@@ -182,7 +195,7 @@ public:
     {
         vt = t;
         setData(n);
-        setEffect(CommandSideEffect::NONE);
+        setEffect(CommandSideEffect::CHANGEVAR);
     }
 
     std::string translation() const override{return VariableTypeEnumNames[vt] + " " + getData() + ";\n";}
