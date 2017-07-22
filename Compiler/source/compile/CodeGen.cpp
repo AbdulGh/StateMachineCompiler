@@ -62,7 +62,8 @@ void Compiler::genIf(FunctionPointer fs)
     match(LPAREN);
     ors(fs, success, fail);
     match(RPAREN);
-    match(THEN);
+    match(LBRACE);
+    
 
     fs->genNewState(success);
     statement(fs);

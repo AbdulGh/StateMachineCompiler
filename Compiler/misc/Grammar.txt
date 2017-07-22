@@ -10,8 +10,8 @@ statement ->
     ident "=" expression ";"
     ident "=" stringlit ";"
     "call" ident "("[ident] {"," ident} ")" ";"
-    "if" "(" ands ")" statement
-    "while" "(" ands ")" statement
+    "if" "(" ands ")" "{" statement "}" [
+    "while" "(" ands ")" "{" statement "}"
     "return" ident ";"
     "input" ident ";"
     "print" "(" ident ")" ";"

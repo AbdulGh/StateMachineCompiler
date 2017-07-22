@@ -148,7 +148,7 @@ std::string ControlFlowGraph::getSource()
 
     for (auto it = currentNodes.cbegin(); it != currentNodes.cend(); it++)
     {
-        if (it->first == first->getName() || it->first == "pop") continue;
+        if (it->first == first->getName()) continue;
         outs << it->second->getSource() << endl;
     }
 

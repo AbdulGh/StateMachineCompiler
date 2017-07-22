@@ -19,15 +19,10 @@ namespace Optimise
         unordered_map<string, NodePointer>::iterator pair = nodes.begin();
         while (pair != nodes.end())
         {
-            if (pair->first == "pop")
-            {
-                ++pair;
-                continue;
-            }
-
             NodePointer current = pair->second;
-
-            if (current->getInstrs().size() == 0 &&
+            vector<shared_ptr<AbstractCommand>>& instructionList = current->getInstrs();
+            bool incremented = false;
+            if (instructionList.size() == 0 &&
                 current->getComp() == nullptr) //node consists of a single unconditional jump
             {
                 NodePointer replaceWith = current->getCompFail();
@@ -57,12 +52,18 @@ namespace Optimise
                         replacing->setCompFail(replaceWith);
                         replaceWith->addParent(replacing);
                     }
-                    string delet = pair->first;
                 }
                 delet = pair->first;
                 pair = nodes.erase(pair);
+                incremented = true;
             }
-            else ++pair;
+            /*else if (current->getCompSuccess() == nullptr && current->getPredecessors().size() == 1)
+            {
+                //node consists of a single instruction followed by an unconditional jump
+                NodePointer pred = current->getPredecessors()[0];
+                pred->getInstrs().push_back(current->getInstrs()[0]);
+            }*/
+            if (!incremented) ++pair;
         }
     }
 
@@ -70,55 +71,4 @@ namespace Optimise
     {
         //todo
     }
-
-        /*
-        bool changes = true;
-
-        while (changes)
-        {
-            changes = false;
-            for (auto &f : functionTable)
-            {
-                vector<State>& states = f.second->getFinStates();
-                vector<State>::iterator it = states.begin();
-                while (it != states.end())
-                {
-                    State s = *it;
-                    vector<shared_ptr<AbstractCommand>>& instrs = s.getInstructions();
-
-                    if (instrs.size() == 1 && instrs.at(0)->getEffect() == CommandSideEffect::JUMP)
-                    {
-                        replaceJumps(s.getName(), instrs.at(0)->getData());
-                        states.erase(it);
-                        changes = true;
-                    }
-                    else it++;
-                }
-            }
-        }
-    }
-
-    void Optimise::replaceJumps(std::string sName, std::string replaceWith)
-    {
-        /*
-        for (auto &f : functionTable)
-        {
-            vector<State>& states = f.second->getFinStates();
-            for (State s : states)
-            {
-                vector<shared_ptr<AbstractCommand>>& instructions = s.getInstructions();
-                vector<shared_ptr<AbstractCommand>>::iterator it = instructions.begin();
-                while (it != instructions.end())
-                {
-                    shared_ptr<AbstractCommand> ACPtr = (*it);
-                    if ((ACPtr->getEffect() == CommandSideEffect::JUMP || ACPtr->getEffectFlag() == CommandSideEffect::JUMP)
-                        && ACPtr->getData() == sName) ACPtr->setData(replaceWith);
-                    else it++;
-                }
-            }
-        }
-
-    }*/
-
-
 }
