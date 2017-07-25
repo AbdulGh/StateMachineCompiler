@@ -13,7 +13,7 @@ end
 
 F_main_1
 LHS = _2_0_d_current;
-RHS = _2_0_d_limit;
+RHS = _2_0_s_limit;
 jumpif LHS < RHS F_main_2;
 jump F_main_3;
 end
@@ -27,8 +27,8 @@ end
 
 F_main_0
 print "Limit?\n>";
-double _2_0_d_limit;
-input _2_0_d_limit;
+double _2_0_s_limit;
+input _2_0_s_limit;
 double _2_0_d_current;
 _2_0_d_current = 1;
 jump F_main_1;

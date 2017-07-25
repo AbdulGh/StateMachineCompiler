@@ -5,22 +5,22 @@
 #include <stack>
 #include <memory>
 
-#include "SymbolicVariable.h"
+#include "SymbolicDouble.h"
 
-typedef std::shared_ptr<SymbolicVariable> SymbolicVarPointer;
+typedef std::shared_ptr<SymbolicDouble> DoubleVarPointer;
 
 class SymbolicVarSet
 {
 private:
     class TaggedStackUnion;
     SymbolicVarSet* parent;
-    std::unordered_map<std::string, SymbolicVarPointer> variables;
+    std::unordered_map<std::string, DoubleVarPointer> variables;
     std::stack<TaggedStackUnion> stack;
 
 public:
     SymbolicVarSet(SymbolicVarSet* p = nullptr): parent(p){}
-    SymbolicVarPointer findVar(std::string name);
-    SymbolicVarPointer popVar();
+    DoubleVarPointer findVar(std::string name);
+    DoubleVarPointer popVar();
     std::string popState();
 };
 

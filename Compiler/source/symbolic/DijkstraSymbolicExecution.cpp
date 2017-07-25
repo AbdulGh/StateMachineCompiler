@@ -4,14 +4,6 @@ using namespace std;
 
 class SymbolicVarSet::TaggedStackUnion
 {
-    private:
-        StackFrameType type;
-        union
-        {
-            char* stateName;
-            SymbolicVarPointer symVar;
-        };
-
     public:
         enum StackFrameType{STATE, VAR};
 
@@ -23,7 +15,7 @@ class SymbolicVarSet::TaggedStackUnion
             type = StackFrameType::STATE;
         }
 
-        TaggedStackUnion(SymbolicVarPointer sv)
+        TaggedStackUnion(DoubleVarPointer sv)
         {
             symVar = sv;
             type = StackFrameType::VAR;
@@ -44,21 +36,30 @@ class SymbolicVarSet::TaggedStackUnion
             return stateName;
         }
 
-        const std::shared_ptr<SymbolicVariable> &getSymVar() const
+        const std::shared_ptr<SymbolicDouble> getSymVar() const
         {
             return symVar;
         }
+
+private:
+    StackFrameType type;
+    union
+    {
+        char* stateName;
+        DoubleVarPointer symVar;
+    };
 };
 
-SymbolicVarPointer SymbolicVarSet::findVar(std::string name)
+DoubleVarPointer SymbolicVarSet::findVar(std::string name)
 {
-    unordered_map<string, SymbolicVarPointer>::const_iterator it = variables.find(name);
+    unordered_map<string, DoubleVarPointer>::const_iterator it = variables.find(name);
     if (it != variables.cend()) return it->second;
 
     else //must copy symbolic variable into this 'scope'
     {
-        SymbolicVarPointer oldSym = parent->findVar(name);
-        SymbolicVariable newSym(oldSym);
-
+        DoubleVarPointer oldSym = parent->findVar(name);
+        DoubleVarPointer newSymPointer(new SymbolicDouble(*oldSym));
+        variables["name"] = newSymPointer;
+        return newSymPointer;
     }
 }

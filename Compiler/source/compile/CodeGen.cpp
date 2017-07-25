@@ -63,14 +63,20 @@ void Compiler::genIf(FunctionPointer fs)
     ors(fs, success, fail);
     match(RPAREN);
     match(LBRACE);
-    
+    symbolTable.pushScope();
 
     fs->genNewState(success);
     statement(fs);
+    while (lookahead.type != RBRACE) statement(fs);
+
+    match(RBRACE);
+    symbolTable.popScope();
 
     if (lookahead.type == ELSE)
     {
         match(ELSE);
+        match(LBRACE);
+        symbolTable.pushScope();
         string skip = fs->newStateName();
         fs->genJump(skip);
         fs->genEndState();
@@ -79,6 +85,8 @@ void Compiler::genIf(FunctionPointer fs)
         fs->genJump(skip);
         fs->genEndState();
         fs->genNewState(skip);
+        match(RBRACE);
+        symbolTable.popScope();
     }
     else
     {
@@ -86,7 +94,6 @@ void Compiler::genIf(FunctionPointer fs)
         fs->genEndState();
         fs->genNewState(fail);
     }
-    match(DONE);
 }
 
 void Compiler::genWhile(FunctionPointer fs)
@@ -103,10 +110,15 @@ void Compiler::genWhile(FunctionPointer fs)
     match(LPAREN);
     ors(fs, body, end);
     match(RPAREN);
+    match(LBRACE);
+    symbolTable.pushScope();
 
     fs->genNewState(body);
     statement(fs);
+    while (lookahead.type != RBRACE) statement(fs);
 
+    match(RBRACE);
+    symbolTable.popScope();
     fs->genJump(loopcheck);
     fs->genEndState();
     fs->genNewState(end);

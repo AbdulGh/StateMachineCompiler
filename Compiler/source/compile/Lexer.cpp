@@ -14,15 +14,15 @@ Lexer::Lexer()
     resWords["string"] = Token(STRING);
     resWords["double"] = Token(DOUBLE);
     resWords["call"] = Token(CALL);
-    resWords["even"] = Token(RETURN);
     resWords["input"] = Token(INPUT);
     resWords["print"] = Token(PRINT);
     resWords["endif"] = Token(ENDIF);
-    resWords["done"] = Token(DONE);
     resWords["return"] = Token(RETURN);
     resWords["void"] = Token(VOID);
+    resWords["else"] = Token(ELSE);
+    //resWords["even"] = Token(RETURN);
+    //resWords["done"] = Token(DONE);
     //resWords["then"] = Token(THEN);
-    //resWords["else"] = Token(ELSE);
 }
 
 vector<Token> Lexer::tokenize(string str)
