@@ -8,7 +8,7 @@
 
 using namespace std;
 
-Compiler::Compiler(vector<Token>& st): stream(st) {}
+Compiler::Compiler(vector<Token>& st, std::string auxFileName): stream(st), reporter(auxFileName) {}
 
 void Compiler::error(string err)
 {
@@ -20,8 +20,8 @@ void Compiler::error(string err)
 void Compiler::warning(string warn)
 {
     ostringstream o;
-    o << "Warning: " << warn << " (line " << lookahead.line << ")\n";
-    cout << o.str();
+    o << warn << " (line " << lookahead.line << ")\n";
+    reporter.warn(Reporter::AlertType::COMPILER, o.str());
 }
 
 string Compiler::quoteString(std::string &s)

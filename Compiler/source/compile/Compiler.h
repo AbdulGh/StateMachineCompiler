@@ -9,13 +9,14 @@
 #include "FunctionCodeGen.h"
 #include "ExpressionCodeGenerator.h"
 #include "FunctionCodeGen.h"
+#include "Reporter.h"
 
 class Compiler
 {
     friend class ExpressionCodeGenerator;
 
 public:
-    Compiler(std::vector<Token>& st);
+    Compiler(std::vector<Token>& st, std::string filename);
     void compile(std::stringstream&);
 
 private:
@@ -25,6 +26,7 @@ private:
     SymbolTable symbolTable;
     std::unordered_map<std::string, FunctionPointer> functionTable;
     ControlFlowGraph cfg;
+    Reporter reporter;
 
     void error(std::string);
     void warning(std::string);
