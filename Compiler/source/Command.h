@@ -83,6 +83,11 @@ public:
 class ReturnCommand: public AbstractCommand
 {
 public:
+    ReturnCommand()
+    {
+        setData("return");
+        setEffect(CommandSideEffect::JUMP);
+    }
     std::string translation() const override {return "return;\n";}
 };
 
@@ -130,7 +135,7 @@ public:
         setEffect(CommandSideEffect::CHANGEVAR);
     }
 
-    std::string translation() const override{return "push " + getData() + ";\n";}
+    std::string translation() const override{return "pop " + getData() + ";\n";}
 };
 
 

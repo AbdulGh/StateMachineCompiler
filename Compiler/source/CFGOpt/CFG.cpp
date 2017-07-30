@@ -47,8 +47,9 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
 {
     vector<std::shared_ptr<AbstractCommand>>::const_iterator it = in.cbegin();
 
-    while (it != in.cend() &&
-            (*it)->getEffectFlag() != CommandSideEffect::JUMP && (*it)->getEffectFlag() != CommandSideEffect::CONDJUMP)
+    while (it != in.cend()
+           &&  (*it)->getEffectFlag() != CommandSideEffect::JUMP
+           && (*it)->getEffectFlag() != CommandSideEffect::CONDJUMP)
     {
         instrs.push_back(*it);
         it++;
@@ -59,7 +60,7 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
         return;
     }
 
-    if ((*it)->getEffectFlag() == CommandSideEffect::CONDJUMP) //todo consider pop
+    if ((*it)->getEffectFlag() == CommandSideEffect::CONDJUMP)
     {
         comp = static_pointer_cast<JumpOnComparisonCommand>(*it);
         compSuccess = parent.createNodeIfNotExists(comp->getData());
@@ -70,8 +71,13 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
 
     if ((*it)->getEffectFlag() == CommandSideEffect::JUMP)
     {
-        compFail = parent.createNodeIfNotExists((*it)->getData());
-        compFail->addParent(shared_from_this());
+        string jumpto = (*it)->getData();
+        if (jumpto == "return") compFail = nullptr;
+        else
+        {
+            compFail = parent.createNodeIfNotExists(jumpto);
+            compFail->addParent(shared_from_this());
+        }
         if (++it != in.cend()) throw "Should end here";
     }
     else throw "Can only end w/ <=2 jumps";

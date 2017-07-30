@@ -47,7 +47,7 @@ VariableType Compiler::genFunctionCall(VariableType expectedType, shared_ptr<Fun
 
     if (!toFS.checkTypes(paramTypes)) error("Type mismatch for function '" + fid + "'");
 
-    fromFS->genJump("jump F_" + fid + "_0");
+    fromFS->genJump("F_" + fid + "_0");
     fromFS->genEndState();
     fromFS->genNewState(nextState);
     return toFS.getReturnType();

@@ -42,12 +42,7 @@ namespace Optimise
                     }
 
                     NodePointer fail = replacing->getCompFail();
-                    if (fail == nullptr) //should be fine, just checking
-                    {
-                        int debug;
-                        debug = 5;
-                    }
-                    else if (fail->getName() == current->getName())
+                    if (fail != nullptr && fail->getName() == current->getName())
                     {
                         replacing->setCompFail(replaceWith);
                         replaceWith->addParent(replacing);
