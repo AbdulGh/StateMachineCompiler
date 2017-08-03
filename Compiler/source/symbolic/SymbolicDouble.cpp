@@ -17,6 +17,19 @@ SymbolicDouble::SymbolicDouble(std::string name, Reporter& reporter):
     varN(name),
     monotonicity(FRESH){}
 
+SymbolicDouble::SymbolicDouble(std::shared_ptr<SymbolicDouble> other):
+        reporter(other->reporter)
+{
+    upperBound = other->getUpperBound();
+    lowerBound = other->getLowerBound();
+    monotonicity = other->getMonotinicity();
+    isConst = other->isConst;
+    varN = other->varN;
+    isInitialised = other->isInitialised;
+    feasable = other->isFeasable();
+    minStep = other->minStep;
+}
+
 SymbolicDouble::SymbolicDouble(SymbolicDouble& other):
     reporter(other.reporter)
 {

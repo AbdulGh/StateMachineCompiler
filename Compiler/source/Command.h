@@ -38,36 +38,6 @@ public:
     }
 };
 
-/*
-class AbstractVarEffectCommand : public AbstractCommand
-{
-public:
-    struct VarEffect
-    {
-        std::string varName;
-        bool constrained;
-        bool literal;
-        Relop relop;
-        VariableType type;
-        union
-        {
-            const char* compString; //strings will only be compared to literals, which will not be changed during analysis
-            double compDouble;
-        };
-
-        VarEffect(std::string varN, Relop rel, double d):
-                varName(varN), relop(rel), compDouble(d), type(DOUBLE), constrained(true) {}
-
-        VarEffect(std::string varN, Relop rel, std::string& s, bool literal):
-                varName(varN), relop(rel), compString(s.c_str()), type(STRING), constrained(true) {}
-
-        VarEffect(std::string varN): constrained(false) {}
-
-    };
-
-    virtual VarEffect getVarEffect() = 0;
-};*/
-
 class PrintCommand: public AbstractCommand
 {
 public:

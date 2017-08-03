@@ -1,6 +1,8 @@
 #ifndef PROJECT_SYMBOLICVARIABLE_H
 #define PROJECT_SYMBOLICVARIABLE_H
 
+#include <memory>
+
 #include "../compile/Reporter.h"
 
 enum MonotoneEnum{INCREASING, DECREASING, FRESH, NONE, UNKNOWN};
@@ -28,6 +30,7 @@ private:
 
 public:
     SymbolicDouble(std::string name, Reporter& reporter);
+    SymbolicDouble(std::shared_ptr<SymbolicDouble> other);
     SymbolicDouble(SymbolicDouble& other);
     bool isBoundedBelow() const;
     bool isBoundedAbove() const;

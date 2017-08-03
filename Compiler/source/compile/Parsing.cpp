@@ -270,6 +270,7 @@ bool Compiler::statement(FunctionPointer fs)
     {
         VariableType t = vtype();
         string id = ident();
+        if (symbolTable.isInScope(id, t)) error(TypeEnumNames[t] + " '" + id + "' declared multiple times in the same scope");
         shared_ptr<Identifier> idPtr =  symbolTable.declare(id, t, lookahead.line);
         fs->genVariableDecl(t, idPtr->getUniqueID());
 

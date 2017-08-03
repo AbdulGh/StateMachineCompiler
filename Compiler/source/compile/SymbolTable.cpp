@@ -1,8 +1,11 @@
-#include "SymbolTable.h"
 #include <iostream>
+
+#include "SymbolTable.h"
 
 using namespace std;
 using sPtrType = unordered_map<string, shared_ptr<Identifier>>;
+
+//todo clear up ambiguous var stuff
 
 SymbolTable::SymbolTable()
 {
@@ -35,7 +38,7 @@ shared_ptr<Identifier> SymbolTable::declare(string name, VariableType type, unsi
     return sp;
 }
 
-bool SymbolTable::isDeclared(std::string name, VariableType type)
+bool SymbolTable::isDeclared(string name, VariableType type)
 {
     if (shared_ptr<Identifier> id = findIdentifier(name))
     {
@@ -44,7 +47,13 @@ bool SymbolTable::isDeclared(std::string name, VariableType type)
     return false;
 }
 
-bool SymbolTable::isDefined(std::string name, VariableType type)
+bool SymbolTable::isInScope(string name, VariableType type)
+{
+    unordered_map<string, shared_ptr<Identifier>>::const_iterator it = currentMap->find(name);
+    return it != currentMap->cend();
+}
+
+bool SymbolTable::isDefined(string name, VariableType type)
 {
     if (shared_ptr<Identifier> id = findIdentifier(name))
     {
@@ -53,7 +62,7 @@ bool SymbolTable::isDefined(std::string name, VariableType type)
     return false;
 }
 
-bool SymbolTable::define(std::string name)
+bool SymbolTable::define(string name)
 {
     if (shared_ptr<Identifier> id = findIdentifier(name))
     {
@@ -63,7 +72,7 @@ bool SymbolTable::define(std::string name)
     return false;
 }
 
-shared_ptr<Identifier> SymbolTable::findIdentifier(std::string name)
+shared_ptr<Identifier> SymbolTable::findIdentifier(string name)
 {
     unordered_map<string, shared_ptr<Identifier>>::const_iterator it = currentMap->find(name);
     if (it != currentMap->cend()) return it->second;

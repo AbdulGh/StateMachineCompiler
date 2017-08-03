@@ -2,6 +2,8 @@
 
 #include "Compiler.h"
 
+//todo unary minus
+
 using namespace std;
 
 ExpressionCodeGenerator::ExpressionCodeGenerator(Compiler &p, const string& asignee):

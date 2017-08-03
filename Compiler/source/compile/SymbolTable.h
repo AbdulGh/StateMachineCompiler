@@ -78,6 +78,7 @@ public:
     bool define(std::string name);
     bool isDeclared(std::string name, VariableType type);
     bool isDefined(std::string name, VariableType type);
+    bool isInScope(std::string name, VariableType type);
 };
 
 
