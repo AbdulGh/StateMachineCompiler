@@ -23,7 +23,7 @@ namespace Optimise
             vector<shared_ptr<AbstractCommand>>& instructionList = current->getInstrs();
             bool incremented = false;
             if (instructionList.size() == 0 &&
-                current->getComp() == nullptr) //node consists of a single unconditional jump
+                current->getComp() == nullptr && current->getCompFail() != nullptr) //node consists of a single unconditional jump (not return)
             {
                 NodePointer replaceWith = current->getCompFail();
                 replaceWith->removeParent(current);

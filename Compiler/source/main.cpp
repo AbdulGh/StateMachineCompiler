@@ -8,8 +8,8 @@ int main()
 {
     Lexer lexer;
 
-    vector<Token> st = lexer.tokenize("../misc/what.f");
-    Compiler c(st, "linearwarnings.txt");
+    vector<Token> st = lexer.tokenize("../misc/fizzbuzz.f");
+    Compiler c(st, "warnings.txt");
     stringstream pleaseWork;
     c.compile(pleaseWork);
     cout << pleaseWork.str();

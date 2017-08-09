@@ -270,28 +270,62 @@ bool Compiler::statement(FunctionPointer fs)
     {
         VariableType t = vtype();
         string id = ident();
-        if (symbolTable.isInScope(id, t)) error(TypeEnumNames[t] + " '" + id + "' declared multiple times in the same scope");
-        shared_ptr<Identifier> idPtr =  symbolTable.declare(id, t, lookahead.line);
-        fs->genVariableDecl(t, idPtr->getUniqueID());
-
-        if (lookahead.type == ASSIGN)
+        if (symbolTable.isInScope(id)) //set to '0' or '""' depending on type
         {
-            match(ASSIGN);
-            if (t == VariableType::STRING)
+            shared_ptr<Identifier> idPtr = findVariable(id);
+            if (t != idPtr->getType()) error("'" + id + "' redeclared in same scope with different type");
+            else if (lookahead.type == ASSIGN)
             {
-                if (lookahead.type == CALL)
+                match(ASSIGN);
+                if (t == STRING)
                 {
-                    genFunctionCall(t, fs);
-                    fs->genAssignment(idPtr->getUniqueID(), "retS");
+                    if (lookahead.type == CALL)
+                    {
+                        genFunctionCall(t, fs);
+                        fs->genAssignment(idPtr->getUniqueID(), "retS");
+                    }
+                    else if (lookahead.type == STRINGLIT)
+                    {
+                        fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString));
+                        match(STRINGLIT);
+                    }
+                    else
+                        error("'" + id + "' declared in this scope as a string, assigned to "
+                              + TypeEnumNames[lookahead.type]);
                 }
-                else
-                {
-                    fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString));
-                    match(STRINGLIT);
-                }
+                else expression(fs, idPtr->getUniqueID());
             }
-            else expression(fs, idPtr->getUniqueID());
-            idPtr->setDefined();
+            else
+            {
+                shared_ptr<Identifier> ident = findVariable(id);
+                if (ident->getType() == DOUBLE) fs->genAssignment(ident->getUniqueID(), "0");
+                else fs->genAssignment(ident->getUniqueID(), "\"\"");
+            }
+        }
+        else
+        {
+            shared_ptr<Identifier> idPtr =  symbolTable.declare(id, t, lookahead.line);
+            fs->genVariableDecl(t, idPtr->getUniqueID());
+
+            if (lookahead.type == ASSIGN)
+            {
+                match(ASSIGN);
+                if (t == VariableType::STRING)
+                {
+                    if (lookahead.type == CALL)
+                    {
+                        genFunctionCall(t, fs);
+                        fs->genAssignment(idPtr->getUniqueID(), "retS");
+                    }
+                    else
+                    {
+                        fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString));
+                        match(STRINGLIT);
+                    }
+                }
+                else expression(fs, idPtr->getUniqueID());
+                idPtr->setDefined();
+            }
         }
         match(SEMIC);
     }

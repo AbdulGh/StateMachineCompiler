@@ -20,6 +20,7 @@ string CFGNode::getSource()
     for (shared_ptr<AbstractCommand> ac: instrs) outs << ac->translation();
     if (compSuccess != nullptr) outs << comp->translation();
     if (compFail != nullptr) outs << JumpCommand(compFail->getName()).translation();
+    else outs << ReturnCommand().translation();
     outs << "end" << endl;
     return outs.str();
 }
@@ -63,7 +64,7 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
     if ((*it)->getEffectFlag() == CommandSideEffect::CONDJUMP)
     {
         comp = static_pointer_cast<JumpOnComparisonCommand>(*it);
-        compSuccess = parent.createNodeIfNotExists(comp->getData());
+        compSuccess = parent.createNodeIfNotExists((*it)->getData());
         compSuccess->addParent(shared_from_this());
 
         if (++it == in.cend()) return;
@@ -120,7 +121,7 @@ void CFGNode::setCompFail(const shared_ptr<CFGNode> &compFail)
 
 /*graph*/
 
-shared_ptr<CFGNode> ControlFlowGraph::createNodeIfNotExists(string name) //todo consider returning nullptr for pop
+shared_ptr<CFGNode> ControlFlowGraph::createNodeIfNotExists(string name)
 {
     unordered_map<string, shared_ptr<CFGNode>>::const_iterator it = currentNodes.find(name);
     if (it == currentNodes.cend())

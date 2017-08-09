@@ -3,13 +3,12 @@
 #include "SymbolTable.h"
 
 using namespace std;
-using sPtrType = unordered_map<string, shared_ptr<Identifier>>;
 
 //todo clear up ambiguous var stuff
 
 SymbolTable::SymbolTable()
 {
-    currentMap = shared_ptr<sPtrType>(new unordered_map<string, shared_ptr<Identifier>>);
+    currentMap = shared_ptr<SymbolTableMap>(new SymbolTableMap);
     scopeDepths.push_back(0);
     depth = 0;
 }
@@ -17,7 +16,7 @@ SymbolTable::SymbolTable()
 void SymbolTable::pushScope()
 {
     sTable.push_front(currentMap);
-    currentMap = shared_ptr<sPtrType>(new unordered_map<string, shared_ptr<Identifier>>);
+    currentMap = shared_ptr<SymbolTableMap>(new SymbolTableMap);
     depth += 1;
     if (depth == scopeDepths.size()) scopeDepths.push_back(0);
     else scopeDepths[depth]++;
@@ -38,31 +37,24 @@ shared_ptr<Identifier> SymbolTable::declare(string name, VariableType type, unsi
     return sp;
 }
 
-bool SymbolTable::isDeclared(string name, VariableType type)
+bool SymbolTable::isDeclared(string name)
 {
-    if (shared_ptr<Identifier> id = findIdentifier(name))
-    {
-        return id->getType() == type;
-    }
-    return false;
+    return (findIdentifier(name) != nullptr);
 }
 
-bool SymbolTable::isInScope(string name, VariableType type)
+bool SymbolTable::isInScope(string name)
 {
     unordered_map<string, shared_ptr<Identifier>>::const_iterator it = currentMap->find(name);
     return it != currentMap->cend();
 }
 
-bool SymbolTable::isDefined(string name, VariableType type)
+bool SymbolTable::isDefined(string name)
 {
-    if (shared_ptr<Identifier> id = findIdentifier(name))
-    {
-        return id->getType() == type && id->isDefined();
-    }
+    if (shared_ptr<Identifier> id = findIdentifier(name)) return id->isDefined();
     return false;
 }
 
-bool SymbolTable::define(string name)
+bool SymbolTable::define(VariableType type, string name)
 {
     if (shared_ptr<Identifier> id = findIdentifier(name))
     {
@@ -74,13 +66,13 @@ bool SymbolTable::define(string name)
 
 shared_ptr<Identifier> SymbolTable::findIdentifier(string name)
 {
-    unordered_map<string, shared_ptr<Identifier>>::const_iterator it = currentMap->find(name);
+    SymbolTableMap::const_iterator it = currentMap->find(name);
     if (it != currentMap->cend()) return it->second;
     else
     {
         for (auto scope: sTable)
         {
-            unordered_map<string, shared_ptr<Identifier>>::const_iterator it = scope->find(name);
+            SymbolTableMap::const_iterator it = scope->find(name);
             if (it != currentMap->cend()) return it->second;
         }
     }

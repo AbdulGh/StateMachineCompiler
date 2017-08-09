@@ -10,11 +10,9 @@ typedef std::shared_ptr<FunctionCodeGen> FunctionPointer;
 
 
 class CFGNode;
-class ControlFlowGraph //todo get this to replace states
+class ControlFlowGraph
 {
 private:
-    //SymbolTable& symTable;
-    //std::unordered_map<std::string, FunctionPointer>& funTable;
     std::unordered_map<std::string, std::shared_ptr<CFGNode>> currentNodes;
     std::shared_ptr<CFGNode> first;
 public:
@@ -57,17 +55,5 @@ public:
     std::string getSource();
 
 };
-/*struct Comparison
-    {
-        std::string left;
-        std::string right;
-        Relop rel;
-
-        Comparison(std::string left, std::string right, Relop r):
-                left(left),
-                right(right),
-                rel(r) {}
-    };*/
-
 
 #endif

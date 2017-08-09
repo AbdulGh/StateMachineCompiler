@@ -6,6 +6,7 @@
 
 #include "../CFGOpt/CFG.h"
 #include "SymbolicDouble.h"
+#include "SymbolicStack.h"
 #include "../compile/Token.h" //relop
 
 typedef std::shared_ptr<SymbolicDouble> DoubleVarPointer;
@@ -29,6 +30,8 @@ private:
     std::stack<Condition> pathCondition;
     ControlFlowGraph& cfg;
     SymbolTable& sTable;
+
+    void visitNode(CFGNode n);
 
 public:
     DFSSymbolicExecution(ControlFlowGraph& cfg, SymbolTable& sTable):
