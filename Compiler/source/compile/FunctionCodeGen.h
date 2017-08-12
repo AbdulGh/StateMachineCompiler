@@ -28,21 +28,21 @@ public:
     bool checkTypes(std::vector<VariableType>& potential);
     bool isOfType(VariableType c);
     VariableType getReturnType() const;
-    //std::vector<State>& getFinStates();
+    const std::string getLastStateName() const;
 
     //codegen
     void genNewState(std::string);
     void genEndState();
-    void genPrint(std::string);
-    void genJump(std::string);
-    void genConditionalJump(std::string, std::string, Relop r, std::string);
-    void genPush(std::string);
-    void genPop(std::string);
-    void genReturn();
-    void genInput(std::string);
-    void genExpr(std::string lh, std::string t1, Op o, std::string t2);
-    void genVariableDecl(VariableType t, std::string n);
-    void genAssignment(std::string LHS, std::string RHS);
+    void genPrint(std::string, int);
+    void genJump(std::string, int);
+    void genConditionalJump(std::string, std::string, Relop r, std::string, int);
+    void genPush(std::string, int);
+    void genPop(std::string, int);
+    void genReturn(int);
+    void genInput(std::string, int);
+    void genExpr(std::string lh, std::string t1, Op o, std::string t2, int);
+    void genVariableDecl(VariableType t, std::string n, int);
+    void genAssignment(std::string LHS, std::string RHS, int);
     void addCommand(std::shared_ptr<AbstractCommand> ac);
 };
 

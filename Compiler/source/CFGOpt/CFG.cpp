@@ -19,8 +19,8 @@ string CFGNode::getSource()
     outs << name << endl;
     for (shared_ptr<AbstractCommand> ac: instrs) outs << ac->translation();
     if (compSuccess != nullptr) outs << comp->translation();
-    if (compFail != nullptr) outs << JumpCommand(compFail->getName()).translation();
-    else outs << ReturnCommand().translation();
+    if (compFail != nullptr) outs << JumpCommand(compFail->getName(), jumpline).translation();
+    else outs << ReturnCommand(jumpline).translation();
     outs << "end" << endl;
     return outs.str();
 }
@@ -73,6 +73,7 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
     if ((*it)->getEffectFlag() == CommandSideEffect::JUMP)
     {
         string jumpto = (*it)->getData();
+        jumpline = (*it)->getLineNum();
         if (jumpto == "return") compFail = nullptr;
         else
         {
@@ -165,4 +166,21 @@ std::string ControlFlowGraph::getSource()
 unordered_map<string, shared_ptr<CFGNode>> &ControlFlowGraph::getCurrentNodes()
 {
     return currentNodes;
+}
+
+shared_ptr<CFGNode> ControlFlowGraph::getFirst() const
+{
+    return first;
+}
+
+shared_ptr<CFGNode> ControlFlowGraph::getLast() const
+{
+    return last;
+}
+
+void ControlFlowGraph::setLast(std::string lastName)
+{
+    unordered_map<string, shared_ptr<CFGNode>>::iterator it = currentNodes.find(lastName);
+    if (it == currentNodes.end()) throw "Check";
+    last = it->second;
 }

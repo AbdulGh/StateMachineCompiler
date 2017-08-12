@@ -11,6 +11,7 @@
 #include "FunctionCodeGen.h"
 #include "Reporter.h"
 
+/* Implemented in Compiler.cpp, Parsing.cpp, CodeGen.cpp*/
 class Compiler
 {
     friend class ExpressionCodeGenerator;

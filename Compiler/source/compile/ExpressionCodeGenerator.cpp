@@ -15,7 +15,6 @@ void ExpressionCodeGenerator::CompileExpression(FunctionPointer fs)
 {
     ExprNodePointer tree = expression(fs);
     translateTree(tree, fs,  0);
-    //fs->genAssignment(goingto, "temp0");
 }
 
 ExprNodePointer ExpressionCodeGenerator::expression(FunctionPointer fs)
@@ -90,7 +89,7 @@ ExprNodePointer ExpressionCodeGenerator::factor(FunctionPointer fs)
     {
         parent.genFunctionCall(DOUBLE, fs);
         string uni = genUnique(fs);
-        fs->genAssignment(uni, "retD");
+        fs->genAssignment(uni, "retD", parent.lookahead.line);
         return shared_ptr<AbstractExprNode>(new AtomNode(uni, false));
     }
     else parent.error("Expected identifier or double in expression");
@@ -104,7 +103,7 @@ string ExpressionCodeGenerator::genTemp(FunctionPointer fs, unsigned int i)
     if (i == nextTemp)
     {
         string s = "temp" + to_string(nextTemp++);
-        fs->genVariableDecl(DOUBLE, s);
+        fs->genVariableDecl(DOUBLE, s, parent.lookahead.line);
         return s;
     }
     if (i > nextTemp) throw "Something went wrong somehow";
@@ -118,7 +117,7 @@ string ExpressionCodeGenerator::genUnique(FunctionPointer fs)
     {
         string s = "unique" + to_string(nextUnique++);
         currentUnique++;
-        fs->genVariableDecl(DOUBLE, s);
+        fs->genVariableDecl(DOUBLE, s, parent.lookahead.line);
         return s;
     }
     else if (currentUnique > nextUnique) throw "Something went wrong somehow";
@@ -128,7 +127,7 @@ string ExpressionCodeGenerator::genUnique(FunctionPointer fs)
 void ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer fs, unsigned int reg)
 {
     if (p == nullptr) return;
-    if (p->isAtom()) fs->genAssignment(genTemp(fs, reg), static_pointer_cast<AtomNode>(p)->getData());
+    if (p->isAtom()) fs->genAssignment(genTemp(fs, reg), static_pointer_cast<AtomNode>(p)->getData(), parent.lookahead.line);
     else
     {
         string thisone = genTemp(fs, reg);
@@ -146,7 +145,7 @@ void ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer f
             right = genTemp(fs, reg + 1);
         }
 
-        fs->genExpr(thisone, left, p->getOp(), right);
+        fs->genExpr(thisone, left, p->getOp(), right, parent.lookahead.line);
     }
 }
 

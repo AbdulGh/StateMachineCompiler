@@ -11,7 +11,7 @@ VariableType Compiler::genFunctionCall(VariableType expectedType, shared_ptr<Fun
     match(Type::LPAREN);
 
     string nextState = fromFS->newStateName();
-    fromFS->genPush("state " + nextState);
+    fromFS->genPush("state " + nextState, lookahead.line);
 
     vector<VariableType> paramTypes;
     while (lookahead.type != Type::RPAREN)
@@ -21,21 +21,21 @@ VariableType Compiler::genFunctionCall(VariableType expectedType, shared_ptr<Fun
             string toPush = lookahead.lexemeString;
             match(Type::NUMBER);
             paramTypes.push_back(VariableType::DOUBLE);
-            fromFS->genPush(toPush);
+            fromFS->genPush(toPush, lookahead.line);
         }
         else if (lookahead.type == Type::STRINGLIT)
         {
             string toPush = lookahead.lexemeString;
             match(Type::STRINGLIT);
             paramTypes.push_back(VariableType::STRING);
-            fromFS->genPush(quoteString(toPush));
+            fromFS->genPush(quoteString(toPush), lookahead.line);
         }
         else
         {
             string iid = ident();
             shared_ptr<Identifier> idp = findVariable(iid);
             paramTypes.push_back(idp->getType());
-            fromFS->genPush(idp->getUniqueID());
+            fromFS->genPush(idp->getUniqueID(), lookahead.line);
         }
         if (lookahead.type == Type::COMMA)
         {
@@ -47,7 +47,7 @@ VariableType Compiler::genFunctionCall(VariableType expectedType, shared_ptr<Fun
 
     if (!toFS.checkTypes(paramTypes)) error("Type mismatch for function '" + fid + "'");
 
-    fromFS->genJump("F_" + fid + "_0");
+    fromFS->genJump("F_" + fid + "_0", lookahead.line);
     fromFS->genEndState();
     fromFS->genNewState(nextState);
     return toFS.getReturnType();
@@ -62,35 +62,44 @@ void Compiler::genIf(FunctionPointer fs)
     match(LPAREN);
     ors(fs, success, fail);
     match(RPAREN);
-    match(LBRACE);
-    symbolTable.pushScope();
 
     fs->genNewState(success);
-    statement(fs);
-    while (lookahead.type != RBRACE) statement(fs);
 
-    match(RBRACE);
-    symbolTable.popScope();
+    if (lookahead.type != LBRACE) statement(fs);
+    else
+    {
+        match(LBRACE);
+        symbolTable.pushScope();
+        statement(fs);
+        while (lookahead.type != RBRACE) statement(fs);
+        match(RBRACE);
+        symbolTable.popScope();
+    }
 
     if (lookahead.type == ELSE)
     {
         match(ELSE);
-        match(LBRACE);
-        symbolTable.pushScope();
         string skip = fs->newStateName();
-        fs->genJump(skip);
+        fs->genJump(skip, lookahead.line);
         fs->genEndState();
         fs->genNewState(fail);
-        statement(fs);
-        fs->genJump(skip);
+        if (lookahead.type != LBRACE) statement(fs);
+        else
+        {
+            match(LBRACE);
+            symbolTable.pushScope();
+            statement(fs);
+            while (lookahead.type != RBRACE) statement(fs);
+            match(RBRACE);
+            symbolTable.popScope();
+        }
+        fs->genJump(skip, lookahead.line);
         fs->genEndState();
         fs->genNewState(skip);
-        match(RBRACE);
-        symbolTable.popScope();
     }
     else
     {
-        fs->genJump(fail);
+        fs->genJump(fail, lookahead.line);
         fs->genEndState();
         fs->genNewState(fail);
     }
@@ -102,7 +111,7 @@ void Compiler::genWhile(FunctionPointer fs)
     string body = fs->newStateName();
     string end = fs->newStateName();
 
-    fs->genJump(loopcheck);
+    fs->genJump(loopcheck, lookahead.line);
     fs->genEndState();
     fs->genNewState(loopcheck);
 
@@ -110,16 +119,18 @@ void Compiler::genWhile(FunctionPointer fs)
     match(LPAREN);
     ors(fs, body, end);
     match(RPAREN);
-    match(LBRACE);
-    symbolTable.pushScope();
-
-    fs->genNewState(body);
-    statement(fs);
-    while (lookahead.type != RBRACE) statement(fs);
-
-    match(RBRACE);
-    symbolTable.popScope();
-    fs->genJump(loopcheck);
+    if (lookahead.type != LBRACE) statement(fs);
+    else
+    {
+        match(LBRACE);
+        symbolTable.pushScope();
+        fs->genNewState(body);
+        statement(fs);
+        while (lookahead.type != RBRACE) statement(fs);
+        match(RBRACE);
+        symbolTable.popScope();
+    }
+    fs->genJump(loopcheck, lookahead.line);
     fs->genEndState();
     fs->genNewState(end);
 }
@@ -135,9 +146,8 @@ void Compiler::ors(FunctionPointer fs, string success, string fail)
         IM = fs->newStateName();
         ands(fs, success, IM);
     }
-
     fs->genNewState(IM);
-    fs->genJump(fail);
+    fs->genJump(fail, lookahead.line);
     fs->genEndState();
 }
 
@@ -154,7 +164,7 @@ void Compiler::ands(FunctionPointer fs, string success, string fail)
     }
 
     fs->genNewState(IM);
-    fs->genJump(success);
+    fs->genJump(success, lookahead.line);
     fs->genEndState();
 }
 
@@ -164,7 +174,7 @@ void Compiler::condition(FunctionPointer fs, string success, string fail)
     Relop r = relop();
     expression(fs, "RHS");
 
-    fs->genConditionalJump(success, "LHS", r, "RHS");
-    fs->genJump(fail);
+    fs->genConditionalJump(success, "LHS", r, "RHS", lookahead.line);
+    fs->genJump(fail, lookahead.line);
     fs->genEndState();
 }

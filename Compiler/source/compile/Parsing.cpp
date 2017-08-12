@@ -1,176 +1,11 @@
 #include <sstream>
 #include <iostream>
 #include <stack>
-#include <iostream>
 
 #include "Compiler.h"
-#include "../CFGOpt/Optimiser.h"
+
 
 using namespace std;
-
-Compiler::Compiler(vector<Token>& st, std::string auxFileName): stream(st), reporter(auxFileName) {}
-
-void Compiler::error(string err)
-{
-    ostringstream o;
-    o << "Error: " << err << " whilst parsing line " << lookahead.line;
-    throw runtime_error(o.str());
-}
-
-void Compiler::warning(string warn)
-{
-    ostringstream o;
-    o << warn << " (line " << lookahead.line << ")\n";
-    reporter.warn(Reporter::AlertType::COMPILER, o.str());
-}
-
-string Compiler::quoteString(std::string &s)
-{
-    return "\"" + s + "\"";
-}
-
-void Compiler::compile(stringstream& out)
-{
-    tp = stream.cbegin();
-    findGlobalsAndMakeFirstState();
-    tp = stream.cbegin();
-    lookahead = nextToken();
-    while (lookahead.type != END) body();
-
-    Optimise::optimise(symbolTable, cfg);
-
-    out << cfg.getSource();
-}
-
-Token Compiler::nextToken()
-{
-    return *(tp++);
-}
-
-shared_ptr<Identifier> Compiler::findVariable(string name)
-{
-    shared_ptr<Identifier> ret = symbolTable.findIdentifier(name);
-    if (ret == nullptr) error("Undeclared variable '" + name + "'");
-    return ret;
-}
-
-FunctionPointer Compiler::findFunction(string fid)
-{
-    unordered_map<string, FunctionPointer>::const_iterator it = functionTable.find(fid);
-    if (it == functionTable.cend()) error("Undefined function '" + fid + "'");
-    return it->second;
-}
-
-void Compiler::findGlobalsAndMakeFirstState()
-{
-    std::vector<shared_ptr<AbstractCommand>> initialState =
-    {
-            shared_ptr<AbstractCommand>(new DeclareVariableCommand(DOUBLE, "retD")),
-            shared_ptr<AbstractCommand>(new DeclareVariableCommand(STRING, "retS")),
-            shared_ptr<AbstractCommand>(new DeclareVariableCommand(DOUBLE, "LHS")),
-            shared_ptr<AbstractCommand>(new DeclareVariableCommand(DOUBLE, "RHS"))
-    };
-
-    lookahead = nextToken();
-    int depth = 0;
-    while (lookahead.type != END)
-    {
-        if (lookahead.type == LBRACE)
-        {
-            depth++;
-            match(LBRACE);
-        }
-
-        else if (lookahead.type == RBRACE)
-        {
-            if (depth-- <= 0) error("Unexpected RBRACE");
-            match(RBRACE);
-        }
-
-        else if (depth != 0) lookahead = nextToken();
-        else
-        {
-            if (lookahead.type == FUNCTION)
-            {
-                match(FUNCTION);
-                string id = lookahead.lexemeString;
-                match(IDENT);
-                match(LPAREN);
-
-                vector<VariableType> paramTypes;
-                if (lookahead.type != RPAREN)
-                {
-                    paramTypes.push_back((VariableType) lookahead.auxType);
-                    match(DTYPE);
-                    match(IDENT);
-                    while (lookahead.type != RPAREN)
-                    {
-                        match(COMMA);
-                        paramTypes.push_back((VariableType) lookahead.auxType);
-                        match(DTYPE);
-                        match(IDENT);
-                    }
-                }
-                match(RPAREN);
-
-                VariableType ret = VOID;
-                if (lookahead.type != LBRACE)
-                {
-                    ret = (VariableType)lookahead.auxType;
-                    match(DTYPE);
-                }
-                else warning("Function '" + id + "' has no dtype - assuming void");
-
-                FunctionPointer ptr(new FunctionCodeGen(ret, paramTypes, id, cfg));
-                functionTable[id] = ptr;
-            }
-
-            else //must be a global variable declaration
-            {
-                VariableType t = vtype();
-                string id = ident();
-                shared_ptr<Identifier> i = symbolTable.declare(id, t, lookahead.line);
-                initialState.push_back(shared_ptr<AbstractCommand>(new DeclareVariableCommand(t, i->getUniqueID())));
-                if (lookahead.type == ASSIGN)
-                {
-                    match(ASSIGN);
-                    i->setDefined();
-                    if (t == STRING && lookahead.type == STRINGLIT)
-                    {
-                        initialState.push_back(shared_ptr<AbstractCommand>
-                                                       (new AssignVarCommand(i->getUniqueID(), lookahead.lexemeString)));
-                        match(STRINGLIT);
-                    }
-                    else if (t == DOUBLE && lookahead.type == NUMBER)
-                    {
-                        initialState.push_back(shared_ptr<AbstractCommand>
-                                                       (new AssignVarCommand(i->getUniqueID(), lookahead.lexemeString)));
-                        match(NUMBER);
-                    }
-                    else error("Can only assign literals in global scope");
-                }
-                match(SEMIC);
-            }
-        }
-    }
-
-    initialState.push_back(shared_ptr<AbstractCommand>(new JumpCommand("F_main_0")));
-
-    cfg.addNode("start", initialState);
-}
-
-void Compiler::match(Type t)
-{
-    if (lookahead.type != t)
-    {
-        ostringstream o;
-        o << "Expected '" << TypeEnumNames[t] << "', found '" << TypeEnumNames[lookahead.type]
-             << "' on line " << lookahead.line;
-        throw runtime_error(o.str());
-    }
-
-    lookahead = nextToken();
-}
 
 void Compiler::body()
 {
@@ -196,8 +31,8 @@ void Compiler::body()
             unsigned int line = lookahead.line;
             string s = ident();
             shared_ptr<Identifier> vid = symbolTable.declare(s, t, line);
-            argumentStack.push(shared_ptr<AbstractCommand>(new PopCommand(vid->getUniqueID())));
-            argumentStack.push(shared_ptr<AbstractCommand>(new DeclareVariableCommand(t, vid->getUniqueID())));
+            argumentStack.push(shared_ptr<AbstractCommand>(new PopCommand(vid->getUniqueID(), lookahead.line)));
+            argumentStack.push(shared_ptr<AbstractCommand>(new DeclareVarCommand(t, vid->getUniqueID(), lookahead.line)));
             if (lookahead.type == COMMA)
             {
                 match(COMMA);
@@ -215,7 +50,7 @@ void Compiler::body()
 
         if (!statement(fs))
         {
-            fs->genReturn();
+            fs->genReturn(lookahead.line);
             fs->genEndState();
         }
         symbolTable.popScope();
@@ -241,18 +76,18 @@ bool Compiler::statement(FunctionPointer fs)
         match(LPAREN);
         if (lookahead.type == STRINGLIT)
         {
-            fs->genPrint(quoteString(lookahead.lexemeString));
+            fs->genPrint(quoteString(lookahead.lexemeString), lookahead.line);
             match(STRINGLIT);
         }
         else if (lookahead.type == NUMBER)
         {
-            fs->genPrint(lookahead.lexemeString);
+            fs->genPrint(lookahead.lexemeString, lookahead.line);
             match(NUMBER);
         }
         else
         {
             shared_ptr<Identifier> id = findVariable(ident());
-            fs->genPrint(id->getUniqueID());
+            fs->genPrint(id->getUniqueID(), lookahead.line);
         }
         match(RPAREN);
         match(SEMIC);
@@ -262,7 +97,7 @@ bool Compiler::statement(FunctionPointer fs)
         match(INPUT);
         string id = ident();
         shared_ptr<Identifier> idPtr = findVariable(id);
-        fs->genInput(idPtr->getUniqueID());
+        fs->genInput(idPtr->getUniqueID(), lookahead.line);
         idPtr->setDefined();
         match(SEMIC);
     }
@@ -282,11 +117,11 @@ bool Compiler::statement(FunctionPointer fs)
                     if (lookahead.type == CALL)
                     {
                         genFunctionCall(t, fs);
-                        fs->genAssignment(idPtr->getUniqueID(), "retS");
+                        fs->genAssignment(idPtr->getUniqueID(), "retS", lookahead.line);
                     }
                     else if (lookahead.type == STRINGLIT)
                     {
-                        fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString));
+                        fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString), lookahead.line);
                         match(STRINGLIT);
                     }
                     else
@@ -298,14 +133,14 @@ bool Compiler::statement(FunctionPointer fs)
             else
             {
                 shared_ptr<Identifier> ident = findVariable(id);
-                if (ident->getType() == DOUBLE) fs->genAssignment(ident->getUniqueID(), "0");
-                else fs->genAssignment(ident->getUniqueID(), "\"\"");
+                if (ident->getType() == DOUBLE) fs->genAssignment(ident->getUniqueID(), "0", lookahead.line);
+                else fs->genAssignment(ident->getUniqueID(), "\"\"", lookahead.line);
             }
         }
         else
         {
             shared_ptr<Identifier> idPtr =  symbolTable.declare(id, t, lookahead.line);
-            fs->genVariableDecl(t, idPtr->getUniqueID());
+            fs->genVariableDecl(t, idPtr->getUniqueID(), lookahead.line);
 
             if (lookahead.type == ASSIGN)
             {
@@ -315,11 +150,11 @@ bool Compiler::statement(FunctionPointer fs)
                     if (lookahead.type == CALL)
                     {
                         genFunctionCall(t, fs);
-                        fs->genAssignment(idPtr->getUniqueID(), "retS");
+                        fs->genAssignment(idPtr->getUniqueID(), "retS", lookahead.line);
                     }
                     else
                     {
-                        fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString));
+                        fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString), lookahead.line);
                         match(STRINGLIT);
                     }
                 }
@@ -337,13 +172,13 @@ bool Compiler::statement(FunctionPointer fs)
         {
             if (lookahead.type == STRINGLIT)
             {
-                fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString));
+                fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString), lookahead.line);
                 match(STRINGLIT);
             }
             else if (lookahead.type == CALL)
             {
                 genFunctionCall(VariableType::STRING, fs);
-                fs->genAssignment(idPtr->getUniqueID(), "retS");
+                fs->genAssignment(idPtr->getUniqueID(), "retS", lookahead.line);
             }
             else error("Malformed assignment to string");
         }
@@ -367,13 +202,13 @@ bool Compiler::statement(FunctionPointer fs)
             if (lookahead.type == STRINGLIT)
             {
                 if (fs->getReturnType() != STRING) error("Cannot return string in function of type " + fs->getReturnType());
-                fs->genAssignment("retS", quoteString(lookahead.lexemeString));
+                fs->genAssignment("retS", quoteString(lookahead.lexemeString), lookahead.line);
                 match(STRINGLIT);
             }
             else if (lookahead.type == NUMBER)
             {
                 if (fs->getReturnType() != DOUBLE) error("Cannot return double in function of type " + fs->getReturnType());
-                fs->genAssignment("retD", lookahead.lexemeString);
+                fs->genAssignment("retD", lookahead.lexemeString, lookahead.line);
                 match(NUMBER);
             }
             else
@@ -383,18 +218,18 @@ bool Compiler::statement(FunctionPointer fs)
                 if (id->getType() == DOUBLE)
                 {
                     if (fs->getReturnType() != DOUBLE) error("Cannot return double in function of type " + fs->getReturnType());
-                    fs->genAssignment("retD", id->getUniqueID());
+                    fs->genAssignment("retD", id->getUniqueID(), lookahead.line);
                 }
                 else
                 {
                     if (fs->getReturnType() != STRING) error("Cannot return string in function of type " + fs->getReturnType());
-                    fs->genAssignment("retS", id->getUniqueID());
+                    fs->genAssignment("retS", id->getUniqueID(), lookahead.line);
                     match(STRINGLIT);
                 }
             }
         }
         match(SEMIC);
-        fs->genReturn();
+        fs->genReturn(lookahead.line);
         fs->genEndState();
     }
     return finishedState;

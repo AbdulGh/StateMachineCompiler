@@ -7,26 +7,14 @@ function main() void
 
     while (current < limit)
     {
-        if (current % 15 == 0)
-        {
-            print("FizzBuzz");
-        }
+        if (current % 15 == 0) print("FizzBuzz");
         else
         {
-            if (current % 3 == 0)
-            {
-                print("Fizz");
-            }
+            if (current % 3 == 0) print("Fizz");
             else
             {
-                if (current % 5 == 0)
-                {
-                    print("Buzz");
-                }
-                else
-                {
-                    print(current);
-                }
+                if (current % 5 == 0)  print("Buzz");
+                else print(current);
             }
         }
         print("\n");
