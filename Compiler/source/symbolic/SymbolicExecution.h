@@ -10,7 +10,7 @@
 #include "SymbolicVarSet.h"
 #include "../compile/Token.h" //relop
 
-typedef std::shared_ptr<SymbolicDouble> VarPointer;
+typedef std::shared_ptr<SymbolicVariable> VarPointer;
 
 namespace SymbolicExecution
 {

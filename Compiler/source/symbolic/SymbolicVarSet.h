@@ -7,6 +7,9 @@
 
 #include "SymbolicVariables.h"
 
+
+typedef std::shared_ptr<SymbolicVariable> SymbolicVariablePointer;
+
 class SymbolicVarSet
 {
 private:

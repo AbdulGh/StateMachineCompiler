@@ -3,21 +3,21 @@
 //
 #include <limits>
 #include <math.h>
-#include "SymbolicVariables.h
+#include "SymbolicVariables.h"
 
 using namespace std;
 
 enum ArithResult{OVER, UNDER, FINE};
 
 SymbolicDouble::SymbolicDouble(string name, Reporter& r):
-        SymbolicVariable(name, 0, 0, r, DOUBLE)
+        SymbolicVariableTemplate(name, 0, 0, r, DOUBLE)
 {
     minStep = 0;
     monotonicity = FRESH;
 }
 
 SymbolicDouble::SymbolicDouble(SymbolicDouble& other):
-        SymbolicVariable(other.getName(), other.getLowerBound(), other.getUpperBound(), other.reporter, DOUBLE, other.isInitialised)
+        SymbolicVariableTemplate(other.getName(), other.getLowerBound(), other.getUpperBound(), other.reporter, DOUBLE, other.isInitialised)
 {
     monotonicity = other.getMonotinicity();
     isConst = other.isConst;
@@ -49,7 +49,7 @@ bool SymbolicDouble::isBoundedBelow() const
 }
 
 template <typename T>
-bool SymbolicVariable<T>::isFeasable()
+bool SymbolicVariableTemplate<T>::isFeasable()
 {
     if (lowerBound > upperBound) feasable = false;
     return feasable;

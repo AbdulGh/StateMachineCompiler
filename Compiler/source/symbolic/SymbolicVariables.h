@@ -11,12 +11,10 @@ enum MonotoneEnum{INCREASING, DECREASING, FRESH, NONE, UNKNOWN};
 //todo 'start recording' - make monotonicity fresh
 
 //SymbolicVariable.cpp
-template <typename T>
+
 class SymbolicVariable
 {
 protected:
-    T upperBound;
-    T lowerBound;
     bool isConst;
     bool isInitialised;
     bool feasable;
@@ -27,24 +25,38 @@ protected:
     void reportError(Reporter::AlertType type, std::string err);
 
 public:
-    SymbolicVariable(std::string name, const T lower, const T upper,
+    SymbolicVariable(std::string name, VariableType t, Reporter& r, bool initialised = false);
+    const VariableType getType() const;
+    virtual bool isDetermined();
+    const std::string getName() const;
+    virtual void userInput() = 0;
+    virtual bool isFeasable() = 0;
+};
+
+template <typename T>
+class SymbolicVariableTemplate : public SymbolicVariable
+{
+protected:
+    T upperBound;
+    T lowerBound;
+
+public:
+    SymbolicVariableTemplate(std::string name, const T lower, const T upper,
                      Reporter& r, VariableType t, bool init=false);
     virtual void userInput() = 0;
     virtual bool isBoundedBelow() const = 0;
     virtual bool isBoundedAbove() const = 0;
     bool isFeasable();
+    bool isDetermined();
     const T getUpperBound() const;
     const T getLowerBound() const;
     void setLowerBound(const T);
     void setUpperBound(const T);
     void setConstValue(const T);
-    const std::string getName() const;
-    const T getConstValue() const;
-    const VariableType getType() const;
-    bool isDetermined() const;
+    const T getConstValue();
 };
 
-//todo make this not a pointer
+/*
 class SymbolicVariablePointer
 {
 private:
@@ -62,14 +74,13 @@ public:
     SymbolicVariablePointer(std::shared_ptr<SymbolicVariablePointer> other);
     ~SymbolicVariablePointer();
 
-    bool isNull();
     VariableType getType();
     std::shared_ptr<SymbolicDouble> getDoublePointer();
     std::shared_ptr<SymbolicString> getStringPointer();
-};
+};*/
 
 //SymbolicDouble.cpp
-class SymbolicDouble : SymbolicVariable<double>
+class SymbolicDouble : public SymbolicVariableTemplate<double>
 {
 private:
     double minStep;
@@ -99,7 +110,7 @@ public:
 };
 
 //SymbolicString.cpp
-class SymbolicString : SymbolicVariable<std::string>
+class SymbolicString : public SymbolicVariableTemplate<std::string>
 {
 private:
     bool boundedLower;
