@@ -17,7 +17,7 @@ SymbolicDouble::SymbolicDouble(string name, Reporter& r):
 }
 
 SymbolicDouble::SymbolicDouble(SymbolicDouble& other):
-        SymbolicVariableTemplate(other.getName(), other.getLowerBound(), other.getUpperBound(), other.reporter, DOUBLE, other.isInitialised)
+        SymbolicVariableTemplate(other.getName(), other.getLowerBound(), other.getUpperBound(), other.reporter, DOUBLE, other.defined)
 {
     monotonicity = other.getMonotinicity();
     isConst = other.isConst;
@@ -27,13 +27,36 @@ SymbolicDouble::SymbolicDouble(SymbolicDouble& other):
 
 SymbolicDouble::SymbolicDouble(shared_ptr<SymbolicDouble> other): SymbolicDouble(*other.get()) {}
 
+SymbolicDouble::SymbolicDouble(shared_ptr<SymbolicVariable> other):
+        SymbolicDouble(static_pointer_cast<SymbolicDouble>(other)) {} //look out!
+
 void SymbolicDouble::userInput()
 {
     upperBound = numeric_limits<double>::max();
     upperBound = numeric_limits<double>::lowest();
     isConst = false;
-    isInitialised = true;
+    defined = true;
     monotonicity = FRESH;
+}
+
+void SymbolicDouble::setLowerBound(const std::string& lb)
+{
+    lowerBound = stod(lb);
+    if (lowerBound > upperBound) feasable = false;
+    else if (lowerBound == upperBound) isConst = true;
+}
+
+void SymbolicDouble::setUpperBound(const std::string& ub)
+{
+    lowerBound = stod(ub);
+    if (lowerBound > upperBound) feasable = false;
+    else if (lowerBound == upperBound) isConst = true;
+}
+
+void SymbolicDouble::setConstValue(const std::string& c)
+{
+    upperBound = lowerBound = stod(c);
+    isConst = true;
 }
 
 
@@ -48,14 +71,6 @@ bool SymbolicDouble::isBoundedBelow() const
     return upperBound != numeric_limits<double>::lowest();
 }
 
-template <typename T>
-bool SymbolicVariableTemplate<T>::isFeasable()
-{
-    if (lowerBound > upperBound) feasable = false;
-    return feasable;
-}
-
-
 const MonotoneEnum SymbolicDouble::getMonotinicity() const
 {
     return monotonicity;
@@ -67,9 +82,29 @@ const double SymbolicDouble::getMininumStep() const
     return minStep;
 }
 
+void SymbolicDouble::setLowerBound(double d)
+{
+    lowerBound = d;
+    if (lowerBound > upperBound) feasable = false;
+    else if (lowerBound == upperBound) isConst = true;
+}
+
+void SymbolicDouble::setUpperBound(double d)
+{
+    upperBound = d;
+    if (lowerBound > upperBound) feasable = false;
+    else if (lowerBound == upperBound) isConst = true;
+}
+
+void SymbolicDouble::setConstValue(double d)
+{
+    upperBound = lowerBound = d;
+    isConst = true;
+}
+
 void SymbolicDouble::addConstToLower(const double diff)
 {
-    if (!isInitialised) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
     if (!isBoundedBelow())
     {
@@ -102,7 +137,7 @@ void SymbolicDouble::addConstToLower(const double diff)
 
 void SymbolicDouble::addConstToUpper(const double diff)
 {
-    if (!isInitialised) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
     if (!isBoundedAbove())
     {
@@ -137,7 +172,7 @@ void SymbolicDouble::addConstToUpper(const double diff)
 
 void SymbolicDouble::addConst(double diff)
 {
-    if (!isInitialised) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
     if (diff == 0)
     {
@@ -191,7 +226,7 @@ void SymbolicDouble::addConst(double diff)
 }
 void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other)
 {
-    if (!other.isInitialised) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
+    if (!other.defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
 
     if (other.isDetermined())
     {
@@ -199,7 +234,7 @@ void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other)
         return;
     }
 
-    if (!isInitialised) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
     double otherLowerBound = other.getLowerBound();
     double otherUpperBound = other.getUpperBound();
@@ -226,7 +261,7 @@ ArithResult safeMultiply(double a, double b, double& result)
 
 void SymbolicDouble::multConst(double mul)
 {
-    if (!isInitialised) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
     if (mul == 0) setConstValue(0);
     else if (mul == 1) reporter.warn(Reporter::AlertType::USELESS_OP, varN + "multiplied by 1");
@@ -375,13 +410,13 @@ void SymbolicDouble::multConst(double mul)
 
 void SymbolicDouble::multSymbolicDouble(SymbolicDouble &other)
 {
-    if (!other.isInitialised) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
+    if (!other.defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
     if (other.isDetermined())
     {
         multConst(other.getConstValue());
         return;
     }
-    if (!isInitialised) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
     double otherLowerBound = other.getLowerBound();
     double otherUpperBound = other.getUpperBound();
@@ -582,7 +617,7 @@ ArithResult safeDivide(double a, double b, double& result)
 
 void SymbolicDouble::divConst(double denom)
 {
-    if (!isInitialised) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
     if (denom == 0) reportError(Reporter::AlertType::ZERODIVISION, varN + "divided by 0");
     else if (denom == 1) reporter.warn(Reporter::AlertType::USELESS_OP, varN + "divided by 1");
@@ -662,13 +697,13 @@ void SymbolicDouble::divConst(double denom)
 
 void SymbolicDouble::divSymbolicDouble(SymbolicDouble &other)
 {
-    if (!other.isInitialised) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
+    if (!other.defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
     if (other.isDetermined())
     {
         divConst(other.getConstValue());
         return;
     }
-    if (!isInitialised) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
     double otherLowerBound = other.getLowerBound();
     double otherUpperBound = other.getUpperBound();

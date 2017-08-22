@@ -31,8 +31,8 @@ void Compiler::body()
             unsigned int line = lookahead.line;
             string s = ident();
             shared_ptr<Identifier> vid = symbolTable.declare(s, t, line);
-            argumentStack.push(shared_ptr<AbstractCommand>(new PopCommand(vid->getUniqueID(), lookahead.line)));
-            argumentStack.push(shared_ptr<AbstractCommand>(new DeclareVarCommand(t, vid->getUniqueID(), lookahead.line)));
+            argumentStack.push(make_shared<PopCommand>(vid->getUniqueID(), lookahead.line));
+            argumentStack.push(make_shared<DeclareVarCommand>(t, vid->getUniqueID(), lookahead.line));
             if (lookahead.type == COMMA)
             {
                 match(COMMA);

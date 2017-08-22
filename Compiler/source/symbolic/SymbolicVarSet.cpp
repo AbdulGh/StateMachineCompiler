@@ -42,3 +42,8 @@ bool SymbolicVarSet::isFeasable()
     }
     return true;
 }
+
+void SymbolicVarSet::defineVar(SymbolicVariablePointer newvar)
+{
+    variables[newvar->getName()] = newvar;
+}

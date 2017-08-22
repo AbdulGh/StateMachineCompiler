@@ -85,7 +85,7 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
     else throw "Can only end w/ <=2 jumps";
 }
 
-shared_ptr<JumpOnComparisonCommand> &CFGNode::getComp()
+shared_ptr<JumpOnComparisonCommand> CFGNode::getComp()
 {
     return comp;
 }
@@ -127,7 +127,7 @@ shared_ptr<CFGNode> ControlFlowGraph::createNodeIfNotExists(string name)
     unordered_map<string, shared_ptr<CFGNode>>::const_iterator it = currentNodes.find(name);
     if (it == currentNodes.cend())
     {
-        shared_ptr<CFGNode> p(new CFGNode(*this, name));
+        shared_ptr<CFGNode> p = make_shared<CFGNode>(*this, name);
         currentNodes[name] = p;
         return p;
     }

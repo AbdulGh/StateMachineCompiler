@@ -76,7 +76,7 @@ void OperatorNode::addNode(ExprNodePointer p)
             if (right == nullptr) right = p;
             else if (right->getVarsRequired() > p->getVarsRequired())
             {
-                ExprNodePointer newP(new OperatorNode(op));
+                ExprNodePointer newP = make_shared<OperatorNode>(op);
                 newP->addNode(left);
                 newP->addNode(right);
                 left = newP;
@@ -84,7 +84,7 @@ void OperatorNode::addNode(ExprNodePointer p)
             }
             else
             {
-                ExprNodePointer newP(new OperatorNode(op));
+                ExprNodePointer newP = make_shared<OperatorNode>(op);
                 newP->addNode(left);
                 newP->addNode(p);
                 left = newP;
@@ -100,7 +100,7 @@ void OperatorNode::addNode(ExprNodePointer p)
         if (right == nullptr) right = p;
         else
         {
-            ExprNodePointer newP(new OperatorNode(op));
+            ExprNodePointer newP = make_shared<OperatorNode>(op);
             newP->addNode(left);
             newP->addNode(right);
             left = newP;

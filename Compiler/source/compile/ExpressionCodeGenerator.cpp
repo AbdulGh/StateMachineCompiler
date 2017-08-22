@@ -70,11 +70,11 @@ ExprNodePointer ExpressionCodeGenerator::factor(FunctionPointer fs)
     {
         shared_ptr<Identifier> id = parent.findVariable(parent.ident());
         if (!id->isDefined()) parent.warning(id->getLexeme() + " may not be defined");
-        return ExprNodePointer(new AtomNode(id->getUniqueID(), false));
+        return make_shared<AtomNode>(id->getUniqueID(), false);
     }
     else if (parent.lookahead.type == NUMBER)
     {
-        ExprNodePointer ref(new AtomNode(parent.lookahead.lexemeString, true));
+        ExprNodePointer ref = make_shared<AtomNode>(parent.lookahead.lexemeString, true);
         parent.match(NUMBER);
         return ref;
     }
@@ -90,7 +90,7 @@ ExprNodePointer ExpressionCodeGenerator::factor(FunctionPointer fs)
         parent.genFunctionCall(DOUBLE, fs);
         string uni = genUnique(fs);
         fs->genAssignment(uni, "retD", parent.lookahead.line);
-        return shared_ptr<AbstractExprNode>(new AtomNode(uni, false));
+        return make_shared<AtomNode>(uni, false);
     }
     else parent.error("Expected identifier or double in expression");
 }

@@ -8,7 +8,7 @@
 
 using namespace std;
 
-Compiler::Compiler(vector<Token>& st, std::string auxFileName): stream(st), reporter(auxFileName) {}
+Compiler::Compiler(vector<Token>& st, string auxFileName): stream(st), reporter(auxFileName) {}
 
 void Compiler::error(string err)
 {
@@ -24,7 +24,7 @@ void Compiler::warning(string warn)
     reporter.warn(Reporter::AlertType::COMPILER, o.str());
 }
 
-string Compiler::quoteString(std::string &s)
+string Compiler::quoteString(string &s)
 {
     return "\"" + s + "\"";
 }
@@ -64,13 +64,13 @@ FunctionPointer Compiler::findFunction(string fid)
 
 void Compiler::findGlobalsAndMakeFirstState()
 {
-    std::vector<shared_ptr<AbstractCommand>> initialState =
-     {
-         shared_ptr<AbstractCommand>(new DeclareVarCommand(DOUBLE, "retD", -1)),
-         shared_ptr<AbstractCommand>(new DeclareVarCommand(STRING, "retS", -1)),
-         shared_ptr<AbstractCommand>(new DeclareVarCommand(DOUBLE, "LHS", -1)),
-         shared_ptr<AbstractCommand>(new DeclareVarCommand(DOUBLE, "RHS", -1))
-     };
+    vector<shared_ptr<AbstractCommand>> initialState =
+    {
+        make_shared<DeclareVarCommand>(DOUBLE, "LHS", -1),
+        make_shared<DeclareVarCommand>(DOUBLE, "RHS", -1),
+        make_shared<DeclareVarCommand>(STRING, "retS", -1),
+        make_shared<DeclareVarCommand>(DOUBLE, "retD", -1)
+    };
 
     lookahead = nextToken();
     int depth = 0;
@@ -122,7 +122,7 @@ void Compiler::findGlobalsAndMakeFirstState()
                 }
                 else warning("Function '" + id + "' has no dtype - assuming void");
 
-                FunctionPointer ptr(new FunctionCodeGen(ret, paramTypes, id, cfg));
+                FunctionPointer ptr = make_shared<FunctionCodeGen>(ret, paramTypes, id, cfg);
                 functionTable[id] = ptr;
             }
 
@@ -131,21 +131,21 @@ void Compiler::findGlobalsAndMakeFirstState()
                 VariableType t = vtype();
                 string id = ident();
                 shared_ptr<Identifier> i = symbolTable.declare(id, t, lookahead.line);
-                initialState.push_back(shared_ptr<AbstractCommand>(new DeclareVarCommand(t, i->getUniqueID(), lookahead.line)));
+                initialState.push_back(make_shared<DeclareVarCommand>(t, i->getUniqueID(), lookahead.line));
                 if (lookahead.type == ASSIGN)
                 {
                     match(ASSIGN);
                     i->setDefined();
                     if (t == STRING && lookahead.type == STRINGLIT)
                     {
-                        initialState.push_back(shared_ptr<AbstractCommand>
-                                                       (new AssignVarCommand(i->getUniqueID(), lookahead.lexemeString, lookahead.line)));
+                        initialState.push_back(make_shared<AssignVarCommand>
+                                                       (i->getUniqueID(), lookahead.lexemeString, lookahead.line));
                         match(STRINGLIT);
                     }
                     else if (t == DOUBLE && lookahead.type == NUMBER)
                     {
-                        initialState.push_back(shared_ptr<AbstractCommand>
-                                                       (new AssignVarCommand(i->getUniqueID(), lookahead.lexemeString, lookahead.line)));
+                        initialState.push_back(make_shared<AssignVarCommand>
+                                                       (i->getUniqueID(), lookahead.lexemeString, lookahead.line));
                         match(NUMBER);
                     }
                     else error("Can only assign literals in global scope");
@@ -155,7 +155,7 @@ void Compiler::findGlobalsAndMakeFirstState()
         }
     }
 
-    initialState.push_back(shared_ptr<AbstractCommand>(new JumpCommand("F_main_0", -1)));
+    initialState.push_back(make_shared<JumpCommand>("F_main_0", -1));
 
     cfg.addNode("start", initialState);
 }

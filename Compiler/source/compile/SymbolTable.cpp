@@ -4,11 +4,9 @@
 
 using namespace std;
 
-//todo clear up ambiguous var stuff
-
 SymbolTable::SymbolTable()
 {
-    currentMap = shared_ptr<SymbolTableMap>(new SymbolTableMap);
+    currentMap = make_shared<SymbolTableMap>();
     scopeDepths.push_back(0);
     depth = 0;
 }
@@ -16,7 +14,7 @@ SymbolTable::SymbolTable()
 void SymbolTable::pushScope()
 {
     sTable.push_front(currentMap);
-    currentMap = shared_ptr<SymbolTableMap>(new SymbolTableMap);
+    currentMap = make_shared<SymbolTableMap>();
     depth += 1;
     if (depth == scopeDepths.size()) scopeDepths.push_back(0);
     else scopeDepths[depth]++;
@@ -32,7 +30,7 @@ void SymbolTable::popScope()
 
 shared_ptr<Identifier> SymbolTable::declare(string name, VariableType type, unsigned int lineNum)
 {
-    shared_ptr<Identifier> sp = shared_ptr<Identifier>(new Identifier(name, type, lineNum, depth, scopeDepths[depth]));
+    shared_ptr<Identifier> sp = make_shared<Identifier>(name, type, lineNum, depth, scopeDepths[depth]);
     currentMap->operator[](name) = sp;
     return sp;
 }

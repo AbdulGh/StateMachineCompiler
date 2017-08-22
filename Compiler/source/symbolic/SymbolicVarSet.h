@@ -19,6 +19,7 @@ private:
 public:
     SymbolicVarSet(SymbolicVarSet* p = nullptr): parent(p){}
     SymbolicVariablePointer findVar(std::string name);
+    void defineVar(SymbolicVariablePointer newvar);
     bool isFeasable();
 };
 

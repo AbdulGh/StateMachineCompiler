@@ -16,7 +16,7 @@ class SymbolicVariable
 {
 protected:
     bool isConst;
-    bool isInitialised;
+    bool defined;
     bool feasable;
     std::string varN;
     Reporter& reporter;
@@ -29,7 +29,15 @@ public:
     const VariableType getType() const;
     virtual bool isDetermined();
     const std::string getName() const;
+    void setName(const std::string newName);
+    bool isDefined() const;
+    void define();
+    virtual void setLowerBound(const std::string&) = 0;
+    virtual void setUpperBound(const std::string&) = 0;
+    virtual void setConstValue(const std::string&) = 0;
     virtual void userInput() = 0;
+    virtual bool isBoundedBelow() const = 0;
+    virtual bool isBoundedAbove() const = 0;
     virtual bool isFeasable() = 0;
 };
 
@@ -43,41 +51,12 @@ protected:
 public:
     SymbolicVariableTemplate(std::string name, const T lower, const T upper,
                      Reporter& r, VariableType t, bool init=false);
-    virtual void userInput() = 0;
-    virtual bool isBoundedBelow() const = 0;
-    virtual bool isBoundedAbove() const = 0;
-    bool isFeasable();
-    bool isDetermined();
     const T getUpperBound() const;
     const T getLowerBound() const;
-    void setLowerBound(const T);
-    void setUpperBound(const T);
-    void setConstValue(const T);
     const T getConstValue();
+    bool isFeasable();
+    bool isDetermined();
 };
-
-/*
-class SymbolicVariablePointer
-{
-private:
-    VariableType type;
-    union
-    {
-        std::shared_ptr<SymbolicDouble> doublePtr;
-        std::shared_ptr<SymbolicString> stringPtr;
-    };
-public:
-    SymbolicVariablePointer();
-    SymbolicVariablePointer(std::shared_ptr<SymbolicDouble> dptr);
-    SymbolicVariablePointer(std::shared_ptr<SymbolicString> sptr);
-    SymbolicVariablePointer(SymbolicVariablePointer& other);
-    SymbolicVariablePointer(std::shared_ptr<SymbolicVariablePointer> other);
-    ~SymbolicVariablePointer();
-
-    VariableType getType();
-    std::shared_ptr<SymbolicDouble> getDoublePointer();
-    std::shared_ptr<SymbolicString> getStringPointer();
-};*/
 
 //SymbolicDouble.cpp
 class SymbolicDouble : public SymbolicVariableTemplate<double>
@@ -92,7 +71,17 @@ private:
 public:
     SymbolicDouble(std::string name, Reporter& reporter);
     SymbolicDouble(std::shared_ptr<SymbolicDouble> other);
+    SymbolicDouble(std::shared_ptr<SymbolicVariable> other);
     SymbolicDouble(SymbolicDouble& other);
+
+    void setLowerBound(const std::string&) override;
+    void setUpperBound(const std::string&) override;
+    void setConstValue(const std::string&) override;
+
+    void setLowerBound(double d);
+    void setUpperBound(double d);
+    void setConstValue(double d);
+
     void userInput();
     bool isBoundedBelow() const;
     bool isBoundedAbove() const;
@@ -119,7 +108,12 @@ private:
 public:
     SymbolicString(std::string name, Reporter& reporter);
     SymbolicString(std::shared_ptr<SymbolicString> other);
+    SymbolicString(std::shared_ptr<SymbolicVariable> other);
     SymbolicString(SymbolicString& other);
+
+    void setLowerBound(const std::string&) override;
+    void setUpperBound(const std::string&) override;
+    void setConstValue(const std::string&) override;
 
     void userInput();
     bool isBoundedBelow() const;

@@ -13,9 +13,35 @@ SymbolicString::SymbolicString(SymbolicString& other):
 SymbolicString::SymbolicString(shared_ptr<SymbolicString> other):
     SymbolicString(*other.get()) {}
 
+SymbolicString::SymbolicString(shared_ptr<SymbolicVariable> other):
+        SymbolicString(static_pointer_cast<SymbolicString>(other)) {}
+
+void SymbolicString::setUpperBound(const std::string& ub)
+{
+    upperBound = ub;
+    if (upperBound > lowerBound) feasable = false;
+    if (upperBound == lowerBound) isConst = true;
+    boundedUpper = true;
+}
+
+void SymbolicString::setLowerBound(const std::string& lb)
+{
+    lowerBound = lb;
+    if (upperBound > lowerBound) feasable = false;
+    if (upperBound == lowerBound) isConst = true;
+    boundedLower = true;
+}
+
+void SymbolicString::setConstValue(const std::string& c)
+{
+    lowerBound = upperBound = c;
+    isConst = true;
+}
+
 void SymbolicString::userInput()
 {
     boundedLower = boundedUpper = false;
+    lowerBound = upperBound = "";
 }
 
 bool SymbolicString::isBoundedBelow() const

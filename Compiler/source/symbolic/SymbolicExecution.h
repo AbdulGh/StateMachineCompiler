@@ -28,41 +28,41 @@ namespace SymbolicExecution
     class SymbolicExecutionFringe
     {
     private:
-        Reporter& reporter;
         bool feasable = true;
+        SymbolicExecutionFringe* parent; //todo continue from here
 
     public:
-        std::vector<Condition> pathCondition;
+        SymbolicExecutionFringe(Reporter& r) : reporter(r) {}
+
+        std::unordered_map<std::string, std::shared_ptr<Condition>> pathConditions;
         SymbolicStack currentStack;
-        SymbolicVarSet symbolicDoubleSet;
+        SymbolicVarSet symbolicVarSet;
+        Reporter& reporter;
 
-        void error(Reporter::AlertType a, std::string s)
-        {
-            reporter.error(a, s);
-            feasable = false;
-        }
-
-        bool checkFeasable()
-        {
-            if (!symbolicDoubleSet.isFeasable()) feasable = false;
-            return feasable;
-        }
+        void error(Reporter::AlertType a, std::string s, int linenum = -1);
+        void warn(Reporter::AlertType a, std::string s, int linenum = -1);
+        bool isFeasable();
+        bool hasSeen(std::string state);
     };
 
-    class SymbolicExecution
+    class SymbolicExecutionManager
     {
     private:
         std::unordered_map<std::string, int> feasableVisits;
         ControlFlowGraph& cfg;
         SymbolTable& sTable;
+        Reporter& reporter;
 
         /*returns if a feasable path extention goes through this node
          * a path is feasable if it visits itself or reaches the last state*/
-        bool visitNode(std::shared_ptr<CFGNode> n);
+        bool visitNode(SymbolicExecutionFringe* sef, std::shared_ptr<CFGNode> n);
 
     public:
-        SymbolicExecution(ControlFlowGraph& cfg, SymbolTable& sTable):
-            cfg(cfg), sTable(sTable) {};
+        SymbolicExecutionManager(ControlFlowGraph& cfg, SymbolTable& sTable, Reporter reporter):
+            cfg(cfg), sTable(sTable), reporter(reporter)
+        {
+            for (const auto& pair : cfg.getCurrentNodes()) feasableVisits[pair.first] = 0;
+        };
         void search();
         void removeUnreachableStates();
     };

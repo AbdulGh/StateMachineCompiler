@@ -3,7 +3,7 @@
 
 #include <fstream>
 
-#define NUM_ALERTS 7
+#define NUM_ALERTS 9
 
 class Reporter
 {
@@ -14,7 +14,8 @@ private:
     bool toWarn[NUM_ALERTS];
 
 public:
-    enum AlertType {GENERIC, RANGE, UNINITIALISED_USE, UNDECLARED_USE, ZERODIVISION, USELESS_OP, COMPILER};
+    enum AlertType {GENERIC, RANGE, UNINITIALISED_USE, UNDECLARED_USE, TYPE,
+                    ZERODIVISION, USELESS_OP, BAD_STACK_USE, COMPILER};
 
     Reporter(std::string filename);
     ~Reporter();

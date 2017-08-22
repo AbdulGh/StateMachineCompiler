@@ -58,56 +58,56 @@ void FunctionCodeGen::genEndState()
 void FunctionCodeGen::genJump(std::string s, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(shared_ptr<AbstractCommand>(new JumpCommand(s, linenum)));
+    currentInstrs.push_back(make_shared<JumpCommand>(s, linenum));
 }
 
 void FunctionCodeGen::genPrint(std::string s, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(shared_ptr<AbstractCommand>(new PrintCommand(s, linenum)));
+    currentInstrs.push_back(make_shared<PrintCommand>(s, linenum));
 }
 
 void FunctionCodeGen::genConditionalJump(std::string state, std::string lh, Relop r, std::string rh, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(shared_ptr<AbstractCommand>(new JumpOnComparisonCommand(state, lh, rh, r, linenum)));
+    currentInstrs.push_back(make_shared<JumpOnComparisonCommand>(state, lh, rh, r, linenum));
 }
 
 void FunctionCodeGen::genPop(std::string s, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(shared_ptr<AbstractCommand>(new PopCommand(s, linenum)));
+    currentInstrs.push_back(make_shared<PopCommand>(s, linenum));
 }
 
 void FunctionCodeGen::genReturn(int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(shared_ptr<AbstractCommand>(new ReturnCommand(linenum)));
+    currentInstrs.push_back(make_shared<ReturnCommand>(linenum));
 }
 
 
 void FunctionCodeGen::genPush(std::string s, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(shared_ptr<AbstractCommand>(new PushCommand(s, linenum)));
+    currentInstrs.push_back(make_shared<PushCommand>(s, linenum));
 }
 
 void FunctionCodeGen::genInput(std::string s, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(shared_ptr<AbstractCommand>(new InputVarCommand(s, linenum)));
+    currentInstrs.push_back(make_shared<InputVarCommand>(s, linenum));
 }
 
 void FunctionCodeGen::genExpr(std::string lh, std::string t1, Op o, std::string t2, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(shared_ptr<AbstractCommand>(new EvaluateExprCommand(lh, t1, o, t2, linenum)));
+    currentInstrs.push_back(make_shared<EvaluateExprCommand>(lh, t1, o, t2, linenum));
 }
 
 void FunctionCodeGen::genVariableDecl(VariableType t, std::string n, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(shared_ptr<AbstractCommand>(new DeclareVarCommand(t, n, linenum)));
+    currentInstrs.push_back(make_shared<DeclareVarCommand>(t, n, linenum));
 }
 
 void FunctionCodeGen::addCommand(shared_ptr<AbstractCommand> ac)
@@ -119,5 +119,5 @@ void FunctionCodeGen::addCommand(shared_ptr<AbstractCommand> ac)
 void FunctionCodeGen::genAssignment(std::string LHS, std::string RHS, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(shared_ptr<AbstractCommand>(new AssignVarCommand(LHS, RHS, linenum)));
+    currentInstrs.push_back(make_shared<AssignVarCommand>(LHS, RHS, linenum));
 }
