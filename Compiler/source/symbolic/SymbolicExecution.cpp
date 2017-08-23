@@ -4,6 +4,13 @@ using namespace std;
 using namespace SymbolicExecution;
 
 /*SymbolicExecutionFringe*/
+SymbolicExecutionFringe::SymbolicExecutionFringe(Reporter &r, SymbolicExecutionFringe* p) :
+        reporter(r),
+        parent(p),
+        currentStack(parent->currentStack),
+        symbolicVarSet(parent->symbolicVarSet){}
+
+
 void SymbolicExecutionFringe::error(Reporter::AlertType a, std::string s, int linenum)
 {
     if (linenum != -1) s += " (line " + std::to_string(linenum) + ")";
@@ -54,12 +61,32 @@ bool SymbolicExecutionManager::visitNode(SymbolicExecutionFringe* sef, shared_pt
     shared_ptr<JumpOnComparisonCommand> jocc = n->getComp();
     if (jocc != nullptr) //is a conditional jump
     {
-        shared_ptr<SymbolicVariable> t1 = sef->symbolicVarSet.findVar(jocc->term1);
-        if (t1 == nullptr)
+        if (jocc->term1Type != VAR && jocc->term1Type == jocc->term2Type)
         {
-            //shouldn't happen
-            return false;
+            sef->reporter.optimising(Reporter::USELESS_OP, "Constant comparison: '" + jocc->translation() + "'");
+
+            //replace conditionals with true/false
+            bool isTrue;
+            if (jocc->term1Type == DOUBLE)
+            {
+                double d1 = stod(jocc->term1);
+                double d2 = stod(jocc->term2);
+                isTrue = evaluateRelop<double>(d1, jocc->op, d2);
+            }
+            else isTrue = evaluateRelop<string>(jocc->term1, jocc->op, jocc->term2);
+
+            if (isTrue)
+            {
+                n->getCompFail()->removeParent(n);
+                n->setCompFail(n->getCompSuccess());
+            }
+            else n->getCompSuccess()->removeParent(n);
+            n->getComp().reset();
+            n->setComp(nullptr);
         }
+    }
+    else //todo continue here by actually doing the bounding! and fix comparison confusion (VarType and ComparitorType)
+    {
 
     }
 }

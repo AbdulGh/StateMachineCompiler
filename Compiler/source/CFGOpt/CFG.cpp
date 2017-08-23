@@ -120,6 +120,11 @@ void CFGNode::setCompFail(const shared_ptr<CFGNode> &compFail)
     CFGNode::compFail = compFail;
 }
 
+void CFGNode::setComp(const shared_ptr<JumpOnComparisonCommand> &comp)
+{
+    CFGNode::comp = comp;
+}
+
 /*graph*/
 
 shared_ptr<CFGNode> ControlFlowGraph::createNodeIfNotExists(string name)

@@ -29,10 +29,10 @@ namespace SymbolicExecution
     {
     private:
         bool feasable = true;
-        SymbolicExecutionFringe* parent; //todo continue from here
+        SymbolicExecutionFringe* parent;
 
     public:
-        SymbolicExecutionFringe(Reporter& r) : reporter(r) {}
+        SymbolicExecutionFringe(Reporter& r, SymbolicExecutionFringe* p = nullptr);
 
         std::unordered_map<std::string, std::shared_ptr<Condition>> pathConditions;
         SymbolicStack currentStack;

@@ -49,13 +49,13 @@ public:
     const std::string &getName() const;
     void setCompSuccess(const std::shared_ptr<CFGNode> &compSuccess);
     void setCompFail(const std::shared_ptr<CFGNode> &compFail);
+    void setComp(const std::shared_ptr<JumpOnComparisonCommand> &comp);
     std::shared_ptr<JumpOnComparisonCommand> getComp();
     std::vector<std::shared_ptr<CFGNode>> &getPredecessors();
     std::shared_ptr<CFGNode> getCompSuccess();
     std::shared_ptr<CFGNode> getCompFail();
     std::vector<std::shared_ptr<AbstractCommand>> &getInstrs();
     std::string getSource();
-
 };
 
 #endif

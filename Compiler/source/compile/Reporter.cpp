@@ -35,3 +35,10 @@ void Reporter::error(AlertType type, std::string details)
     if (type != GENERIC) output << enumNames[type] << " : ";
     output << details << std::endl;
 }
+
+void Reporter::optimising(AlertType type, std::string details)
+{
+    output << "OPTIMISATION : ";
+    if (type != GENERIC) output << enumNames[type] << " : ";
+    output << details << std::endl;
+}

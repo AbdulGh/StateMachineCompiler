@@ -87,8 +87,11 @@ public:
 class JumpOnComparisonCommand: public AbstractCommand
 {
 public:
+    enum ComparitorType{ID, STRINGLIT, DOUBLELIT};
     std::string term1;
+    ComparitorType term1Type;
     std::string term2;
+    ComparitorType term2Type;
     Relop op;
 
     JumpOnComparisonCommand(std::string st, std::string t1, std::string t2, Relop o, int linenum) : AbstractCommand(linenum)
@@ -97,10 +100,29 @@ public:
         term1 = t1;
         term2 = t2;
         op = o;
+        //these are only used during symbolic execution
+        term1Type = getCompType(term1);
+        term2Type = getCompType(term2);
         setEffect(CommandSideEffect::CONDJUMP);
     }
 
     std::string translation() const override {return "jumpif " + term1 + relEnumStrs[op] + term2 + " " + getData() + ";\n";}
+
+private:
+    ComparitorType getCompType(std::string str)
+    {
+        if (str.length() == 0) throw std::runtime_error("Asked to find ComparitorType of empty string");
+        else if (str.length() > 1 && str[0] == '\"') return STRINGLIT;
+        else try
+            {
+                stod(str);
+                return DOUBLELIT;
+            }
+            catch (std::invalid_argument e)
+            {
+                return ID;
+            }
+    };
 };
 
 class InputVarCommand: public AbstractCommand

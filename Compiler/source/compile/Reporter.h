@@ -22,6 +22,7 @@ public:
     void setWarning(AlertType type, bool toReport);
     void warn(AlertType type, std::string details);
     void error(AlertType type, std::string details);
+    void optimising(AlertType type, std::string details);
 };
 
 
