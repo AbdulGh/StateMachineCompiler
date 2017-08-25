@@ -35,7 +35,7 @@ public:
     void genEndState();
     void genPrint(std::string, int);
     void genJump(std::string, int);
-    void genConditionalJump(std::string, std::string, Relop r, std::string, int);
+    void genConditionalJump(std::string, std::string, Relations::Relop r, std::string, int);
     void genPush(std::string, int);
     void genPop(std::string, int);
     void genReturn(int);

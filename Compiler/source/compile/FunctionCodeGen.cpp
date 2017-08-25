@@ -67,7 +67,7 @@ void FunctionCodeGen::genPrint(std::string s, int linenum)
     currentInstrs.push_back(make_shared<PrintCommand>(s, linenum));
 }
 
-void FunctionCodeGen::genConditionalJump(std::string state, std::string lh, Relop r, std::string rh, int linenum)
+void FunctionCodeGen::genConditionalJump(std::string state, std::string lh, Relations::Relop r, std::string rh, int linenum)
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(make_shared<JumpOnComparisonCommand>(state, lh, rh, r, linenum));

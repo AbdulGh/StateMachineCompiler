@@ -87,14 +87,14 @@ public:
 class JumpOnComparisonCommand: public AbstractCommand
 {
 public:
-    enum ComparitorType{ID, STRINGLIT, DOUBLELIT};
+    enum class ComparitorType{ID, STRINGLIT, DOUBLELIT};
     std::string term1;
     ComparitorType term1Type;
     std::string term2;
     ComparitorType term2Type;
-    Relop op;
+    Relations::Relop op;
 
-    JumpOnComparisonCommand(std::string st, std::string t1, std::string t2, Relop o, int linenum) : AbstractCommand(linenum)
+    JumpOnComparisonCommand(std::string st, std::string t1, std::string t2, Relations::Relop o, int linenum) : AbstractCommand(linenum)
     {
         setData(st);
         term1 = t1;
@@ -103,6 +103,19 @@ public:
         //these are only used during symbolic execution
         term1Type = getCompType(term1);
         term2Type = getCompType(term2);
+
+        //ensure a var appears on the lhs if there is one
+        //const comparisons will be hardcoded later
+        if (term1Type != JumpOnComparisonCommand::ComparitorType::ID
+            && term1Type != JumpOnComparisonCommand::ComparitorType::ID)
+        {
+            ComparitorType temp = term1Type;
+            term1Type = term2Type;
+            term2Type = temp;
+            term1.swap(term2);
+            op = Relations::mirrorRelop(op);
+        }
+
         setEffect(CommandSideEffect::CONDJUMP);
     }
 
@@ -112,16 +125,16 @@ private:
     ComparitorType getCompType(std::string str)
     {
         if (str.length() == 0) throw std::runtime_error("Asked to find ComparitorType of empty string");
-        else if (str.length() > 1 && str[0] == '\"') return STRINGLIT;
+        else if (str.length() > 1 && str[0] == '\"') return ComparitorType::STRINGLIT;
         else try
-            {
-                stod(str);
-                return DOUBLELIT;
-            }
-            catch (std::invalid_argument e)
-            {
-                return ID;
-            }
+        {
+            stod(str);
+            return ComparitorType::DOUBLELIT;
+        }
+        catch (std::invalid_argument e)
+        {
+            return ComparitorType::ID;
+        }
     };
 };
 

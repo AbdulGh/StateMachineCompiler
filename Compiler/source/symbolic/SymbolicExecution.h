@@ -18,10 +18,10 @@ namespace SymbolicExecution
     {
         std::string nodeName;
         std::string l;
-        Relop c;
+        Relations::Relop c;
         std::string r;
 
-        Condition(std::string lhs, Relop comp, std::string rhs):
+        Condition(std::string lhs, Relations::Relop comp, std::string rhs):
                 l(lhs), r(rhs), c(comp) {}
     };
 

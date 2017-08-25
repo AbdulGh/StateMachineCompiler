@@ -99,28 +99,28 @@ Token Lexer::parseToken()
                 return Token(AND);
             }
         case '=':
-            if ((c = getChar()) && c == '=') return Token(EQ);
+            if ((c = getChar()) && c == '=') return Token(Relations::EQ);
             else
             {
                 unget();
                 return Token(ASSIGN);
             }
         case '<':
-            if ((c = getChar()) && c == '=') return Token(LE);
+            if ((c = getChar()) && c == '=') return Token(Relations::LE);
             else
             {
                 unget();
-                return Token(LT);
+                return Token(Relations::LT);
             }
         case '>':
-            if ((c = getChar()) && c == '=') return Token(GE);
+            if ((c = getChar()) && c == '=') return Token(Relations::GE);
             else
             {
                 unget();
-                return Token(GT);
+                return Token(Relations::GT);
             }
         case '!':
-            if ((c = getChar()) && c == '=') return Token(NE);
+            if ((c = getChar()) && c == '=') return Token(Relations::NE);
             else
             {
                 unget();

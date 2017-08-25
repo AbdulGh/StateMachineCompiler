@@ -54,6 +54,7 @@ public:
     const T getUpperBound() const;
     const T getLowerBound() const;
     const T getConstValue();
+    virtual bool canMeet(Relations::Relop rel, T rhs) const;
     bool isFeasable();
     bool isDetermined();
 };
@@ -110,6 +111,8 @@ public:
     SymbolicString(std::shared_ptr<SymbolicString> other);
     SymbolicString(std::shared_ptr<SymbolicVariable> other);
     SymbolicString(SymbolicString& other);
+
+    bool canMeet(Relations::Relop rel, std::string rhs) const override;
 
     void setLowerBound(const std::string&) override;
     void setUpperBound(const std::string&) override;

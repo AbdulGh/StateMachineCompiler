@@ -53,3 +53,24 @@ bool SymbolicString::isBoundedAbove() const
 {
     return boundedUpper;
 }
+
+bool SymbolicString::canMeet(Relations::Relop rel, std::string rhs) const override
+{
+    bool belowLower = !isBoundedBelow() //todo continue here I
+
+    switch(rel)
+    {
+        case Relations::EQ:
+            return rhs >= getLowerBound()) && (!is rhs <= getLowerBound();
+        case Relations::NE:
+            return !isConst || getUpperBound() != rhs;
+        case Relations::LE:
+            return getLowerBound() <= rhs;
+        case Relations::LT:
+            return getLowerBound() < rhs;
+        case Relations::GE:
+            return getUpperBound() >= rhs;
+        case Relations::GT:
+            return getUpperBound() > rhs;
+    }
+}

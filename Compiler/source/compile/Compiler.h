@@ -41,7 +41,7 @@ private:
     void match(Type t);
     void body();
     bool statement(FunctionPointer fs); //returns true if the state has been ended
-    Relop relop();
+    Relations::Relop relop();
     void expression(FunctionPointer fs, const std::string& to);
     VariableType vtype();
     std::string ident();

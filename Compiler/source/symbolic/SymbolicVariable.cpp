@@ -89,5 +89,25 @@ bool SymbolicVariableTemplate<T>::isDetermined()
     return isConst;
 }
 
+template <typename T>
+const T SymbolicVariableTemplate<T>::canMeet(Relations::Relop rel, T rhs) const
+{
+    switch(rel)
+    {
+        case Relations::EQ:
+            return rhs >= getLowerBound() && rhs <= getLowerBound();
+        case Relations::NE:
+            return !isConst || getUpperBound() != rhs;
+        case Relations::LE:
+            return getLowerBound() <= rhs;
+        case Relations::LT:
+            return getLowerBound() < rhs;
+        case Relations::GE:
+            return getUpperBound() >= rhs;
+        case Relations::GT:
+            return getUpperBound() > rhs;
+    }
+}
+
 template class SymbolicVariableTemplate<double>;
 template class SymbolicVariableTemplate<std::string>;

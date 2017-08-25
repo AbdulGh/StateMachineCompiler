@@ -61,32 +61,75 @@ bool SymbolicExecutionManager::visitNode(SymbolicExecutionFringe* sef, shared_pt
     shared_ptr<JumpOnComparisonCommand> jocc = n->getComp();
     if (jocc != nullptr) //is a conditional jump
     {
-        if (jocc->term1Type != VAR && jocc->term1Type == jocc->term2Type)
+        //check for const comparison
+        if (jocc->term1Type != JumpOnComparisonCommand::ComparitorType::ID
+            && jocc->term2Type != JumpOnComparisonCommand::ComparitorType::ID)
         {
-            sef->reporter.optimising(Reporter::USELESS_OP, "Constant comparison: '" + jocc->translation() + "'");
-
-            //replace conditionals with true/false
-            bool isTrue;
-            if (jocc->term1Type == DOUBLE)
+            if (jocc->term1Type != jocc->term2Type)
             {
-                double d1 = stod(jocc->term1);
-                double d2 = stod(jocc->term2);
-                isTrue = evaluateRelop<double>(d1, jocc->op, d2);
+                sef->error(Reporter::TYPE, "Tried to compare literals of different types", jocc->getLineNum());
+                return false;
             }
-            else isTrue = evaluateRelop<string>(jocc->term1, jocc->op, jocc->term2);
 
-            if (isTrue)
+            else
             {
-                n->getCompFail()->removeParent(n);
-                n->setCompFail(n->getCompSuccess());
+                sef->reporter.optimising(Reporter::USELESS_OP, "Constant comparison: '" + jocc->translation() + "'");
+
+                //replace conditionals with true/false
+                bool isTrue;
+                if (jocc->term1Type == JumpOnComparisonCommand::ComparitorType::DOUBLELIT)
+                {
+                    double d1 = stod(jocc->term1);
+                    double d2 = stod(jocc->term2);
+                    isTrue = Relations::evaluateRelop<double>(d1, jocc->op, d2);
+                }
+                else isTrue = Relations::evaluateRelop<string>(jocc->term1, jocc->op, jocc->term2);
+
+                if (isTrue)
+                {
+                    n->getCompFail()->removeParent(n);
+                    n->setCompFail(n->getCompSuccess());
+                }
+                else n->getCompSuccess()->removeParent(n);
+                n->getComp().reset();
+                n->setComp(nullptr);
             }
-            else n->getCompSuccess()->removeParent(n);
-            n->getComp().reset();
-            n->setComp(nullptr);
+        }
+        else //actually have to do some work
+        {
+            Relations::Relop op = jocc->op;
+
+            //note: JOCC constructor ensures that if there is a var there is a var on the LHS
+            VarPointer LHS = sef->symbolicVarSet.findVar(jocc->term1);
+            if (LHS == nullptr)
+            {
+                sef->error(Reporter::UNDECLARED_USE, "'" + jocc->term1 + "' used without being declared",
+                           jocc->getLineNum());
+                return false;
+            }
+
+            //check if we can meet the comparison - search if so
+            if (jocc->term2Type == JumpOnComparisonCommand::ComparitorType::DOUBLELIT)
+            {
+                if (LHS->getType() != DOUBLE)
+                {
+                    sef->error(Reporter::TYPE, "'" + jocc->term1 + "' (type " + TypeEnumNames[LHS->getType()]
+                                               + ")  compared to a double literal",
+                               jocc->getLineNum());
+                    return false;
+                }
+
+                shared_ptr<SymbolicVariableTemplate<double>> LHS =
+                        static_pointer_cast<SymbolicVariableTemplate<double>>(LHS);
+
+                switch (op)
+                {
+                    case Relations::EQ:
+
+
+                }
+            }
         }
     }
-    else //todo continue here by actually doing the bounding! and fix comparison confusion (VarType and ComparitorType)
-    {
-
-    }
+    else visitNode(sef, n->getCompFail()); //wrong, check return todo
 }

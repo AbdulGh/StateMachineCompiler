@@ -235,9 +235,9 @@ bool Compiler::statement(FunctionPointer fs)
     return finishedState;
 }
 
-Relop Compiler::relop()
+Relations::Relop Compiler::relop()
 {
-    Relop r = (Relop)lookahead.auxType;
+    Relations::Relop r = (Relations::Relop)lookahead.auxType;
     match(RELOP);
     return r;
 }

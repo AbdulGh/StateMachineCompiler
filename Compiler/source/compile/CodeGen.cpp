@@ -171,7 +171,7 @@ void Compiler::ands(FunctionPointer fs, string success, string fail)
 void Compiler::condition(FunctionPointer fs, string success, string fail)
 {
     expression(fs, "LHS");
-    Relop r = relop();
+    Relations::Relop r = relop();
     expression(fs, "RHS");
 
     fs->genConditionalJump(success, "LHS", r, "RHS", lookahead.line);
