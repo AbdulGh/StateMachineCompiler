@@ -61,6 +61,27 @@ Relations::Relop mirrorRelop(Relations::Relop rel)
     }
 }
 
+Relations::Relop negateRelop(Relations::Relop rel)
+{
+    switch (rel)
+    {
+        case Relations::Relop::EQ:
+            return Relations::Relop::NE;
+        case Relations::Relop::NE:
+            return Relations::Relop::EQ;
+        case Relations::Relop::LT:
+            return Relations::Relop::GE;
+        case Relations::Relop::LE:
+            return Relations::Relop::GT;
+        case Relations::Relop::GT:
+            return Relations::Relop::LE;
+        case Relations::Relop::GE:
+            return Relations::Relop::LT;
+        default:
+            throw std::runtime_error("Bad relop encountered");
+    }
+}
+
 void Token::setLine(unsigned int line)
 {
     this->line = line;

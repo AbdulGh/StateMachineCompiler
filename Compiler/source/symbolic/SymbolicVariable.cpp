@@ -90,22 +90,33 @@ bool SymbolicVariableTemplate<T>::isDetermined()
 }
 
 template <typename T>
-const T SymbolicVariableTemplate<T>::canMeet(Relations::Relop rel, T rhs) const
+MeetEnum SymbolicVariableTemplate<T>::canMeet(Relations::Relop rel, T rhs) const //todo refactor and take const stuff up top
 {
     switch(rel)
     {
         case Relations::EQ:
-            return rhs >= getLowerBound() && rhs <= getLowerBound();
+            if (isConst && getLowerBound() == rhs) return MUST;
+            else if (rhs >= getLowerBound() && rhs <= getLowerBound()) return MAY;
+            else return CANT;
         case Relations::NE:
-            return !isConst || getUpperBound() != rhs;
+            if (isConst) return (getLowerBound() != rhs) ? MUST : CANT;
+            else return MAY;
         case Relations::LE:
-            return getLowerBound() <= rhs;
+            if (getUpperBound() <= rhs) return MUST;
+            else if (getLowerBound() > rhs) return CANT;
+            return MAY;
         case Relations::LT:
-            return getLowerBound() < rhs;
+            if (getUpperBound() < rhs) return MUST;
+            else if (getLowerBound() >= rhs) return CANT;
+            return MAY;
         case Relations::GE:
-            return getUpperBound() >= rhs;
+            if (getLowerBound() >= rhs) return MUST;
+            else if (getUpperBound() < rhs) return CANT;
+            return MAY;
         case Relations::GT:
-            return getUpperBound() > rhs;
+            if (getLowerBound() > rhs) return MUST;
+            else if (getUpperBound() <= rhs) return CANT;
+            return MAY;
     }
 }
 

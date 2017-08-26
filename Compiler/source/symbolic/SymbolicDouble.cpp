@@ -39,15 +39,20 @@ void SymbolicDouble::userInput()
     monotonicity = FRESH;
 }
 
-void SymbolicDouble::setLowerBound(const std::string& lb)
+void SymbolicDouble::setLowerBound(const std::string& lb, bool closed)
 {
-    lowerBound = stod(lb);
+    double d = stod(lb);
+    if (!closed && d != numeric_limits<double>::lowest()) d -= numeric_limits<double>::min();
+    lowerBound = d;
+
     if (lowerBound > upperBound) feasable = false;
     else if (lowerBound == upperBound) isConst = true;
 }
 
-void SymbolicDouble::setUpperBound(const std::string& ub)
+void SymbolicDouble::setUpperBound(const std::string& ub, bool closed)
 {
+    double d = stod(ub);
+    if (!closed && d != numeric_limits<double>::max()) d += numeric_limits<double>::min();
     lowerBound = stod(ub);
     if (lowerBound > upperBound) feasable = false;
     else if (lowerBound == upperBound) isConst = true;

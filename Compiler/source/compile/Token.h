@@ -26,6 +26,7 @@ namespace Relations
     template <typename T>
     bool evaluateRelop(T LHS, Relop rel, T RHS);
     Relop mirrorRelop(Relop rel);
+    Relop negateRelop(Relop rel);
 }
 extern std::string relEnumStrs[];
 

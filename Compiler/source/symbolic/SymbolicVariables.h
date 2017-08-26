@@ -25,6 +25,7 @@ protected:
     void reportError(Reporter::AlertType type, std::string err);
 
 public:
+    enum MeetEnum {CANT, MAY, MUST};
     SymbolicVariable(std::string name, VariableType t, Reporter& r, bool initialised = false);
     const VariableType getType() const;
     virtual bool isDetermined();
@@ -32,8 +33,8 @@ public:
     void setName(const std::string newName);
     bool isDefined() const;
     void define();
-    virtual void setLowerBound(const std::string&) = 0;
-    virtual void setUpperBound(const std::string&) = 0;
+    virtual void setLowerBound(const std::string&, bool closed=true) = 0;
+    virtual void setUpperBound(const std::string&, bool closed=true) = 0;
     virtual void setConstValue(const std::string&) = 0;
     virtual void userInput() = 0;
     virtual bool isBoundedBelow() const = 0;
@@ -54,7 +55,7 @@ public:
     const T getUpperBound() const;
     const T getLowerBound() const;
     const T getConstValue();
-    virtual bool canMeet(Relations::Relop rel, T rhs) const;
+    virtual MeetEnum canMeet(Relations::Relop rel, T rhs) const;
     bool isFeasable();
     bool isDetermined();
 };
@@ -75,8 +76,8 @@ public:
     SymbolicDouble(std::shared_ptr<SymbolicVariable> other);
     SymbolicDouble(SymbolicDouble& other);
 
-    void setLowerBound(const std::string&) override;
-    void setUpperBound(const std::string&) override;
+    void setLowerBound(const std::string&, bool closed=true) override;
+    void setUpperBound(const std::string&, bool closed=true) override;
     void setConstValue(const std::string&) override;
 
     void setLowerBound(double d);
@@ -96,7 +97,6 @@ public:
     void multSymbolicDouble(SymbolicDouble& other);
     void divSymbolicDouble(SymbolicDouble& other);
     void modSymbolicDouble(SymbolicDouble& other);
-    //bool canMerge(const SymbolicDouble& other) const;
 };
 
 //SymbolicString.cpp
@@ -106,16 +106,19 @@ private:
     bool boundedLower;
     bool boundedUpper;
 
+    std::string incrementString(const std::string& s);
+    std::string decrementString(const std::string& s); //todo continue from here
+
 public:
     SymbolicString(std::string name, Reporter& reporter);
     SymbolicString(std::shared_ptr<SymbolicString> other);
     SymbolicString(std::shared_ptr<SymbolicVariable> other);
     SymbolicString(SymbolicString& other);
 
-    bool canMeet(Relations::Relop rel, std::string rhs) const override;
+    MeetEnum canMeet(Relations::Relop rel, std::string rhs) const override;
 
-    void setLowerBound(const std::string&) override;
-    void setUpperBound(const std::string&) override;
+    void setLowerBound(const std::string&, bool closed=true) override;
+    void setUpperBound(const std::string&, bool closed=true) override;
     void setConstValue(const std::string&) override;
 
     void userInput();

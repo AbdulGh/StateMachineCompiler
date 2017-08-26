@@ -121,15 +121,24 @@ bool SymbolicExecutionManager::visitNode(SymbolicExecutionFringe* sef, shared_pt
 
                 shared_ptr<SymbolicVariableTemplate<double>> LHS =
                         static_pointer_cast<SymbolicVariableTemplate<double>>(LHS);
+                double rhs = stod(jocc->term2);
 
-                switch (op)
+                switch (LHS->canMeet(jocc->op, rhs))
                 {
-                    case Relations::EQ:
+                case SymbolicVariable::CANT:
+                    sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(),
+                                                                               Relations::negateRelop(jocc->op), rhs);
+                    return visitNode(sef, n->getCompFail());
 
-
+                case SymbolicVariable::MAY:
+                    break; //HERE
+                case SymbolicVariable::MUST:
+                    break;
+                default:
+                    throw runtime_error("very weird enum");
                 }
             }
         }
     }
-    else visitNode(sef, n->getCompFail()); //wrong, check return todo
+    else visitNode(sef, n->getCompFail()); //todo implement return statement stack pop
 }

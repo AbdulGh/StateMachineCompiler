@@ -16,7 +16,7 @@ SymbolicString::SymbolicString(shared_ptr<SymbolicString> other):
 SymbolicString::SymbolicString(shared_ptr<SymbolicVariable> other):
         SymbolicString(static_pointer_cast<SymbolicString>(other)) {}
 
-void SymbolicString::setUpperBound(const std::string& ub)
+void SymbolicString::setUpperBound(const std::string& ub, bool closed)
 {
     upperBound = ub;
     if (upperBound > lowerBound) feasable = false;
@@ -24,7 +24,7 @@ void SymbolicString::setUpperBound(const std::string& ub)
     boundedUpper = true;
 }
 
-void SymbolicString::setLowerBound(const std::string& lb)
+void SymbolicString::setLowerBound(const std::string& lb, bool closed)
 {
     lowerBound = lb;
     if (upperBound > lowerBound) feasable = false;
@@ -54,23 +54,43 @@ bool SymbolicString::isBoundedAbove() const
     return boundedUpper;
 }
 
-bool SymbolicString::canMeet(Relations::Relop rel, std::string rhs) const override
+MeetEnum SymbolicString::canMeet(Relations::Relop rel, std::string rhs) const override
 {
-    bool belowLower = !isBoundedBelow() //todo continue here I
+    if (isConst) return (Relations::evaluateRelop<string>(getLowerBound(), rel, rhs)) ? MUST : CANT;
 
-    switch(rel)
+    else
     {
-        case Relations::EQ:
-            return rhs >= getLowerBound()) && (!is rhs <= getLowerBound();
-        case Relations::NE:
-            return !isConst || getUpperBound() != rhs;
-        case Relations::LE:
-            return getLowerBound() <= rhs;
-        case Relations::LT:
-            return getLowerBound() < rhs;
-        case Relations::GE:
-            return getUpperBound() >= rhs;
-        case Relations::GT:
-            return getUpperBound() > rhs;
+        bool leLower = isBoundedBelow() && rhs <= getLowerBound();
+        bool geLower = !isBoundedBelow() || rhs >= getLowerBound();
+        bool leUpper = !isBoundedAbove() || rhs <= getUpperBound();
+        bool geUpper = isBoundedAbove() && rhs >= getUpperBound();
+        bool neqLower = rhs != getLowerBound();
+        bool neqUpper = rhs != getUpperBound();
+
+        switch(rel)
+        {
+            case Relations::EQ:
+                return (leLower && neqLower) || (geUpper && neqUpper) ? CANT : MAY;
+            case Relations::NE:
+                return (leLower && neqLower) || (geUpper && neqUpper) ? MUST : MAY;
+            case Relations::LE:
+                if (leLower) return MUST;
+                else if (leUpper) return MAY;
+                return CANT;
+            case Relations::LT:
+                if (leLower && neqLower) return MUST;
+                else if (leUpper) return MAY;
+                return CANT;
+            case Relations::GE:
+                if (geUpper) return MUST;
+                else if (geLower) return MAY;
+                return CANT;
+            case Relations::GT:
+                if (geUpper && neqUpper) return MUST;
+                else if (geLower) return MAY;
+                return CANT;
+            default:
+                throw runtime_error("bad relop");
+        }
     }
 }
