@@ -90,7 +90,7 @@ bool SymbolicVariableTemplate<T>::isDetermined()
 }
 
 template <typename T>
-MeetEnum SymbolicVariableTemplate<T>::canMeet(Relations::Relop rel, T rhs) const //todo refactor and take const stuff up top
+SymbolicVariable::MeetEnum SymbolicVariableTemplate<T>::canMeet(Relations::Relop rel, T rhs) const //todo refactor and take const stuff up top
 {
     switch(rel)
     {

@@ -64,7 +64,7 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
     if ((*it)->getEffectFlag() == CommandSideEffect::CONDJUMP)
     {
         comp = static_pointer_cast<JumpOnComparisonCommand>(*it);
-        compSuccess = parent.createNodeIfNotExists((*it)->getData());
+        compSuccess = parent.getNode((*it)->getData());
         compSuccess->addParent(shared_from_this());
 
         if (++it == in.cend()) return;
@@ -77,7 +77,7 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
         if (jumpto == "return") compFail = nullptr;
         else
         {
-            compFail = parent.createNodeIfNotExists(jumpto);
+            compFail = parent.getNode(jumpto);
             compFail->addParent(shared_from_this());
         }
         if (++it != in.cend()) throw "Should end here";
@@ -125,16 +125,30 @@ void CFGNode::setComp(const shared_ptr<JumpOnComparisonCommand> &comp)
     CFGNode::comp = comp;
 }
 
+ControlFlowGraph &CFGNode::getParent() const
+{
+    return parent;
+}
+
+int CFGNode::getJumpline() const
+{
+    return jumpline;
+}
+
 /*graph*/
 
-shared_ptr<CFGNode> ControlFlowGraph::createNodeIfNotExists(string name)
+shared_ptr<CFGNode> ControlFlowGraph::getNode(string name, bool create)
 {
     unordered_map<string, shared_ptr<CFGNode>>::const_iterator it = currentNodes.find(name);
     if (it == currentNodes.cend())
     {
-        shared_ptr<CFGNode> p = make_shared<CFGNode>(*this, name);
-        currentNodes[name] = p;
-        return p;
+        if (create)
+        {
+            shared_ptr<CFGNode> p = make_shared<CFGNode>(*this, name);
+            currentNodes[name] = p;
+            return p;
+        }
+        else return nullptr;
     }
     return it->second;
 }
@@ -148,7 +162,7 @@ void ControlFlowGraph::removeNode(std::string name)
 
 void ControlFlowGraph::addNode(std::string name, std::vector<std::shared_ptr<AbstractCommand>> instrs)
 {
-    shared_ptr<CFGNode> introducing = createNodeIfNotExists(name);
+    shared_ptr<CFGNode> introducing = getNode(name);
     if (currentNodes.size() == 1) first = introducing;
     introducing->setInstructions(instrs);
 }

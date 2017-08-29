@@ -19,8 +19,8 @@ private:
 public:
     void addNode(std::string name, std::vector<std::shared_ptr<AbstractCommand>> instrs);
     void removeNode(std::string name);
-    std::shared_ptr<CFGNode> createNodeIfNotExists(std::string);
-    std::unordered_map<std::string, std::shared_ptr<CFGNode>> &getCurrentNodes();
+    std::shared_ptr<CFGNode> getNode(std::string, bool create = true);
+    std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getCurrentNodes();
     std::string getSource();
     std::shared_ptr<CFGNode> getFirst() const;
     std::shared_ptr<CFGNode> getLast() const;
@@ -53,8 +53,10 @@ public:
     std::shared_ptr<JumpOnComparisonCommand> getComp();
     std::vector<std::shared_ptr<CFGNode>> &getPredecessors();
     std::shared_ptr<CFGNode> getCompSuccess();
+    int getJumpline() const;
     std::shared_ptr<CFGNode> getCompFail();
     std::vector<std::shared_ptr<AbstractCommand>> &getInstrs();
+    ControlFlowGraph &getParent() const;
     std::string getSource();
 };
 

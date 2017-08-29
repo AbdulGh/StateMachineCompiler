@@ -22,7 +22,9 @@ namespace SymbolicExecution
         std::string r;
 
         Condition(std::string lhs, Relations::Relop comp, std::string rhs):
-                l(lhs), r(rhs), c(comp) {}
+                l(lhs), c(comp), r(rhs) {}
+        Condition(std::string lhs, Relations::Relop comp, double rhs):
+                l(lhs), c(comp), r(std::to_string(rhs)) {}
     };
 
     class SymbolicExecutionFringe

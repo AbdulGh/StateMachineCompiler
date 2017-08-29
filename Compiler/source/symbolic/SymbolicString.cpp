@@ -1,3 +1,5 @@
+#include <limits>
+
 #include "SymbolicVariables.h"
 
 using namespace std;
@@ -18,7 +20,12 @@ SymbolicString::SymbolicString(shared_ptr<SymbolicVariable> other):
 
 void SymbolicString::setUpperBound(const std::string& ub, bool closed)
 {
-    upperBound = ub;
+    if (!closed)
+    {
+        string copy(ub);
+        upperBound = incrementString(copy);
+    }
+    else upperBound = ub;
     if (upperBound > lowerBound) feasable = false;
     if (upperBound == lowerBound) isConst = true;
     boundedUpper = true;
@@ -26,7 +33,12 @@ void SymbolicString::setUpperBound(const std::string& ub, bool closed)
 
 void SymbolicString::setLowerBound(const std::string& lb, bool closed)
 {
-    lowerBound = lb;
+    if (!closed)
+    {
+        string copy(lb);
+        upperBound = decrementString(copy);
+    }
+    else lowerBound = lb;
     if (upperBound > lowerBound) feasable = false;
     if (upperBound == lowerBound) isConst = true;
     boundedLower = true;
@@ -54,7 +66,7 @@ bool SymbolicString::isBoundedAbove() const
     return boundedUpper;
 }
 
-MeetEnum SymbolicString::canMeet(Relations::Relop rel, std::string rhs) const override
+SymbolicVariable::MeetEnum SymbolicString::canMeet(Relations::Relop rel, std::string rhs) const
 {
     if (isConst) return (Relations::evaluateRelop<string>(getLowerBound(), rel, rhs)) ? MUST : CANT;
 
@@ -92,5 +104,33 @@ MeetEnum SymbolicString::canMeet(Relations::Relop rel, std::string rhs) const ov
             default:
                 throw runtime_error("bad relop");
         }
+    }
+}
+
+std::string SymbolicString::incrementString(std::string s)
+{
+    for (unsigned long index = s.length() - 1; index != 0; --index)
+    {
+        if (s[index] == numeric_limits<char>::max()) s[index] = numeric_limits<char>::lowest();
+        else
+        {
+            ++s[index];
+            return s;
+        }
+        return numeric_limits<char>::max() + s;
+    }
+}
+
+std::string SymbolicString::decrementString(std::string s)
+{
+    for (unsigned long index = s.length() - 1; index != 0; --index)
+    {
+        if (s[index] == numeric_limits<char>::lowest()) s[index] = numeric_limits<char>::max();
+        else
+        {
+            --s[index];
+            return s;
+        }
+        return numeric_limits<char>::lowest() + s;
     }
 }

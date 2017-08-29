@@ -55,7 +55,7 @@ public:
     const T getUpperBound() const;
     const T getLowerBound() const;
     const T getConstValue();
-    virtual MeetEnum canMeet(Relations::Relop rel, T rhs) const;
+    virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, T rhs) const;
     bool isFeasable();
     bool isDetermined();
 };
@@ -106,8 +106,8 @@ private:
     bool boundedLower;
     bool boundedUpper;
 
-    std::string incrementString(const std::string& s);
-    std::string decrementString(const std::string& s); //todo continue from here
+    static std::string incrementString(std::string s);
+    static std::string decrementString(std::string s);
 
 public:
     SymbolicString(std::string name, Reporter& reporter);
