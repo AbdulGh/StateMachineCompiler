@@ -23,6 +23,7 @@ public:
     void warn(AlertType type, std::string details);
     void error(AlertType type, std::string details);
     void optimising(AlertType type, std::string details);
+    void info(std::string details);
 };
 
 

@@ -39,6 +39,37 @@ void SymbolicDouble::userInput()
     monotonicity = FRESH;
 }
 
+SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, const std::string& rhstring) const
+{
+    double rhs = stod(rhstring);
+    switch(rel)
+    {
+        case Relations::EQ:
+            if (isConst && getLowerBound() == rhs) return MUST;
+            else if (rhs >= getLowerBound() && rhs <= getLowerBound()) return MAY;
+            else return CANT;
+        case Relations::NE:
+            if (isConst) return (getLowerBound() != rhs) ? MUST : CANT;
+            else return MAY;
+        case Relations::LE:
+            if (getUpperBound() <= rhs) return MUST;
+            else if (getLowerBound() > rhs) return CANT;
+            return MAY;
+        case Relations::LT:
+            if (getUpperBound() < rhs) return MUST;
+            else if (getLowerBound() >= rhs) return CANT;
+            return MAY;
+        case Relations::GE:
+            if (getLowerBound() >= rhs) return MUST;
+            else if (getUpperBound() < rhs) return CANT;
+            return MAY;
+        case Relations::GT:
+            if (getLowerBound() > rhs) return MUST;
+            else if (getUpperBound() <= rhs) return CANT;
+            return MAY;
+    }
+}
+
 void SymbolicDouble::setLowerBound(const std::string& lb, bool closed)
 {
     double d = stod(lb);
@@ -53,7 +84,7 @@ void SymbolicDouble::setUpperBound(const std::string& ub, bool closed)
 {
     double d = stod(ub);
     if (!closed && d != numeric_limits<double>::max()) d += numeric_limits<double>::min();
-    lowerBound = stod(ub);
+    lowerBound = d;
     if (lowerBound > upperBound) feasable = false;
     else if (lowerBound == upperBound) isConst = true;
 }
@@ -64,12 +95,10 @@ void SymbolicDouble::setConstValue(const std::string& c)
     isConst = true;
 }
 
-
 bool SymbolicDouble::isBoundedAbove() const
 {
     return upperBound != numeric_limits<double>::max();
 }
-
 
 bool SymbolicDouble::isBoundedBelow() const
 {

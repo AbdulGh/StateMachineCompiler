@@ -2,9 +2,11 @@
 #define PROJECT_SYMBOLICVARIABLE_H
 
 #include <memory>
+#include <set>
 
 #include "../compile/Reporter.h"
 #include "../compile/Token.h"
+
 enum MonotoneEnum{INCREASING, DECREASING, FRESH, NONE, UNKNOWN};
 
 //todo redo multiplication
@@ -17,10 +19,11 @@ class SymbolicVariable
 protected:
     bool isConst;
     bool defined;
-    bool feasable;
+    bool feasable = true;
     std::string varN;
     Reporter& reporter;
     VariableType type;
+    //std::set<std::shared_ptr<SymbolicVariable>> lessThan; todo maintain lists of relations to other variables
 
     void reportError(Reporter::AlertType type, std::string err);
 
@@ -35,11 +38,14 @@ public:
     void define();
     virtual void setLowerBound(const std::string&, bool closed=true) = 0;
     virtual void setUpperBound(const std::string&, bool closed=true) = 0;
+    virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const = 0;
     virtual void setConstValue(const std::string&) = 0;
+    virtual const std::string getConstString() = 0;
     virtual void userInput() = 0;
     virtual bool isBoundedBelow() const = 0;
     virtual bool isBoundedAbove() const = 0;
-    virtual bool isFeasable() = 0;
+    virtual bool meetsConstComparison(Relations::Relop r, const std::string& rhs) = 0;
+    virtual bool isFeasable() const;
 };
 
 template <typename T>
@@ -52,10 +58,13 @@ protected:
 public:
     SymbolicVariableTemplate(std::string name, const T lower, const T upper,
                      Reporter& r, VariableType t, bool init=false);
-    const T getUpperBound() const;
-    const T getLowerBound() const;
-    const T getConstValue();
-    virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, T rhs) const;
+
+    bool isDisjointFrom(std::shared_ptr<SymbolicVariableTemplate<T>> other);
+    bool meetsConstComparison(Relations::Relop r, const std::string& rhs) override;
+    const T& getUpperBound() const;
+    const T& getLowerBound() const;
+    const T& getConstValue();
+    const std::string getConstString();
     bool isFeasable();
     bool isDetermined();
 };
@@ -75,6 +84,7 @@ public:
     SymbolicDouble(std::shared_ptr<SymbolicDouble> other);
     SymbolicDouble(std::shared_ptr<SymbolicVariable> other);
     SymbolicDouble(SymbolicDouble& other);
+    MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
 
     void setLowerBound(const std::string&, bool closed=true) override;
     void setUpperBound(const std::string&, bool closed=true) override;
@@ -115,7 +125,7 @@ public:
     SymbolicString(std::shared_ptr<SymbolicVariable> other);
     SymbolicString(SymbolicString& other);
 
-    MeetEnum canMeet(Relations::Relop rel, std::string rhs) const override;
+    MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
 
     void setLowerBound(const std::string&, bool closed=true) override;
     void setUpperBound(const std::string&, bool closed=true) override;

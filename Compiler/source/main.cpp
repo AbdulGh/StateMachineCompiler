@@ -9,7 +9,7 @@ int main()
     Lexer lexer;
 
     vector<Token> st = lexer.tokenize("../misc/fizzbuzz.f");
-    Compiler c(st, "warnings.txt");
+    Compiler c(st, "../warnings.txt");
     stringstream pleaseWork;
     c.compile(pleaseWork);
     cout << pleaseWork.str();

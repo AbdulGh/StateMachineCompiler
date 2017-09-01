@@ -1,6 +1,7 @@
 #include <limits>
 #include <algorithm>
 #include <math.h>
+#include <string>
 
 #include "SymbolicVariables.h"
 
@@ -47,6 +48,11 @@ void SymbolicVariable::define()
     defined = true;
 }
 
+bool SymbolicVariable::isFeasable() const
+{
+    return feasable;
+}
+
 //SymbolicVariableTemplate
 template <typename T>
 SymbolicVariableTemplate<T>::SymbolicVariableTemplate(string name, const T lower, const T upper,
@@ -57,26 +63,63 @@ SymbolicVariableTemplate<T>::SymbolicVariableTemplate(string name, const T lower
 }
 
 template <typename T>
-const T SymbolicVariableTemplate<T>::getUpperBound() const
+const T& SymbolicVariableTemplate<T>::getUpperBound() const
 {
     return upperBound;
+}
+
+template<typename T>
+bool SymbolicVariableTemplate<T>::isDisjointFrom(shared_ptr<SymbolicVariableTemplate<T>> other)
+{
+    if (!isFeasable() || !other->isFeasable()) return true; //empty sets disjoint from everything
+    if (!isBoundedAbove() && !isBoundedBelow() || !other->isBoundedAbove() && !other->isBoundedBelow()) return false;
+    else if (isBoundedAbove() && other->isBoundedBelow() && upperBound < other->lowerBound) return true;
+    else if (isBoundedBelow() && other->isBoundedAbove() && lowerBound > other->upperBound) return true;
+    return false;
+}
+
+template<>
+bool SymbolicVariableTemplate<string>::meetsConstComparison(Relations::Relop r, const std::string& rhs)
+{
+    return Relations::evaluateRelop<string>(getConstValue(), r, rhs);
+}
+
+template<>
+bool SymbolicVariableTemplate<double>::meetsConstComparison(Relations::Relop r, const std::string& rhs)
+{
+    return Relations::evaluateRelop<double>(getConstValue(), r, stod(rhs));
 }
 
 template <typename T>
 bool SymbolicVariableTemplate<T>::isFeasable()
 {
-    if (upperBound > lowerBound) feasable = false;
+    if (upperBound < lowerBound)
+    {
+        feasable = false;
+    }
     return feasable;
 }
 
 template <typename T>
-const T SymbolicVariableTemplate<T>::getLowerBound() const
+const T& SymbolicVariableTemplate<T>::getLowerBound() const
 {
     return lowerBound;
 }
 
+template <>
+const string SymbolicVariableTemplate<string>::getConstString()
+{
+    return getConstValue();
+}
+
 template <typename T>
-const T SymbolicVariableTemplate<T>::getConstValue()
+const string SymbolicVariableTemplate<T>::getConstString()
+{
+    return to_string(getConstValue());
+}
+
+template <typename T>
+const T& SymbolicVariableTemplate<T>::getConstValue()
 {
     if (!isDetermined()) throw "Not constant";
     return lowerBound; //could be upper
@@ -87,37 +130,6 @@ bool SymbolicVariableTemplate<T>::isDetermined()
 {
     if (lowerBound == upperBound) isConst = true;
     return isConst;
-}
-
-template <typename T>
-SymbolicVariable::MeetEnum SymbolicVariableTemplate<T>::canMeet(Relations::Relop rel, T rhs) const //todo refactor and take const stuff up top
-{
-    switch(rel)
-    {
-        case Relations::EQ:
-            if (isConst && getLowerBound() == rhs) return MUST;
-            else if (rhs >= getLowerBound() && rhs <= getLowerBound()) return MAY;
-            else return CANT;
-        case Relations::NE:
-            if (isConst) return (getLowerBound() != rhs) ? MUST : CANT;
-            else return MAY;
-        case Relations::LE:
-            if (getUpperBound() <= rhs) return MUST;
-            else if (getLowerBound() > rhs) return CANT;
-            return MAY;
-        case Relations::LT:
-            if (getUpperBound() < rhs) return MUST;
-            else if (getLowerBound() >= rhs) return CANT;
-            return MAY;
-        case Relations::GE:
-            if (getLowerBound() >= rhs) return MUST;
-            else if (getUpperBound() < rhs) return CANT;
-            return MAY;
-        case Relations::GT:
-            if (getLowerBound() > rhs) return MUST;
-            else if (getUpperBound() <= rhs) return CANT;
-            return MAY;
-    }
 }
 
 template class SymbolicVariableTemplate<double>;

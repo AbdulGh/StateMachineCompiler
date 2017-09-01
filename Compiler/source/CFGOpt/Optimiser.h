@@ -9,8 +9,6 @@ namespace Optimise
 {
     void optimise(SymbolTable& symbolTable, ControlFlowGraph& controlFlowGraph);
     void collapseSmallStates(ControlFlowGraph& controlFlowGraph);
-    void propogateConstants(SymbolTable& symbolTable, ControlFlowGraph& controlFlowGraph);
-    //void replaceJumps(std::string sName, std::string replaceWith);
 };
 
 

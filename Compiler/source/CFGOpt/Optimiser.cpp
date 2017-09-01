@@ -10,7 +10,6 @@ namespace Optimise
     void optimise(SymbolTable& symbolTable, ControlFlowGraph& controlFlowGraph)
     {
         Optimise::collapseSmallStates(controlFlowGraph);
-        Optimise::propogateConstants(symbolTable, controlFlowGraph);
     }
 
     void collapseSmallStates(ControlFlowGraph& controlFlowGraph)
@@ -27,10 +26,7 @@ namespace Optimise
             {
                 NodePointer replaceWith = current->getCompFail();
                 replaceWith->removeParent(current);
-                string delet = pair->first;
 
-                //vector<NodePointer>::iterator replacing = current->getPredecessors().begin();
-                //while (replacing != current->getPredecessors().end())
                 for (NodePointer replacing : current->getPredecessors())
                 {
                     NodePointer succ = replacing->getCompSuccess();
@@ -48,22 +44,10 @@ namespace Optimise
                         replaceWith->addParent(replacing);
                     }
                 }
-                delet = pair->first;
                 pair = nodes.erase(pair);
                 incremented = true;
             }
-            /*else if (current->getCompSuccess() == nullptr && current->getPredecessors().size() == 1)
-            {
-                //node consists of a single instruction followed by an unconditional jump
-                NodePointer pred = current->getPredecessors()[0];
-                pred->getInstrs().push_back(current->getInstrs()[0]);
-            }*/
             if (!incremented) ++pair;
         }
-    }
-
-    void propogateConstants(SymbolTable& symbolTable, ControlFlowGraph& controlFlowGraph)
-    {
-        //todo
     }
 }

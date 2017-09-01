@@ -66,7 +66,7 @@ bool SymbolicString::isBoundedAbove() const
     return boundedUpper;
 }
 
-SymbolicVariable::MeetEnum SymbolicString::canMeet(Relations::Relop rel, std::string rhs) const
+SymbolicVariable::MeetEnum SymbolicString::canMeet(Relations::Relop rel, const std::string& rhs) const
 {
     if (isConst) return (Relations::evaluateRelop<string>(getLowerBound(), rel, rhs)) ? MUST : CANT;
 

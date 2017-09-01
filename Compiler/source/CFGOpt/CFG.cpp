@@ -16,12 +16,12 @@ string CFGNode::getSource()
 {
     std::stringstream outs;
 
-    outs << name << endl;
+    outs << name << '\n';
     for (shared_ptr<AbstractCommand> ac: instrs) outs << ac->translation();
     if (compSuccess != nullptr) outs << comp->translation();
     if (compFail != nullptr) outs << JumpCommand(compFail->getName(), jumpline).translation();
     else outs << ReturnCommand(jumpline).translation();
-    outs << "end" << endl;
+    outs << "end" << '\n';
     return outs.str();
 }
 
@@ -171,12 +171,12 @@ std::string ControlFlowGraph::getSource()
 {
     if (first == nullptr) return "";
     std::stringstream outs;
-    outs << first->getSource() << endl;
+    outs << first->getSource() << '\n';
 
     for (auto it = currentNodes.cbegin(); it != currentNodes.cend(); it++)
     {
         if (it->first == first->getName()) continue;
-        outs << it->second->getSource() << endl;
+        outs << it->second->getSource() << '\n';
     }
 
     return outs.str();

@@ -18,7 +18,7 @@ std::string relEnumStrs[] = {" = ", " != ", " < ", " <= ", " > ", " >= "};
 namespace Relations
 {
     template<typename T>
-    bool evaluateRelop(T LHS, Relop rel, T RHS)
+    bool evaluateRelop(const T& LHS, Relop rel, const T& RHS)
     {
         switch (rel)
         {
@@ -39,8 +39,8 @@ namespace Relations
         }
     }
 
-    template bool evaluateRelop<double>(double LHS, Relop rel, double RHS);
-    template bool evaluateRelop<string>(string LHS, Relop rel, string RHS);
+    template bool evaluateRelop<double>(double& LHS, Relop rel, double& RHS);
+    template bool evaluateRelop<string>(string& LHS, Relop rel, string& RHS);
 
     Relop mirrorRelop(Relations::Relop rel)
     {

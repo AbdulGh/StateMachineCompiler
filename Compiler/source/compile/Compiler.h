@@ -10,6 +10,7 @@
 #include "ExpressionCodeGenerator.h"
 #include "FunctionCodeGen.h"
 #include "Reporter.h"
+#include "../symbolic/SymbolicExecution.h"
 
 /* Implemented in Compiler.cpp, Parsing.cpp, CodeGen.cpp*/
 class Compiler

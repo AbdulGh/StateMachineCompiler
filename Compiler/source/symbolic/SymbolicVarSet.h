@@ -13,11 +13,11 @@ typedef std::shared_ptr<SymbolicVariable> SymbolicVariablePointer;
 class SymbolicVarSet
 {
 private:
-    SymbolicVarSet* parent;
+    std::shared_ptr<SymbolicVarSet> parent;
     std::unordered_map<std::string, SymbolicVariablePointer> variables;
 
 public:
-    SymbolicVarSet(SymbolicVarSet* p = nullptr): parent(p){}
+    SymbolicVarSet(std::shared_ptr<SymbolicVarSet> p = nullptr): parent(p){}
     SymbolicVariablePointer findVar(std::string name);
     void defineVar(SymbolicVariablePointer newvar);
     bool isFeasable();

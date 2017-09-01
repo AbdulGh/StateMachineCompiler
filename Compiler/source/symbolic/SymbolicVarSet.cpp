@@ -34,7 +34,10 @@ bool SymbolicVarSet::isFeasable()
 {
     for (auto i : variables)
     {
-        if (!i.second->isFeasable()) return false;
+        if (!i.second->isFeasable())
+        {
+            return false;
+        }
     }
     if (parent != nullptr && !parent->isFeasable())
     {

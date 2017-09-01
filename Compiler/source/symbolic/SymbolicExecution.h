@@ -11,6 +11,8 @@
 #include "../compile/Token.h" //relop
 
 typedef std::shared_ptr<SymbolicVariable> VarPointer;
+template <typename T>
+using VarTemplatePointer = std::shared_ptr<SymbolicVariableTemplate<T>>;
 
 namespace SymbolicExecution
 {
@@ -31,14 +33,15 @@ namespace SymbolicExecution
     {
     private:
         bool feasable = true;
-        SymbolicExecutionFringe* parent;
+        std::shared_ptr<SymbolicExecutionFringe> parent;
 
     public:
-        SymbolicExecutionFringe(Reporter& r, SymbolicExecutionFringe* p = nullptr);
+        SymbolicExecutionFringe(Reporter& r);
+        SymbolicExecutionFringe(std::shared_ptr<SymbolicExecutionFringe> p);
 
         std::unordered_map<std::string, std::shared_ptr<Condition>> pathConditions;
-        SymbolicStack currentStack;
-        SymbolicVarSet symbolicVarSet;
+        std::shared_ptr<SymbolicStack> currentStack;
+        std::shared_ptr<SymbolicVarSet> symbolicVarSet;
         Reporter& reporter;
 
         void error(Reporter::AlertType a, std::string s, int linenum = -1);
@@ -55,18 +58,53 @@ namespace SymbolicExecution
         SymbolTable& sTable;
         Reporter& reporter;
 
-        /*returns if a feasable path extention goes through this node
-         * a path is feasable if it visits itself or reaches the last state*/
-        bool visitNode(SymbolicExecutionFringe* sef, std::shared_ptr<CFGNode> n);
+        //returns if a feasable path extention goes through this node
+        //a path is feasable if it visits itself or reaches the last state
+        bool visitNode(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n);
+        //same as above, but branches the SEF in the appropriate way
+        bool branchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
+                      std::string lhsvar, std::string rhsconst);
+        bool branchNE(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
+                      std::string lhsvar, std::string rhsconst);
+        bool branchLE(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
+                      std::string lhsvar, std::string rhsconst);
+        bool branchLT(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
+                      std::string lhsvar, std::string rhsconst);
+        bool branchGE(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
+                           std::string lhsvar, std::string rhsconst);
+        bool branchGT(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
+                      std::string lhsvar, std::string rhsconst);
+
+        //all the below static cast to SymbolicVariableTemplate<T>
+        template <typename T>
+        bool varBranchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
+                      VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar);
+        template <typename T>
+        bool varBranchNE(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
+                      VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar);
+        template <typename T>
+        bool varBranchLE(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
+                      VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar);
+        template <typename T>
+        bool varBranchLT(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
+                      VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar);
+        template <typename T>
+        bool varBranchGE(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
+                      VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar);
+        template <typename T>
+        bool varBranchGT(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
+                      VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar);
+
+        std::shared_ptr<CFGNode> getFailNode(std::shared_ptr<SymbolicExecutionFringe> returningSEF, std::shared_ptr<CFGNode> n);
 
     public:
-        SymbolicExecutionManager(ControlFlowGraph& cfg, SymbolTable& sTable, Reporter reporter):
+        SymbolicExecutionManager(ControlFlowGraph& cfg, SymbolTable& sTable, Reporter& reporter):
             cfg(cfg), sTable(sTable), reporter(reporter)
         {
             for (const auto& pair : cfg.getCurrentNodes()) feasableVisits[pair.first] = 0;
         };
         void search();
-        void removeUnreachableStates();
+        //void removeUnreachableStates();
     };
 }
 

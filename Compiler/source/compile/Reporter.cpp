@@ -25,7 +25,7 @@ void Reporter::warn(AlertType type, std::string details)
     {
         output << "WARNING : ";
         if (type != GENERIC) output << enumNames[type] << " : ";
-        output << details << std::endl;
+        output << details << '\n';
     }
 }
 
@@ -33,12 +33,17 @@ void Reporter::error(AlertType type, std::string details)
 {
     output << "ERROR : ";
     if (type != GENERIC) output << enumNames[type] << " : ";
-    output << details << std::endl;
+    output << details << '\n';
 }
 
 void Reporter::optimising(AlertType type, std::string details)
 {
     output << "OPTIMISATION : ";
     if (type != GENERIC) output << enumNames[type] << " : ";
-    output << details << std::endl;
+    output << details << '\n';
+}
+
+void Reporter::info(std::string details)
+{
+    output << details << '\n';
 }
