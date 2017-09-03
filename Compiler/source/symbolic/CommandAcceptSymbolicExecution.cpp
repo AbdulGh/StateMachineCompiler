@@ -115,6 +115,7 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
         }
     }
     else svp->setConstValue(RHS);
+    svp->define();
     if (!svp->isFeasable())
     {
         return false;
@@ -210,6 +211,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
             throw runtime_error("Bitwise operations not supported");
     }
     result.setName(LHS->getName());
+    result.define();
     svs->symbolicVarSet->defineVar(make_shared<SymbolicDouble>(result));
     return svs->isFeasable();
 }

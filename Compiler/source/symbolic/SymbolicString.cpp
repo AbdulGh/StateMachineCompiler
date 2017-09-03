@@ -18,7 +18,7 @@ SymbolicString::SymbolicString(shared_ptr<SymbolicString> other):
 SymbolicString::SymbolicString(shared_ptr<SymbolicVariable> other):
         SymbolicString(static_pointer_cast<SymbolicString>(other)) {}
 
-void SymbolicString::setUpperBound(const std::string& ub, bool closed)
+bool SymbolicString::setUpperBound(const std::string& ub, bool closed)
 {
     if (!closed)
     {
@@ -29,9 +29,10 @@ void SymbolicString::setUpperBound(const std::string& ub, bool closed)
     if (upperBound > lowerBound) feasable = false;
     if (upperBound == lowerBound) isConst = true;
     boundedUpper = true;
+    return isFeasable();
 }
 
-void SymbolicString::setLowerBound(const std::string& lb, bool closed)
+bool SymbolicString::setLowerBound(const std::string& lb, bool closed)
 {
     if (!closed)
     {
@@ -42,6 +43,19 @@ void SymbolicString::setLowerBound(const std::string& lb, bool closed)
     if (upperBound > lowerBound) feasable = false;
     if (upperBound == lowerBound) isConst = true;
     boundedLower = true;
+    return isFeasable();
+}
+
+bool SymbolicString::clipLowerBound(const std::string& lb, bool closed)
+{
+    if (!isBoundedBelow() || getLowerBound() > lb) return setLowerBound(lb, closed);
+    else return isFeasable();
+}
+
+bool SymbolicString::clipUpperBound(const std::string& ub, bool closed)
+{
+    if (!isBoundedAbove() || getUpperBound() < ub) return setLowerBound(ub, closed);
+    else return isFeasable();
 }
 
 void SymbolicString::setConstValue(const std::string& c)
@@ -54,6 +68,7 @@ void SymbolicString::userInput()
 {
     boundedLower = boundedUpper = false;
     lowerBound = upperBound = "";
+    define();
 }
 
 bool SymbolicString::isBoundedBelow() const
@@ -117,8 +132,8 @@ std::string SymbolicString::incrementString(std::string s)
             ++s[index];
             return s;
         }
-        return numeric_limits<char>::max() + s;
     }
+    return numeric_limits<char>::max() + s;
 }
 
 std::string SymbolicString::decrementString(std::string s)
@@ -131,6 +146,6 @@ std::string SymbolicString::decrementString(std::string s)
             --s[index];
             return s;
         }
-        return numeric_limits<char>::lowest() + s;
     }
+    return numeric_limits<char>::lowest() + s;
 }

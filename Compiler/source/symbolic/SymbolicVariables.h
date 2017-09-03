@@ -36,8 +36,7 @@ public:
     void setName(const std::string newName);
     bool isDefined() const;
     void define();
-    virtual void setLowerBound(const std::string&, bool closed=true) = 0;
-    virtual void setUpperBound(const std::string&, bool closed=true) = 0;
+
     virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const = 0;
     virtual void setConstValue(const std::string&) = 0;
     virtual const std::string getConstString() = 0;
@@ -61,6 +60,11 @@ public:
 
     bool isDisjointFrom(std::shared_ptr<SymbolicVariableTemplate<T>> other);
     bool meetsConstComparison(Relations::Relop r, const std::string& rhs) override;
+    //set/clip bounds returns true if var is feasable after
+    virtual bool setLowerBound(const T& lb, bool closed=true) = 0;
+    virtual bool setUpperBound(const T& ub, bool closed=true) = 0;
+    virtual bool clipLowerBound(const T& lb, bool closed=true) = 0;
+    virtual bool clipUpperBound(const T& up, bool closed=true) = 0;
     const T& getUpperBound() const;
     const T& getLowerBound() const;
     const T& getConstValue();
@@ -85,13 +89,12 @@ public:
     SymbolicDouble(std::shared_ptr<SymbolicVariable> other);
     SymbolicDouble(SymbolicDouble& other);
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
-
-    void setLowerBound(const std::string&, bool closed=true) override;
-    void setUpperBound(const std::string&, bool closed=true) override;
+    
+    bool setLowerBound(const double& d, bool closed=true);
+    bool setUpperBound(const double& d, bool closed=true);
+    bool clipLowerBound(const double& d, bool closed=true);
+    bool clipUpperBound(const double& d, bool closed=true);
     void setConstValue(const std::string&) override;
-
-    void setLowerBound(double d);
-    void setUpperBound(double d);
     void setConstValue(double d);
 
     void userInput();
@@ -127,8 +130,10 @@ public:
 
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
 
-    void setLowerBound(const std::string&, bool closed=true) override;
-    void setUpperBound(const std::string&, bool closed=true) override;
+    bool setLowerBound(const std::string&, bool closed=true) override;
+    bool setUpperBound(const std::string&, bool closed=true) override;
+    bool clipLowerBound(const std::string&, bool closed=true) override;
+    bool clipUpperBound(const std::string&, bool closed=true) override;
     void setConstValue(const std::string&) override;
 
     void userInput();

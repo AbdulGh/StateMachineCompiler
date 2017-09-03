@@ -30,6 +30,15 @@ SymbolicVariablePointer SymbolicVarSet::findVar(string name)
     }
 }
 
+/*
+template <typename T>
+shared_ptr<SymbolicVariableTemplate<T>> SymbolicVarSet::findVar(std::string name)
+{
+    return static_pointer_cast<SymbolicVariableTemplate<T>>(findVar(name));
+}
+shared_ptr<SymbolicVariableTemplate<string>> SymbolicVarSet::findVar<string>(std::string name);
+shared_ptr<SymbolicVariableTemplate<double>> SymbolicVarSet::findVarOfType<double>(std::string name);*/
+
 bool SymbolicVarSet::isFeasable()
 {
     for (auto i : variables)

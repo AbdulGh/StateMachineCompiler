@@ -7,8 +7,8 @@ using namespace SymbolicExecution;
 SymbolicExecutionFringe::SymbolicExecutionFringe(Reporter &r) :
         reporter(r),
         parent{},
-        currentStack{},
-        symbolicVarSet{}{}
+        currentStack(make_shared<SymbolicStack>()),
+        symbolicVarSet(make_shared<SymbolicVarSet>()){}
 
 SymbolicExecutionFringe::SymbolicExecutionFringe(std::shared_ptr<SymbolicExecutionFringe> p):
         parent(p),
@@ -142,8 +142,6 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
             if (!LHS->isDefined()) sef->warn(Reporter::UNINITIALISED_USE,
                                              "'" + LHS->getName() + "' used before being defined", jocc->getLineNum());
 
-
-
             //check if we can meet the comparison - search if so
             if (jocc->term2Type != JumpOnComparisonCommand::ComparitorType::ID) //comparing to a literal
             {
@@ -171,26 +169,9 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                         if (nextNode == nullptr) return false;
                         return visitNode(sef, nextNode);
                     }
-
                     case SymbolicVariable::MAY:
                     {
-                        switch(jocc->op)
-                        {
-                            case Relations::EQ:
-                                return branchEQ(sef, n, LHS->getName(), jocc->term2);
-                            case Relations::NE:
-                                return branchNE(sef, n, LHS->getName(), jocc->term2);
-                            case Relations::LT:
-                                return branchLT(sef, n, LHS->getName(), jocc->term2);
-                            case Relations::LE:
-                                return branchLE(sef, n, LHS->getName(), jocc->term2);
-                            case Relations::GT:
-                                return branchGT(sef, n, LHS->getName(), jocc->term2);
-                            case Relations::GE:
-                                return branchGE(sef, n, LHS->getName(), jocc->term2);
-                            default:
-                                throw runtime_error("bad relop");
-                        }
+                        return branch(sef, n, LHS->getName(), jocc->op, jocc->term2, false);
                     }
                     case SymbolicVariable::MUST:
                     {
@@ -224,48 +205,45 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
 
                 if (LHS->isDetermined())
                 {
-                    bool meetsComparison;
-
                     if (RHS->isDetermined())
                     {
-                        if (LHS->meetsConstComparison(jocc->op, RHS->getConstString())) return visitNode(sef, n->getCompSuccess());
+                        if (LHS->meetsConstComparison(jocc->op, RHS->getConstString()))
+                        {
+                            sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(), jocc->op,
+                                                                                       RHS->getName() + "(= " +  RHS->getConstString() + ")");
+                            return visitNode(sef, n->getCompSuccess());
+                        }
                         else
                         {
-                            Relations::Relop mirroredOp = Relations::mirrorRelop(jocc->op);
-                            switch (RHS->canMeet(, LHS->getConstString()))
+                            shared_ptr<CFGNode> nextnode = getFailNode(sef, n);
+                            sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(), Relations::negateRelop(jocc->op),
+                                                                                       RHS->getName() + "(= " +  RHS->getConstString() + ")");
+                            if (nextnode == nullptr) return false;
+                            else return visitNode(sef, n);
                         }
-                    }
 
-                    shared_ptr<CFGNode> nextnode = meetsComparison ? n->getCompSuccess() : getFailNode(sef, n);
-                    return visitNode(sef, nextnode);
+                    }
+                    else //rhs undetermined, lhs determined
+                    {
+                        Relations::Relop mirroredOp = Relations::mirrorRelop(jocc->op);
+                        return branch(sef, n, RHS->getName(), mirroredOp, LHS->getConstString(), true);
+                    }
                 }
-                else if (RHS->isDetermined())
-                {
-                    shared_ptr<CFGNode> nextnode = LHS->meetsConstComparison(jocc->op, RHS->getConstString())?
-                                                   n->getCompSuccess() : getFailNode(sef, n);
-                    if (nextnode == nullptr) return false;
-                    return visitNode(sef, nextnode);
-                }
+                else if (RHS->isDetermined()) return branch(sef, n, LHS->getName(), jocc->op, RHS->getConstString());
 
                 //neither are determined here
-                switch(jocc->op)
+                if (LHS->getType() == STRING)
                 {
-                    case Relations::EQ:
-
-                    case Relations::NE:
-                        return branchNE(sef, n, LHS->getName(), jocc->term2);
-                    case Relations::LT:
-                        return branchLT(sef, n, LHS->getName(), jocc->term2);
-                    case Relations::LE:
-                        return branchLE(sef, n, LHS->getName(), jocc->term2);
-                    case Relations::GT:
-                        return branchGT(sef, n, LHS->getName(), jocc->term2);
-                    case Relations::GE:
-                        return branchGE(sef, n, LHS->getName(), jocc->term2);
-                    default:
-                        throw runtime_error("bad relop");
+                    VarTemplatePointer<string> LHS = static_pointer_cast<SymbolicVariableTemplate<string>>(LHS);
+                    VarTemplatePointer<string> RHS = static_pointer_cast<SymbolicVariableTemplate<string>>(RHS);
+                    return varBranch<string>(sef, n, LHS, jocc->op, RHS);
                 }
-
+                else if (LHS->getType() == DOUBLE)
+                {
+                    VarTemplatePointer<double> LHS = static_pointer_cast<SymbolicVariableTemplate<double>>(LHS);
+                    VarTemplatePointer<double> RHS = static_pointer_cast<SymbolicVariableTemplate<double>>(RHS);
+                    return varBranch<double>(sef, n, LHS, jocc->op, RHS);
+                }
             }
         }
     }
@@ -277,163 +255,266 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     }
 }
 
-
 //these things below will usually be called when we already have
 //a ptr to the vars but we want to copy that var into the 'new scope'
-//branch on const comparison
+//todo check clip boolean return
+template <typename T>
+bool SymbolicExecutionManager::branch(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n, std::string lhsvar,
+                                      Relations::Relop op, const T& rhsconst, bool reverse)
+{
+    switch(op)
+    {
+        case Relations::EQ:
+            return branchEQ<T>(sef, n, lhsvar, rhsconst, reverse);
+        case Relations::NE:
+            return branchNE<T>(sef, n, lhsvar, rhsconst, reverse);
+        case Relations::LT:
+            return branchLT<T>(sef, n, lhsvar, rhsconst, reverse);
+        case Relations::LE:
+            return branchLE<T>(sef, n, lhsvar, rhsconst, reverse);
+        case Relations::GT:
+            return branchGT<T>(sef, n, lhsvar, rhsconst, reverse);
+        case Relations::GE:
+            return branchGE<T>(sef, n, lhsvar, rhsconst, reverse);
+        default:
+            throw runtime_error("bad relop");
+    }
+}
+
+template <typename T>
 bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
-                                        string lhsvar, string rhsconst)
+                                        string lhsvar, const T& rhsconst, bool reverse)
 {
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst, false);
+    seflt->symbolicVarSet->findVarOfType<T>(lhsvar)->setUpperBound(rhsconst, false);
     seflt->pathConditions[n->getName()]
             = make_shared<Condition>(lhsvar, Relations::LT, rhsconst);
 
-    shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
-    if (failNode == nullptr) return false;
-    bool feasable = visitNode(seflt, failNode);
+    bool feasable;
+    if (reverse) feasable = visitNode(seflt, n->getCompSuccess());
+    else
+    {
+        shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
+        if (failNode == nullptr) return false;
+        feasable = visitNode(seflt, failNode);
+    }
     seflt.reset();
     if (!feasable) return false;
 
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
-    sefeq->symbolicVarSet->findVar(lhsvar)->setConstValue(rhsconst);
+    sefeq->symbolicVarSet->findVarOfType<T>(lhsvar)->setConstValue(rhsconst);
     sefeq->pathConditions[n->getName()]
             = make_shared<Condition>(lhsvar, Relations::EQ, rhsconst);
-    feasable = visitNode(sefeq, n->getCompSuccess());
+    if (reverse)
+    {
+        shared_ptr<CFGNode> failNode = getFailNode(sefeq, n);
+        if (failNode == nullptr) return false;
+        feasable = visitNode(sefeq, failNode);
+    }
+    else feasable = visitNode(sefeq, n->getCompSuccess());
     sefeq.reset();
     if (!feasable) return false;
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, true);
+    sefgt->symbolicVarSet->findVarOfType<T>(lhsvar)->setLowerBound(rhsconst, true);
     sefgt->pathConditions[n->getName()]
             = make_shared<Condition>(lhsvar, Relations::GT, rhsconst);
-    failNode = getFailNode(sefgt, n);
-    if (failNode == nullptr) return false;
-    feasable = visitNode(sefgt, failNode);
+
+    if (reverse) feasable = visitNode(sefgt, n->getCompSuccess());
+    else
+    {
+        shared_ptr<CFGNode> failNode = getFailNode(sefgt, n);
+        if (failNode == nullptr) return false;
+        feasable = visitNode(sefgt, failNode);
+    }
+
     sefgt.reset();
     return feasable;
 }
 
+template <typename T>
 bool SymbolicExecutionManager::branchNE(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
-                                        std::string lhsvar, std::string rhsconst)
+                                        std::string lhsvar, const T& rhsconst, bool reverse)
 {
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst, false);
-    seflt->pathConditions[n->getName()]
-            = make_shared<Condition>(lhsvar, Relations::LT, rhsconst);
-
-    bool feasable = visitNode(seflt, n->getCompSuccess());
+    seflt->symbolicVarSet->findVarOfType<T>(lhsvar)->setUpperBound(rhsconst, false);
+    seflt->pathConditions[n->getName()] = make_shared<Condition>(lhsvar, Relations::LT, rhsconst);
+    bool feasable;
+    if (reverse)
+    {
+        shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
+        if (failNode == nullptr) return false;
+        feasable = visitNode(seflt, failNode);
+    }
+    else feasable = visitNode(seflt, n->getCompSuccess());
     seflt.reset();
     if (!feasable) return false;
 
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
-    sefeq->symbolicVarSet->findVar(lhsvar)->setConstValue(rhsconst);
+    sefeq->symbolicVarSet->findVarOfType<T>(lhsvar)->setConstValue(rhsconst);
     sefeq->pathConditions[n->getName()]
             = make_shared<Condition>(lhsvar, Relations::EQ, rhsconst);
-    shared_ptr<CFGNode> failNode = getFailNode(sefeq, n);
-    if (failNode == nullptr) return false;
-    feasable = visitNode(sefeq, n->getCompSuccess());
+    if (reverse) feasable = visitNode(seflt, n->getCompSuccess());
+    else
+    {
+        shared_ptr<CFGNode> failNode = getFailNode(sefeq, n);
+        if (failNode == nullptr) return false;
+        feasable = visitNode(sefeq, failNode);
+    }
     sefeq.reset();
     if (!feasable) return false;
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, true);
+    sefgt->symbolicVarSet->findVarOfType<T>(lhsvar)->setLowerBound(rhsconst, true);
     sefgt->pathConditions[n->getName()]
             = make_shared<Condition>(lhsvar, Relations::GT, rhsconst);
-    feasable = visitNode(sefgt, n->getCompSuccess());
+    if (reverse)
+    {
+        shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
+        if (failNode == nullptr) return false;
+        feasable = visitNode(seflt, failNode);
+    }
+    else feasable = visitNode(seflt, n->getCompSuccess());
     sefgt.reset();
     return feasable;
 }
 
+template <typename T>
 bool SymbolicExecutionManager::branchLT(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
-                                        std::string lhsvar, std::string rhsconst)
+                                        std::string lhsvar, const T& rhsconst, bool reverse)
 {
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst, false);
+    seflt->symbolicVarSet->findVarOfType<T>(lhsvar)->setUpperBound(rhsconst, false);
     seflt->pathConditions[n->getName()]
             = make_shared<Condition>(lhsvar, Relations::LT, rhsconst);
 
-    bool feasable = visitNode(seflt, n->getCompSuccess());
+    bool feasable;
+    if (reverse)
+    {
+        shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
+        if (failNode == nullptr) return false;
+        feasable = visitNode(seflt, failNode);
+    }
+    else feasable = visitNode(seflt, n->getCompSuccess());
     seflt.reset();
     if (!feasable) return false;
 
     shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
-    sefge->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst);
+    sefge->symbolicVarSet->findVarOfType<T>(lhsvar)->setLowerBound(rhsconst);
     sefge->pathConditions[n->getName()]
             = make_shared<Condition>(lhsvar, Relations::GE, rhsconst);
-    shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
-    if (failNode == nullptr) return false;
-    feasable = visitNode(sefge, failNode);
+    if (reverse) feasable = visitNode(sefge, n->getCompSuccess());
+    else
+    {
+        shared_ptr<CFGNode> failNode = getFailNode(sefge, n);
+        if (failNode == nullptr) return false;
+        feasable = visitNode(sefge, failNode);
+    }
     sefge.reset();
     return feasable;
 }
 
+template <typename T>
 bool SymbolicExecutionManager::branchLE(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
-                                        std::string lhsvar, std::string rhsconst)
+                                        std::string lhsvar, const T& rhsconst, bool reverse)
 {
-    shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst);
-    seflt->pathConditions[n->getName()]
+    shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
+    sefle->symbolicVarSet->findVarOfType<T>(lhsvar)->setUpperBound(rhsconst);
+    sefle->pathConditions[n->getName()]
             = make_shared<Condition>(lhsvar, Relations::LE, rhsconst);
-
-    bool feasable = visitNode(seflt, n->getCompSuccess());
-    seflt.reset();
+    bool feasable;
+    if (reverse)
+    {
+        shared_ptr<CFGNode> failNode = getFailNode(sefle, n);
+        if (failNode == nullptr) return false;
+        feasable = visitNode(sefle, failNode);
+    }
+    else feasable = visitNode(sefle, n->getCompSuccess());
+    sefle.reset();
     if (!feasable) return false;
 
-    shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
-    sefge->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, true);
-    sefge->pathConditions[n->getName()]
+    shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
+    sefgt->symbolicVarSet->findVarOfType<T>(lhsvar)->setLowerBound(rhsconst, true);
+    sefgt->pathConditions[n->getName()]
             = make_shared<Condition>(lhsvar, Relations::GT, rhsconst);
-    shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
-    if (failNode == nullptr) return false;
-    feasable = visitNode(sefge, failNode);
-    sefge.reset();
+    if (reverse) feasable = visitNode(sefgt, n->getCompSuccess());
+    else
+    {
+        shared_ptr<CFGNode> failNode = getFailNode(sefgt, n);
+        if (failNode == nullptr) return false;
+        feasable = visitNode(sefgt, failNode);
+    }
+    sefgt.reset();
     return feasable;
 }
 
+template <typename T>
 bool SymbolicExecutionManager::branchGT(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
-                                        std::string lhsvar, std::string rhsconst)
+                                        std::string lhsvar, const T& rhsconst, bool reverse)
 {
-    shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, false);
-    seflt->pathConditions[n->getName()]
+    shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
+    sefgt->symbolicVarSet->findVarOfType<T>(lhsvar)->setLowerBound(rhsconst, false);
+    sefgt->pathConditions[n->getName()]
             = make_shared<Condition>(lhsvar, Relations::GT, rhsconst);
-
-    bool feasable = visitNode(seflt, n->getCompSuccess());
-    seflt.reset();
+    bool feasable;
+    if (reverse)
+    {
+        shared_ptr<CFGNode> failNode = getFailNode(sefgt, n);
+        if (failNode == nullptr) return false;
+        feasable = visitNode(sefgt, failNode);
+    }
+    else feasable = visitNode(sefgt, n->getCompSuccess());
+    sefgt.reset();
     if (!feasable) return false;
 
-    shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
-    sefge->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst);
-    sefge->pathConditions[n->getName()]
+    shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
+    sefle->symbolicVarSet->findVarOfType<T>(lhsvar)->setUpperBound(rhsconst);
+    sefle->pathConditions[n->getName()]
             = make_shared<Condition>(lhsvar, Relations::LE, rhsconst);
-    shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
-    if (failNode == nullptr) return false;
-    feasable = visitNode(sefge, failNode);
-    sefge.reset();
+
+    if (reverse) feasable = visitNode(sefle, n->getCompSuccess());
+    else
+    {
+        shared_ptr<CFGNode> failNode = getFailNode(sefle, n);
+        if (failNode == nullptr) return false;
+        feasable = visitNode(sefle, failNode);
+    }
+    sefle.reset();
     return feasable;
 }
 
+template <typename T>
 bool SymbolicExecutionManager::branchGE(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
-                                        std::string lhsvar, std::string rhsconst)
+                                        std::string lhsvar, const T& rhsconst, bool reverse)
 {
-    shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst);
-    seflt->pathConditions[n->getName()]
+    shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
+    sefge->symbolicVarSet->findVarOfType<T>(lhsvar)->setLowerBound(rhsconst);
+    sefge->pathConditions[n->getName()]
             = make_shared<Condition>(lhsvar, Relations::GE, rhsconst);
 
-    bool feasable = visitNode(seflt, n->getCompSuccess());
-    seflt.reset();
+    bool feasable;
+    if (reverse)
+    {
+        shared_ptr<CFGNode> failNode = getFailNode(sefge, n);
+        if (failNode == nullptr) return false;
+        feasable = visitNode(sefge, failNode);
+    }
+    else feasable = visitNode(sefge, n->getCompSuccess());
+    sefge.reset();
     if (!feasable) return false;
 
-    shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
-    sefge->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst, true);
-    sefge->pathConditions[n->getName()]
+    shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
+    seflt->symbolicVarSet->findVarOfType<T>(lhsvar)->setUpperBound(rhsconst, true);
+    seflt->pathConditions[n->getName()]
             = make_shared<Condition>(lhsvar, Relations::LT, rhsconst);
-    shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
-    if (failNode == nullptr) return false;
-    feasable = visitNode(sefge, failNode);
-    sefge.reset();
+    if (reverse) feasable = visitNode(seflt, n->getCompSuccess());
+    else
+    {
+        shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
+        if (failNode == nullptr) return false;
+        feasable = visitNode(seflt, failNode);
+    }
+    seflt.reset();
     return feasable;
 }
 
@@ -441,25 +522,47 @@ bool SymbolicExecutionManager::branchGE(std::shared_ptr<SymbolicExecutionFringe>
 //todo check below (RHS lower vs upper) and finish the rest
 //todo path conditions
 template <typename T>
+bool SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
+                                         VarTemplatePointer<T> LHS, Relations::Relop op,
+                                         VarTemplatePointer<T> RHS)
+{
+    switch(op)
+    {
+        case Relations::EQ:
+            return varBranchEQ<T>(sef, n, LHS, RHS);
+        case Relations::NE:
+            return varBranchNE<T>(sef, n, LHS, RHS);
+        case Relations::LT:
+            return varBranchLT<T>(sef, n, LHS, RHS);
+        case Relations::LE:
+            return varBranchLE<T>(sef, n, LHS, RHS);
+        case Relations::GT:
+            return varBranchGT<T>(sef, n, LHS, RHS);
+        case Relations::GE:
+            return varBranchGE<T>(sef, n, LHS, RHS);
+        default:
+            throw runtime_error("bad relop");
+    }
+}
+
+template <typename T>
 bool SymbolicExecutionManager::varBranchGE(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
                                            VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
 {
-    string LHSLowerBound = to_string(lhsvar->getLowerBound());
-    string LHSUpperBound = to_string(lhsvar->getUpperBound());
-    string RHSLowerBound = to_string(rhsvar->getLowerBound());
-    string RHSUpperBound = to_string(rhsvar->getUpperBound());
-
-    shared_ptr<CFGNode> failNode = getFailNode(sef, n);
-    if (failNode == nullptr) return false;
-
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVar(lhsvar->getName())->setUpperBound(RHSLowerBound, false);
+    shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
+    if (failNode == nullptr) return false;
+    seflt->pathConditions[n->getName()]
+            = make_shared<Condition>(lhsvar->getName(), Relations::LT, rhsvar->getName());
+    seflt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipUpperBound(rhsvar->getUpperBound(), false);
     bool feasable = visitNode(seflt, failNode);
     seflt.reset();
     if (!feasable) return false;
 
     shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
-    sefge->symbolicVarSet->findVar(lhsvar->getName())->setLowerBound(RHSLowerBound);
+    sefge->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipLowerBound(rhsvar->getLowerBound());
+    sefge->pathConditions[n->getName()]
+            = make_shared<Condition>(lhsvar->getName(), Relations::GE, rhsvar->getName());
     feasable = visitNode(sefge, n->getCompSuccess());
     sefge.reset();
     return feasable;
@@ -469,22 +572,20 @@ template <typename T>
 bool SymbolicExecutionManager::varBranchGT(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
                                               VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
 {
-    string LHSLowerBound = to_string(lhsvar->getLowerBound());
-    string LHSUpperBound = to_string(lhsvar->getUpperBound());
-    string RHSLowerBound = to_string(rhsvar->getLowerBound());
-    string RHSUpperBound = to_string(rhsvar->getUpperBound());
-
-    shared_ptr<CFGNode> failNode = getFailNode(sef, n);
-    if (failNode == nullptr) return false;
-
     shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
-    sefle->symbolicVarSet->findVar(lhsvar->getName())->setUpperBound(RHSLowerBound);
+    shared_ptr<CFGNode> failNode = getFailNode(sefle, n);
+    if (failNode == nullptr) return false;
+    sefle->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipUpperBound(rhsvar->getUpperBound());
+    sefle->pathConditions[n->getName()]
+            = make_shared<Condition>(lhsvar->getName(), Relations::LE, rhsvar->getName());
     bool feasable = visitNode(sefle, failNode);
     sefle.reset();
     if (!feasable) return false;
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    sefgt->symbolicVarSet->findVar(lhsvar->getName())->setLowerBound(RHSLowerBound);
+    sefgt->pathConditions[n->getName()]
+            = make_shared<Condition>(lhsvar->getName(), Relations::GT, rhsvar->getName());
+    sefgt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipLowerBound(rhsvar->getLowerBound(), false);
     feasable = visitNode(sefgt, n->getCompSuccess());
     sefgt.reset();
     return feasable;
@@ -494,22 +595,20 @@ template <typename T>
 bool SymbolicExecutionManager::varBranchLT(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
                                               VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
 {
-    string LHSLowerBound = to_string(lhsvar->getLowerBound());
-    string LHSUpperBound = to_string(lhsvar->getUpperBound());
-    string RHSLowerBound = to_string(rhsvar->getLowerBound());
-    string RHSUpperBound = to_string(rhsvar->getUpperBound());
-
-    shared_ptr<CFGNode> failNode = getFailNode(sef, n);
-    if (failNode == nullptr) return false;
-
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVar(lhsvar->getName())->setUpperBound(RHSLowerBound, false);
+    shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
+    if (failNode == nullptr) return false;
+    seflt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipUpperBound(rhsvar->getUpperBound(), false);
+    seflt->pathConditions[n->getName()]
+            = make_shared<Condition>(lhsvar->getName(), Relations::LT, rhsvar->getName());
     bool feasable = visitNode(seflt, n->getCompSuccess());
     seflt.reset();
     if (!feasable) return false;
 
     shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
-    sefge->symbolicVarSet->findVar(lhsvar->getName())->setLowerBound(RHSLowerBound);
+    sefge->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipLowerBound(rhsvar->getLowerBound());
+    sefge->pathConditions[n->getName()]
+            = make_shared<Condition>(lhsvar->getName(), Relations::GE, rhsvar->getName());
     feasable = visitNode(sefge, failNode);
     sefge.reset();
     return feasable;
@@ -519,22 +618,20 @@ template <typename T>
 bool SymbolicExecutionManager::varBranchLE(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
                                               VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
 {
-    string LHSLowerBound = to_string(lhsvar->getLowerBound());
-    string LHSUpperBound = to_string(lhsvar->getUpperBound());
-    string RHSLowerBound = to_string(rhsvar->getLowerBound());
-    string RHSUpperBound = to_string(rhsvar->getUpperBound());
-
-    shared_ptr<CFGNode> failNode = getFailNode(sef, n);
-    if (failNode == nullptr) return false;
-
     shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
-    sefle->symbolicVarSet->findVar(lhsvar->getName())->setUpperBound(RHSLowerBound);
+    shared_ptr<CFGNode> failNode = getFailNode(sefle, n);
+    if (failNode == nullptr) return false;
+    sefle->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipUpperBound(rhsvar->getUpperBound());
+    sefle->pathConditions[n->getName()]
+            = make_shared<Condition>(lhsvar->getName(), Relations::LE, rhsvar->getName());
     bool feasable = visitNode(sefle, n->getCompSuccess());
     sefle.reset();
     if (!feasable) return false;
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    sefgt->symbolicVarSet->findVar(lhsvar->getName())->setLowerBound(RHSLowerBound);
+    sefgt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipLowerBound(rhsvar->getLowerBound());
+    sefgt->pathConditions[n->getName()]
+            = make_shared<Condition>(lhsvar->getName(), Relations::GT, rhsvar->getName());
     feasable = visitNode(sefgt, n->getCompSuccess());
     sefgt.reset();
     return feasable;
@@ -544,38 +641,108 @@ template <typename T>
 bool SymbolicExecutionManager::varBranchNE(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
                                            VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
 {
-    string LHSLowerBound = to_string(lhsvar->getLowerBound());
-    string LHSUpperBound = to_string(lhsvar->getUpperBound());
-    string RHSLowerBound = to_string(rhsvar->getLowerBound());
-    string RHSUpperBound = to_string(rhsvar->getUpperBound());
-
-    shared_ptr<CFGNode> failNode = getFailNode(sef, n);
+    shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
+    shared_ptr<CFGNode> failNode = getFailNode(sefeq, n);
     if (failNode == nullptr) return false;
+    VarTemplatePointer<T>& glbvar = getGreatestLowerBound(lhsvar, rhsvar);
+    if (glbvar->isBoundedBelow())
+    {
+        //pull the variables into sefeq
+        VarTemplatePointer<T> lhsvar = sefeq->symbolicVarSet->findVarOfType<T>(lhsvar->getName());
+        VarTemplatePointer<T> rhsvar = sefeq->symbolicVarSet->findVarOfType<T>(rhsvar->getName());
+
+        const T& glb = glbvar->getLowerBound();
+        if (!lhsvar->clipLowerBound(glb) || !rhsvar->clipLowerBound(glb)) return false;
+    }
+    VarTemplatePointer<T>& lubvar = getLeastUpperBound(lhsvar, rhsvar);
+    if (lubvar->isBoundedAbove())
+    {
+        VarTemplatePointer<T> lhsvar = sefeq->symbolicVarSet->findVarOfType<T>(lhsvar->getName());
+        VarTemplatePointer<T> rhsvar = sefeq->symbolicVarSet->findVarOfType<T>(rhsvar->getName());
+
+        const T& lub = lubvar->getUpperBound();
+        if (!lhsvar->clipUpperBound(lub) || !rhsvar->clipUpperBound(lub)) return false;
+    }
+    sefeq->pathConditions[n->getName()]
+            = make_shared<Condition>(lhsvar->getName(), Relations::EQ, rhsvar->getName());
+    bool feasable = visitNode(sefeq, failNode);
+    if (!feasable) return false;
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    sefgt->symbolicVarSet->findVar(lhsvar->getName())->setLowerBound(RHSUpperBound, false);
-    bool feasable = visitNode(sefgt, n->getCompSuccess());
+    sefgt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipLowerBound(rhsvar->getUpperBound(), false);
+    feasable = visitNode(sefgt, n->getCompSuccess());
     sefgt.reset();
     if (!feasable) return false;
 
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    sefgt->symbolicVarSet->findVar(lhsvar->getName())->setUpperBound(RHSLowerBound, true);
-    feasable = visitNode(sefgt, n->getCompSuccess());
-    sefgt.reset();
-    if (!feasable) return false;
-
-    shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
-    //T upperBound = ()
-
-    sefgt->symbolicVarSet->findVar(lhsvar->getName())->setUpperBound(RHSLowerBound, true);
-    feasable = visitNode(sefgt, n->getCompSuccess());
-    sefgt.reset();
-    if (!feasable) return false;
+    seflt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipUpperBound(rhsvar->getLowerBound(), true);
+    seflt->pathConditions[n->getName()]
+            = make_shared<Condition>(lhsvar->getName(), Relations::LT, rhsvar->getName());
+    feasable = visitNode(seflt, n->getCompSuccess());
+    seflt.reset();
+    return feasable;
 }
 
 template <typename T>
 bool SymbolicExecutionManager::varBranchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
                                            VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
 {
+    shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
+    VarTemplatePointer<T>& glbvar = getGreatestLowerBound(lhsvar, rhsvar);
+    if (glbvar->isBoundedBelow())
+    {
+        //pull the variables into sefeq
+        VarTemplatePointer<T> lhsvar = sefeq->symbolicVarSet->findVarOfType<T>(lhsvar->getName());
+        VarTemplatePointer<T> rhsvar = sefeq->symbolicVarSet->findVarOfType<T>(rhsvar->getName());
 
+        const T& glb = glbvar->getLowerBound();
+        if (!lhsvar->clipLowerBound(glb) || !rhsvar->clipLowerBound(glb)) return false;
+    }
+    VarTemplatePointer<T>& lubvar = getLeastUpperBound(lhsvar, rhsvar);
+    if (lubvar->isBoundedAbove())
+    {
+        VarTemplatePointer<T> lhsvar = sefeq->symbolicVarSet->findVarOfType<T>(lhsvar->getName());
+        VarTemplatePointer<T> rhsvar = sefeq->symbolicVarSet->findVarOfType<T>(rhsvar->getName());
+
+        const T& lub = lubvar->getUpperBound();
+        if (!lhsvar->clipUpperBound(lub) || !rhsvar->clipUpperBound(lub)) return false;
+    }
+    sefeq->pathConditions[n->getName()]
+            = make_shared<Condition>(lhsvar->getName(), Relations::EQ, rhsvar->getName());
+    bool feasable = visitNode(sefeq, n->getCompSuccess());
+    if (!feasable) return false;
+
+    shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
+    shared_ptr<CFGNode> failNode = getFailNode(sefgt, n);
+    if (failNode == nullptr) return false;
+    sefgt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipLowerBound(rhsvar->getUpperBound(), false);
+    feasable = visitNode(sefgt, n->getCompSuccess());
+    sefgt.reset();
+    if (!feasable) return false;
+
+    shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
+    seflt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipUpperBound(rhsvar->getLowerBound(), true);
+    failNode = getFailNode(sef, n);
+    if (failNode == nullptr) return false;
+    seflt->pathConditions[n->getName()]
+            = make_shared<Condition>(lhsvar->getName(), Relations::LT, rhsvar->getName());
+    feasable = visitNode(seflt, failNode);
+    seflt.reset();
+    return feasable;
+}
+
+template <typename T>
+VarTemplatePointer<T>& SymbolicExecutionManager::getGreatestLowerBound(VarTemplatePointer<T>& lhsvar, VarTemplatePointer<T>& rhsvar)
+{
+    if (!lhsvar->isBoundedBelow()) return rhsvar;
+    else if (!rhsvar->isBoundedBelow()) return lhsvar;
+    else return (lhsvar->getLowerBound() > rhsvar->getLowerBound()) ? lhsvar : rhsvar;
+}
+
+template <typename T>
+VarTemplatePointer<T>& SymbolicExecutionManager::getLeastUpperBound(VarTemplatePointer<T>& lhsvar, VarTemplatePointer<T>& rhsvar)
+{
+    if (!lhsvar->isBoundedAbove()) return rhsvar;
+    else if (!rhsvar->isBoundedAbove()) return lhsvar;
+    else return (lhsvar->getUpperBound() < rhsvar->getUpperBound()) ? lhsvar : rhsvar;
 }

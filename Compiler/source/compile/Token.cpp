@@ -39,8 +39,8 @@ namespace Relations
         }
     }
 
-    template bool evaluateRelop<double>(double& LHS, Relop rel, double& RHS);
-    template bool evaluateRelop<string>(string& LHS, Relop rel, string& RHS);
+    template bool evaluateRelop<double>(const double& LHS, Relop rel, const double& RHS);
+    template bool evaluateRelop<string>(const string& LHS, Relop rel, const string& RHS);
 
     Relop mirrorRelop(Relations::Relop rel)
     {

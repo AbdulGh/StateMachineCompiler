@@ -35,7 +35,7 @@ void SymbolicDouble::userInput()
     upperBound = numeric_limits<double>::max();
     upperBound = numeric_limits<double>::lowest();
     isConst = false;
-    defined = true;
+    define();
     monotonicity = FRESH;
 }
 
@@ -70,23 +70,36 @@ SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, const s
     }
 }
 
-void SymbolicDouble::setLowerBound(const std::string& lb, bool closed)
+bool SymbolicDouble::setLowerBound(const double& d, bool closed)
 {
-    double d = stod(lb);
-    if (!closed && d != numeric_limits<double>::lowest()) d -= numeric_limits<double>::min();
-    lowerBound = d;
+    if (!closed && d != numeric_limits<double>::lowest()) lowerBound = d - numeric_limits<double>::min();
+    else lowerBound = d;
 
     if (lowerBound > upperBound) feasable = false;
     else if (lowerBound == upperBound) isConst = true;
+    return isFeasable();
 }
 
-void SymbolicDouble::setUpperBound(const std::string& ub, bool closed)
+
+bool SymbolicDouble::setUpperBound(const double& d, bool closed)
 {
-    double d = stod(ub);
-    if (!closed && d != numeric_limits<double>::max()) d += numeric_limits<double>::min();
-    lowerBound = d;
+    if (!closed && d != numeric_limits<double>::max()) upperBound = d + numeric_limits<double>::min();
+    else upperBound = d;
     if (lowerBound > upperBound) feasable = false;
     else if (lowerBound == upperBound) isConst = true;
+    return isFeasable();
+}
+
+bool SymbolicDouble::clipLowerBound(const double& d, bool closed)
+{
+    if (d > getLowerBound()) return setLowerBound(d, closed);
+    else return isFeasable();
+}
+
+bool SymbolicDouble::clipUpperBound(const double& d, bool closed)
+{
+    if (d < getUpperBound()) return setUpperBound(d, closed);
+    else return isFeasable();
 }
 
 void SymbolicDouble::setConstValue(const std::string& c)
@@ -114,20 +127,6 @@ const MonotoneEnum SymbolicDouble::getMonotinicity() const
 const double SymbolicDouble::getMininumStep() const
 {
     return minStep;
-}
-
-void SymbolicDouble::setLowerBound(double d)
-{
-    lowerBound = d;
-    if (lowerBound > upperBound) feasable = false;
-    else if (lowerBound == upperBound) isConst = true;
-}
-
-void SymbolicDouble::setUpperBound(double d)
-{
-    upperBound = d;
-    if (lowerBound > upperBound) feasable = false;
-    else if (lowerBound == upperBound) isConst = true;
 }
 
 void SymbolicDouble::setConstValue(double d)

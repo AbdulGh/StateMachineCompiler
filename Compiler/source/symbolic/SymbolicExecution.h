@@ -62,20 +62,32 @@ namespace SymbolicExecution
         //a path is feasable if it visits itself or reaches the last state
         bool visitNode(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n);
         //same as above, but branches the SEF in the appropriate way
+        template <typename T>
+        bool branch(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n, std::string lhsvar,
+                    Relations::Relop op, const T& rhsconst, bool reverse = false);
+        template <typename T>
         bool branchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
-                      std::string lhsvar, std::string rhsconst);
+                      std::string lhsvar, const T& rhsconst, bool reverse = false);
+        template <typename T>
         bool branchNE(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
-                      std::string lhsvar, std::string rhsconst);
+                      std::string lhsvar, const T& rhsconst, bool reverse = false);
+        template <typename T>
         bool branchLE(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
-                      std::string lhsvar, std::string rhsconst);
+                      std::string lhsvar, const T& rhsconst, bool reverse = false);
+        template <typename T>
         bool branchLT(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
-                      std::string lhsvar, std::string rhsconst);
+                      std::string lhsvar, const T& rhsconst, bool reverse = false);
+        template <typename T>
         bool branchGE(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
-                           std::string lhsvar, std::string rhsconst);
+                           std::string lhsvar, const T& rhsconst, bool reverse = false);
+        template <typename T>
         bool branchGT(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
-                      std::string lhsvar, std::string rhsconst);
+                      std::string lhsvar, const T& rhsconst, bool reverse = false);
 
         //all the below static cast to SymbolicVariableTemplate<T>
+        template <typename T>
+        bool varBranch(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
+                       VarTemplatePointer<T> lhsvar, Relations::Relop op, VarTemplatePointer<T> rhsvar);
         template <typename T>
         bool varBranchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
                       VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar);
@@ -94,6 +106,10 @@ namespace SymbolicExecution
         template <typename T>
         bool varBranchGT(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
                       VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar);
+        template <typename T>
+        VarTemplatePointer<T>& getGreatestLowerBound(VarTemplatePointer<T>& lhsvar, VarTemplatePointer<T>& rhsvar);
+        template <typename T>
+        VarTemplatePointer<T>& getLeastUpperBound(VarTemplatePointer<T>& lhsvar, VarTemplatePointer<T>& rhsvar);
 
         std::shared_ptr<CFGNode> getFailNode(std::shared_ptr<SymbolicExecutionFringe> returningSEF, std::shared_ptr<CFGNode> n);
 

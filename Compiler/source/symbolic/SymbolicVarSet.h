@@ -19,6 +19,11 @@ private:
 public:
     SymbolicVarSet(std::shared_ptr<SymbolicVarSet> p = nullptr): parent(p){}
     SymbolicVariablePointer findVar(std::string name);
+    template <typename T>
+    std::shared_ptr<SymbolicVariableTemplate<T>> findVarOfType(std::string name)
+    {
+        return std::static_pointer_cast<SymbolicVariableTemplate<T>>(findVar(name));
+    }
     void defineVar(SymbolicVariablePointer newvar);
     bool isFeasable();
 };
