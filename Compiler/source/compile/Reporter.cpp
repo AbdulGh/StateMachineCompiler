@@ -25,11 +25,6 @@ void Reporter::warn(AlertType type, std::string details)
     {
         output << "WARNING : ";
         if (type != GENERIC) output << enumNames[type] << " : ";
-        if (type == UNINITIALISED_USE)//debug
-        {
-            int i;
-            i = 3;
-        }
         output << details << '\n';
     }
 }

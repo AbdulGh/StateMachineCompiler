@@ -13,6 +13,30 @@ string VariableTypeEnumNames[] = {"double", "string"};
 
 char opEnumChars[] = {'+', '*', '-', '/', '%', '&', '|'};
 
+double evaluateOp(const double& lhs, Op op, const double& rhs)
+{
+    switch(op)
+    {
+        case PLUS:
+            return lhs + rhs;
+        case MULT:
+            return lhs * rhs;
+        case MINUS:
+            return lhs - rhs;
+        case DIV:
+            return lhs / rhs;
+        case MOD:
+            return fmod(lhs, rhs);
+        case AND:
+            return (int)lhs & int(rhs);
+        case OR:
+            return (int)lhs | int(rhs);
+        default:
+            throw std::runtime_error("Unknown op");
+    }
+}
+
+
 std::string relEnumStrs[] = {" = ", " != ", " < ", " <= ", " > ", " >= "};
 
 namespace Relations

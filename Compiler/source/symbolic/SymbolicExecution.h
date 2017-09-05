@@ -61,7 +61,8 @@ namespace SymbolicExecution
         //returns if a feasable path extention goes through this node
         //a path is feasable if it visits itself or reaches the last state
         bool visitNode(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n);
-        //same as above, but branches the SEF in the appropriate way
+        //all the below static cast to SymbolicVariableTemplate<T>
+        //these don't check if the ranges are disjoint - this is done in visitNode
         template <typename T>
         bool branch(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n, std::string lhsvar,
                     Relations::Relop op, const T& rhsconst, bool reverse = false);
@@ -83,8 +84,6 @@ namespace SymbolicExecution
         template <typename T>
         bool branchGT(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
                       std::string lhsvar, const T& rhsconst, bool reverse = false);
-
-        //all the below static cast to SymbolicVariableTemplate<T>
         template <typename T>
         bool varBranch(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n,
                        VarTemplatePointer<T> lhsvar, Relations::Relop op, VarTemplatePointer<T> rhsvar);

@@ -1,5 +1,7 @@
 #include <algorithm>
 #include <map>
+#include <set>
+#include <memory>
 
 #include "../compile/FunctionCodeGen.h"
 #include "CFG.h"
@@ -25,34 +27,75 @@ string CFGNode::getSource()
     return outs.str();
 }
 
-void CFGNode::addParent(std::shared_ptr<CFGNode> parent)
+bool CFGNode::addParent(std::shared_ptr<CFGNode> parent)
 {
-    auto it = find(predecessors.begin(), predecessors.end(), parent);
-    if (it != predecessors.end()) throw "Parent already in";
-    predecessors.push_back(parent);
+    auto it = predecessors.find(parent->getName());
+    if (it != predecessors.end()) return false;
+    predecessors[parent->getName()] = parent;
+    return true;
 }
 
 void CFGNode::removeParent(std::shared_ptr<CFGNode> leaving)
 {
-    auto it = find(predecessors.begin(), predecessors.end(), leaving);
-
-    if (it != predecessors.end())
-    {
-        swap(*it, predecessors.back());
-        predecessors.pop_back();
-    }
-    else  throw "Parent is not in";
+    if (predecessors.erase(leaving->getName()) == 0) throw "Parent is not in";
 }
 
 void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in)
 {
     vector<std::shared_ptr<AbstractCommand>>::const_iterator it = in.cbegin();
 
+    std::unordered_map<std::string,std::string> constVariables;
+
     while (it != in.cend()
-           &&  (*it)->getEffectFlag() != CommandSideEffect::JUMP
-           && (*it)->getEffectFlag() != CommandSideEffect::CONDJUMP)
+           && (*it)->getType() != CommandType::JUMP
+           && (*it)->getType() != CommandType::CONDJUMP)
     {
-        instrs.push_back(*it);
+        std::shared_ptr<AbstractCommand> current = *it;
+        if (current->getType() == CommandType::ASSIGNVAR)
+        {
+            shared_ptr<AssignVarCommand> avc = static_pointer_cast<AssignVarCommand>(current);
+            if (AbstractCommand::getStringType(avc->RHS) == AbstractCommand::StringType::ID
+                    && constVariables.find(avc->RHS) == constVariables.end()) instrs.push_back(current);
+            else constVariables[avc->getData()] = avc->RHS;
+        }
+        else if (current->getType() == CommandType::EXPR)
+        {
+            shared_ptr<EvaluateExprCommand> eec = static_pointer_cast<EvaluateExprCommand>(current);
+
+            //if either operand is a variable not known to be constant
+            AbstractCommand::StringType t1type = AbstractCommand::getStringType(eec->term1);
+            AbstractCommand::StringType t2type = AbstractCommand::getStringType(eec->term2);
+            if ((t1type == AbstractCommand::StringType::ID
+               && constVariables.find(eec->term1) == constVariables.end()) ||
+                ((t2type == AbstractCommand::StringType::ID
+                  && constVariables.find(eec->term2) == constVariables.end()))) instrs.push_back(current);
+            else
+            {
+                string t1val = (t1type == AbstractCommand::StringType::ID) ? constVariables[eec->term1] : eec->term1;
+                string t2val = (t2type == AbstractCommand::StringType::ID) ? constVariables[eec->term2] : eec->term2;
+                try
+                {
+                    double lhs = stod(t1val);
+                    double rhs = stod(t2val);
+                    double result = evaluateOp(lhs, eec->op, rhs);
+                    string resultstr = to_string(result);
+                    constVariables[eec->getData()] = resultstr;
+                    instrs.push_back(make_shared<AssignVarCommand>(eec->getData(), resultstr, eec->getLineNum()));
+                }
+                catch (invalid_argument e)
+                {
+                    if (eec->op == PLUS)
+                    {
+                        string result = eec->term1 + eec->term2;
+                        constVariables[eec->getData()] = result;
+                        instrs.push_back(make_shared<AssignVarCommand>(eec->getData(), result, eec->getLineNum()));
+                    }
+                    else throw runtime_error("Strings only support +");
+                }
+
+            }
+        }
+        else instrs.push_back(current);
         it++;
     }
 
@@ -61,16 +104,23 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
         return;
     }
 
-    if ((*it)->getEffectFlag() == CommandSideEffect::CONDJUMP)
+    if ((*it)->getType() == CommandType::CONDJUMP)
     {
         comp = static_pointer_cast<JumpOnComparisonCommand>(*it);
+        if (comp->term1Type == AbstractCommand::StringType::ID &&
+            constVariables.find(comp->term1) != constVariables.end()) comp->setTerm1(constVariables[comp->term1]);
+        if (comp->term2Type == AbstractCommand::StringType::ID &&
+            constVariables.find(comp->term2) != constVariables.end()) comp->setTerm2(constVariables[comp->term2]);
+        comp->makeGood();
+        //if these are both const they get replaced during 1st symbolic execution
+
         compSuccess = parent.getNode((*it)->getData());
         compSuccess->addParent(shared_from_this());
 
         if (++it == in.cend()) return;
     }
 
-    if ((*it)->getEffectFlag() == CommandSideEffect::JUMP)
+    if ((*it)->getType() == CommandType::JUMP)
     {
         string jumpto = (*it)->getData();
         jumpline = (*it)->getLineNum();
@@ -90,7 +140,7 @@ shared_ptr<JumpOnComparisonCommand> CFGNode::getComp()
     return comp;
 }
 
-vector<shared_ptr<CFGNode>> &CFGNode::getPredecessors()
+const unordered_map<string, shared_ptr<CFGNode>>& CFGNode::getPredecessors()
 {
     return predecessors;
 }

@@ -27,8 +27,9 @@ namespace Optimise
                 NodePointer replaceWith = current->getCompFail();
                 replaceWith->removeParent(current);
 
-                for (NodePointer replacing : current->getPredecessors())
+                for (auto p : current->getPredecessors())
                 {
+                    NodePointer replacing = p.second;
                     NodePointer succ = replacing->getCompSuccess();
                     if (succ != nullptr && succ->getName() == current->getName())
                     {

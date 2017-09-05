@@ -3,14 +3,14 @@
 
 #include <string>
 #include <stdexcept>
+#include <math.h>
 
 enum Type {IDENT, OP, RELOP, LBRACE, RBRACE,
             LPAREN, RPAREN, IF, WHILE,
             SEMIC, FUNCTION, DTYPE, CALL,
             RETURN, ASSIGN, END, NUMBER,
-            INPUT, PRINT, NOT, ENDIF, DONE, COMMA,
-            COMPAND, COMPOR, STRINGLIT,
-            THEN, ELSE};
+            INPUT, PRINT, NOT, ENDIF, COMMA,
+            COMPAND, COMPOR, STRINGLIT, ELSE};
 
 extern std::string TypeEnumNames[];
 
@@ -30,7 +30,7 @@ namespace Relations
 extern std::string relEnumStrs[];
 
 enum Op {PLUS, MULT, MINUS, DIV, MOD, AND, OR};
-
+double evaluateOp(const double& lhs, Op op, const double& rhs);
 extern char opEnumChars[];
 
 class Token

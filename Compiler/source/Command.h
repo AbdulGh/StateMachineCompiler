@@ -5,24 +5,23 @@
 
 #include "compile/Token.h"
 
-enum class CommandSideEffect{NONE, JUMP, CONDJUMP, CHANGEVAR};
+enum class CommandType{NONE, JUMP, CONDJUMP, ASSIGNVAR, CHANGEVAR, EXPR};
 
 namespace SymbolicExecution {class SymbolicExecutionFringe;}; //symbolic/SymbolicExecution.cpp
 class AbstractCommand
 {
 private:
     std::string data;
-    CommandSideEffect effectFlag;
+    CommandType commandType;
     int linenumber;
 
 protected:
-    void setEffect(CommandSideEffect effect)
+    void setType(CommandType type)
     {
-        AbstractCommand::effectFlag = effect;
+        AbstractCommand::commandType = type;
     }
 
 public:
-
     virtual std::string translation() const = 0;
     AbstractCommand() {}
     AbstractCommand(int line): linenumber(line) {}
@@ -31,14 +30,14 @@ public:
     //returns if the symbolic execution of this command went through
     virtual bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs);
 
-    const std::string &getData() const
+    const std::string& getData() const
     {
         return data;
     }
 
-    CommandSideEffect getEffectFlag() const
+    CommandType getType() const
     {
-        return effectFlag;
+        return commandType;
     }
 
     void setData(const std::string &data)
@@ -50,6 +49,22 @@ public:
     {
         return linenumber;
     }
+
+    enum class StringType{ID, STRINGLIT, DOUBLELIT};
+    static AbstractCommand::StringType getStringType(const std::string& str)
+    {
+        if (str.length() == 0) throw std::runtime_error("Asked to find StringType of empty string");
+        else if (str.length() > 1 && str[0] == '\"') return StringType::STRINGLIT;
+        else try
+            {
+                stod(str);
+                return StringType::DOUBLELIT;
+            }
+            catch (std::invalid_argument e)
+            {
+                return StringType::ID;
+            }
+    }
 };
 
 class PrintCommand: public AbstractCommand
@@ -58,7 +73,7 @@ public:
     PrintCommand(std::string info, int linenum) : AbstractCommand(linenum)
     {
         setData(info);
-        setEffect(CommandSideEffect::NONE);
+        setType(CommandType::NONE);
     }
 
     std::string translation() const override {return "print " + getData() + ";\n";};
@@ -70,7 +85,7 @@ public:
     ReturnCommand(int linenum) : AbstractCommand(linenum)
     {
         setData("return");
-        setEffect(CommandSideEffect::JUMP);
+        setType(CommandType::JUMP);
     }
     std::string translation() const override {return "return;\n";}
 };
@@ -81,7 +96,7 @@ public:
     JumpCommand(std::string to, int linenum) : AbstractCommand(linenum)
     {
         setData(to);
-        setEffect(CommandSideEffect::JUMP);
+        setType(CommandType::JUMP);
     }
     std::string translation() const override{return "jump " + getData() + ";\n";};
 };
@@ -89,11 +104,10 @@ public:
 class JumpOnComparisonCommand: public AbstractCommand
 {
 public:
-    enum class ComparitorType{ID, STRINGLIT, DOUBLELIT};
     std::string term1;
-    ComparitorType term1Type;
+    StringType term1Type;
     std::string term2;
-    ComparitorType term2Type;
+    StringType term2Type;
     Relations::Relop op;
 
     JumpOnComparisonCommand(std::string st, std::string t1, std::string t2, Relations::Relop o, int linenum) : AbstractCommand(linenum)
@@ -103,41 +117,50 @@ public:
         term2 = t2;
         op = o;
         //these are only used during symbolic execution
-        term1Type = getCompType(term1);
-        term2Type = getCompType(term2);
+        term1Type = getStringType(term1);
+        term2Type = getStringType(term2);
 
         //ensure a var appears on the lhs if there is one
         //const comparisons will be hardcoded later
-        if (term1Type != JumpOnComparisonCommand::ComparitorType::ID
-            && term1Type != JumpOnComparisonCommand::ComparitorType::ID)
+        if (term1Type != AbstractCommand::StringType::ID
+            && term2Type == AbstractCommand::StringType::ID)
         {
-            ComparitorType temp = term1Type;
+            StringType temp = term1Type;
             term1Type = term2Type;
             term2Type = temp;
             term1.swap(term2);
             op = Relations::mirrorRelop(op);
         }
 
-        setEffect(CommandSideEffect::CONDJUMP);
+        setType(CommandType::CONDJUMP);
+    }
+
+    void setTerm1(const std::string& t1)
+    {
+        term1 = t1;
+        term1Type = getStringType(term1);
+    }
+
+    void setTerm2(const std::string& t2)
+    {
+        term2 = t2;
+        term2Type = getStringType(term2);
+    }
+
+    void makeGood()
+    {
+        if (term1Type != AbstractCommand::StringType::ID
+            && term2Type == AbstractCommand::StringType::ID)
+        {
+            StringType temp = term1Type;
+            term1Type = term2Type;
+            term2Type = temp;
+            term1.swap(term2);
+            op = Relations::mirrorRelop(op);
+        }
     }
 
     std::string translation() const override {return "jumpif " + term1 + relEnumStrs[op] + term2 + " " + getData() + ";\n";}
-
-private:
-    ComparitorType getCompType(std::string str)
-    {
-        if (str.length() == 0) throw std::runtime_error("Asked to find ComparitorType of empty string");
-        else if (str.length() > 1 && str[0] == '\"') return ComparitorType::STRINGLIT;
-        else try
-        {
-            stod(str);
-            return ComparitorType::DOUBLELIT;
-        }
-        catch (std::invalid_argument e)
-        {
-            return ComparitorType::ID;
-        }
-    };
 };
 
 class InputVarCommand: public AbstractCommand
@@ -146,7 +169,7 @@ public:
     InputVarCommand(std::string assigning, int linenum) : AbstractCommand(linenum)
     {
         setData(assigning);
-        setEffect(CommandSideEffect::CHANGEVAR);
+        setType(CommandType::CHANGEVAR);
     }
     std::string translation() const override{return "input " + getData() + ";\n";};
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
@@ -158,7 +181,7 @@ public:
     PushCommand(std::string in, int linenum) : AbstractCommand(linenum)
     {
         setData(in);
-        setEffect(CommandSideEffect::NONE);
+        setType(CommandType::NONE);
     }
 
     std::string translation() const override{return "push " + getData() + ";\n";}
@@ -171,7 +194,7 @@ public:
     PopCommand(std::string in, int linenum) : AbstractCommand(linenum)
     {
         setData(in);
-        setEffect(CommandSideEffect::CHANGEVAR);
+        setType(CommandType::CHANGEVAR);
     }
 
     std::string translation() const override{return "pop " + getData() + ";\n";}
@@ -187,7 +210,7 @@ public:
     {
         setData(lh);
         RHS = rh;
-        setEffect(CommandSideEffect::CHANGEVAR);
+        setType(CommandType::ASSIGNVAR);
     }
 
     std::string translation() const override{return getData() + " = " + RHS + ";\n";}
@@ -207,7 +230,7 @@ public:
         term1 = t1;
         term2 = t2; 
         op =o;
-        setEffect(CommandSideEffect::CHANGEVAR);
+        setType(CommandType::EXPR);
     }
 
     std::string translation() const override{return getData() + " = " + term1 + ' ' + opEnumChars[op]  + ' ' + term2 + ";\n";}
@@ -223,7 +246,7 @@ public:
     {
         vt = t;
         setData(n);
-        setEffect(CommandSideEffect::CHANGEVAR);
+        setType(CommandType::CHANGEVAR);
     }
 
     std::string translation() const override{return VariableTypeEnumNames[vt] + " " + getData() + ";\n";}

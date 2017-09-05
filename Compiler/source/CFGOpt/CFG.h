@@ -1,6 +1,8 @@
 #ifndef PROJECT_CFG_H
 #define PROJECT_CFG_H
 
+#include <unordered_map>
+
 #include "../compile/SymbolTable.h"
 #include "../compile/Token.h"
 #include "../Command.h"
@@ -33,17 +35,17 @@ class CFGNode: public std::enable_shared_from_this<CFGNode>
 private:
     std::string name;
     std::shared_ptr<JumpOnComparisonCommand> comp;
-    std::vector<std::shared_ptr<CFGNode>> predecessors;
+    std::unordered_map<std::string, std::shared_ptr<CFGNode>> predecessors;
     std::shared_ptr<CFGNode> compSuccess;
     std::shared_ptr<CFGNode> compFail; //unconditional jump at the end of the node
-    std::vector<std::shared_ptr<AbstractCommand>> instrs;
+    std::vector<std::shared_ptr<AbstractCommand>> instrs; //todo unique ptr
     ControlFlowGraph& parent;
     int jumpline;
 
 public:
     CFGNode(ControlFlowGraph& p, std::string n):
             parent(p), name(n), comp{}, compSuccess{}, compFail{}, jumpline(-1) {}
-    void addParent(std::shared_ptr<CFGNode>);
+    bool addParent(std::shared_ptr<CFGNode>); //returns false if parent was already in
     void removeParent(std::shared_ptr<CFGNode>);
     void setInstructions(const std::vector<std::shared_ptr<AbstractCommand>> &in);
     const std::string &getName() const;
@@ -51,7 +53,7 @@ public:
     void setCompFail(const std::shared_ptr<CFGNode> &compFail);
     void setComp(const std::shared_ptr<JumpOnComparisonCommand> &comp);
     std::shared_ptr<JumpOnComparisonCommand> getComp();
-    std::vector<std::shared_ptr<CFGNode>> &getPredecessors();
+    const std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getPredecessors();
     std::shared_ptr<CFGNode> getCompSuccess();
     int getJumpline() const;
     std::shared_ptr<CFGNode> getCompFail();

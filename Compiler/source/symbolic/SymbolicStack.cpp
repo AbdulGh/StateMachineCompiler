@@ -53,14 +53,14 @@ shared_ptr<StackMember> SymbolicStack::popMember()
 string SymbolicStack::popState()
 {
     shared_ptr<StackMember> popped = popMember();
-    if (popped->type != SymbolicStackMemberType ::STATE) throw runtime_error("Tried to jump to var");
+    if (popped->type != SymbolicStackMemberType::STATE) throw runtime_error("Tried to jump to var");
     return popped->statename;
 }
 
 shared_ptr<SymbolicVariable> SymbolicStack::popVar()
 {
     shared_ptr<StackMember> popped = popMember();
-    if (popped->type != SymbolicStackMemberType ::VAR) throw runtime_error("Tried to pop state as var");
+    if (popped->type != SymbolicStackMemberType::VAR) throw runtime_error("Tried to pop state as var");
     return popped->varptr;
 }
 

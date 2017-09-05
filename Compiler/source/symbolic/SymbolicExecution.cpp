@@ -1,4 +1,5 @@
 #include "SymbolicExecution.h"
+#include "../Command.h"
 
 using namespace std;
 using namespace SymbolicExecution;
@@ -69,20 +70,15 @@ SymbolicExecutionManager::getFailNode(std::shared_ptr<SymbolicExecutionFringe> r
             return nullptr;
         }
     }
+    failNode->addParent(n);
     return failNode;
 }
 
+//todo remove unvisited states
 bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n)
 {
-    string debug = n->getName();
-    if (!sef->isFeasable())
-    {
-        return false;
-    }
-    else if (sef->hasSeen(n->getName()))
-    {
-        return true;
-    }
+    if (!sef->isFeasable()) return false;
+    else if (sef->hasSeen(n->getName())) return true;
 
     for (shared_ptr<AbstractCommand> command : n->getInstrs())
     {
@@ -96,8 +92,8 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     if (jocc != nullptr) //is a conditional jump
     {
         //check for const comparison
-        if (jocc->term1Type != JumpOnComparisonCommand::ComparitorType::ID
-            && jocc->term2Type != JumpOnComparisonCommand::ComparitorType::ID)
+        if (jocc->term1Type != AbstractCommand::StringType::ID
+            && jocc->term2Type != AbstractCommand::StringType::ID)
         {
             if (jocc->term1Type != jocc->term2Type)
             {
@@ -107,11 +103,11 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
 
             else
             {
-                sef->reporter.optimising(Reporter::USELESS_OP, "Constant comparison: '" + jocc->translation() + "'");
+                sef->reporter.optimising(Reporter::USELESS_OP, "Constant comparison: '" + jocc->translation() + "'"); //todo jocc->translation has newline
 
                 //replace conditionals with true/false
                 bool isTrue;
-                if (jocc->term1Type == JumpOnComparisonCommand::ComparitorType::DOUBLELIT)
+                if (jocc->term1Type == AbstractCommand::StringType::DOUBLELIT)
                 {
                     double d1 = stod(jocc->term1);
                     double d2 = stod(jocc->term2);
@@ -127,6 +123,8 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                 else n->getCompSuccess()->removeParent(n);
                 n->getComp().reset();
                 n->setComp(nullptr);
+                n->getCompSuccess().reset();
+                n->setCompSuccess(nullptr);
             }
         }
         else //actually have to do some work
@@ -143,10 +141,10 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                                              "'" + LHS->getName() + "' used before being defined", jocc->getLineNum());
 
             //check if we can meet the comparison - search if so
-            if (jocc->term2Type != JumpOnComparisonCommand::ComparitorType::ID) //comparing to a literal
+            if (jocc->term2Type != AbstractCommand::StringType::ID) //comparing to a literal
             {
-                if ((jocc->term2Type == JumpOnComparisonCommand::ComparitorType::DOUBLELIT && LHS->getType() != DOUBLE)
-                        || (jocc->term2Type == JumpOnComparisonCommand::ComparitorType::STRINGLIT && LHS->getType() != STRING)) //todo shorten stringlit
+                if ((jocc->term2Type == AbstractCommand::StringType::DOUBLELIT && LHS->getType() != DOUBLE)
+                        || (jocc->term2Type == AbstractCommand::StringType::STRINGLIT && LHS->getType() != STRING)) //todo shorten stringlit
                 {
                     sef->error(Reporter::TYPE, "'" + jocc->term1 + "' (type " + TypeEnumNames[LHS->getType()]
                                                + ")  compared to a different type",

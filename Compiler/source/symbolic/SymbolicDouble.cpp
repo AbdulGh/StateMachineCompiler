@@ -286,7 +286,7 @@ ArithResult safeMultiply(double a, double b, double& result)
     else if (a < numeric_limits<double>::min() / b)
     {
         result = numeric_limits<double>::min();
-        return ArithResult ::UNDER;
+        return ArithResult::UNDER;
     }
     result = a * b;
     return ArithResult::FINE;
@@ -404,11 +404,11 @@ void SymbolicDouble::multConst(double mul)
         {
             if (value > numeric_limits<double>::max()/mul) //will be >0 also
             {
-                reportError(Reporter::AlertType ::RANGE, varN + " will overflow");
+                reportError(Reporter::AlertType::RANGE, varN + " will overflow");
             }
             else if (value < numeric_limits<double>::lowest() / mul)
             {
-                reportError(Reporter::AlertType ::RANGE, varN + " will overflow");
+                reportError(Reporter::AlertType::RANGE, varN + " will overflow");
             }
             else setConstValue(value * mul);
         }
@@ -572,7 +572,7 @@ void SymbolicDouble::multSymbolicDouble(SymbolicDouble &other)
     {
         if (lowerBound < numeric_limits<double>::max() / otherLowerBound)
         {
-            reportError(Reporter::AlertType ::RANGE, varN + " will overflow");
+            reportError(Reporter::AlertType::RANGE, varN + " will overflow");
         }
         else lowerBound *= otherLowerBound;
     }
@@ -642,7 +642,7 @@ ArithResult safeDivide(double a, double b, double& result)
     else if (a < numeric_limits<double>::min() * b)
     {
         result = numeric_limits<double>::min();
-        return ArithResult ::UNDER;
+        return ArithResult::UNDER;
     }
     result = a / b;
     return ArithResult::FINE;
