@@ -205,6 +205,11 @@ shared_ptr<CFGNode> ControlFlowGraph::getNode(string name, bool create)
 
 void ControlFlowGraph::removeNode(std::string name)
 {
+    if (last != nullptr && last->getName() == name)
+    {
+        if (last->getPredecessors().size() != 1) throw runtime_error("Can't replace last node");
+        last = last->getPredecessors().cbegin()->second;
+    }
     unordered_map<string, shared_ptr<CFGNode>>::iterator it = currentNodes.find(name);
     if (it == currentNodes.end()) throw "Check";
     currentNodes.erase(it);
@@ -213,7 +218,7 @@ void ControlFlowGraph::removeNode(std::string name)
 void ControlFlowGraph::addNode(std::string name, std::vector<std::shared_ptr<AbstractCommand>> instrs)
 {
     shared_ptr<CFGNode> introducing = getNode(name);
-    if (currentNodes.size() == 1) first = introducing;
+    if (currentNodes.size() == 1)  first = introducing;
     introducing->setInstructions(instrs);
 }
 

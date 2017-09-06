@@ -102,10 +102,9 @@ bool SymbolicDouble::clipUpperBound(const double& d, bool closed)
     else return isFeasable();
 }
 
-void SymbolicDouble::setConstValue(const std::string& c)
+void SymbolicDouble::setConstStringValue(const std::string& c)
 {
-    upperBound = lowerBound = stod(c);
-    isConst = true;
+    setConstValue(stod(c));
 }
 
 bool SymbolicDouble::isBoundedAbove() const
@@ -127,12 +126,6 @@ const MonotoneEnum SymbolicDouble::getMonotinicity() const
 const double SymbolicDouble::getMininumStep() const
 {
     return minStep;
-}
-
-void SymbolicDouble::setConstValue(double d)
-{
-    upperBound = lowerBound = d;
-    isConst = true;
 }
 
 void SymbolicDouble::addConstToLower(const double diff)
@@ -412,7 +405,7 @@ void SymbolicDouble::multConst(double mul)
             }
             else setConstValue(value * mul);
         }
-        else setConstValue(value * mul);
+        else setConstStringValue(value * mul);
     }
     else
     {

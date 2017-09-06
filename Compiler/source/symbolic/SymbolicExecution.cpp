@@ -50,6 +50,31 @@ void SymbolicExecutionManager::search()
     {
         reporter.warn(Reporter::GENERIC, "No feasable path was found through the program");
     }
+    for (auto& p : feasableVisits)
+    {
+        if (p.second == 0) // no feasable visits - remove
+        {
+            shared_ptr<CFGNode> lonelyNode = cfg.getNode(p.first);
+            if (lonelyNode->getCompSuccess() != nullptr) lonelyNode->getCompSuccess()->removeParent(lonelyNode);
+            if (lonelyNode->getCompFail() != nullptr) lonelyNode->getCompFail()->removeParent(lonelyNode);
+            for (auto& parentPair : lonelyNode->getPredecessors())
+            {
+                shared_ptr<CFGNode> parent = parentPair.second;
+                if (parent->getCompSuccess() != nullptr &&
+                        parent->getCompSuccess()->getName() == lonelyNode->getName()) parent->setCompSuccess(nullptr);
+
+                else if (parent->getCompFail() != nullptr && parent->getCompFail()->getName() == lonelyNode->getName())
+                {
+                    parent->setCompFail(parent->getCompSuccess());
+                    parent->setComp(nullptr);
+                    parent->setCompSuccess(nullptr);
+                }
+                else throw runtime_error("bad parent");
+                parent->setComp(nullptr);
+            }
+            cfg.removeNode(p.first);
+        }
+    }
 }
 
 std::shared_ptr<CFGNode>
@@ -74,7 +99,6 @@ SymbolicExecutionManager::getFailNode(std::shared_ptr<SymbolicExecutionFringe> r
     return failNode;
 }
 
-//todo remove unvisited states
 bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n)
 {
     if (!sef->isFeasable()) return false;
@@ -87,6 +111,28 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
 
     feasableVisits[n->getName()]++;
     if (n->getName() == cfg.getLast()->getName()) return true;
+
+    /*
+    auto visitWithFeasableIncrement =
+    [&n, this] (shared_ptr<SymbolicExecutionFringe> symexfringe, shared_ptr<CFGNode> node) -> bool
+    {
+        if (visitNode(symexfringe, node))
+        {
+            feasableVisits[n->getName()]++;
+            return true;
+        }
+        else return false;
+    };
+
+*/
+    auto branchOnType =
+    [&n, this] (shared_ptr<SymbolicExecutionFringe> sef, string lhs, Relations::Relop op, string rhs, VariableType t,
+          bool rev = false)
+    {
+        if (t == STRING) return branch<string>(sef, n, lhs, op, rhs, rev);
+        else if (t == DOUBLE) return branch<double>(sef, n, lhs, op, stod(rhs), rev);
+        else throw runtime_error("bad vtype");
+    };
 
     shared_ptr<JumpOnComparisonCommand> jocc = n->getComp();
     if (jocc != nullptr) //is a conditional jump
@@ -125,6 +171,10 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                 n->setComp(nullptr);
                 n->getCompSuccess().reset();
                 n->setCompSuccess(nullptr);
+
+                shared_ptr<CFGNode> nextNode = getFailNode(sef, n);
+                if (nextNode == nullptr) return false;
+                return visitNode(sef, nextNode);
             }
         }
         else //actually have to do some work
@@ -154,7 +204,14 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
 
                 string& rhs = jocc->term2;
 
-                if (LHS->isDetermined()) return LHS->meetsConstComparison(jocc->op, rhs);
+                if (LHS->isDetermined())
+                {
+                    if (LHS->meetsConstComparison(jocc->op, rhs))
+                    {
+                        sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(), jocc->op, rhs);
+                        return visitNode(sef, n->getCompSuccess());
+                    }
+                }
 
                 switch (LHS->canMeet(jocc->op, rhs))
                 {
@@ -169,7 +226,8 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                     }
                     case SymbolicVariable::MAY:
                     {
-                        return branch(sef, n, LHS->getName(), jocc->op, jocc->term2, false);
+                        return branchOnType(sef, LHS->getName(), jocc->op,
+                                                           jocc->term2, LHS->getType(), false);
                     }
                     case SymbolicVariable::MUST:
                     {
@@ -214,33 +272,45 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                         else
                         {
                             shared_ptr<CFGNode> nextnode = getFailNode(sef, n);
+                            if (nextnode == nullptr) return false;
                             sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(), Relations::negateRelop(jocc->op),
                                                                                        RHS->getName() + "(= " +  RHS->getConstString() + ")");
-                            if (nextnode == nullptr) return false;
-                            else return visitNode(sef, n);
+                            return visitNode(sef, n);
                         }
 
                     }
                     else //rhs undetermined, lhs determined
                     {
                         Relations::Relop mirroredOp = Relations::mirrorRelop(jocc->op);
-                        return branch(sef, n, RHS->getName(), mirroredOp, LHS->getConstString(), true);
+                        return branchOnType(sef, RHS->getName(), mirroredOp,
+                                                           LHS->getConstString(), RHS->getType(), true);
                     }
                 }
-                else if (RHS->isDetermined()) return branch(sef, n, LHS->getName(), jocc->op, RHS->getConstString());
+                else if (RHS->isDetermined()) return branchOnType(sef, LHS->getName(), jocc->op,
+                                                                                 RHS->getConstString(), LHS->getType(), false);
 
                 //neither are determined here
                 if (LHS->getType() == STRING)
                 {
                     VarTemplatePointer<string> LHS = static_pointer_cast<SymbolicVariableTemplate<string>>(LHS);
                     VarTemplatePointer<string> RHS = static_pointer_cast<SymbolicVariableTemplate<string>>(RHS);
-                    return varBranch<string>(sef, n, LHS, jocc->op, RHS);
+                    if (varBranch<string>(sef, n, LHS, jocc->op, RHS))
+                    {
+                        feasableVisits[n->getName()]++;
+                        return true;
+                    }
+                    return false;
                 }
                 else if (LHS->getType() == DOUBLE)
                 {
                     VarTemplatePointer<double> LHS = static_pointer_cast<SymbolicVariableTemplate<double>>(LHS);
                     VarTemplatePointer<double> RHS = static_pointer_cast<SymbolicVariableTemplate<double>>(RHS);
-                    return varBranch<double>(sef, n, LHS, jocc->op, RHS);
+                    if (varBranch<double>(sef, n, LHS, jocc->op, RHS))
+                    {
+                        feasableVisits[n->getName()]++;
+                        return true;
+                    }
+                    return false;
                 }
             }
         }
@@ -517,8 +587,6 @@ bool SymbolicExecutionManager::branchGE(std::shared_ptr<SymbolicExecutionFringe>
 }
 
 //branching on var comparison
-//todo check below (RHS lower vs upper) and finish the rest
-//todo path conditions
 template <typename T>
 bool SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
                                          VarTemplatePointer<T> LHS, Relations::Relop op,

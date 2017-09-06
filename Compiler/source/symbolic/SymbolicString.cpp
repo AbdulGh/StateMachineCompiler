@@ -32,6 +32,18 @@ bool SymbolicString::setUpperBound(const std::string& ub, bool closed)
     return isFeasable();
 }
 
+void SymbolicString::setConstValue(const string& cv)
+{
+    boundedUpper = boundedLower = true;
+    lowerBound = upperBound = cv;
+    isConst = true;
+}
+
+void SymbolicString::setConstStringValue(const std::string &s)
+{
+    setConstValue(s);
+}
+
 bool SymbolicString::setLowerBound(const std::string& lb, bool closed)
 {
     if (!closed)
@@ -56,12 +68,6 @@ bool SymbolicString::clipUpperBound(const std::string& ub, bool closed)
 {
     if (!isBoundedAbove() || getUpperBound() < ub) return setLowerBound(ub, closed);
     else return isFeasable();
-}
-
-void SymbolicString::setConstValue(const std::string& c)
-{
-    lowerBound = upperBound = c;
-    isConst = true;
 }
 
 void SymbolicString::userInput()

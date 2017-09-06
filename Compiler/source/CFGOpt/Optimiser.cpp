@@ -48,6 +48,10 @@ namespace Optimise
                 pair = nodes.erase(pair);
                 incremented = true;
             }
+            else if (instructionList.size() == 1)
+            {
+                //todo next this
+            }
             if (!incremented) ++pair;
         }
     }

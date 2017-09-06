@@ -38,7 +38,7 @@ public:
     void define();
 
     virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const = 0;
-    virtual void setConstValue(const std::string&) = 0;
+    virtual void setConstStringValue(const std::string &) = 0;
     virtual const std::string getConstString() = 0;
     virtual void userInput() = 0;
     virtual bool isBoundedBelow() const = 0;
@@ -66,6 +66,7 @@ public:
     virtual bool clipLowerBound(const T& lb, bool closed=true) = 0;
     virtual bool clipUpperBound(const T& up, bool closed=true) = 0;
     const T& getUpperBound() const;
+    virtual void setConstValue(const T& cv);
     const T& getLowerBound() const;
     const T& getConstValue();
     const std::string getConstString();
@@ -94,8 +95,7 @@ public:
     bool setUpperBound(const double& d, bool closed=true);
     bool clipLowerBound(const double& d, bool closed=true);
     bool clipUpperBound(const double& d, bool closed=true);
-    void setConstValue(const std::string&) override;
-    void setConstValue(double d);
+    void setConstStringValue(const std::string&) override;
 
     void userInput();
     bool isBoundedBelow() const;
@@ -134,7 +134,8 @@ public:
     bool setUpperBound(const std::string&, bool closed=true) override;
     bool clipLowerBound(const std::string&, bool closed=true) override;
     bool clipUpperBound(const std::string&, bool closed=true) override;
-    void setConstValue(const std::string&) override;
+    void setConstValue(const std::string& s) override;
+    void setConstStringValue(const std::string& s) override;
 
     void userInput();
     bool isBoundedBelow() const;

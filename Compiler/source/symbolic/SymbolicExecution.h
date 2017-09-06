@@ -18,7 +18,6 @@ namespace SymbolicExecution
 {
     struct Condition
     {
-        std::string nodeName;
         std::string l;
         Relations::Relop c;
         std::string r;
