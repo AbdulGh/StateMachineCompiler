@@ -38,6 +38,7 @@ void Compiler::compile(stringstream& out)
     while (lookahead.type != END) body();
 
     cfg.setLast(functionTable["main"]->getLastStateName());
+
     Optimise::optimise(symbolTable, cfg);
     reporter.info("Beginning symbolic stuff...");
     SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);

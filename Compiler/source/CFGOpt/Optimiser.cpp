@@ -19,38 +19,34 @@ namespace Optimise
         while (pair != nodes.end())
         {
             NodePointer current = pair->second;
-            vector<shared_ptr<AbstractCommand>>& instructionList = current->getInstrs();
+            vector<shared_ptr<AbstractCommand>> &instructionList = current->getInstrs();
             bool incremented = false;
-            if (instructionList.size() == 0 &&
-                current->getComp() == nullptr && current->getCompFail() != nullptr) //node consists of a single unconditional jump (not return)
+            if (instructionList.size() <= 4) //is small
             {
-                NodePointer replaceWith = current->getCompFail();
-                replaceWith->removeParent(current);
-
-                for (auto p : current->getPredecessors())
+                bool canDelete = true;
+                auto parentPair = current->getPredecessors().begin();
+                while (parentPair != current->getPredecessors().end())
                 {
-                    NodePointer replacing = p.second;
-                    NodePointer succ = replacing->getCompSuccess();
-                    if (succ != nullptr && succ->getName() == current->getName())
+                    shared_ptr<CFGNode> swallowing = parentPair->second;
+                    string name = swallowing->getName();
+                    string name2 = parentPair->first;
+                    if (swallowing->getName() == "")
                     {
-                        replacing->getComp()->setData(replaceWith->getName());
-                        replacing->setCompSuccess(replaceWith);
-                        replaceWith->addParent(replacing);
+                        int debug;
+                        debug = 5; //todo find out why name is going to ""
                     }
 
-                    NodePointer fail = replacing->getCompFail();
-                    if (fail != nullptr && fail->getName() == current->getName())
+                    if (swallowing->swallowNode(current))
                     {
-                        replacing->setCompFail(replaceWith);
-                        replaceWith->addParent(replacing);
+                        canDelete = false;
+                        ++parentPair;
                     }
                 }
-                pair = nodes.erase(pair);
-                incremented = true;
-            }
-            else if (instructionList.size() == 1)
-            {
-                //todo next this
+                if (canDelete)
+                {
+                    nodes.erase(pair);
+                    incremented = true;
+                }
             }
             if (!incremented) ++pair;
         }

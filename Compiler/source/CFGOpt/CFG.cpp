@@ -37,7 +37,12 @@ bool CFGNode::addParent(std::shared_ptr<CFGNode> parent)
 
 void CFGNode::removeParent(std::shared_ptr<CFGNode> leaving)
 {
-    if (predecessors.erase(leaving->getName()) == 0) throw "Parent is not in";
+    removeParent(leaving->getName());
+}
+
+void CFGNode::removeParent(const std::string& s)
+{
+    if (predecessors.erase(s) == 0) throw runtime_error("Parent is not in");
 }
 
 void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in)
@@ -54,9 +59,8 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
         if (current->getType() == CommandType::ASSIGNVAR)
         {
             shared_ptr<AssignVarCommand> avc = static_pointer_cast<AssignVarCommand>(current);
-            if (AbstractCommand::getStringType(avc->RHS) == AbstractCommand::StringType::ID
-                    && constVariables.find(avc->RHS) == constVariables.end()) instrs.push_back(current);
-            else constVariables[avc->getData()] = avc->RHS;
+            if (!(AbstractCommand::getStringType(avc->RHS) == AbstractCommand::StringType::ID
+                    && constVariables.find(avc->RHS) == constVariables.end())) constVariables[avc->getData()] = avc->RHS;
         }
         else if (current->getType() == CommandType::EXPR)
         {
@@ -65,11 +69,10 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
             //if either operand is a variable not known to be constant
             AbstractCommand::StringType t1type = AbstractCommand::getStringType(eec->term1);
             AbstractCommand::StringType t2type = AbstractCommand::getStringType(eec->term2);
-            if ((t1type == AbstractCommand::StringType::ID
+            if (!((t1type == AbstractCommand::StringType::ID
                && constVariables.find(eec->term1) == constVariables.end()) ||
                 ((t2type == AbstractCommand::StringType::ID
-                  && constVariables.find(eec->term2) == constVariables.end()))) instrs.push_back(current);
-            else
+                  && constVariables.find(eec->term2) == constVariables.end()))))
             {
                 string t1val = (t1type == AbstractCommand::StringType::ID) ? constVariables[eec->term1] : eec->term1;
                 string t2val = (t2type == AbstractCommand::StringType::ID) ? constVariables[eec->term2] : eec->term2;
@@ -95,7 +98,7 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
 
             }
         }
-        else instrs.push_back(current);
+        instrs.push_back(current);
         it++;
     }
 
@@ -173,6 +176,52 @@ void CFGNode::setCompFail(const shared_ptr<CFGNode> &compFail)
 void CFGNode::setComp(const shared_ptr<JumpOnComparisonCommand> &comp)
 {
     CFGNode::comp = comp;
+}
+
+bool CFGNode::swallowNode(std::shared_ptr<CFGNode> other)
+{
+    auto swallowInstrs = [this, &other] ()
+    {
+        other->removeParent(name);
+        vector<std::shared_ptr<AbstractCommand>> newInstrs = instrs;
+        vector<std::shared_ptr<AbstractCommand>>& addingInstrs = other->getInstrs();
+        newInstrs.reserve(instrs.size() + addingInstrs.size());
+        newInstrs.insert(instrs.end(), addingInstrs.begin(), addingInstrs.end());
+        setInstructions(newInstrs);
+    };
+
+    if (compSuccess != nullptr && compSuccess->getName() == other->getName())
+    {
+        if (other->getCompSuccess() != nullptr || other->getCompFail() == nullptr) return false;
+        comp->setData(other->getCompFail()->getName());
+        setCompSuccess(other->getCompFail());
+        swallowInstrs();
+        return true;
+    }
+    else if (compFail == nullptr || compFail->getName() == other->getName())
+    {
+        if (compSuccess == nullptr) //always jump to the swallowed node
+        {
+            setCompSuccess(other->getCompSuccess());
+            setComp(other->getComp());
+            setCompFail(other->getCompFail());
+            if (name == "")
+            {
+                int debug;
+                debug = 5;
+            }
+            swallowInstrs();
+            return true;
+        }
+        else if (other->getCompSuccess() == nullptr)
+        {
+            setCompFail(other->getCompFail());
+            swallowInstrs();
+            return true;
+        }
+        else return false;
+    }
+    else throw runtime_error("Couldn't find this node to swallow");
 }
 
 ControlFlowGraph &CFGNode::getParent() const

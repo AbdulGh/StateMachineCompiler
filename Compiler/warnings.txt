@@ -1,3 +1,0 @@
-Beginning symbolic stuff...
-OPTIMISATION : USELESS OP : Constant comparison: 'jumpif 1 < 2 F_main_1;
-'

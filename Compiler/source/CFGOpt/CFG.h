@@ -47,11 +47,13 @@ public:
             parent(p), name(n), comp{}, compSuccess{}, compFail{}, jumpline(-1) {}
     bool addParent(std::shared_ptr<CFGNode>); //returns false if parent was already in
     void removeParent(std::shared_ptr<CFGNode>);
+    void removeParent(const std::string&);
     void setInstructions(const std::vector<std::shared_ptr<AbstractCommand>> &in);
     const std::string &getName() const;
     void setCompSuccess(const std::shared_ptr<CFGNode> &compSuccess);
     void setCompFail(const std::shared_ptr<CFGNode> &compFail);
     void setComp(const std::shared_ptr<JumpOnComparisonCommand> &comp);
+    bool swallowNode (std::shared_ptr<CFGNode> other);
     std::shared_ptr<JumpOnComparisonCommand> getComp();
     const std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getPredecessors();
     std::shared_ptr<CFGNode> getCompSuccess();
