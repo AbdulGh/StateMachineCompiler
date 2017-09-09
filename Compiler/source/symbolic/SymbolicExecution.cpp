@@ -163,7 +163,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
 
                 if (isTrue)
                 {
-                    n->getCompFail()->removeParent(n);
+                    if (n->getCompFail() != nullptr) n->getCompFail()->removeParent(n);
                     n->setCompFail(n->getCompSuccess());
                 }
                 else n->getCompSuccess()->removeParent(n);

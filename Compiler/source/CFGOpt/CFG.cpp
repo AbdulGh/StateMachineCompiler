@@ -47,6 +47,7 @@ void CFGNode::removeParent(const std::string& s)
 
 void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in)
 {
+    instrs.clear();
     vector<std::shared_ptr<AbstractCommand>>::const_iterator it = in.cbegin();
 
     std::unordered_map<std::string,std::string> constVariables;
@@ -102,10 +103,7 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
         it++;
     }
 
-    if (it == in.cend())
-    {
-        return;
-    }
+    if (it == in.cend()) return;
 
     if ((*it)->getType() == CommandType::CONDJUMP)
     {
@@ -143,7 +141,7 @@ shared_ptr<JumpOnComparisonCommand> CFGNode::getComp()
     return comp;
 }
 
-const unordered_map<string, shared_ptr<CFGNode>>& CFGNode::getPredecessors()
+unordered_map<string, shared_ptr<CFGNode>>& CFGNode::getPredecessors()
 {
     return predecessors;
 }
@@ -180,48 +178,24 @@ void CFGNode::setComp(const shared_ptr<JumpOnComparisonCommand> &comp)
 
 bool CFGNode::swallowNode(std::shared_ptr<CFGNode> other)
 {
-    auto swallowInstrs = [this, &other] ()
+    if (compSuccess == nullptr && compFail != nullptr &&  compFail->getName() == other->getName())
     {
-        other->removeParent(name);
+        shared_ptr<CFGNode> otherSucc = other->getCompSuccess();
+        if (otherSucc != nullptr) otherSucc->addParent(shared_from_this());
+        setCompSuccess(other->getCompSuccess());
+        setComp(other->getComp());
+
+        if (other->getCompFail() != nullptr) other->getCompFail()->addParent(shared_from_this());
+        setCompFail(other->getCompFail());
+
         vector<std::shared_ptr<AbstractCommand>> newInstrs = instrs;
         vector<std::shared_ptr<AbstractCommand>>& addingInstrs = other->getInstrs();
         newInstrs.reserve(instrs.size() + addingInstrs.size());
-        newInstrs.insert(instrs.end(), addingInstrs.begin(), addingInstrs.end());
+        newInstrs.insert(newInstrs.end(), addingInstrs.begin(), addingInstrs.end());
         setInstructions(newInstrs);
-    };
-
-    if (compSuccess != nullptr && compSuccess->getName() == other->getName())
-    {
-        if (other->getCompSuccess() != nullptr || other->getCompFail() == nullptr) return false;
-        comp->setData(other->getCompFail()->getName());
-        setCompSuccess(other->getCompFail());
-        swallowInstrs();
         return true;
     }
-    else if (compFail == nullptr || compFail->getName() == other->getName())
-    {
-        if (compSuccess == nullptr) //always jump to the swallowed node
-        {
-            setCompSuccess(other->getCompSuccess());
-            setComp(other->getComp());
-            setCompFail(other->getCompFail());
-            if (name == "")
-            {
-                int debug;
-                debug = 5;
-            }
-            swallowInstrs();
-            return true;
-        }
-        else if (other->getCompSuccess() == nullptr)
-        {
-            setCompFail(other->getCompFail());
-            swallowInstrs();
-            return true;
-        }
-        else return false;
-    }
-    else throw runtime_error("Couldn't find this node to swallow");
+    return false;
 }
 
 ControlFlowGraph &CFGNode::getParent() const

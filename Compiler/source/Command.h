@@ -135,13 +135,13 @@ public:
         setType(CommandType::CONDJUMP);
     }
 
-    void setTerm1(const std::string& t1)
+    void setTerm1(std::string t1)
     {
         term1 = t1;
         term1Type = getStringType(term1);
     }
 
-    void setTerm2(const std::string& t2)
+    void setTerm2(std::string t2)
     {
         term2 = t2;
         term2Type = getStringType(term2);

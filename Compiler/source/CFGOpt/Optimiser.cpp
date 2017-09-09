@@ -19,36 +19,37 @@ namespace Optimise
         while (pair != nodes.end())
         {
             NodePointer current = pair->second;
+            NodePointer last = controlFlowGraph.getLast();
+            if (last != nullptr && last->getName() == current->getName())
+            {
+                if (last->getPredecessors().size() != 1)
+                {
+                    ++pair;
+                    continue;
+                }
+                last = last->getPredecessors().cbegin()->second;
+            }
+
             vector<shared_ptr<AbstractCommand>> &instructionList = current->getInstrs();
-            bool incremented = false;
             if (instructionList.size() <= 4) //is small
             {
-                bool canDelete = true;
-                auto parentPair = current->getPredecessors().begin();
-                while (parentPair != current->getPredecessors().end())
+                unordered_map<string, NodePointer>& preds = current->getPredecessors();
+                unordered_map<string, NodePointer>::iterator parentit = preds.begin();
+                while (parentit != preds.end())
                 {
-                    shared_ptr<CFGNode> swallowing = parentPair->second;
-                    string name = swallowing->getName();
-                    string name2 = parentPair->first;
-                    if (swallowing->getName() == "")
-                    {
-                        int debug;
-                        debug = 5; //todo find out why name is going to ""
-                    }
-
-                    if (swallowing->swallowNode(current))
-                    {
-                        canDelete = false;
-                        ++parentPair;
-                    }
+                    NodePointer swallowing = parentit->second;
+                    if (!swallowing->swallowNode(current)) ++parentit;
+                    else parentit = preds.erase(parentit);
                 }
-                if (canDelete)
+                if (preds.size() == 0)
                 {
-                    nodes.erase(pair);
-                    incremented = true;
+                    if (current->getCompFail() != nullptr) current->getCompFail()->removeParent(current);
+                    if (current->getCompSuccess() != nullptr) current->getCompSuccess()->removeParent(current);
+                    pair = nodes.erase(pair);
                 }
+                else ++pair;
             }
-            if (!incremented) ++pair;
+            else ++pair;
         }
     }
 }

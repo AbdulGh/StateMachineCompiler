@@ -16,14 +16,14 @@ SymbolicVariablePointer SymbolicVarSet::findVar(string name)
         {
             shared_ptr<SymbolicDouble> oldDouble = static_pointer_cast<SymbolicDouble>(oldSym);
             shared_ptr<SymbolicVariable> newSymPointer = make_shared<SymbolicDouble>(oldDouble); //copies
-            variables["name"] = newSymPointer;
+            variables[name] = newSymPointer;
             return newSymPointer;
         }
         else if (oldSym->getType() == STRING)
         {
             shared_ptr<SymbolicString> oldString = static_pointer_cast<SymbolicString>(oldSym);
             shared_ptr<SymbolicVariable> newSymPointer = make_shared<SymbolicString>(oldString);
-            variables["name"] = newSymPointer;
+            variables[name] = newSymPointer;
             return newSymPointer;
         }
         else throw runtime_error("Bad type found");

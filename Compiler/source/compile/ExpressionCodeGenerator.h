@@ -76,7 +76,7 @@ private:
     std::string genTemp(FunctionPointer, unsigned int i);
     std::string genUnique(FunctionPointer);
     void translateTree(ExprNodePointer, FunctionPointer, unsigned int);
-    const std::string& goingto;
+    std::string goingto;
     
 public:
     ExpressionCodeGenerator(Compiler& parent, const std::string& assignee);

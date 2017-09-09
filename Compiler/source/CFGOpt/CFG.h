@@ -53,9 +53,11 @@ public:
     void setCompSuccess(const std::shared_ptr<CFGNode> &compSuccess);
     void setCompFail(const std::shared_ptr<CFGNode> &compFail);
     void setComp(const std::shared_ptr<JumpOnComparisonCommand> &comp);
+    //tries to merge with other (if it can fix the jumps so that it can do so)
+    //returns true if successful
     bool swallowNode (std::shared_ptr<CFGNode> other);
     std::shared_ptr<JumpOnComparisonCommand> getComp();
-    const std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getPredecessors();
+    std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getPredecessors();
     std::shared_ptr<CFGNode> getCompSuccess();
     int getJumpline() const;
     std::shared_ptr<CFGNode> getCompFail();
