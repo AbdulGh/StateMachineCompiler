@@ -34,6 +34,7 @@ OperatorNode::OperatorNode(Op o): left(nullptr), right(nullptr)
     else setType(NOTCOMM);
 }
 
+//todo asap fix this
 void OperatorNode::addNode(ExprNodePointer p)
 {
     if (left == nullptr)
@@ -50,24 +51,6 @@ void OperatorNode::addNode(ExprNodePointer p)
             {
                 right = left;
                 left = p;
-            }
-            else if (right->getType() == LITERAL && p->getType() == LITERAL)
-            {
-                shared_ptr<AtomNode> ap = static_pointer_cast<AtomNode>(p);
-                shared_ptr<AtomNode> rp = static_pointer_cast<AtomNode>(right);
-                double pd = stod(ap->getData());
-                double rd = stod(rp->getData());
-                switch(getOp())
-                {
-                    case PLUS:
-                        rp->setData(to_string(pd + rd));
-                        break;
-                    case MULT:
-                        rp->setData(to_string(pd * rd));
-                        break;
-                    default:
-                        throw "Impostor";
-                }
             }
             else left->addNode(p);
         }
@@ -141,7 +124,7 @@ void AtomNode::addNode(ExprNodePointer)
     throw "Atoms have no children";
 }
 
-const string AtomNode::getData() const
+const string& AtomNode::getData() const
 {
     return data;
 }

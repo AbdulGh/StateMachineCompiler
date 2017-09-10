@@ -138,11 +138,7 @@ Token Lexer::parseToken()
             while ((c = getChar()) && isalnum(c)) str += c;
             if (!infile.eof()) unget();
 
-            if (str == "")
-            {
-                int debug = 1;
-                return parseToken();
-            }
+            if (str == "") return parseToken();
 
             try //number
             {

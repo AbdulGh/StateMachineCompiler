@@ -13,6 +13,7 @@ class Compiler;
 
 enum NodeType{COMM, NOTCOMM, LITERAL, IDENTIFIER};
 
+//todo get double rather than casting constantly
 class AbstractExprNode
 {
 protected:
@@ -24,6 +25,7 @@ protected:
 public:
     virtual ~AbstractExprNode(){}
     virtual void addNode(std::shared_ptr<AbstractExprNode>) = 0;
+    virtual const std::string& getData() const {throw std::runtime_error("no data");}
     NodeType getType() const;
     bool isAtom();
     virtual std::shared_ptr<AbstractExprNode> getLeft() = 0;
@@ -58,7 +60,7 @@ public:
     ExprNodePointer getRight();
 
     AtomNode(std::string, bool);
-    const std::string getData() const;
+    const std::string& getData() const override;
     void setData(std::string);
     void addNode(ExprNodePointer);
 };
@@ -75,7 +77,7 @@ private:
     ExprNodePointer factor(FunctionPointer);
     std::string genTemp(FunctionPointer, unsigned int i);
     std::string genUnique(FunctionPointer);
-    void translateTree(ExprNodePointer, FunctionPointer, unsigned int);
+    bool translateTree(ExprNodePointer, FunctionPointer, unsigned int, double&);
     std::string goingto;
     
 public:

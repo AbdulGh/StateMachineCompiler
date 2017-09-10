@@ -62,6 +62,7 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
             shared_ptr<AssignVarCommand> avc = static_pointer_cast<AssignVarCommand>(current);
             if (!(AbstractCommand::getStringType(avc->RHS) == AbstractCommand::StringType::ID
                     && constVariables.find(avc->RHS) == constVariables.end())) constVariables[avc->getData()] = avc->RHS;
+            instrs.push_back(current);
         }
         else if (current->getType() == CommandType::EXPR)
         {
@@ -99,7 +100,7 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
 
             }
         }
-        instrs.push_back(current);
+        else instrs.push_back(current);
         it++;
     }
 
@@ -113,7 +114,7 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
         if (comp->term2Type == AbstractCommand::StringType::ID &&
             constVariables.find(comp->term2) != constVariables.end()) comp->setTerm2(constVariables[comp->term2]);
         comp->makeGood();
-        //if these are both const they get replaced during 1st symbolic execution
+        //if these are both const they get replaced during 1st symbolic execution todo warn about this
 
         compSuccess = parent.getNode((*it)->getData());
         compSuccess->addParent(shared_from_this());

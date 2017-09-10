@@ -27,6 +27,7 @@ bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symb
     return true;
 }
 
+//todo next push states
 bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
 {
     VarPointer found = svs->symbolicVarSet->findVar(getData());
