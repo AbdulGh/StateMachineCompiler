@@ -110,21 +110,8 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     }
 
     feasableVisits[n->getName()]++;
-    if (n->getName() == cfg.getLast()->getName()) return true;
 
-    /*
-    auto visitWithFeasableIncrement =
-    [&n, this] (shared_ptr<SymbolicExecutionFringe> symexfringe, shared_ptr<CFGNode> node) -> bool
-    {
-        if (visitNode(symexfringe, node))
-        {
-            feasableVisits[n->getName()]++;
-            return true;
-        }
-        else return false;
-    };
-
-*/
+    //no templated lambdas yet
     auto branchOnType =
     [&n, this] (shared_ptr<SymbolicExecutionFringe> sef, string lhs, Relations::Relop op, string rhs, VariableType t,
           bool rev = false)
@@ -195,7 +182,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
             if (jocc->term2Type != AbstractCommand::StringType::ID) //comparing to a literal
             {
                 if ((jocc->term2Type == AbstractCommand::StringType::DOUBLELIT && LHS->getType() != DOUBLE)
-                        || (jocc->term2Type == AbstractCommand::StringType::STRINGLIT && LHS->getType() != STRING)) //todo shorten stringlit
+                        || (jocc->term2Type == AbstractCommand::StringType::STRINGLIT && LHS->getType() != STRING))
                 {
                     sef->error(Reporter::TYPE, "'" + jocc->term1 + "' (type " + TypeEnumNames[LHS->getType()]
                                                + ")  compared to a different type",
@@ -295,22 +282,14 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                 {
                     VarTemplatePointer<string> LHS = static_pointer_cast<SymbolicVariableTemplate<string>>(LHS);
                     VarTemplatePointer<string> RHS = static_pointer_cast<SymbolicVariableTemplate<string>>(RHS);
-                    if (varBranch<string>(sef, n, LHS, jocc->op, RHS))
-                    {
-                        feasableVisits[n->getName()]++;
-                        return true;
-                    }
+                    if (varBranch<string>(sef, n, LHS, jocc->op, RHS)) return true;
                     return false;
                 }
                 else if (LHS->getType() == DOUBLE)
                 {
                     VarTemplatePointer<double> LHS = static_pointer_cast<SymbolicVariableTemplate<double>>(LHS);
                     VarTemplatePointer<double> RHS = static_pointer_cast<SymbolicVariableTemplate<double>>(RHS);
-                    if (varBranch<double>(sef, n, LHS, jocc->op, RHS))
-                    {
-                        feasableVisits[n->getName()]++;
-                        return true;
-                    }
+                    if (varBranch<double>(sef, n, LHS, jocc->op, RHS)) return true;
                     return false;
                 }
             }
@@ -318,6 +297,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     }
     else //unconditional jump
     {
+        if (n->getName() == cfg.getLast()->getName()) return true;
         shared_ptr<CFGNode> retNode = getFailNode(sef, n);
         if (retNode == nullptr) return false;
         return visitNode(sef, retNode);

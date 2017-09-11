@@ -27,11 +27,11 @@ namespace Optimise
                     ++pair;
                     continue;
                 }
-                last = last->getPredecessors().cbegin()->second;
+                controlFlowGraph.setLast(last->getPredecessors().cbegin()->second->getName()); //->.*(().->)->*()->;
             }
 
             vector<shared_ptr<AbstractCommand>> &instructionList = current->getInstrs();
-            if (instructionList.size() <= 4) //is small
+            if (instructionList.size() <= 4 || current->getPredecessors().size() == 1) //is small
             {
                 unordered_map<string, NodePointer>& preds = current->getPredecessors();
                 unordered_map<string, NodePointer>::iterator parentit = preds.begin();

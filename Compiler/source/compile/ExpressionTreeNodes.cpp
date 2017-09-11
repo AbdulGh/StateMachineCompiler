@@ -34,7 +34,6 @@ OperatorNode::OperatorNode(Op o): left(nullptr), right(nullptr)
     else setType(NOTCOMM);
 }
 
-//todo asap fix this
 void OperatorNode::addNode(ExprNodePointer p)
 {
     if (left == nullptr)

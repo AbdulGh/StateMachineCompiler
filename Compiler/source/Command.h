@@ -87,7 +87,7 @@ public:
         setData("return");
         setType(CommandType::JUMP);
     }
-    std::string translation() const override {return "return;\n";}
+    std::string translation() const override {return "return;\n";} //meta
 };
 
 class JumpCommand: public AbstractCommand

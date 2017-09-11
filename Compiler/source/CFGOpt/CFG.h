@@ -48,7 +48,7 @@ public:
     bool addParent(std::shared_ptr<CFGNode>); //returns false if parent was already in
     void removeParent(std::shared_ptr<CFGNode>);
     void removeParent(const std::string&);
-    void setInstructions(const std::vector<std::shared_ptr<AbstractCommand>> &in);
+    void setInstructions(const std::vector<std::shared_ptr<AbstractCommand>> &in); //todo unique pointer
     const std::string &getName() const;
     void setCompSuccess(const std::shared_ptr<CFGNode> &compSuccess);
     void setCompFail(const std::shared_ptr<CFGNode> &compFail);
