@@ -41,9 +41,9 @@ void Compiler::compile(stringstream& out)
 
     Optimise::optimise(symbolTable, cfg);
     reporter.info("Beginning symbolic stuff...");
-    //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
-    //symMan.search();
-    //Optimise::optimise(symbolTable, cfg);
+    SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
+    symMan.search();
+    Optimise::optimise(symbolTable, cfg);
     out << cfg.getSource();
 }
 

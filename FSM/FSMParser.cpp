@@ -166,7 +166,7 @@ FSM FSMParser::readFSM()
     while (!infile.eof())
     {
         //get state name
-        while (infile.get(c) && isspace(c))
+        while (infile.get(c) && isspace(c));
         if (infile.eof()) break;
 
         str = "";

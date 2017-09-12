@@ -33,7 +33,7 @@ SymbolicDouble::SymbolicDouble(shared_ptr<SymbolicVariable> other):
 void SymbolicDouble::userInput()
 {
     upperBound = numeric_limits<double>::max();
-    upperBound = numeric_limits<double>::lowest();
+    lowerBound = numeric_limits<double>::lowest();
     isConst = false;
     define();
     monotonicity = FRESH;
