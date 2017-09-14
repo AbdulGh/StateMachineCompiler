@@ -1,7 +1,7 @@
 #include "Reporter.h"
 const std::string Reporter::enumNames[NUM_ALERTS] =
         {"", "OVERFLOW", "UNINITIALISED USE", "UNDECLARED USE",
-         "TYPE", "ZERO DIVISION", "USELESS OP", "STACK USE", "COMPILER"};
+         "TYPE", "ZERO DIVISION", "USELESS OP", "STACK USE", "COMPILER", "DEAD CODE"};
 
 Reporter::Reporter(std::string filename)
 {

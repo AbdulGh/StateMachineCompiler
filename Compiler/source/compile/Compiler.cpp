@@ -32,18 +32,16 @@ string Compiler::quoteString(string &s)
 void Compiler::compile(stringstream& out)
 {
     tp = stream.cbegin();
-    findGlobalsAndMakeFirstState();
+    findGlobalsAndMakeStates();
     tp = stream.cbegin();
     lookahead = nextToken();
     while (lookahead.type != END) body();
 
-    cfg.setLast(functionTable["main"]->getLastStateName());
-
     Optimise::optimise(symbolTable, cfg);
-    reporter.info("Beginning symbolic stuff...");
-    SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
-    symMan.search();
-    Optimise::optimise(symbolTable, cfg);
+    //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
+    //symMan.search();
+    //Optimise::optimise(symbolTable, cfg);
+    for (auto node : cfg.getCurrentNodes()) node.second->constProp();
     out << cfg.getSource();
 }
 
@@ -66,7 +64,7 @@ FunctionPointer Compiler::findFunction(string fid)
     return it->second;
 }
 
-void Compiler::findGlobalsAndMakeFirstState()
+void Compiler::findGlobalsAndMakeStates()
 {
     vector<shared_ptr<AbstractCommand>> initialState =
     {
@@ -162,6 +160,9 @@ void Compiler::findGlobalsAndMakeFirstState()
     initialState.push_back(make_shared<JumpCommand>("F_main_0", -1));
 
     cfg.addNode("start", initialState);
+    vector<shared_ptr<AbstractCommand>> empty;
+    cfg.addNode("fin", empty);
+    cfg.setLast("fin");
 }
 
 void Compiler::match(Type t)

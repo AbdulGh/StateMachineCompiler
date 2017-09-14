@@ -8,20 +8,23 @@ end
 
 F_main_18
 print _2_0_current;
-jump F_main_20;
+print "\n";
+_2_0_current = _2_0_current + 1;
+LHS = _2_0_current;
+RHS = _2_0_limit;
+jumpif _2_0_current < _2_0_limit F_main_5;
+jump F_main_4;
 end
 
 F_main_4
 return;
 end
 
-F_main_20
-print "\n";
-_2_0_current = _2_0_current + 1;
-LHS = 1.000000;
-RHS = _2_0_limit;
-jumpif _2_0_current < _2_0_limit F_main_5;
-jump F_main_4;
+F_main_8
+LHS = _2_0_current % 3;
+RHS = 0.000000;
+jumpif LHS = 0.000000 F_main_14;
+jump F_main_13;
 end
 
 F_main_0
@@ -32,7 +35,7 @@ double _2_0_current;
 _2_0_current = 1.000000;
 LHS = 1.000000;
 RHS = _2_0_limit;
-jumpif _2_0_current < _2_0_limit F_main_5;
+jumpif _2_0_limit > 1.000000 F_main_5;
 jump F_main_4;
 end
 
@@ -40,22 +43,20 @@ F_main_9
 print "FizzBuzz";
 print "\n";
 _2_0_current = _2_0_current + 1;
-LHS = 1.000000;
+LHS = _2_0_current;
 RHS = _2_0_limit;
 jumpif _2_0_current < _2_0_limit F_main_5;
 jump F_main_4;
 end
 
-F_main_8
-LHS = _2_0_current % 3;
-RHS = 0.000000;
-jumpif LHS = 0.000000 F_main_14;
-jump F_main_13;
-end
-
 F_main_19
 print "Buzz";
-jump F_main_20;
+print "\n";
+_2_0_current = _2_0_current + 1;
+LHS = _2_0_current;
+RHS = _2_0_limit;
+jumpif _2_0_current < _2_0_limit F_main_5;
+jump F_main_4;
 end
 
 F_main_5
@@ -76,9 +77,8 @@ F_main_14
 print "Fizz";
 print "\n";
 _2_0_current = _2_0_current + 1;
-LHS = 1.000000;
+LHS = _2_0_current;
 RHS = _2_0_limit;
 jumpif _2_0_current < _2_0_limit F_main_5;
 jump F_main_4;
 end
-

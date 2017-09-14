@@ -82,7 +82,8 @@ void FunctionCodeGen::genPop(std::string s, int linenum)
 void FunctionCodeGen::genReturn(int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_shared<ReturnCommand>(linenum));
+    if (ident == "main")  currentInstrs.push_back(make_shared<JumpCommand>("fin", linenum));
+    else currentInstrs.push_back(make_shared<ReturnCommand>(linenum));
 }
 
 

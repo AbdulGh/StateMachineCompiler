@@ -38,7 +38,10 @@ bool SymbolicExecutionFringe::hasSeen(string state)
 
 bool SymbolicExecutionFringe::isFeasable()
 {
-    if (!symbolicVarSet->isFeasable()) feasable = false;
+    if (!symbolicVarSet->isFeasable())
+    {
+        feasable = false;
+    }
     return feasable;
 }
 
@@ -54,6 +57,7 @@ void SymbolicExecutionManager::search()
     {
         if (p.second == 0) // no feasable visits - remove
         {
+            reporter.optimising(Reporter::DEADCODE, "State '" + p.first + "' is unreachable and will be removed");
             shared_ptr<CFGNode> lonelyNode = cfg.getNode(p.first);
             if (lonelyNode->getCompSuccess() != nullptr) lonelyNode->getCompSuccess()->removeParent(lonelyNode);
             if (lonelyNode->getCompFail() != nullptr) lonelyNode->getCompFail()->removeParent(lonelyNode);
@@ -101,6 +105,7 @@ SymbolicExecutionManager::getFailNode(std::shared_ptr<SymbolicExecutionFringe> r
 
 bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n)
 {
+    string debug = n->getName();
     if (!sef->isFeasable()) return false;
     else if (sef->hasSeen(n->getName())) return true;
 

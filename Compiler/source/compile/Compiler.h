@@ -33,7 +33,7 @@ private:
     void error(std::string);
     void warning(std::string);
     Token nextToken();
-    void findGlobalsAndMakeFirstState();
+    void findGlobalsAndMakeStates();
     std::shared_ptr<Identifier> findVariable(std::string);
     FunctionPointer findFunction(std::string);
     std::string quoteString(std::string& s);

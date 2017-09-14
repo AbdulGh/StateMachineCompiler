@@ -19,12 +19,110 @@ string CFGNode::getSource()
     std::stringstream outs;
 
     outs << name << '\n';
-    for (shared_ptr<AbstractCommand> ac: instrs) outs << ac->translation();
+    for (shared_ptr<AbstractCommand>& ac: instrs) outs << ac->translation();
     if (compSuccess != nullptr) outs << comp->translation();
     if (compFail != nullptr) outs << JumpCommand(compFail->getName(), jumpline).translation();
     else outs << ReturnCommand(jumpline).translation();
     outs << "end" << '\n';
     return outs.str();
+}
+
+void CFGNode::constProp()
+{
+    std::unordered_map<std::string,std::string> assignments;
+
+    vector<std::shared_ptr<AbstractCommand>>::iterator it = instrs.begin();
+    vector<std::shared_ptr<AbstractCommand>> newInstrs;
+
+    while (it != instrs.end())
+    {
+        shared_ptr<AbstractCommand> current = std::move(*it);
+        if (current->getType() == CommandType::CHANGEVAR)
+        {
+            assignments.erase(current->getData());
+            newInstrs.push_back(current);
+        }
+        else if (current->getType() == CommandType::ASSIGNVAR)
+        {
+            shared_ptr<AssignVarCommand> avc = static_pointer_cast<AssignVarCommand>(current);
+            string d1 = avc->getData();
+            string d2 = avc->RHS;
+            if (AbstractCommand::getStringType(avc->RHS) != AbstractCommand::StringType::ID)
+            {
+                string d1 = avc->getData();
+                string d2 = avc->RHS;
+                assignments[avc->getData()] = avc->RHS;
+            }
+            else
+            {
+                std::unordered_map<std::string, std::string>::const_iterator constit = assignments.find(avc->RHS);
+                if (constit != assignments.end())
+                {
+                    assignments[avc->getData()] = constit->second;
+                    avc->RHS = constit->second;
+                    int debug;
+                    debug = 2;
+                }
+                else
+                {
+                    assignments[avc->getData()] = avc->RHS;
+                    int debug;
+                    debug = 5;
+                }
+            }
+            newInstrs.push_back(current);
+        }
+        else if (current->getType() == CommandType::EXPR)
+        {
+            shared_ptr<EvaluateExprCommand> eec = static_pointer_cast<EvaluateExprCommand>(current);
+            //literals will not be found
+            std::unordered_map<std::string, std::string>::const_iterator t1it = assignments.find(eec->term1);
+            std::unordered_map<std::string, std::string>::const_iterator t2it = assignments.find(eec->term2);
+            if (t1it != assignments.end()) eec->term1 = t1it->second;
+            if (t2it != assignments.end()) eec->term2 = t2it->second;
+            if (AbstractCommand::getStringType(eec->term1) != AbstractCommand::StringType::ID
+                && AbstractCommand::getStringType(eec->term2) != AbstractCommand::StringType::ID)
+            {
+                try
+                {
+                    double lhs = stod(t1it->second);
+                    double rhs = stod(t2it->second);
+                    double result = evaluateOp(lhs, eec->op, rhs);
+                    string resultstr = to_string(result);
+                    assignments[eec->getData()] = resultstr;
+                    int debug;
+                    debug = 2;
+                    newInstrs.push_back(make_shared<AssignVarCommand>(eec->getData(), resultstr, eec->getLineNum()));
+                }
+                catch (invalid_argument e)
+                {
+                    if (eec->op == PLUS)
+                    {
+                        string result = eec->term1 + eec->term2;
+                        assignments[eec->getData()] = result;
+                        newInstrs.push_back(make_shared<AssignVarCommand>(eec->getData(), result, eec->getLineNum()));
+                    }
+                    else throw runtime_error("Strings only support +");
+                }
+            }
+            else
+            {
+                assignments.erase(eec->getData());
+                newInstrs.push_back(current);
+            }
+        }
+        else newInstrs.push_back(current);
+        it++;
+    }
+    instrs = move(newInstrs);
+    if (comp != nullptr)
+    {
+        if (comp->term1Type == AbstractCommand::StringType::ID &&
+            assignments.find(comp->term1) != assignments.end()) comp->setTerm1(assignments[comp->term1]);
+        if (comp->term2Type == AbstractCommand::StringType::ID &&
+            assignments.find(comp->term2) != assignments.end()) comp->setTerm2(assignments[comp->term2]);
+        comp->makeGood();
+    }
 }
 
 bool CFGNode::addParent(std::shared_ptr<CFGNode> parent)
@@ -45,100 +143,18 @@ void CFGNode::removeParent(const std::string& s)
     if (predecessors.erase(s) == 0) throw runtime_error("Parent is not in");
 }
 
-void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in, bool constProp)
+void CFGNode::setInstructions(vector<std::shared_ptr<AbstractCommand>>& in)
 {
     instrs.clear();
-    vector<std::shared_ptr<AbstractCommand>>::const_iterator it = in.cbegin();
+    vector<std::shared_ptr<AbstractCommand>>::iterator it = in.begin();
 
-    //first used to track assignments
-    std::unordered_map<std::string,std::string> assignments;
-    while (it != in.cend()
+    while (it != in.end()
            && (*it)->getType() != CommandType::JUMP
            && (*it)->getType() != CommandType::CONDJUMP)
     {
-        std::shared_ptr<AbstractCommand> current = *it;
-
-        if (constProp)
-        {
-            if (current->getType() == CommandType::CHANGEVAR)
-            {
-                assignments.erase(current->getData());
-                instrs.push_back(current);
-            }
-            else if (current->getType() == CommandType::ASSIGNVAR)
-            {
-                shared_ptr<AssignVarCommand> avc = static_pointer_cast<AssignVarCommand>(current);
-                if (AbstractCommand::getStringType(avc->RHS) != AbstractCommand::StringType::ID) assignments[avc->getData()] = avc->RHS;
-                else
-                {
-                    std::unordered_map<std::string,std::string>::const_iterator constit = assignments.find(avc->RHS);
-                    if (constit != assignments.end())
-                    {
-                        assignments[avc->getData()] = constit->second;
-                        avc->RHS = constit->second;
-                    }
-                    else assignments[avc->getData()] = avc->RHS;
-                }
-                instrs.push_back(current);
-            }
-            else if (current->getType() == CommandType::EXPR)
-            {
-                shared_ptr<EvaluateExprCommand> eec = static_pointer_cast<EvaluateExprCommand>(current);
-
-                string lhs = eec->getData();
-                string t1 = eec->term1;
-                Op op = eec->op;
-                string t2 = eec->term2;
-                AbstractCommand::StringType t1t = AbstractCommand::getStringType(eec->term1);
-                AbstractCommand::StringType t2t = AbstractCommand::getStringType(eec->term2);
-
-                //literals will not be found
-                std::unordered_map<std::string,std::string>::const_iterator t1it = assignments.find(eec->term1);
-                std::unordered_map<std::string,std::string>::const_iterator t2it = assignments.find(eec->term2);
-                if (t1it != assignments.end() && t2it != assignments.end())
-                {
-                    if (AbstractCommand::getStringType(eec->term1) != AbstractCommand::StringType::ID
-                        && AbstractCommand::getStringType(eec->term1) != AbstractCommand::StringType::ID)
-                    {
-
-                        instrs.push_back(current);
-                        try
-                        {
-                            double lhs = stod(t1it->second);
-                            double rhs = stod(t2it->second);
-                            double result = evaluateOp(lhs, eec->op, rhs);
-                            string resultstr = to_string(result);
-                            assignments[eec->getData()] = resultstr;
-                            instrs.push_back(make_shared<AssignVarCommand>(eec->getData(), resultstr, eec->getLineNum()));
-                        }
-                        catch (invalid_argument e)
-                        {
-                            if (eec->op == PLUS)
-                            {
-                                string result = eec->term1 + eec->term2;
-                                assignments[eec->getData()] = result;
-                                instrs.push_back(make_shared<AssignVarCommand>(eec->getData(), result, eec->getLineNum()));
-                            }
-                            else throw runtime_error("Strings only support +");
-                        }
-                    }
-                }
-                else if (t1it != assignments.end())
-                {
-                    eec->term1 = t1it->second;
-                    instrs.push_back(current);
-                }
-                else if (t2it != assignments.end())
-                {
-                    eec->term2 = t2it->second;
-                    instrs.push_back(current);
-                }
-                else instrs.push_back(current);
-            }
-            else instrs.push_back(current);
-        }
-        else instrs.push_back(current);
-        it++;
+        std::shared_ptr<AbstractCommand> current = move(*it);
+        instrs.push_back(current);
+        ++it;
     }
 
     if (it == in.cend())
@@ -146,21 +162,11 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
         return;
     }
 
-    //std::set<string> usedVariables;
-
     if ((*it)->getType() == CommandType::CONDJUMP)
     {
-        comp = static_pointer_cast<JumpOnComparisonCommand>(*it);
-        if (comp->term1Type == AbstractCommand::StringType::ID &&
-            assignments.find(comp->term1) != assignments.end()) comp->setTerm1(assignments[comp->term1]);
-        if (comp->term2Type == AbstractCommand::StringType::ID &&
-            assignments.find(comp->term2) != assignments.end()) comp->setTerm2(assignments[comp->term2]);
-        comp->makeGood();
-        //if (comp->term1Type == AbstractCommand::StringType::ID) usedVariables.insert(comp->term1);
-        //if (comp->term2Type == AbstractCommand::StringType::ID) usedVariables.insert(comp->term2);
-
         compSuccess = parent.getNode((*it)->getData());
         compSuccess->addParent(shared_from_this());
+        comp = static_pointer_cast<JumpOnComparisonCommand>(move(*it)->clone());
 
         if (++it == in.cend()) return;
     }
@@ -178,34 +184,6 @@ void CFGNode::setInstructions(const vector<std::shared_ptr<AbstractCommand>> &in
         if (++it != in.cend()) throw "Should end here";
     }
     else throw "Can only end w/ <=2 jumps";
-
-    /*
-    std::vector<shared_ptr<AbstractCommand>>::reverse_iterator rit = instrs.rbegin();
-    while (rit != instrs.rend())
-    {
-        std::shared_ptr<AbstractCommand> current = *rit;
-        if (current->getType() == CommandType::CHANGEVAR
-            && usedVariables.find(current->getData()) == usedVariables.end()) instrs.erase(--rit.base());
-        else if (current->getType() == CommandType::ASSIGNVAR)
-        {
-            shared_ptr<AssignVarCommand> avc = static_pointer_cast<AssignVarCommand>(current);
-            if (usedVariables.find(avc->getData()) == usedVariables.end()) instrs.erase(--rit.base());
-            else usedVariables.insert(avc->RHS);
-        }
-        else if (current->getType() == CommandType::EXPR)
-        {
-            shared_ptr<EvaluateExprCommand> eec = static_pointer_cast<EvaluateExprCommand>(current);
-            if (usedVariables.find(eec->getData()) == usedVariables.end()) instrs.erase(--rit.base());
-            else
-            {
-                if (AbstractCommand::getStringType(eec->term1) == AbstractCommand::StringType::ID)
-                    usedVariables.insert(eec->term1);
-                if (AbstractCommand::getStringType(eec->term2) == AbstractCommand::StringType::ID)
-                    usedVariables.insert(eec->term2);
-            }
-        }
-        ++rit;
-    }*/
 }
 
 shared_ptr<JumpOnComparisonCommand> CFGNode::getComp()
@@ -252,24 +230,16 @@ bool CFGNode::swallowNode(std::shared_ptr<CFGNode> other)
 {
     if (compSuccess == nullptr && compFail != nullptr &&  compFail->getName() == other->getName())
     {
-        /*shared_ptr<CFGNode> otherSucc = other->getCompSuccess();
-        if (otherSucc != nullptr) otherSucc->addParent(shared_from_this());
-        setCompSuccess(other->getCompSuccess());
-        setComp(other->getComp());
-
-        if (other->getCompFail() != nullptr) other->getCompFail()->addParent(shared_from_this());
-        setCompFail(other->getCompFail());*/
-
         vector<std::shared_ptr<AbstractCommand>> newInstrs = instrs;
         vector<std::shared_ptr<AbstractCommand>>& addingInstrs = other->getInstrs();
         newInstrs.reserve(instrs.size() + addingInstrs.size() + 2);
-        newInstrs.insert(newInstrs.end(), addingInstrs.begin(), addingInstrs.end());
-        //if (other->getComp() != nullptr) newInstrs.push_back(other->getComp());
-        //if (other->getCompFail() != nullptr) newInstrs.push_back
-        //            (make_shared<JumpCommand>(other->getCompFail()->getName(), other->getJumpline()));
-        //else newInstrs.push_back(make_shared<ReturnCommand>(other->getJumpline()));
+        for (shared_ptr<AbstractCommand>& newInst : addingInstrs) newInstrs.push_back(newInst->clone());
         setInstructions(newInstrs);
-        setComp(other->getComp());
+        if (other->getComp() != nullptr)
+        {
+            setComp(static_pointer_cast<JumpOnComparisonCommand>(other->getComp()->clone()));
+        }
+        else setComp(nullptr);
         setCompSuccess(other->getCompSuccess());
         setCompFail(other->getCompFail());
         if (getCompSuccess() != nullptr) getCompSuccess()->addParent(shared_from_this());
@@ -319,7 +289,7 @@ void ControlFlowGraph::removeNode(std::string name)
     currentNodes.erase(it);
 }
 
-void ControlFlowGraph::addNode(std::string name, std::vector<std::shared_ptr<AbstractCommand>> instrs)
+void ControlFlowGraph::addNode(std::string name, std::vector<std::shared_ptr<AbstractCommand>>& instrs)
 {
     shared_ptr<CFGNode> introducing = getNode(name);
     if (currentNodes.size() == 1)  first = introducing;

@@ -26,6 +26,7 @@ public:
     AbstractCommand() {}
     AbstractCommand(int line): linenumber(line) {}
     virtual ~AbstractCommand() {}
+    virtual std::shared_ptr<AbstractCommand> clone() = 0;
 
     //returns if the symbolic execution of this command went through
     virtual bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs);
@@ -76,7 +77,12 @@ public:
         setType(CommandType::NONE);
     }
 
-    std::string translation() const override {return "print " + getData() + ";\n";};
+    std::string translation() const override {return "print " + getData() + ";\n";}
+
+    std::shared_ptr<AbstractCommand> clone() override
+    {
+        return std::make_shared<PrintCommand>(getData(), getLineNum());
+    }
 };
 
 class ReturnCommand: public AbstractCommand
@@ -88,6 +94,11 @@ public:
         setType(CommandType::JUMP);
     }
     std::string translation() const override {return "return;\n";} //meta
+
+    std::shared_ptr<AbstractCommand> clone() override
+    {
+        return std::make_shared<ReturnCommand>(getLineNum());
+    }
 };
 
 class JumpCommand: public AbstractCommand
@@ -99,6 +110,11 @@ public:
         setType(CommandType::JUMP);
     }
     std::string translation() const override{return "jump " + getData() + ";\n";};
+
+    std::shared_ptr<AbstractCommand> clone() override
+    {
+        return std::make_shared<JumpCommand>(getData(), getLineNum());
+    }
 };
 
 class JumpOnComparisonCommand: public AbstractCommand
@@ -160,6 +176,11 @@ public:
         }
     }
 
+    std::shared_ptr<AbstractCommand> clone() override
+    {
+        return std::make_shared<JumpOnComparisonCommand>(getData(), term1, term2, op, getLineNum());
+    }
+
     std::string translation() const override {return "jumpif " + term1 + relEnumStrs[op] + term2 + " " + getData() + ";\n";}
 };
 
@@ -172,6 +193,12 @@ public:
         setType(CommandType::CHANGEVAR);
     }
     std::string translation() const override{return "input " + getData() + ";\n";};
+
+    std::shared_ptr<AbstractCommand> clone() override
+    {
+        return std::make_shared<InputVarCommand>(getData(), getLineNum());
+    }
+
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
 };
 
@@ -185,6 +212,12 @@ public:
     }
 
     std::string translation() const override{return "push " + getData() + ";\n";}
+
+    std::shared_ptr<AbstractCommand> clone() override
+    {
+        return std::make_shared<PushCommand>(getData(), getLineNum());
+    }
+
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
 };
 
@@ -195,6 +228,11 @@ public:
     {
         setData(in);
         setType(CommandType::CHANGEVAR);
+    }
+
+    std::shared_ptr<AbstractCommand> clone() override
+    {
+        return std::make_shared<PopCommand>(getData(), getLineNum());
     }
 
     std::string translation() const override{return "pop " + getData() + ";\n";}
@@ -211,6 +249,11 @@ public:
         setData(lh);
         RHS = rh;
         setType(CommandType::ASSIGNVAR);
+    }
+
+    std::shared_ptr<AbstractCommand> clone() override
+    {
+        return std::make_shared<AssignVarCommand>(getData(), RHS, getLineNum());
     }
 
     std::string translation() const override{return getData() + " = " + RHS + ";\n";}
@@ -233,6 +276,11 @@ public:
         setType(CommandType::EXPR);
     }
 
+    std::shared_ptr<AbstractCommand> clone() override
+    {
+        return std::make_shared<EvaluateExprCommand>(getData(), term1, op, term2, getLineNum());
+    }
+
     std::string translation() const override{return getData() + " = " + term1 + ' ' + opEnumChars[op]  + ' ' + term2 + ";\n";}
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
 };
@@ -247,6 +295,11 @@ public:
         vt = t;
         setData(n);
         setType(CommandType::CHANGEVAR);
+    }
+
+    std::shared_ptr<AbstractCommand> clone() override
+    {
+        return std::make_shared<DeclareVarCommand>(vt, getData(), getLineNum());
     }
 
     std::string translation() const override{return VariableTypeEnumNames[vt] + " " + getData() + ";\n";}

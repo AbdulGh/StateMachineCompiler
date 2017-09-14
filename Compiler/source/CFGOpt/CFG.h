@@ -10,16 +10,15 @@
 class FunctionCodeGen;
 typedef std::shared_ptr<FunctionCodeGen> FunctionPointer;
 
-
 class CFGNode;
 class ControlFlowGraph
 {
 private:
     std::unordered_map<std::string, std::shared_ptr<CFGNode>> currentNodes;
     std::shared_ptr<CFGNode> first;
-    std::shared_ptr<CFGNode> last; //set by Compiler to the last state generated for 'main'
+    std::shared_ptr<CFGNode> last;
 public:
-    void addNode(std::string name, std::vector<std::shared_ptr<AbstractCommand>> instrs);
+    void addNode(std::string name, std::vector<std::shared_ptr<AbstractCommand>>& instrs);
     void removeNode(std::string name);
     std::shared_ptr<CFGNode> getNode(std::string, bool create = true);
     std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getCurrentNodes();
@@ -38,17 +37,18 @@ private:
     std::unordered_map<std::string, std::shared_ptr<CFGNode>> predecessors;
     std::shared_ptr<CFGNode> compSuccess;
     std::shared_ptr<CFGNode> compFail; //unconditional jump at the end of the node
-    std::vector<std::shared_ptr<AbstractCommand>> instrs; //todo unique ptr
+    std::vector<std::shared_ptr<AbstractCommand>> instrs;
     ControlFlowGraph& parent;
     int jumpline;
 
 public:
     CFGNode(ControlFlowGraph& p, std::string n):
             parent(p), name(n), comp{}, compSuccess{}, compFail{}, jumpline(-1) {}
+    void constProp();
     bool addParent(std::shared_ptr<CFGNode>); //returns false if parent was already in
     void removeParent(std::shared_ptr<CFGNode>);
     void removeParent(const std::string&);
-    void setInstructions(const std::vector<std::shared_ptr<AbstractCommand>> &in, bool constProp=true); //todo unique pointer
+    void setInstructions(std::vector<std::shared_ptr<AbstractCommand>> &in);
     const std::string &getName() const;
     void setCompSuccess(const std::shared_ptr<CFGNode> &compSuccess);
     void setCompFail(const std::shared_ptr<CFGNode> &compFail);
