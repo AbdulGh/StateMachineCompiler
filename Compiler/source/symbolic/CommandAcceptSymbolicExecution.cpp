@@ -167,9 +167,9 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
     SymbolicVariablePointer t2;
     try
     {
-        double d = stod(term1);
-        t1 = make_shared<SymbolicDouble>("LHSconst", svs->reporter); //if we get here it's a double
-        t1->setConstStringValue(term1);
+        stod(term2);
+        t2 = make_shared<SymbolicDouble>("RHSconst", svs->reporter);
+        t2->setConstStringValue(term2);
     }
     catch (invalid_argument e)
     {
@@ -208,12 +208,19 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
             break;
         case MOD:
             result.modSymbolicDouble(t2copy);
+            break;
         default:
             throw runtime_error("Bitwise operations not supported");
     }
     result.setName(LHS->getName());
     result.define();
     svs->symbolicVarSet->defineVar(make_shared<SymbolicDouble>(result));
+    bool debug = svs->isFeasable();
+    if (!svs->isFeasable())
+    {
+        int debug;
+        debug = 5;
+    }
     return svs->isFeasable();
 }
 

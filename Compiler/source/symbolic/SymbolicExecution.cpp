@@ -111,7 +111,11 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
 
     for (shared_ptr<AbstractCommand> command : n->getInstrs())
     {
-        if (!command->acceptSymbolicExecution(sef)) return false;
+        if (!command->acceptSymbolicExecution(sef))
+        {
+            AbstractCommand* debug = command.get();
+            return false;
+        }
     }
 
     feasableVisits[n->getName()]++;
@@ -268,7 +272,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                             if (nextnode == nullptr) return false;
                             sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(), Relations::negateRelop(jocc->op),
                                                                                        RHS->getName() + "(= " +  RHS->getConstString() + ")");
-                            return visitNode(sef, n);
+                            return visitNode(sef, nextnode);
                         }
 
                     }
@@ -338,6 +342,7 @@ template <typename T>
 bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
                                         string lhsvar, const T& rhsconst, bool reverse)
 {
+    string debug = n->getName();
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
     seflt->symbolicVarSet->findVarOfType<T>(lhsvar)->setUpperBound(rhsconst, false);
     seflt->pathConditions[n->getName()]

@@ -10,6 +10,8 @@
 class FunctionCodeGen;
 typedef std::shared_ptr<FunctionCodeGen> FunctionPointer;
 
+//todo use unique pointers here
+
 class CFGNode;
 class ControlFlowGraph
 {

@@ -38,10 +38,10 @@ void Compiler::compile(stringstream& out)
     while (lookahead.type != END) body();
 
     Optimise::optimise(symbolTable, cfg);
-    //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
-    //symMan.search();
-    //Optimise::optimise(symbolTable, cfg);
     for (auto node : cfg.getCurrentNodes()) node.second->constProp();
+    SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
+    symMan.search();
+    //Optimise::optimise(symbolTable, cfg);
     out << cfg.getSource();
 }
 

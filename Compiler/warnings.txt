@@ -1,0 +1,9 @@
+WARNING : TYPE : '_2_0_current' used before definition (line 10)
+WARNING : TYPE : '_2_0_current' used before definition (line 13)
+WARNING : TYPE : '_2_0_current' used before definition (line 16)
+WARNING : TYPE : '_2_0_current' used before definition (line 21)
+WARNING : UNINITIALISED USE : RHSconst used before explicitly initialised
+WARNING : UNINITIALISED USE : _2_0_current used before explicitly initialised
+OPTIMISATION : DEAD CODE : State 'F_main_14' is unreachable and will be removed
+OPTIMISATION : DEAD CODE : State 'F_main_19' is unreachable and will be removed
+OPTIMISATION : DEAD CODE : State 'F_main_9' is unreachable and will be removed

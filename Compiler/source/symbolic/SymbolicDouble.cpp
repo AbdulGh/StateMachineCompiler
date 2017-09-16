@@ -543,7 +543,7 @@ void SymbolicDouble::multSymbolicDouble(SymbolicDouble &other)
 
     //can now assume otherUpperBound >= 0, otherLowerBound =< 0, and |otherUpperBound| >= |otherLowerBound|
     if (otherUpperBound < 0 || otherLowerBound > 0 || abs(otherLowerBound) < abs(otherUpperBound))
-        throw "not true"; //debug
+        throw "not true";
 
     int myside = 0; //-1 if range is left of zero
     if (upperBound < 0) myside = -1;

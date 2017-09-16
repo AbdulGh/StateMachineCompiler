@@ -45,12 +45,8 @@ void CFGNode::constProp()
         else if (current->getType() == CommandType::ASSIGNVAR)
         {
             shared_ptr<AssignVarCommand> avc = static_pointer_cast<AssignVarCommand>(current);
-            string d1 = avc->getData();
-            string d2 = avc->RHS;
             if (AbstractCommand::getStringType(avc->RHS) != AbstractCommand::StringType::ID)
             {
-                string d1 = avc->getData();
-                string d2 = avc->RHS;
                 assignments[avc->getData()] = avc->RHS;
             }
             else
@@ -60,14 +56,10 @@ void CFGNode::constProp()
                 {
                     assignments[avc->getData()] = constit->second;
                     avc->RHS = constit->second;
-                    int debug;
-                    debug = 2;
                 }
                 else
                 {
                     assignments[avc->getData()] = avc->RHS;
-                    int debug;
-                    debug = 5;
                 }
             }
             newInstrs.push_back(current);
@@ -90,8 +82,6 @@ void CFGNode::constProp()
                     double result = evaluateOp(lhs, eec->op, rhs);
                     string resultstr = to_string(result);
                     assignments[eec->getData()] = resultstr;
-                    int debug;
-                    debug = 2;
                     newInstrs.push_back(make_shared<AssignVarCommand>(eec->getData(), resultstr, eec->getLineNum()));
                 }
                 catch (invalid_argument e)
@@ -330,6 +320,5 @@ void ControlFlowGraph::setLast(std::string lastName)
 {
     unordered_map<string, shared_ptr<CFGNode>>::iterator it = currentNodes.find(lastName);
     if (it == currentNodes.end()) throw "Check";
-    string debug = it->second->getName();
     last = it->second;
 }
