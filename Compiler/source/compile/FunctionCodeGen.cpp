@@ -3,9 +3,9 @@
 using namespace std;
 
 FunctionCodeGen::FunctionCodeGen(VariableType rt, std::vector<VariableType> types, std::string in, ControlFlowGraph& c):
-    returnType(rt), paramTypes(types), ident(in),
+    returnType(rt), paramTypes(move(types)), ident(move(in)),
     currentStates(1), currentStateName("F_" + ident + "_0"),
-    endedState(false), cfg(c){}
+    endedState(false), cfg(c) {}
 
 bool FunctionCodeGen::checkTypes(std::vector<VariableType>& potential)
 {
@@ -15,11 +15,6 @@ bool FunctionCodeGen::checkTypes(std::vector<VariableType>& potential)
 const string FunctionCodeGen::newStateName()
 {
     return "F_" + ident + "_" + to_string(currentStates++);
-}
-
-const string FunctionCodeGen::getLastStateName() const
-{
-    return "F_" + ident + "_" + to_string(currentStates - 1);
 }
 
 const string& FunctionCodeGen::getIdentifier() const
@@ -39,18 +34,17 @@ VariableType FunctionCodeGen::getReturnType() const
 
 /*generation*/
 //if this is not of the form F_ident_n everything gets broken
-//todo make this based only on the number
 void FunctionCodeGen::genNewState(std::string n)
 {
     if (!endedState) throw "Unfinished state";
-    currentStateName = n;
+    currentStateName = move(n);
     endedState = false;
 }
 
 void FunctionCodeGen::genEndState()
 {
     if (endedState) throw "No state to end";
-    cfg.addNode(currentStateName, currentInstrs);
+    shared_ptr<CFGNode> nptr = cfg.createNode(currentStateName, currentInstrs, shared_from_this(), true, false);
     currentInstrs.clear();
     endedState = true;
 }
@@ -82,8 +76,13 @@ void FunctionCodeGen::genPop(std::string s, int linenum)
 void FunctionCodeGen::genReturn(int linenum)
 {
     if (endedState) throw "No state to add to";
-    if (ident == "main")  currentInstrs.push_back(make_shared<JumpCommand>("fin", linenum));
-    else currentInstrs.push_back(make_shared<ReturnCommand>(linenum));
+    if (!generatedFinalState)
+    {
+        vector<shared_ptr<AbstractCommand>> returnCommand({make_shared<ReturnCommand>(linenum)});
+        lastNode =
+                cfg.createNode("F_" + ident + "_fin", returnCommand, shared_from_this(), false, true);
+    }
+    currentInstrs.push_back(make_shared<JumpCommand>(lastNode->getName(), linenum));
 }
 
 
@@ -121,4 +120,14 @@ void FunctionCodeGen::genAssignment(std::string LHS, std::string RHS, int linenu
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(make_shared<AssignVarCommand>(LHS, RHS, linenum));
+}
+
+const shared_ptr<CFGNode> &FunctionCodeGen::getLastNode() const
+{
+    return lastNode;
+}
+
+void FunctionCodeGen::setLastNode(const shared_ptr<CFGNode> &lastNode)
+{
+    FunctionCodeGen::lastNode = lastNode;
 }

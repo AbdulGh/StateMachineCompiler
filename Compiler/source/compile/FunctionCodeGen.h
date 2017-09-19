@@ -8,7 +8,7 @@
 #include "../CFGOpt/CFG.h"
 #include "../Command.h"
 
-class FunctionCodeGen
+class FunctionCodeGen : public std::enable_shared_from_this<FunctionCodeGen>
 {
 private:
     VariableType returnType;
@@ -16,8 +16,9 @@ private:
     int currentStates;
     std::string ident;
     bool endedState;
-
-    //std::vector<State> finStates;
+    std::shared_ptr<CFGNode> lastNode;
+    std::shared_ptr<CFGNode> firstNode;
+    bool generatedFinalState = false;
     std::vector<std::shared_ptr<AbstractCommand>> currentInstrs;
     std::string currentStateName;
     ControlFlowGraph& cfg;
@@ -28,7 +29,8 @@ public:
     bool checkTypes(std::vector<VariableType>& potential);
     bool isOfType(VariableType c);
     VariableType getReturnType() const;
-    const std::string getLastStateName() const;
+    const std::shared_ptr<CFGNode> &getLastNode() const;
+    void setLastNode(const std::shared_ptr<CFGNode> &lastNode);
 
     //codegen
     void genNewState(std::string);

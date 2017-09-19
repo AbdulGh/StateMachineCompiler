@@ -27,25 +27,29 @@ bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symb
     return true;
 }
 
-//todo next push states
 bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
 {
-    VarPointer found = svs->symbolicVarSet->findVar(getData());
-    if (found == nullptr)
+    if (pushType == PUSHSTATE) svs->currentStack->push(getData());
+
+    else
     {
-        svs->error(Reporter::UNDECLARED_USE, "'" + getData() + "' pushed without being declared", getLineNum());
-        return false;
+        VarPointer found = svs->symbolicVarSet->findVar(getData());
+        if (found == nullptr)
+        {
+            svs->error(Reporter::UNDECLARED_USE, "'" + getData() + "' pushed without being declared", getLineNum());
+            return false;
+        }
+        if (!found->isFeasable())
+        {
+            //shouldn't happen
+            return false;
+        }
+        else if (!found->isDefined())
+        {
+            svs->warn(Reporter::UNINITIALISED_USE, "'" + getData() + "' pushed without being defined", getLineNum());
+        }
+        svs->currentStack->push(found);
     }
-    if (!found->isFeasable())
-    {
-        //shouldn't happen
-        return false;
-    }
-    else if (!found->isDefined())
-    {
-        svs->warn(Reporter::UNINITIALISED_USE, "'" + getData() + "' pushed without being defined", getLineNum());
-    }
-    svs->currentStack->push(found);
     return true;
 }
 
@@ -215,12 +219,6 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
     result.setName(LHS->getName());
     result.define();
     svs->symbolicVarSet->defineVar(make_shared<SymbolicDouble>(result));
-    bool debug = svs->isFeasable();
-    if (!svs->isFeasable())
-    {
-        int debug;
-        debug = 5;
-    }
     return svs->isFeasable();
 }
 

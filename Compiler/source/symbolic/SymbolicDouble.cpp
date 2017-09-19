@@ -595,6 +595,7 @@ void SymbolicDouble::modConst(double modulus)
     else
     {
         setLowerBound(0);
+        modulus = abs(modulus);
         if (upperBound >= 0) setUpperBound(min(upperBound, modulus));
         else setUpperBound(modulus);
     }
@@ -607,7 +608,7 @@ void SymbolicDouble::modSymbolicDouble(SymbolicDouble &other)
         double otherVal = other.getConstValue();
         if (otherVal == 0)
         {
-            reportError(Reporter::AlertType::ZERODIVISION, varN + " divided by " + other.varN + " ( = 0)");
+            reportError(Reporter::ZERODIVISION, varN + " divided by " + other.varN + " ( = 0)");
             return;
         }
         else modConst(otherVal);
@@ -616,7 +617,11 @@ void SymbolicDouble::modSymbolicDouble(SymbolicDouble &other)
     else
     {
         setLowerBound(0);
-        setUpperBound(max(abs(other.lowerBound), abs(other.upperBound)));
+        if (other.lowerBound <= 0 && other.upperBound >= 0)
+        {
+            reporter.warn(Reporter::ZERODIVISION,  varN + " divided by " + other.varN + " which could possibly be zero");
+        }
+        setUpperBound(max(upperBound, max(abs(other.lowerBound), abs(other.upperBound))));
     }
 }
 

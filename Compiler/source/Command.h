@@ -5,7 +5,7 @@
 
 #include "compile/Token.h"
 
-enum class CommandType{NONE, JUMP, CONDJUMP, ASSIGNVAR, CHANGEVAR, EXPR};
+enum class CommandType{NONE, JUMP, CONDJUMP, DECLAREVAR, PUSH, POP, ASSIGNVAR, CHANGEVAR, EXPR};
 
 namespace SymbolicExecution {class SymbolicExecutionFringe;}; //symbolic/SymbolicExecution.cpp
 class AbstractCommand
@@ -57,14 +57,14 @@ public:
         if (str.length() == 0) throw std::runtime_error("Asked to find StringType of empty string");
         else if (str.length() > 1 && str[0] == '\"') return StringType::STRINGLIT;
         else try
-            {
-                stod(str);
-                return StringType::DOUBLELIT;
-            }
-            catch (std::invalid_argument e)
-            {
-                return StringType::ID;
-            }
+        {
+            stod(str);
+            return StringType::DOUBLELIT;
+        }
+        catch (std::invalid_argument e)
+        {
+            return StringType::ID;
+        }
     }
 };
 
@@ -187,7 +187,7 @@ public:
 class InputVarCommand: public AbstractCommand
 {
 public:
-    InputVarCommand(std::string assigning, int linenum) : AbstractCommand(linenum)
+    InputVarCommand(const std::string& assigning, int linenum) : AbstractCommand(linenum)
     {
         setData(assigning);
         setType(CommandType::CHANGEVAR);
@@ -205,10 +205,22 @@ public:
 class PushCommand: public AbstractCommand
 {
 public:
+    enum PushType{PUSHVAR, PUSHSTATE};
+    PushType pushType;
+
     PushCommand(std::string in, int linenum) : AbstractCommand(linenum)
     {
-        setData(in);
-        setType(CommandType::NONE);
+        if (in.find("state") == 0)
+        {
+            pushType = PUSHSTATE;
+            setData(in.substr(5));
+        }
+        else
+        {
+            pushType = PUSHVAR;
+            setData(in);
+        }
+        setType(CommandType::PUSH);
     }
 
     std::string translation() const override{return "push " + getData() + ";\n";}
@@ -227,7 +239,7 @@ public:
     PopCommand(std::string in, int linenum) : AbstractCommand(linenum)
     {
         setData(in);
-        setType(CommandType::CHANGEVAR);
+        setType(CommandType::POP);
     }
 
     std::shared_ptr<AbstractCommand> clone() override
@@ -267,12 +279,10 @@ public:
     std::string term2;
     Op op;
 
-    EvaluateExprCommand(std::string lh, std::string t1, Op o, std::string t2, int linenum) : AbstractCommand(linenum)
+    EvaluateExprCommand(std::string lh, std::string t1, Op o, std::string t2, int linenum) : AbstractCommand(linenum),
+                                                                                             op{o}, term1{t1}, term2{t2}
     {
         setData(lh);
-        term1 = t1;
-        term2 = t2; 
-        op =o;
         setType(CommandType::EXPR);
     }
 
@@ -290,11 +300,10 @@ class DeclareVarCommand: public AbstractCommand
 public:
     VariableType vt;
 
-    DeclareVarCommand(VariableType t, std::string n, int linenum) : AbstractCommand(linenum)
+    DeclareVarCommand(VariableType t, std::string n, int linenum) : AbstractCommand(linenum), vt(t)
     {
-        vt = t;
         setData(n);
-        setType(CommandType::CHANGEVAR);
+        setType(CommandType::DECLAREVAR);
     }
 
     std::shared_ptr<AbstractCommand> clone() override
@@ -302,7 +311,11 @@ public:
         return std::make_shared<DeclareVarCommand>(vt, getData(), getLineNum());
     }
 
-    std::string translation() const override{return VariableTypeEnumNames[vt] + " " + getData() + ";\n";}
+    std::string translation() const override
+    {
+        std::string debug = VariableTypeEnumNames[vt] + " " + getData() + ";\n";
+        return VariableTypeEnumNames[vt] + " " + getData() + ";\n";
+    }
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
 };
 

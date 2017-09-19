@@ -103,6 +103,7 @@ bool SymbolicVariableTemplate<T>::isFeasable()
 template <typename T>
 void SymbolicVariableTemplate<T>::setConstValue(const T &cv)
 {
+    define();
     upperBound = lowerBound = cv;
     isConst = true;
 }

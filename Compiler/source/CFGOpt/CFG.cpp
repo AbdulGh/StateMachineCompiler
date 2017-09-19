@@ -31,7 +31,7 @@ void CFGNode::constProp()
 {
     std::unordered_map<std::string,std::string> assignments;
 
-    vector<std::shared_ptr<AbstractCommand>>::iterator it = instrs.begin();
+    auto it = instrs.begin();
     vector<std::shared_ptr<AbstractCommand>> newInstrs;
 
     while (it != instrs.end())
@@ -136,7 +136,7 @@ void CFGNode::removeParent(const std::string& s)
 void CFGNode::setInstructions(vector<std::shared_ptr<AbstractCommand>>& in)
 {
     instrs.clear();
-    vector<std::shared_ptr<AbstractCommand>>::iterator it = in.begin();
+    auto it = in.begin();
 
     while (it != in.end()
            && (*it)->getType() != CommandType::JUMP
@@ -154,7 +154,8 @@ void CFGNode::setInstructions(vector<std::shared_ptr<AbstractCommand>>& in)
 
     if ((*it)->getType() == CommandType::CONDJUMP)
     {
-        compSuccess = parent.getNode((*it)->getData());
+        compSuccess = parentGraph.getNode((*it)->getData());
+        if (compSuccess == nullptr) compSuccess = parentGraph.createNode((*it)->getData()); //will be created properly later
         compSuccess->addParent(shared_from_this());
         comp = static_pointer_cast<JumpOnComparisonCommand>(move(*it)->clone());
 
@@ -168,7 +169,8 @@ void CFGNode::setInstructions(vector<std::shared_ptr<AbstractCommand>>& in)
         if (jumpto == "return") compFail = nullptr;
         else
         {
-            compFail = parent.getNode(jumpto);
+            compFail = parentGraph.getNode(jumpto);
+            if (compFail == nullptr) compFail = parentGraph.createNode(jumpto);
             compFail->addParent(shared_from_this());
         }
         if (++it != in.cend()) throw "Should end here";
@@ -241,7 +243,7 @@ bool CFGNode::swallowNode(std::shared_ptr<CFGNode> other)
 
 ControlFlowGraph &CFGNode::getParent() const
 {
-    return parent;
+    return parentGraph;
 }
 
 int CFGNode::getJumpline() const
@@ -249,21 +251,17 @@ int CFGNode::getJumpline() const
     return jumpline;
 }
 
+bool CFGNode::isLastNode() const
+{
+    return isLast;
+}
+
 /*graph*/
 
-shared_ptr<CFGNode> ControlFlowGraph::getNode(string name, bool create)
+shared_ptr<CFGNode> ControlFlowGraph::getNode(const string& name)
 {
     unordered_map<string, shared_ptr<CFGNode>>::const_iterator it = currentNodes.find(name);
-    if (it == currentNodes.cend())
-    {
-        if (create)
-        {
-            shared_ptr<CFGNode> p = make_shared<CFGNode>(*this, name);
-            currentNodes[name] = p;
-            return p;
-        }
-        else return nullptr;
-    }
+    if (it == currentNodes.cend()) return nullptr;
     return it->second;
 }
 
@@ -274,16 +272,29 @@ void ControlFlowGraph::removeNode(std::string name)
         if (last->getPredecessors().size() != 1) throw runtime_error("Can't replace last node");
         last = last->getPredecessors().cbegin()->second;
     }
-    unordered_map<string, shared_ptr<CFGNode>>::iterator it = currentNodes.find(name);
+    auto it = currentNodes.find(name);
     if (it == currentNodes.end()) throw "Check";
+    shared_ptr<CFGNode> nodePointer = it->second;
+    if (nodePointer->isLastNode())
+    {
+        if (nodePointer->getPredecessors().size() != 1) throw runtime_error("Can't replace last node");
+        last = last->getPredecessors().cbegin()->second;
+    }
     currentNodes.erase(it);
 }
 
-void ControlFlowGraph::addNode(std::string name, std::vector<std::shared_ptr<AbstractCommand>>& instrs)
+std::shared_ptr<CFGNode> ControlFlowGraph::createNode(const std::string &name, std::vector<std::shared_ptr<AbstractCommand>> instrs, FunctionPointer parentFunc,
+                                                      bool overwrite, bool isLast)
 {
-    shared_ptr<CFGNode> introducing = getNode(name);
-    if (currentNodes.size() == 1)  first = introducing;
+    shared_ptr<CFGNode> introducing;
+    if ((introducing = getNode(name)) != nullptr)
+    {
+        if (!overwrite) throw runtime_error("node already exists");
+    }
+    else introducing = make_shared<CFGNode>(*this, parentFunc, name, isLast);
     introducing->setInstructions(instrs);
+    currentNodes[introducing->getName()] = introducing;
+    return introducing;
 }
 
 std::string ControlFlowGraph::getSource()
@@ -316,9 +327,16 @@ shared_ptr<CFGNode> ControlFlowGraph::getLast() const
     return last;
 }
 
-void ControlFlowGraph::setLast(std::string lastName)
+void ControlFlowGraph::setFirst(const string& firstName)
 {
-    unordered_map<string, shared_ptr<CFGNode>>::iterator it = currentNodes.find(lastName);
+    auto it = currentNodes.find(firstName);
+    if (it == currentNodes.end()) throw "Check";
+    first = it->second;
+}
+
+void ControlFlowGraph::setLast(const string& lastName)
+{
+    auto it = currentNodes.find(lastName);
     if (it == currentNodes.end()) throw "Check";
     last = it->second;
 }

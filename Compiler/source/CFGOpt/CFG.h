@@ -19,15 +19,19 @@ private:
     std::unordered_map<std::string, std::shared_ptr<CFGNode>> currentNodes;
     std::shared_ptr<CFGNode> first;
     std::shared_ptr<CFGNode> last;
+
 public:
-    void addNode(std::string name, std::vector<std::shared_ptr<AbstractCommand>>& instrs);
+    std::shared_ptr<CFGNode>
+    createNode(const std::string &name, std::vector<std::shared_ptr<AbstractCommand>> instrs = {}, FunctionPointer parent = nullptr,
+                   bool overwrite = true, bool last = false);
+    std::shared_ptr<CFGNode> getNode(const std::string& name);
     void removeNode(std::string name);
-    std::shared_ptr<CFGNode> getNode(std::string, bool create = true);
     std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getCurrentNodes();
     std::string getSource();
     std::shared_ptr<CFGNode> getFirst() const;
     std::shared_ptr<CFGNode> getLast() const;
-    void setLast(std::string lastName);
+    void setFirst(const std::string& firstname);
+    void setLast(const std::string& lastName);
 
 };
 
@@ -40,12 +44,15 @@ private:
     std::shared_ptr<CFGNode> compSuccess;
     std::shared_ptr<CFGNode> compFail; //unconditional jump at the end of the node
     std::vector<std::shared_ptr<AbstractCommand>> instrs;
-    ControlFlowGraph& parent;
+    ControlFlowGraph& parentGraph;
+    FunctionPointer parentFunction;
+    bool isLast;
     int jumpline;
 
 public:
-    CFGNode(ControlFlowGraph& p, std::string n):
-            parent(p), name(n), comp{}, compSuccess{}, compFail{}, jumpline(-1) {}
+    CFGNode(ControlFlowGraph& p, FunctionPointer pf, std::string n, bool last = false):
+            parentGraph(p), name(move(n)), isLast(last), comp{}, parentFunction(move(pf)),
+            compSuccess{}, compFail{}, jumpline(-1) {}
     void constProp();
     bool addParent(std::shared_ptr<CFGNode>); //returns false if parent was already in
     void removeParent(std::shared_ptr<CFGNode>);
@@ -58,6 +65,7 @@ public:
     //tries to merge with other (if it can fix the jumps so that it can do so)
     //returns true if successful
     bool swallowNode (std::shared_ptr<CFGNode> other);
+    bool isLastNode() const;
     std::shared_ptr<JumpOnComparisonCommand> getComp();
     std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getPredecessors();
     std::shared_ptr<CFGNode> getCompSuccess();

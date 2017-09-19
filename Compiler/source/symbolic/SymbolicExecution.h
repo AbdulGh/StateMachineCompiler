@@ -57,6 +57,8 @@ namespace SymbolicExecution
         SymbolTable& sTable;
         Reporter& reporter;
 
+        //doesn't do anything fancy - just used to find potential jumps
+        void visitNodeSimple(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n);
         //returns if a feasable path extention goes through this node
         //a path is feasable if it visits itself or reaches the last state
         bool visitNode(std::shared_ptr<SymbolicExecutionFringe> sef, std::shared_ptr<CFGNode> n);
@@ -109,7 +111,7 @@ namespace SymbolicExecution
         template <typename T>
         VarTemplatePointer<T>& getLeastUpperBound(VarTemplatePointer<T>& lhsvar, VarTemplatePointer<T>& rhsvar);
 
-        std::shared_ptr<CFGNode> getFailNode(std::shared_ptr<SymbolicExecutionFringe> returningSEF, std::shared_ptr<CFGNode> n);
+        static std::shared_ptr<CFGNode> getFailNode(std::shared_ptr<SymbolicExecutionFringe> returningSEF, std::shared_ptr<CFGNode> n);
 
     public:
         SymbolicExecutionManager(ControlFlowGraph& cfg, SymbolTable& sTable, Reporter& reporter):
@@ -118,7 +120,7 @@ namespace SymbolicExecution
             for (const auto& pair : cfg.getCurrentNodes()) feasableVisits[pair.first] = 0;
         };
         void search();
-        //void removeUnreachableStates();
+        void findJumps(); //looks for jumps via stack
     };
 }
 
