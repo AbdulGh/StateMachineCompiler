@@ -241,9 +241,14 @@ bool CFGNode::swallowNode(std::shared_ptr<CFGNode> other)
     return false;
 }
 
-ControlFlowGraph &CFGNode::getParent() const
+ControlFlowGraph& CFGNode::getParentGraph() const
 {
     return parentGraph;
+}
+
+FunctionPointer CFGNode::getParentFunction() const
+{
+    return parentFunction;
 }
 
 int CFGNode::getJumpline() const
@@ -278,7 +283,9 @@ void ControlFlowGraph::removeNode(std::string name)
     if (nodePointer->isLastNode())
     {
         if (nodePointer->getPredecessors().size() != 1) throw runtime_error("Can't replace last node");
-        last = last->getPredecessors().cbegin()->second;
+        shared_ptr<CFGNode> newLast = last->getPredecessors().cbegin()->second;
+        nodePointer->getParentFunction()->setLastNode(newLast);
+        if (last->getName() == nodePointer->getName()) last = newLast;
     }
     currentNodes.erase(it);
 }
@@ -303,10 +310,10 @@ std::string ControlFlowGraph::getSource()
     std::stringstream outs;
     outs << first->getSource() << '\n';
 
-    for (auto it = currentNodes.cbegin(); it != currentNodes.cend(); it++)
+    for (auto it : currentNodes)
     {
-        if (it->first == first->getName()) continue;
-        outs << it->second->getSource() << '\n';
+        if (it.first == first->getName()) continue;
+        outs << it.second->getSource() << '\n';
     }
 
     return outs.str();

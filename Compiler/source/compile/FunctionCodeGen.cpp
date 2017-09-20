@@ -41,12 +41,13 @@ void FunctionCodeGen::genNewState(std::string n)
     endedState = false;
 }
 
-void FunctionCodeGen::genEndState()
+shared_ptr<CFGNode> FunctionCodeGen::genEndState()
 {
     if (endedState) throw "No state to end";
-    shared_ptr<CFGNode> nptr = cfg.createNode(currentStateName, currentInstrs, shared_from_this(), true, false);
+    shared_ptr<CFGNode> created = cfg.createNode(currentStateName, currentInstrs, shared_from_this(), true, false);
     currentInstrs.clear();
     endedState = true;
+    return created;
 }
 
 void FunctionCodeGen::genJump(std::string s, int linenum)
@@ -76,9 +77,9 @@ void FunctionCodeGen::genPop(std::string s, int linenum)
 void FunctionCodeGen::genReturn(int linenum)
 {
     if (endedState) throw "No state to add to";
-    if (!generatedFinalState)
+    if (lastNode == nullptr)
     {
-        vector<shared_ptr<AbstractCommand>> returnCommand({make_shared<ReturnCommand>(linenum)});
+        vector<shared_ptr<AbstractCommand>> returnCommand({make_shared<ReturnCommand>(-1)});
         lastNode =
                 cfg.createNode("F_" + ident + "_fin", returnCommand, shared_from_this(), false, true);
     }
@@ -122,8 +123,15 @@ void FunctionCodeGen::genAssignment(std::string LHS, std::string RHS, int linenu
     currentInstrs.push_back(make_shared<AssignVarCommand>(LHS, RHS, linenum));
 }
 
-const shared_ptr<CFGNode> &FunctionCodeGen::getLastNode() const
+const shared_ptr<CFGNode>& FunctionCodeGen::getLastNode()
 {
+    if (lastNode == nullptr)
+    {
+        vector<shared_ptr<AbstractCommand>> returnCommand({make_shared<ReturnCommand>(-1)});
+        lastNode =
+                cfg.createNode("F_" + ident + "_fin", returnCommand, shared_from_this(), false, true);
+    }
+
     return lastNode;
 }
 
@@ -131,3 +139,21 @@ void FunctionCodeGen::setLastNode(const shared_ptr<CFGNode> &lastNode)
 {
     FunctionCodeGen::lastNode = lastNode;
 }
+
+const shared_ptr<CFGNode>& FunctionCodeGen::getFirstNode()
+{
+    if (firstNode == nullptr)
+    {
+        firstNode = cfg.createNode("F_" + ident + "_0", {}, shared_from_this(), false, true);
+    }
+
+    return firstNode;
+}
+
+void FunctionCodeGen::setFirstNode(const shared_ptr<CFGNode> &firstNode)
+{
+    FunctionCodeGen::firstNode = firstNode;
+}
+
+
+

@@ -44,6 +44,7 @@ private:
     std::shared_ptr<CFGNode> compSuccess;
     std::shared_ptr<CFGNode> compFail; //unconditional jump at the end of the node
     std::vector<std::shared_ptr<AbstractCommand>> instrs;
+    std::vector<std::shared_ptr<CFGNode>> returnTo; //todo consider how this changes w/ swallowing and deleting
     ControlFlowGraph& parentGraph;
     FunctionPointer parentFunction;
     bool isLast;
@@ -72,7 +73,8 @@ public:
     int getJumpline() const;
     std::shared_ptr<CFGNode> getCompFail();
     std::vector<std::shared_ptr<AbstractCommand>> &getInstrs();
-    ControlFlowGraph &getParent() const;
+    ControlFlowGraph& getParentGraph() const;
+    FunctionPointer getParentFunction() const;
     std::string getSource();
 };
 

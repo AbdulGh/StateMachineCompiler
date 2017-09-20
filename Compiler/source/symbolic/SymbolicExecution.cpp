@@ -89,7 +89,7 @@ SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFringe> return
             returningSEF->error(Reporter::BAD_STACK_USE, "Tried to jump to a non state", n->getJumpline()); //probably my fault
             return nullptr;
         }
-        failNode = n->getParent().getNode(returningSEF->currentStack->popState());
+        failNode = n->getParentGraph().getNode(returningSEF->currentStack->popState());
         if (failNode == nullptr)
         {
             returningSEF->error(Reporter::BAD_STACK_USE, "Tried to jump to a nonexisting state", n->getJumpline());

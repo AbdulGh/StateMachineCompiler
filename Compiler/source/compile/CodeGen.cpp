@@ -6,8 +6,11 @@ VariableType Compiler::genFunctionCall(VariableType expectedType, shared_ptr<Fun
     match(Type::CALL);
     string fid = ident();
     FunctionCodeGen& toFS = *(findFunction(fid));
-    if (expectedType != ANY && !toFS.isOfType(expectedType)) error("Type error");
-        //error ("Function '" + fid + "' returns type " + toFS.getReturnType() + ", expected " + expectedType);
+    if (expectedType != ANY && !toFS.isOfType(expectedType))
+    {
+        error ("Function '" + fid + "' returns type " + TypeEnumNames[toFS.getReturnType()]
+               + ", expected " + TypeEnumNames[expectedType]);
+    }
     match(Type::LPAREN);
 
     string nextState = fromFS->newStateName();
@@ -47,8 +50,8 @@ VariableType Compiler::genFunctionCall(VariableType expectedType, shared_ptr<Fun
 
     if (!toFS.checkTypes(paramTypes)) error("Type mismatch for function '" + fid + "'");
 
-    fromFS->genJump("F_" + fid + "_0", lookahead.line);
-    fromFS->genEndState();
+    fromFS->genJump(toFS.getFirstNode()->getName(), lookahead.line);
+    shared_ptr<CFGNode> created = fromFS->genEndState();
     fromFS->genNewState(nextState);
     return toFS.getReturnType();
 }

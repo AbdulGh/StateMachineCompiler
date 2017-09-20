@@ -18,7 +18,6 @@ private:
     bool endedState;
     std::shared_ptr<CFGNode> lastNode;
     std::shared_ptr<CFGNode> firstNode;
-    bool generatedFinalState = false;
     std::vector<std::shared_ptr<AbstractCommand>> currentInstrs;
     std::string currentStateName;
     ControlFlowGraph& cfg;
@@ -29,12 +28,14 @@ public:
     bool checkTypes(std::vector<VariableType>& potential);
     bool isOfType(VariableType c);
     VariableType getReturnType() const;
-    const std::shared_ptr<CFGNode> &getLastNode() const;
+    const std::shared_ptr<CFGNode> &getLastNode();
     void setLastNode(const std::shared_ptr<CFGNode> &lastNode);
+    const std::shared_ptr<CFGNode> &getFirstNode();
+    void setFirstNode(const std::shared_ptr<CFGNode> &firstNode);
 
     //codegen
     void genNewState(std::string);
-    void genEndState();
+    std::shared_ptr<CFGNode> genEndState();
     void genPrint(std::string, int);
     void genJump(std::string, int);
     void genConditionalJump(std::string, std::string, Relations::Relop r, std::string, int);
