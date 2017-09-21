@@ -4,8 +4,8 @@ using namespace std;
 
 FunctionCodeGen::FunctionCodeGen(VariableType rt, std::vector<VariableType> types, std::string in, ControlFlowGraph& c):
     returnType(rt), paramTypes(move(types)), ident(move(in)),
-    currentStates(1), currentStateName("F_" + ident + "_0"),
-    endedState(false), cfg(c) {}
+    currentStates(1), endedState(false), cfg(c)
+    {currentNode = cfg.createNode("F_" + ident + "_0", this, false, false);}
 
 bool FunctionCodeGen::checkTypes(std::vector<VariableType>& potential)
 {
@@ -33,21 +33,19 @@ VariableType FunctionCodeGen::getReturnType() const
 }
 
 /*generation*/
-//if this is not of the form F_ident_n everything gets broken
 void FunctionCodeGen::genNewState(std::string n)
 {
     if (!endedState) throw "Unfinished state";
-    currentStateName = move(n);
+    currentNode = cfg.createNode(n, this, true, false);
     endedState = false;
 }
 
-shared_ptr<CFGNode> FunctionCodeGen::genEndState()
+void FunctionCodeGen::genEndState()
 {
     if (endedState) throw "No state to end";
-    shared_ptr<CFGNode> created = cfg.createNode(currentStateName, currentInstrs, shared_from_this(), true, false);
+    currentNode->setInstructions(currentInstrs);
     currentInstrs.clear();
     endedState = true;
-    return created;
 }
 
 void FunctionCodeGen::genJump(std::string s, int linenum)
@@ -81,7 +79,8 @@ void FunctionCodeGen::genReturn(int linenum)
     {
         vector<shared_ptr<AbstractCommand>> returnCommand({make_shared<ReturnCommand>(-1)});
         lastNode =
-                cfg.createNode("F_" + ident + "_fin", returnCommand, shared_from_this(), false, true);
+                cfg.createNode("F_" + ident + "_fin", this, false, true);
+        lastNode->setInstructions(returnCommand);
     }
     currentInstrs.push_back(make_shared<JumpCommand>(lastNode->getName(), linenum));
 }
@@ -129,7 +128,7 @@ const shared_ptr<CFGNode>& FunctionCodeGen::getLastNode()
     {
         vector<shared_ptr<AbstractCommand>> returnCommand({make_shared<ReturnCommand>(-1)});
         lastNode =
-                cfg.createNode("F_" + ident + "_fin", returnCommand, shared_from_this(), false, true);
+                cfg.createNode("F_" + ident + "_fin", this, false, true);
     }
 
     return lastNode;
@@ -142,17 +141,18 @@ void FunctionCodeGen::setLastNode(const shared_ptr<CFGNode> &lastNode)
 
 const shared_ptr<CFGNode>& FunctionCodeGen::getFirstNode()
 {
-    if (firstNode == nullptr)
-    {
-        firstNode = cfg.createNode("F_" + ident + "_0", {}, shared_from_this(), false, true);
-    }
-
+    if (firstNode == nullptr) firstNode = cfg.createNode("F_" + ident + "_0", this, true, false);
     return firstNode;
 }
 
 void FunctionCodeGen::setFirstNode(const shared_ptr<CFGNode> &firstNode)
 {
     FunctionCodeGen::firstNode = firstNode;
+}
+
+const shared_ptr<CFGNode> &FunctionCodeGen::getCurrentNode() const
+{
+    return currentNode;
 }
 
 

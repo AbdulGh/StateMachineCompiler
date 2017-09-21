@@ -51,8 +51,11 @@ VariableType Compiler::genFunctionCall(VariableType expectedType, shared_ptr<Fun
     if (!toFS.checkTypes(paramTypes)) error("Type mismatch for function '" + fid + "'");
 
     fromFS->genJump(toFS.getFirstNode()->getName(), lookahead.line);
-    shared_ptr<CFGNode> created = fromFS->genEndState();
+    fromFS->genEndState();
     fromFS->genNewState(nextState);
+    shared_ptr<CFGNode> created = fromFS->getCurrentNode();
+    created->addParent(toFS.getLastNode());
+    toFS.getLastNode()->addReturnSuccessor(created);
     return toFS.getReturnType();
 }
 

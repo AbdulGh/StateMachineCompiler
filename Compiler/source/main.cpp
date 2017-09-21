@@ -8,7 +8,7 @@ int main()
 {
     Lexer lexer;
 
-    vector<Token> st = lexer.tokenize("../misc/fizzbuzz.f");
+    vector<Token> st = lexer.tokenize("../misc/linear.f");
     Compiler c(st, "../warnings.txt");
     stringstream pleaseWork;
     c.compile(pleaseWork);

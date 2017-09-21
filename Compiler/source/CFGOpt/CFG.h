@@ -21,9 +21,7 @@ private:
     std::shared_ptr<CFGNode> last;
 
 public:
-    std::shared_ptr<CFGNode>
-    createNode(const std::string &name, std::vector<std::shared_ptr<AbstractCommand>> instrs = {}, FunctionPointer parent = nullptr,
-                   bool overwrite = true, bool last = false);
+    std::shared_ptr<CFGNode> createNode(const std::string &name, FunctionCodeGen* parent, bool overwrite, bool last);
     std::shared_ptr<CFGNode> getNode(const std::string& name);
     void removeNode(std::string name);
     std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getCurrentNodes();
@@ -46,13 +44,13 @@ private:
     std::vector<std::shared_ptr<AbstractCommand>> instrs;
     std::vector<std::shared_ptr<CFGNode>> returnTo; //todo consider how this changes w/ swallowing and deleting
     ControlFlowGraph& parentGraph;
-    FunctionPointer parentFunction;
+    FunctionCodeGen* parentFunction;
     bool isLast;
     int jumpline;
 
 public:
-    CFGNode(ControlFlowGraph& p, FunctionPointer pf, std::string n, bool last = false):
-            parentGraph(p), name(move(n)), isLast(last), comp{}, parentFunction(move(pf)),
+    CFGNode(ControlFlowGraph& p, FunctionCodeGen* pf, std::string n, bool last = false):
+            parentGraph(p), name(move(n)), isLast(last), comp{}, parentFunction(pf),
             compSuccess{}, compFail{}, jumpline(-1) {}
     void constProp();
     bool addParent(std::shared_ptr<CFGNode>); //returns false if parent was already in
@@ -71,10 +69,11 @@ public:
     std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getPredecessors();
     std::shared_ptr<CFGNode> getCompSuccess();
     int getJumpline() const;
+    void addReturnSuccessor(std::shared_ptr<CFGNode> returningTo);
     std::shared_ptr<CFGNode> getCompFail();
     std::vector<std::shared_ptr<AbstractCommand>> &getInstrs();
     ControlFlowGraph& getParentGraph() const;
-    FunctionPointer getParentFunction() const;
+    FunctionCodeGen* getParentFunction() const;
     std::string getSource();
 };
 

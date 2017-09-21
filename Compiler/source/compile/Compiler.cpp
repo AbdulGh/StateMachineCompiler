@@ -38,8 +38,8 @@ void Compiler::compile(stringstream& out)
     while (lookahead.type != END) body();
 
     cfg.setLast(functionTable["main"]->getLastNode()->getName());
-    Optimise::optimise(symbolTable, cfg);
-    for (auto node : cfg.getCurrentNodes()) node.second->constProp();
+    //Optimise::optimise(symbolTable, cfg);
+    //for (auto node : cfg.getCurrentNodes()) node.second->constProp();
     //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
     //symMan.search();
     //Optimise::optimise(symbolTable, cfg);
@@ -159,7 +159,7 @@ void Compiler::findGlobalsAndMakeStates()
     }
 
     initialState.push_back(make_shared<JumpCommand>("F_main_0", -1));
-    cfg.createNode("start", initialState);
+    cfg.createNode("start", nullptr, false, false)->setInstructions(initialState);
     cfg.setFirst("start");
 }
 

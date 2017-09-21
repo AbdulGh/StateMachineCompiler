@@ -223,7 +223,11 @@ public:
         setType(CommandType::PUSH);
     }
 
-    std::string translation() const override{return "push " + getData() + ";\n";}
+    std::string translation() const override
+    {
+        if (pushType == PUSHSTATE) return "push state " + getData() + ";\n";
+        else return "push " + getData() + ";\n";;
+    }
 
     std::shared_ptr<AbstractCommand> clone() override
     {
