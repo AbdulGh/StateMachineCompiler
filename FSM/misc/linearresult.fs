@@ -9,31 +9,8 @@ end
 F_main_1
 double unique0;
 unique0 = retD;
-_2_1_y = unique0;
+_2_1_y = retD;
 print _2_1_y;
-jump F_main_fin;
-end
-
-F_main_fin
-return;
-end
-
-F_evaluateLinearFunction_0
-double _1_0_b;
-pop _1_0_b;
-double _1_0_a;
-pop _1_0_a;
-double _1_0_x;
-pop _1_0_x;
-double _2_0_y;
-_2_0_y = _1_0_a * _1_0_x;
-double temp0;
-temp0 = _2_0_y + _1_0_b;
-retD = _2_0_y;
-jump F_evaluateLinearFunction_fin;
-end
-
-F_evaluateLinearFunction_fin
 return;
 end
 
@@ -49,8 +26,15 @@ print "b: ";
 input _2_1_b;
 double _2_1_y;
 push state  F_main_1;
-push _2_1_x;
-push _2_1_a;
-push _2_1_b;
-jump F_evaluateLinearFunction_0;
+double _1_0_b;
+_1_0_b = _2_1_b;
+double _1_0_a;
+_1_0_a = _2_1_a;
+double _1_0_x;
+_1_0_x = _2_1_x;
+double _2_0_y;
+_2_0_y = _1_0_a * _1_0_x;
+_2_0_y = _2_0_y + _1_0_b;
+retD = _2_0_y;
+return;
 end

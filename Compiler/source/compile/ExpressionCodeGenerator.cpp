@@ -159,6 +159,9 @@ bool ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer f
 
     ExprNodePointer leftp = p->getLeft();
     ExprNodePointer rightp = p->getRight();
+    AbstractExprNode* debugleft = leftp.get();
+    AbstractExprNode* debugright = rightp.get();
+    AbstractExprNode* debug = p.get();
     double dl, dr;
     string left, right;
     bool leftlit = leftp->getType() == LITERAL;
@@ -171,11 +174,11 @@ bool ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer f
     {
         if (leftp->isAtom()) left = leftp->getData();
         else if (leftlit = translateTree(leftp, fs, reg, dl)) left = to_string(dl);
-        else left = genTemp(fs, reg++);
+        else left = genTemp(fs, reg);
         
         if (rightp->isAtom()) right = rightp->getData();
-        else if (rightlit = translateTree(rightp, fs, reg, dr)) right = to_string(dr);
-        else right = genTemp(fs, reg);
+        else if (rightlit = translateTree(rightp, fs, reg + 1, dr)) right = to_string(dr);
+        else right = genTemp(fs, reg + 1);
     }
     if (leftlit && rightlit)
     {
