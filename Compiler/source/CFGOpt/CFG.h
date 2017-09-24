@@ -42,7 +42,7 @@ private:
     std::shared_ptr<CFGNode> compSuccess;
     std::shared_ptr<CFGNode> compFail; //unconditional jump at the end of the node
     std::vector<std::shared_ptr<AbstractCommand>> instrs;
-    std::vector<std::shared_ptr<CFGNode>> returnTo; //todo consider how this changes w/ swallowing and deleting
+    std::vector<std::shared_ptr<CFGNode>> returnTo;
     ControlFlowGraph& parentGraph;
     FunctionCodeGen* parentFunction;
     bool isLast;

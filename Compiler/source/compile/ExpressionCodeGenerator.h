@@ -23,13 +23,14 @@ protected:
     void setType(NodeType);
 
 public:
-    virtual ~AbstractExprNode(){}
+    virtual ~AbstractExprNode() = default;
     virtual void addNode(std::shared_ptr<AbstractExprNode>) = 0;
     virtual const std::string& getData() const {throw std::runtime_error("no data");}
     NodeType getType() const;
     bool isAtom();
     virtual std::shared_ptr<AbstractExprNode> getLeft() = 0;
     virtual std::shared_ptr<AbstractExprNode> getRight() = 0;
+    virtual double getDouble() {throw std::runtime_error("not a double lit");}
     unsigned int getVarsRequired() const;
 
     Op getOp() const;
@@ -43,11 +44,11 @@ private:
     ExprNodePointer right;
 
 public:
-    ExprNodePointer getLeft();
-    ExprNodePointer getRight();
+    ExprNodePointer getLeft() override;
+    ExprNodePointer getRight() override;
 
     OperatorNode(Op);
-    void addNode(ExprNodePointer);
+    void addNode(ExprNodePointer) override;
 };
 
 class AtomNode : public AbstractExprNode
@@ -55,14 +56,16 @@ class AtomNode : public AbstractExprNode
 private:
     std::string data;
     int varsRequired;
+    double doub;
 public:
-    ExprNodePointer getLeft();
-    ExprNodePointer getRight();
+    ExprNodePointer getLeft() override;
+    ExprNodePointer getRight() override;
 
     AtomNode(std::string, bool);
+    double getDouble() override {return doub;}
     const std::string& getData() const override;
     void setData(std::string);
-    void addNode(ExprNodePointer);
+    void addNode(ExprNodePointer) override;
 };
 
 class ExpressionCodeGenerator

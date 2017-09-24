@@ -73,10 +73,10 @@ public:
     void pushScope();
     void popScope();
     std::shared_ptr<Identifier> declare(std::string name, VariableType type, unsigned int lineNum);
-    bool define(VariableType type, std::string name);
-    bool isDeclared(std::string name);
-    bool isDefined(std::string name);
-    bool isInScope(std::string name);
+    bool define(VariableType type, const std::string& name);
+    bool isDeclared(const std::string& name);
+    bool isDefined(const std::string& name);
+    bool isInScope(const std::string& name);
 };
 
 

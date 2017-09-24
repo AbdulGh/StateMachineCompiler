@@ -129,7 +129,7 @@ Token Lexer::parseToken()
         case '"': case '\'':
         {
             char delim = c;
-            string lit = "";
+            string lit;
             while ((c = getChar()) && c != delim) lit += c;
             return Token(STRINGLIT, lit);
         }
@@ -138,14 +138,14 @@ Token Lexer::parseToken()
             while ((c = getChar()) && isalnum(c)) str += c;
             if (!infile.eof()) unget();
 
-            if (str == "") return parseToken();
+            if (str.empty()) return parseToken();
 
             try //number
             {
                 stod(str);
                 return Token(NUMBER, str);
             }
-            catch(invalid_argument e)
+            catch(invalid_argument)
             {
                 unordered_map<string, Token>::const_iterator found = resWords.find(str);
                 if (found == resWords.end()) return Token(IDENT, str);

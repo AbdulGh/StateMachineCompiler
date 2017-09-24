@@ -3,7 +3,7 @@
 
 #include <string>
 #include <stdexcept>
-#include <math.h>
+#include <cmath>
 
 enum Type {IDENT, OP, RELOP, LBRACE, RBRACE,
             LPAREN, RPAREN, IF, WHILE,
@@ -60,12 +60,12 @@ public:
     Token(Type t, std::string s = ""):
             type(t),
             auxType{},
-            lexemeString(s){}
+            lexemeString(move(s)){}
 
     Token(VariableType t, std::string s = ""):
             type(DTYPE),
             auxType(t),
-            lexemeString(s){}
+            lexemeString(move(s)){}
 
     Token(Relations::Relop rel):
             type(RELOP),

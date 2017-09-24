@@ -17,7 +17,7 @@ void SymbolTable::pushScope()
     currentMap = make_shared<SymbolTableMap>();
     depth += 1;
     if (depth == scopeDepths.size()) scopeDepths.push_back(0);
-    else scopeDepths[depth]++;
+    else ++scopeDepths[depth];
 }
 
 void SymbolTable::popScope()
@@ -35,24 +35,24 @@ shared_ptr<Identifier> SymbolTable::declare(string name, VariableType type, unsi
     return sp;
 }
 
-bool SymbolTable::isDeclared(string name)
+bool SymbolTable::isDeclared(const string& name)
 {
     return (findIdentifier(name) != nullptr);
 }
 
-bool SymbolTable::isInScope(string name)
+bool SymbolTable::isInScope(const string& name)
 {
     unordered_map<string, shared_ptr<Identifier>>::const_iterator it = currentMap->find(name);
     return it != currentMap->cend();
 }
 
-bool SymbolTable::isDefined(string name)
+bool SymbolTable::isDefined(const string& name)
 {
     if (shared_ptr<Identifier> id = findIdentifier(name)) return id->isDefined();
     return false;
 }
 
-bool SymbolTable::define(VariableType type, string name)
+bool SymbolTable::define(VariableType type, const string& name)
 {
     if (shared_ptr<Identifier> id = findIdentifier(name))
     {
@@ -68,7 +68,7 @@ shared_ptr<Identifier> SymbolTable::findIdentifier(string name)
     if (it != currentMap->cend()) return it->second;
     else
     {
-        for (auto scope: sTable)
+        for (auto& scope: sTable)
         {
             SymbolTableMap::const_iterator it = scope->find(name);
             if (it != currentMap->cend()) return it->second;

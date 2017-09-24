@@ -133,7 +133,7 @@ string ExpressionCodeGenerator::genUnique(FunctionPointer fs)
     if (currentUnique == nextUnique)
     {
         string s = "unique" + to_string(nextUnique++);
-        currentUnique++;
+        ++currentUnique;
         fs->genVariableDecl(DOUBLE, s, parent.lookahead.line);
         return s;
     }

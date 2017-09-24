@@ -105,7 +105,12 @@ AtomNode::AtomNode(string in, bool num):
         varsRequired(0),
         data(in)
 {
-    setType(num? LITERAL : IDENTIFIER);
+    if (num)
+    {
+        setType(LITERAL);
+        doub = stod(in);
+    }
+    else setType(IDENTIFIER);
 }
 
 ExprNodePointer AtomNode::getLeft()

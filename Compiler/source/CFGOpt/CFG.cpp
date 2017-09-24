@@ -129,7 +129,7 @@ bool CFGNode::constProp()
             }
         }
         else newInstrs.push_back(current);
-        it++;
+        ++it;
     }
 
     bool skippedReturn = false;

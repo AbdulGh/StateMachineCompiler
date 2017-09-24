@@ -80,7 +80,7 @@ void Compiler::findGlobalsAndMakeStates()
     {
         if (lookahead.type == LBRACE)
         {
-            depth++;
+            ++depth;
             match(LBRACE);
         }
 
