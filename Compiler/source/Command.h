@@ -208,12 +208,12 @@ public:
     enum PushType{PUSHVAR, PUSHSTATE};
     PushType pushType;
 
-    PushCommand(std::string in, int linenum) : AbstractCommand(linenum)
+    PushCommand(const std::string& in, int linenum) : AbstractCommand(linenum)
     {
         if (in.find("state") == 0)
         {
             pushType = PUSHSTATE;
-            setData(in.substr(5));
+            setData(in.substr(6));
         }
         else
         {
@@ -240,7 +240,7 @@ public:
 class PopCommand: public AbstractCommand
 {
 public:
-    PopCommand(std::string in, int linenum) : AbstractCommand(linenum)
+    PopCommand(const std::string& in, int linenum) : AbstractCommand(linenum)
     {
         setData(in);
         setType(CommandType::POP);
@@ -260,7 +260,7 @@ class AssignVarCommand: public AbstractCommand
 {
 public:
     std::string RHS;
-    AssignVarCommand(std::string lh, std::string rh, int linenum) : AbstractCommand(linenum)
+    AssignVarCommand(const std::string& lh, const std::string& rh, int linenum) : AbstractCommand(linenum)
     {
         setData(lh);
         RHS = rh;
@@ -283,7 +283,7 @@ public:
     std::string term2;
     Op op;
 
-    EvaluateExprCommand(std::string lh, std::string t1, Op o, std::string t2, int linenum) : AbstractCommand(linenum),
+    EvaluateExprCommand(const std::string& lh, const std::string& t1, Op o, const std::string& t2, int linenum) : AbstractCommand(linenum),
                                                                                              op{o}, term1{t1}, term2{t2}
     {
         setData(lh);
@@ -304,7 +304,7 @@ class DeclareVarCommand: public AbstractCommand
 public:
     VariableType vt;
 
-    DeclareVarCommand(VariableType t, std::string n, int linenum) : AbstractCommand(linenum), vt(t)
+    DeclareVarCommand(VariableType t, const std::string& n, int linenum) : AbstractCommand(linenum), vt(t)
     {
         setData(n);
         setType(CommandType::DECLAREVAR);

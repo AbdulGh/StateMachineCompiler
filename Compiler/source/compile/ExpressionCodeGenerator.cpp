@@ -159,9 +159,6 @@ bool ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer f
 
     ExprNodePointer leftp = p->getLeft();
     ExprNodePointer rightp = p->getRight();
-    AbstractExprNode* debugleft = leftp.get();
-    AbstractExprNode* debugright = rightp.get();
-    AbstractExprNode* debug = p.get();
     double dl, dr;
     string left, right;
     bool leftlit = leftp->getType() == LITERAL;

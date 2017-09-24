@@ -52,7 +52,7 @@ public:
     CFGNode(ControlFlowGraph& p, FunctionCodeGen* pf, std::string n, bool last = false):
             parentGraph(p), name(move(n)), isLast(last), comp{}, parentFunction(pf),
             compSuccess{}, compFail{}, jumpline(-1) {}
-    void constProp();
+    bool constProp(); //returns true if it bypassed some return
     bool addParent(std::shared_ptr<CFGNode>); //returns false if parent was already in
     void removeParent(std::shared_ptr<CFGNode>);
     void removeParent(const std::string&);
@@ -67,6 +67,7 @@ public:
     bool isLastNode() const;
     std::shared_ptr<JumpOnComparisonCommand> getComp();
     std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getPredecessors();
+    std::vector<std::shared_ptr<CFGNode>>& getReturnSuccessors();
     std::shared_ptr<CFGNode> getCompSuccess();
     int getJumpline() const;
     void addReturnSuccessor(std::shared_ptr<CFGNode> returningTo);

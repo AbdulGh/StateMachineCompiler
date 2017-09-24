@@ -1,6 +1,0 @@
-WARNING : COMPILER : a may not be defined (line 3)
-
-WARNING : COMPILER : x may not be defined (line 3)
-
-WARNING : COMPILER : b may not be defined (line 3)
-

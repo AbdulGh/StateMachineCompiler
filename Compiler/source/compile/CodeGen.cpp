@@ -55,7 +55,6 @@ VariableType Compiler::genFunctionCall(VariableType expectedType, shared_ptr<Fun
     fromFS->genNewState(nextState);
     shared_ptr<CFGNode> created = fromFS->getCurrentNode();
     created->addParent(toFS.getLastNode());
-    toFS.getLastNode()->addReturnSuccessor(created);
     return toFS.getReturnType();
 }
 

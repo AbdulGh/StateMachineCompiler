@@ -28,7 +28,7 @@ string CFGNode::getSource()
     return outs.str();
 }
 
-void CFGNode::constProp()
+bool CFGNode::constProp()
 {
     unordered_map<string,string> assignments;
     stack<vector<shared_ptr<AbstractCommand>>::iterator> pushedThings;
@@ -131,7 +131,8 @@ void CFGNode::constProp()
         else newInstrs.push_back(current);
         it++;
     }
-    instrs = move(newInstrs);
+
+    bool skippedReturn = false;
     if (comp != nullptr)
     {
         if (comp->term1Type == AbstractCommand::StringType::ID &&
@@ -140,6 +141,24 @@ void CFGNode::constProp()
             assignments.find(comp->term2) != assignments.end()) comp->setTerm2(assignments[comp->term2]);
         comp->makeGood();
     }
+    /* todo make this work
+    else if (compFail == nullptr && !pushedThings.empty()) //there should be a state on top
+    {
+        auto stackTop = pushedThings.top();
+        shared_ptr<PushCommand> pushc = static_pointer_cast<PushCommand>(*stackTop);
+        if (pushc->pushType != PushCommand::PUSHSTATE) throw runtime_error("tried to jump to var");
+        std::string debug = pushc->getData();
+        shared_ptr<CFGNode> jumpingTo = parentGraph.getNode(pushc->getData());
+        if (jumpingTo == nullptr) throw runtime_error("Tried to jump to nonexistent state");
+        compFail = jumpingTo;
+        newInstrs.erase(stackTop);
+        if (!returnTo.size() == 1) throw "check";
+        returnTo.at(0)->removeParent(name);
+        returnTo.clear();
+        skippedReturn = true;
+    }*/
+    instrs = move(newInstrs);
+    return skippedReturn;
 }
 
 bool CFGNode::addParent(shared_ptr<CFGNode> parent)
@@ -220,6 +239,11 @@ shared_ptr<CFGNode> CFGNode::getCompSuccess()
     return compSuccess;
 }
 
+vector<shared_ptr<CFGNode>>& CFGNode::getReturnSuccessors()
+{
+    return returnTo;
+}
+
 shared_ptr<CFGNode> CFGNode::getCompFail()
 {
     return compFail;
@@ -247,23 +271,36 @@ void CFGNode::setComp(const shared_ptr<JumpOnComparisonCommand> &comp)
 
 bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
 {
-    if (compSuccess == nullptr && compFail != nullptr &&  compFail->getName() == other->getName())
+    if (compSuccess == nullptr)
     {
-        vector<shared_ptr<AbstractCommand>> newInstrs = instrs;
-        vector<shared_ptr<AbstractCommand>>& addingInstrs = other->getInstrs();
-        newInstrs.reserve(instrs.size() + addingInstrs.size() + 2);
-        for (shared_ptr<AbstractCommand>& newInst : addingInstrs) newInstrs.push_back(newInst->clone());
-        setInstructions(newInstrs);
-        if (other->getComp() != nullptr)
+        if (compFail != nullptr &&  compFail->getName() == other->getName()
+            || returnTo.size() == 1 && returnTo.at(0)->getName() == other->getName())
         {
-            setComp(static_pointer_cast<JumpOnComparisonCommand>(other->getComp()->clone()));
+            vector<shared_ptr<AbstractCommand>> newInstrs = instrs;
+            vector<shared_ptr<AbstractCommand>>& addingInstrs = other->getInstrs();
+            newInstrs.reserve(instrs.size() + addingInstrs.size() + 2);
+            for (shared_ptr<AbstractCommand>& newInst : addingInstrs) newInstrs.push_back(newInst->clone());
+            setInstructions(newInstrs);
+            if (other->getComp() != nullptr)
+            {
+                setComp(static_pointer_cast<JumpOnComparisonCommand>(other->getComp()->clone()));
+            }
+            else setComp(nullptr);
+            setCompSuccess(other->getCompSuccess());
+            setCompFail(other->getCompFail());
+            if (getCompSuccess() != nullptr) getCompSuccess()->addParent(shared_from_this());
+            if (getCompFail() != nullptr) getCompFail()->addParent(shared_from_this());
+            else
+            {
+                returnTo.reserve(returnTo.size() + other->returnTo.size());
+                for (const shared_ptr<CFGNode>& retNode : other->returnTo)
+                {
+                    returnTo.push_back(retNode);
+                    retNode->addParent(shared_from_this());
+                }
+            }
+            return true;
         }
-        else setComp(nullptr);
-        setCompSuccess(other->getCompSuccess());
-        setCompFail(other->getCompFail());
-        if (getCompSuccess() != nullptr) getCompSuccess()->addParent(shared_from_this());
-        if (getCompFail() != nullptr) getCompFail()->addParent(shared_from_this());
-        return true;
     }
     return false;
 }
@@ -290,6 +327,11 @@ bool CFGNode::isLastNode() const
 
 void CFGNode::addReturnSuccessor(shared_ptr<CFGNode> returningTo)
 {
+    if (name == "F_main_fin")
+    {
+        int debug;
+        debug = 2;
+    }
     returnTo.push_back(returningTo);
 }
 
