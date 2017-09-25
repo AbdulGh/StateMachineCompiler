@@ -205,21 +205,13 @@ public:
 class PushCommand: public AbstractCommand
 {
 public:
-    enum PushType{PUSHVAR, PUSHSTATE};
+    enum PushType{PUSHSTR, PUSHSTATE};
     PushType pushType;
 
-    PushCommand(const std::string& in, int linenum) : AbstractCommand(linenum)
+    PushCommand(PushType pt, const std::string& in, int linenum):
+            AbstractCommand(linenum), pushType(pt)
     {
-        if (in.find("state") == 0)
-        {
-            pushType = PUSHSTATE;
-            setData(in.substr(6));
-        }
-        else
-        {
-            pushType = PUSHVAR;
-            setData(in);
-        }
+        setData(in);
         setType(CommandType::PUSH);
     }
 
@@ -231,7 +223,7 @@ public:
 
     std::shared_ptr<AbstractCommand> clone() override
     {
-        return std::make_shared<PushCommand>(getData(), getLineNum());
+        return std::make_shared<PushCommand>(pushType, getData(), getLineNum());
     }
 
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
@@ -283,8 +275,8 @@ public:
     std::string term2;
     Op op;
 
-    EvaluateExprCommand(const std::string& lh, const std::string& t1, Op o, const std::string& t2, int linenum) : AbstractCommand(linenum),
-                                                                                             op{o}, term1{t1}, term2{t2}
+    EvaluateExprCommand(const std::string& lh, std::string t1, Op o, std::string t2, int linenum) :
+    AbstractCommand(linenum), op{o}, term1{std::move(t1)}, term2{std::move(t2)}
     {
         setData(lh);
         setType(CommandType::EXPR);

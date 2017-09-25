@@ -10,6 +10,11 @@
 using namespace std;
 
 /*nodes*/
+CFGNode::CFGNode(ControlFlowGraph& p, FunctionCodeGen* pf, string n, bool last):
+    parentGraph(p), name(move(n)), isLast(last), comp{}, parentFunction(pf),
+    compSuccess{}, compFail{}, jumpline(-1) {}
+
+
 const string &CFGNode::getName() const
 {
     return name;
@@ -71,17 +76,26 @@ bool CFGNode::constProp()
         {
             shared_ptr<EvaluateExprCommand> eec = static_pointer_cast<EvaluateExprCommand>(current);
             //literals will not be found
-            unordered_map<string, string>::const_iterator t1it = assignments.find(eec->term1);
-            unordered_map<string, string>::const_iterator t2it = assignments.find(eec->term2);
-            if (t1it != assignments.end()) eec->term1 = t1it->second;
-            if (t2it != assignments.end()) eec->term2 = t2it->second;
+            auto debug = eec.get();
+            if (AbstractCommand::getStringType(eec->term1) == AbstractCommand::StringType::ID)
+            {
+                unordered_map<string, string>::const_iterator t1it = assignments.find(eec->term1);
+                if (t1it != assignments.end()) eec->term1 = t1it->second;
+            }
+
+            if (AbstractCommand::getStringType(eec->term2) == AbstractCommand::StringType::ID)
+            {
+                unordered_map<string, string>::const_iterator t2it = assignments.find(eec->term2);
+                if (t2it != assignments.end()) eec->term2 = t2it->second;
+            }
+
             if (AbstractCommand::getStringType(eec->term1) != AbstractCommand::StringType::ID
                 && AbstractCommand::getStringType(eec->term2) != AbstractCommand::StringType::ID)
             {
                 try
                 {
-                    double lhs = stod(t1it->second);
-                    double rhs = stod(t2it->second);
+                    double lhs = stod(eec->term1);
+                    double rhs = stod(eec->term2);
                     double result = evaluateOp(lhs, eec->op, rhs);
                     string resultstr = to_string(result);
                     assignments[eec->getData()] = resultstr;
@@ -107,7 +121,7 @@ bool CFGNode::constProp()
         else if (current->getType() == CommandType::PUSH)
         {
             shared_ptr<PushCommand> pushc = static_pointer_cast<PushCommand>(current);
-            if (pushc->pushType == PushCommand::PUSHVAR)
+            if (pushc->pushType == PushCommand::PUSHSTR)
             {
                 auto pushedVarIt = assignments.find(current->getData());
                 if (pushedVarIt != assignments.end()) current->setData(pushedVarIt->second);
@@ -141,8 +155,7 @@ bool CFGNode::constProp()
             assignments.find(comp->term2) != assignments.end()) comp->setTerm2(assignments[comp->term2]);
         comp->makeGood();
     }
-    /* todo make this work
-    else if (compFail == nullptr && !pushedThings.empty()) //there should be a state on top
+    /*else if (compFail == nullptr && !pushedThings.empty()) //there should be a state on top
     {
         auto stackTop = pushedThings.top();
         shared_ptr<PushCommand> pushc = static_pointer_cast<PushCommand>(*stackTop);
@@ -161,22 +174,44 @@ bool CFGNode::constProp()
     return skippedReturn;
 }
 
-bool CFGNode::addParent(shared_ptr<CFGNode> parent)
+bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
 {
-    auto it = predecessors.find(parent->getName());
-    if (it != predecessors.end()) return false;
-    predecessors[parent->getName()] = parent;
-    return true;
-}
-
-void CFGNode::removeParent(shared_ptr<CFGNode> leaving)
-{
-    removeParent(leaving->getName());
-}
-
-void CFGNode::removeParent(const string& s)
-{
-    if (predecessors.erase(s) == 0) throw runtime_error("Parent is not in");
+    if (compSuccess == nullptr)
+    {
+        if (compFail != nullptr &&  compFail->getName() == other->getName()
+            || returnTo.size() == 1 && returnTo.at(0)->getName() == other->getName())
+        {
+            vector<shared_ptr<AbstractCommand>> newInstrs = instrs;
+            vector<shared_ptr<AbstractCommand>>& addingInstrs = other->getInstrs();
+            newInstrs.reserve(instrs.size() + addingInstrs.size() + 2);
+            for (shared_ptr<AbstractCommand>& newInst : addingInstrs) newInstrs.push_back(newInst->clone());
+            setInstructions(newInstrs);
+            if (other->getComp() != nullptr)
+            {
+                setComp(static_pointer_cast<JumpOnComparisonCommand>(other->getComp()->clone()));
+            }
+            else setComp(nullptr);
+            setCompSuccess(other->getCompSuccess());
+            setCompFail(other->getCompFail());
+            if (getCompSuccess() != nullptr) getCompSuccess()->addParent(shared_from_this());
+            if (getCompFail() != nullptr) getCompFail()->addParent(shared_from_this());
+            else
+            {
+                shared_ptr<CFGNode> otherLast = other->parentFunction->getLastNode();
+                vector<shared_ptr<CFGNode>>& otherReturnTo = otherLast->returnTo;
+                otherReturnTo.reserve(returnTo.size() + otherReturnTo.size());
+                for (const shared_ptr<CFGNode>& retNode : returnTo)
+                {
+                    otherReturnTo.push_back(retNode);
+                    retNode->removeParent(name);
+                    retNode->addParent(shared_from_this());
+                }
+                returnTo.clear();
+            }
+            return true;
+        }
+    }
+    return false;
 }
 
 void CFGNode::setInstructions(vector<shared_ptr<AbstractCommand>>& in)
@@ -224,6 +259,29 @@ void CFGNode::setInstructions(vector<shared_ptr<AbstractCommand>>& in)
     else throw "Can only end w/ <=2 jumps";
 }
 
+bool CFGNode::addParent(shared_ptr<CFGNode> parent)
+{
+    auto it = predecessors.find(parent->getName());
+    if (it != predecessors.end()) return false;
+    predecessors[parent->getName()] = parent;
+    return true;
+}
+
+void CFGNode::removeParent(shared_ptr<CFGNode> leaving)
+{
+    removeParent(leaving->getName());
+}
+
+void CFGNode::removeParent(const string& s)
+{
+    if (predecessors.erase(s) == 0) throw runtime_error("Parent is not in");
+}
+
+void CFGNode::setParentFunction(FunctionCodeGen *pf)
+{
+    parentFunction = pf;
+}
+
 shared_ptr<JumpOnComparisonCommand> CFGNode::getComp()
 {
     return comp;
@@ -269,40 +327,9 @@ void CFGNode::setComp(const shared_ptr<JumpOnComparisonCommand> &comp)
     CFGNode::comp = comp;
 }
 
-bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
+void CFGNode::setLast(bool last)
 {
-    if (compSuccess == nullptr)
-    {
-        if (compFail != nullptr &&  compFail->getName() == other->getName()
-            || returnTo.size() == 1 && returnTo.at(0)->getName() == other->getName())
-        {
-            vector<shared_ptr<AbstractCommand>> newInstrs = instrs;
-            vector<shared_ptr<AbstractCommand>>& addingInstrs = other->getInstrs();
-            newInstrs.reserve(instrs.size() + addingInstrs.size() + 2);
-            for (shared_ptr<AbstractCommand>& newInst : addingInstrs) newInstrs.push_back(newInst->clone());
-            setInstructions(newInstrs);
-            if (other->getComp() != nullptr)
-            {
-                setComp(static_pointer_cast<JumpOnComparisonCommand>(other->getComp()->clone()));
-            }
-            else setComp(nullptr);
-            setCompSuccess(other->getCompSuccess());
-            setCompFail(other->getCompFail());
-            if (getCompSuccess() != nullptr) getCompSuccess()->addParent(shared_from_this());
-            if (getCompFail() != nullptr) getCompFail()->addParent(shared_from_this());
-            else
-            {
-                returnTo.reserve(returnTo.size() + other->returnTo.size());
-                for (const shared_ptr<CFGNode>& retNode : other->returnTo)
-                {
-                    returnTo.push_back(retNode);
-                    retNode->addParent(shared_from_this());
-                }
-            }
-            return true;
-        }
-    }
-    return false;
+    isLast = last;
 }
 
 ControlFlowGraph& CFGNode::getParentGraph() const
@@ -327,11 +354,6 @@ bool CFGNode::isLastNode() const
 
 void CFGNode::addReturnSuccessor(shared_ptr<CFGNode> returningTo)
 {
-    if (name == "F_main_fin")
-    {
-        int debug;
-        debug = 2;
-    }
     returnTo.push_back(returningTo);
 }
 
@@ -371,6 +393,8 @@ ControlFlowGraph::createNode(const string &name, FunctionCodeGen* parentFunc, bo
     if ((introducing = getNode(name)) != nullptr)
     {
         if (!overwrite) throw runtime_error("node already exists");
+        introducing->setParentFunction(parentFunc);
+        introducing->setLast(isLast);
     }
     else
     {

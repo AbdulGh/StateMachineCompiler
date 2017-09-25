@@ -5,16 +5,20 @@ body ->
     "function" ident "(" [variableType ident] {"," variableType ident} ")" [variableType] statement
 
 statement ->
-    "{" statement {statement} "}"
+    statements
     variableType ident ";"
     ident "=" expression ";"
     ident "=" stringlit ";"
     "call" ident "("[ident] {"," ident} ")" ";"
-    "if" "(" ands ")" "{" statement "}" [ else "{" statement "}"]
-    "while" "(" ands ")" "{" statement "}"
+    "if" "(" ands ")" statements [ else statements]
+    "while" "(" ands ")" statements
     "return" ident ";"
     "input" ident ";"
     "print" "(" ident ")" ";"
+
+statements ->
+    "{" statement {statement} "}"
+    statement
  
 ands ->
     ors {"&&" ors}
@@ -37,7 +41,7 @@ term ->
 factor ->
     ident
     number
-    "call" ident "("[ident] {"," ident} ")" ";"
+    "call" ident "("[ident] {"," ident} ")"
     "(" expression ")"
 
 variableType ->

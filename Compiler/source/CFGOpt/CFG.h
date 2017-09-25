@@ -49,9 +49,7 @@ private:
     int jumpline;
 
 public:
-    CFGNode(ControlFlowGraph& p, FunctionCodeGen* pf, std::string n, bool last = false):
-            parentGraph(p), name(move(n)), isLast(last), comp{}, parentFunction(pf),
-            compSuccess{}, compFail{}, jumpline(-1) {}
+    CFGNode(ControlFlowGraph& p, FunctionCodeGen* pf, std::string n, bool last = false);
     bool constProp(); //returns true if it bypassed some return
     bool addParent(std::shared_ptr<CFGNode>); //returns false if parent was already in
     void removeParent(std::shared_ptr<CFGNode>);
@@ -61,6 +59,8 @@ public:
     void setCompSuccess(const std::shared_ptr<CFGNode> &compSuccess);
     void setCompFail(const std::shared_ptr<CFGNode> &compFail);
     void setComp(const std::shared_ptr<JumpOnComparisonCommand> &comp);
+    void setParentFunction(FunctionCodeGen* pf);
+    void setLast(bool last = true);
     //tries to merge with other (if it can fix the jumps so that it can do so)
     //returns true if successful
     bool swallowNode (std::shared_ptr<CFGNode> other);

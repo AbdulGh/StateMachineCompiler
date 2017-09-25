@@ -8,7 +8,7 @@ using namespace std;
 
 void FSM::setStates(vector<shared_ptr<State>> st)
 {
-    this->states = st;
+    this->states = move(st);
 }
 
 void FSM::run()

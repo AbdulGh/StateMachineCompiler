@@ -9,7 +9,7 @@ using namespace std;
 class FSM;
 State::State(string str, FSM& owner):
     parent(owner),
-    name(str) {}
+    name(move(str)) {}
 
 void State::run()
 {
@@ -43,5 +43,5 @@ const vector<shared_ptr<AbstractCommand>> &State::getInstructions() const
 
 void State::setInstructions(const vector<shared_ptr<AbstractCommand>> &in)
 {
-    instructions = move(in);
+    instructions = in;
 }

@@ -104,7 +104,10 @@ ExprNodePointer ExpressionCodeGenerator::factor(FunctionPointer fs)
     }
     else if (parent.lookahead.type == CALL)
     {
-        parent.genFunctionCall(DOUBLE, fs);
+        if (parent.genFunctionCall(fs, nullptr) != VariableType::DOUBLE)
+        {
+            parent.error("Function in expression does not return double");
+        }
         string uni = genUnique(fs);
         fs->genAssignment(uni, "retD", parent.lookahead.line);
         return withNeg(make_shared<AtomNode>(uni, false));

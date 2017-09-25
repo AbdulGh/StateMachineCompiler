@@ -3,12 +3,12 @@
 using namespace std;
 
 Variable::Variable(string vname, double vd):
-        name(vname),
+        name(move(vname)),
         data(vd) {}
 
 Variable::Variable(string vname, string str):
-        name(vname),
-        data(str) {}
+        name(move(vname)),
+        data(move(str)) {}
 
 Variable::~Variable()
 {

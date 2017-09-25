@@ -133,7 +133,7 @@ Token Lexer::parseToken()
             while ((c = getChar()) && c != delim) lit += c;
             return Token(STRINGLIT, lit);
         }
-        default: //todo handle numbers by checking c
+        default:
             string str(1, c);
             while ((c = getChar()) && isalnum(c)) str += c;
             if (!infile.eof()) unget();

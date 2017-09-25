@@ -31,8 +31,10 @@ void Compiler::body()
             unsigned int line = lookahead.line;
             string s = ident();
             shared_ptr<Identifier> vid = symbolTable.declare(s, t, line);
-            argumentStack.push(make_shared<PopCommand>(vid->getUniqueID(), lookahead.line));
-            argumentStack.push(make_shared<DeclareVarCommand>(t, vid->getUniqueID(), lookahead.line));
+            const string& vidName = vid->getUniqueID();
+            argumentStack.push(make_shared<PopCommand>(vidName, lookahead.line));
+            argumentStack.push(make_shared<DeclareVarCommand>(t, vidName, lookahead.line));
+            fs->addVar(vidName);
             if (lookahead.type == COMMA)
             {
                 match(COMMA);
@@ -114,11 +116,7 @@ bool Compiler::statement(FunctionPointer fs)
                 match(ASSIGN);
                 if (t == STRING)
                 {
-                    if (lookahead.type == CALL)
-                    {
-                        genFunctionCall(t, fs);
-                        fs->genAssignment(idPtr->getUniqueID(), "retS", lookahead.line);
-                    }
+                    if (lookahead.type == CALL) genFunctionCall(fs, idPtr);
                     else if (lookahead.type == STRINGLIT)
                     {
                         fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString), lookahead.line);
@@ -147,11 +145,7 @@ bool Compiler::statement(FunctionPointer fs)
                 match(ASSIGN);
                 if (t == VariableType::STRING)
                 {
-                    if (lookahead.type == CALL)
-                    {
-                        genFunctionCall(t, fs);
-                        fs->genAssignment(idPtr->getUniqueID(), "retS", lookahead.line);
-                    }
+                    if (lookahead.type == CALL) genFunctionCall(fs, idPtr);
                     else
                     {
                         fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString), lookahead.line);
@@ -175,11 +169,7 @@ bool Compiler::statement(FunctionPointer fs)
                 fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString), lookahead.line);
                 match(STRINGLIT);
             }
-            else if (lookahead.type == CALL)
-            {
-                genFunctionCall(VariableType::STRING, fs);
-                fs->genAssignment(idPtr->getUniqueID(), "retS", lookahead.line);
-            }
+            else if (lookahead.type == CALL) genFunctionCall(fs, idPtr);
             else error("Malformed assignment to string");
         }
         else expression(fs, idPtr->getUniqueID());
@@ -188,7 +178,7 @@ bool Compiler::statement(FunctionPointer fs)
     }
     else if (lookahead.type == CALL)
     {
-        genFunctionCall(ANY, fs);
+        genFunctionCall(fs, nullptr);
         match(SEMIC);
     }
     else if (lookahead.type == IF) genIf(fs);

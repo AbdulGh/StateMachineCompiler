@@ -19,6 +19,7 @@ private:
     std::shared_ptr<CFGNode> lastNode;
     std::shared_ptr<CFGNode> firstNode;
     std::shared_ptr<CFGNode> currentNode;
+    std::vector<std::string> vars;
     std::vector<std::shared_ptr<AbstractCommand>> currentInstrs;
     ControlFlowGraph& cfg;
 
@@ -31,9 +32,11 @@ public:
     VariableType getReturnType() const;
     const std::shared_ptr<CFGNode> &getLastNode();
     void setLastNode(const std::shared_ptr<CFGNode> &lastNode);
-    const std::shared_ptr<CFGNode> &getFirstNode();
+    const std::shared_ptr<CFGNode>& getFirstNode();
     void setFirstNode(const std::shared_ptr<CFGNode> &firstNode);
-    const std::shared_ptr<CFGNode> &getCurrentNode() const;
+    const std::shared_ptr<CFGNode>& getCurrentNode() const;
+    const std::vector<std::string>& getVars();
+    void addVar(std::string);
 
     //codegen
     void genNewState(std::string);
@@ -41,7 +44,7 @@ public:
     void genPrint(std::string, int);
     void genJump(std::string, int);
     void genConditionalJump(std::string, std::string, Relations::Relop r, std::string, int);
-    void genPush(std::string, int);
+    void genPush(PushCommand::PushType, std::string, int);
     void genPop(std::string, int);
     void genReturn(int);
     void genInput(std::string, int);

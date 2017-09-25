@@ -48,7 +48,7 @@ private:
     std::string ident();
 
     /*code generation*/
-    VariableType genFunctionCall(VariableType, FunctionPointer);
+    VariableType genFunctionCall(FunctionPointer, std::shared_ptr<Identifier> toPtr = nullptr);
     void genIf(FunctionPointer);
     void genWhile(FunctionPointer);
     void ands(FunctionPointer fs, std::string success, std::string fail);

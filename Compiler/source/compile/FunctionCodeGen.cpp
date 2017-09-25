@@ -86,10 +86,10 @@ void FunctionCodeGen::genReturn(int linenum)
 }
 
 
-void FunctionCodeGen::genPush(std::string s, int linenum)
+void FunctionCodeGen::genPush(PushCommand::PushType pt, std::string s, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_shared<PushCommand>(s, linenum));
+    currentInstrs.push_back(make_shared<PushCommand>(pt, s, linenum));
 }
 
 void FunctionCodeGen::genInput(std::string s, int linenum)
@@ -108,6 +108,10 @@ void FunctionCodeGen::genVariableDecl(VariableType t, std::string n, int linenum
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(make_shared<DeclareVarCommand>(t, n, linenum));
+
+    //find wont work for whatever reason
+    for (const string& s : vars) if (s == n) return;
+    vars.push_back(n);
 }
 
 void FunctionCodeGen::addCommand(shared_ptr<AbstractCommand> ac)
@@ -153,6 +157,16 @@ void FunctionCodeGen::setFirstNode(const shared_ptr<CFGNode> &firstNode)
 const shared_ptr<CFGNode> &FunctionCodeGen::getCurrentNode() const
 {
     return currentNode;
+}
+
+const vector<string>& FunctionCodeGen::getVars()
+{
+    return vars;
+}
+
+void FunctionCodeGen::addVar(string s)
+{
+    vars.push_back(s);
 }
 
 

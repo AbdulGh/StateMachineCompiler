@@ -33,7 +33,7 @@ class PrintCommand: public AbstractCommand
 {
 public:
     PrintCommand(T);
-    void execute();
+    void execute() override;
 private:
     static std::string unescape(const std::string&);
     T toPrint;
@@ -43,14 +43,14 @@ class JumpCommand: public AbstractCommand
 {
 public:
     JumpCommand(int);
-    void execute();
+    void execute() override;
 };
 
 class ReturnCommand: public AbstractCommand
 {
 public:
     ReturnCommand(FSM& stackOwner);
-    void execute();
+    void execute() override;
 private:
     std::stack<Variable::TaggedDataUnion>* popFrom;
 };
@@ -59,7 +59,7 @@ class InputVarCommand: public AbstractCommand
 {
 public:
     InputVarCommand(std::shared_ptr<Variable> varPtr);
-    void execute();
+    void execute() override;
 private:
     std::shared_ptr<Variable> var;
 };
@@ -69,7 +69,7 @@ class PushCommand: public AbstractCommand
 {
 public:
     PushCommand(T in, FSM& stackOwner);
-    void execute();
+    void execute() override;
 private:
     T var;
     std::stack<Variable::TaggedDataUnion>* pushTo;
@@ -79,7 +79,7 @@ class PopCommand: public AbstractCommand
 {
 public:
     PopCommand(std::shared_ptr<Variable> varPtr, FSM& stackOwner);
-    void execute();
+    void execute() override;
 private:
     std::shared_ptr<Variable> var;
     std::stack<Variable::TaggedDataUnion>* popFrom;
@@ -90,7 +90,7 @@ class AssignVarCommand: public AbstractCommand
 {
 public:
     AssignVarCommand(std::shared_ptr<Variable> varPtr, T value);
-    void execute();
+    void execute() override;
 private:
     std::shared_ptr<Variable> var;
     T val;
@@ -101,7 +101,7 @@ class EvaluateExprCommand: public AbstractCommand
 {
 public:
     EvaluateExprCommand(std::shared_ptr<Variable> varPtr, std::shared_ptr<Variable> RHSVar, T b, ExpressionType t);
-    void execute();
+    void execute() override;
 private:
     void evaluate(double one, double two);
     std::shared_ptr<Variable> var;
@@ -116,7 +116,7 @@ class JumpOnComparisonCommand: public AbstractCommand
 public:
     JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, T compareTo, int state, ComparisonOp type);
     JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, T compareTo, FSM& stackOwner, ComparisonOp type);
-    void execute();
+    void execute() override;
 private:
     void evaluate(double RHS);
     void evaluate(std::string RHS);

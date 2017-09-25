@@ -126,29 +126,25 @@ FSM FSMParser::readFSM()
     string str = nextCommand();
     stateNameMap[str] = 0;
     int nextUnusedState = 1;
-    while (!infile.eof() && str != "")
+    while (!infile.eof() && !str.empty())
     {
         if (str == "double")
         {
             string varN = getVarName();
-            unordered_map<string, shared_ptr<Variable>>::const_iterator it = variableMap.find(varN);
-            if (it != variableMap.cend()) throw runtime_error("Variable '" + varN + "' declared multiple times");
-            variableMap[varN] = shared_ptr<Variable>(new Variable(varN, 0.0));
+            variableMap[varN] = make_shared<Variable>(varN, 0.0);
             c = nextRealChar("Expected semicolon after variable declaration");
             if (c != ';') throw runtime_error("Expected semicolon after variable declaration");
         }
         else if (str == "string")
         {
             string varN = getVarName();
-            unordered_map<string, shared_ptr<Variable>>::const_iterator it = variableMap.find(varN);
-            if (it != variableMap.cend()) throw runtime_error("Variable '" + varN + "' declared multiple times");
-            variableMap[varN] = shared_ptr<Variable>(new Variable(varN, ""));
+            variableMap[varN] = make_shared<Variable>(varN, "");
             c = nextRealChar("Expected semicolon after variable declaration");
             if (c != ';') throw runtime_error("Expected semicolon after variable declaration");
         }
         else if (str == "end")
         {
-            if (infile >> str && str != "")
+            if (infile >> str && !str.empty())
             {
                 unordered_map<string, int>::const_iterator it = stateNameMap.find(str);
                 if (it == stateNameMap.cend()) stateNameMap[str] = nextUnusedState++;

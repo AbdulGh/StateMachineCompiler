@@ -32,7 +32,7 @@ public:
                 type(DOUBLE),
                 contents(doub) {}
 
-        TaggedDataUnion(std::string st):
+        TaggedDataUnion(std::string& st):
                 type(STRING),
                 contents(new std::string(st)) {}
 
