@@ -20,10 +20,10 @@ public:
     Reporter(std::string filename);
     ~Reporter();
     void setWarning(AlertType type, bool toReport);
-    void warn(AlertType type, std::string details);
-    void error(AlertType type, std::string details);
-    void optimising(AlertType type, std::string details);
-    void info(std::string details);
+    void warn(AlertType type, const std::string& details, int linenum = -1);
+    void error(AlertType type, const std::string& details, int linenum = -1);
+    void optimising(AlertType type, const std::string& details, int linenum = -1);
+    void info(const std::string& details, int linenum = -1);
 };
 
 

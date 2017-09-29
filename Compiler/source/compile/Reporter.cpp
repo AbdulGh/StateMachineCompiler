@@ -19,7 +19,7 @@ void Reporter::setWarning(AlertType type, bool toReport)
     toWarn[type] = toReport;
 }
 
-void Reporter::warn(AlertType type, std::string details)
+void Reporter::warn(AlertType type, const std::string& details, int linenum)
 {
     if (toWarn[type])
     {
@@ -29,21 +29,27 @@ void Reporter::warn(AlertType type, std::string details)
     }
 }
 
-void Reporter::error(AlertType type, std::string details)
+void Reporter::error(AlertType type, const std::string& details, int linenum)
 {
     output << "ERROR : ";
     if (type != GENERIC) output << enumNames[type] << " : ";
-    output << details << '\n';
+    output << details;
+    if (linenum != -1) output << " (line " << linenum << ")";
+    output << '\n';
 }
 
-void Reporter::optimising(AlertType type, std::string details)
+void Reporter::optimising(AlertType type, const std::string& details, int linenum)
 {
     output << "OPTIMISATION : ";
     if (type != GENERIC) output << enumNames[type] << " : ";
-    output << details << '\n';
+    output << details;
+    if (linenum != -1) output << " (line " << linenum << ")";
+    output << '\n';
 }
 
-void Reporter::info(std::string details)
+void Reporter::info(const std::string& details, int linenum)
 {
-    output << details << '\n';
+    output << details;
+    if (linenum != -1) output << " (line " << linenum << ")";
+    output << '\n';
 }

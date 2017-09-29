@@ -125,171 +125,128 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     shared_ptr<JumpOnComparisonCommand> jocc = n->getComp();
     if (jocc != nullptr) //is a conditional jump
     {
-        //check for const comparison
-        if (jocc->term1Type != AbstractCommand::StringType::ID
-            && jocc->term2Type != AbstractCommand::StringType::ID)
+        //const comparisons were caught during compilation
+        //note: JOCC constructor ensures that if there is a var there is a var on the LHS
+        VarPointer LHS = sef->symbolicVarSet->findVar(jocc->term1);
+        if (LHS == nullptr)
         {
-            if (jocc->term1Type != jocc->term2Type)
-            {
-                sef->error(Reporter::TYPE, "Tried to compare literals of different types", jocc->getLineNum());
-                return false;
-            }
-
-            else
-            {
-                string trans = jocc->translation();
-                sef->reporter.optimising(Reporter::USELESS_OP, "Constant comparison: '" + trans.substr(0, trans.length() - 2) + "'");
-
-                //replace conditionals with true/false
-                bool isTrue;
-                if (jocc->term1Type == AbstractCommand::StringType::DOUBLELIT)
-                {
-                    double d1 = stod(jocc->term1);
-                    double d2 = stod(jocc->term2);
-                    isTrue = Relations::evaluateRelop<double>(d1, jocc->op, d2);
-                }
-                else isTrue = Relations::evaluateRelop<string>(jocc->term1, jocc->op, jocc->term2);
-
-                if (isTrue)
-                {
-                    if (n->getCompFail() != nullptr) n->getCompFail()->removeParent(n);
-                    n->setCompFail(n->getCompSuccess());
-                }
-                else n->getCompSuccess()->removeParent(n);
-                n->getComp().reset();
-                n->setComp(nullptr);
-                n->getCompSuccess().reset();
-                n->setCompSuccess(nullptr);
-
-                shared_ptr<CFGNode> nextNode = getFailNode(sef, n);
-                if (nextNode == nullptr) return false;
-                return visitNode(sef, nextNode);
-            }
+            sef->error(Reporter::UNDECLARED_USE, "'" + jocc->term1 + "' used without being declared",
+                       jocc->getLineNum());
+            return false;
         }
-        else //actually have to do some work
+        if (!LHS->isDefined()) sef->warn(Reporter::UNINITIALISED_USE,
+                                         "'" + LHS->getName() + "' used before being defined", jocc->getLineNum());
+
+        //check if we can meet the comparison - search if so
+        if (jocc->term2Type != AbstractCommand::StringType::ID) //comparing to a literal
         {
-            //note: JOCC constructor ensures that if there is a var there is a var on the LHS
-            VarPointer LHS = sef->symbolicVarSet->findVar(jocc->term1);
-            if (LHS == nullptr)
+            if ((jocc->term2Type == AbstractCommand::StringType::DOUBLELIT && LHS->getType() != DOUBLE)
+                    || (jocc->term2Type == AbstractCommand::StringType::STRINGLIT && LHS->getType() != STRING))
             {
-                sef->error(Reporter::UNDECLARED_USE, "'" + jocc->term1 + "' used without being declared",
+                sef->error(Reporter::TYPE, "'" + jocc->term1 + "' (type " + TypeEnumNames[LHS->getType()]
+                                           + ")  compared to a different type",
                            jocc->getLineNum());
                 return false;
             }
-            if (!LHS->isDefined()) sef->warn(Reporter::UNINITIALISED_USE,
-                                             "'" + LHS->getName() + "' used before being defined", jocc->getLineNum());
 
-            //check if we can meet the comparison - search if so
-            if (jocc->term2Type != AbstractCommand::StringType::ID) //comparing to a literal
+            string& rhs = jocc->term2;
+
+            if (LHS->isDetermined() && LHS->meetsConstComparison(jocc->op, rhs))
             {
-                if ((jocc->term2Type == AbstractCommand::StringType::DOUBLELIT && LHS->getType() != DOUBLE)
-                        || (jocc->term2Type == AbstractCommand::StringType::STRINGLIT && LHS->getType() != STRING))
+                sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(), jocc->op, rhs);
+                return visitNode(sef, n->getCompSuccess());
+            }
+
+            switch (LHS->canMeet(jocc->op, rhs))
+            {
+                case SymbolicVariable::CANT:
                 {
-                    sef->error(Reporter::TYPE, "'" + jocc->term1 + "' (type " + TypeEnumNames[LHS->getType()]
-                                               + ")  compared to a different type",
-                               jocc->getLineNum());
-                    return false;
+                    sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(),
+                                                                               Relations::negateRelop(jocc->op), rhs);
+
+                    shared_ptr<CFGNode> nextNode = getFailNode(sef, n);
+                    if (nextNode == nullptr) return false;
+                    return visitNode(sef, nextNode);
                 }
-
-                string& rhs = jocc->term2;
-
-                if (LHS->isDetermined() && LHS->meetsConstComparison(jocc->op, rhs))
+                case SymbolicVariable::MAY:
+                {
+                    return branchOnType(sef, LHS->getName(), jocc->op,
+                                                       jocc->term2, LHS->getType(), false);
+                }
+                case SymbolicVariable::MUST:
                 {
                     sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(), jocc->op, rhs);
-                    return visitNode(sef, n->getCompSuccess());
+
+                    shared_ptr<CFGNode> nextNode = getFailNode(sef, n);
+                    if (nextNode == nullptr) return false;
+                    return visitNode(sef, nextNode);
                 }
+                default:
+                    throw runtime_error("very weird enum");
+            }
+        }
+        else //comparing to another variable
+        {
+            VarPointer RHS = sef->symbolicVarSet->findVar(jocc->term2);
+            if (RHS == nullptr)
+            {
+                sef->error(Reporter::UNDECLARED_USE, "'" + jocc->term2 + "' used without being declared",
+                           jocc->getLineNum());
+                return false;
+            }
 
-                switch (LHS->canMeet(jocc->op, rhs))
+            if (LHS->getType() != RHS->getType())
+            {
+                sef->error(Reporter::TYPE, "'" + jocc->term1 + "' (type " + TypeEnumNames[LHS->getType()] +
+                        ") compared to '" + jocc->term2 + "' (type " + TypeEnumNames[RHS->getType()] + ")",
+                           jocc->getLineNum());
+                return false;
+            }
+
+            if (LHS->isDetermined())
+            {
+                if (RHS->isDetermined())
                 {
-                    case SymbolicVariable::CANT:
+                    if (LHS->meetsConstComparison(jocc->op, RHS->getConstString()))
                     {
-                        sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(),
-                                                                                   Relations::negateRelop(jocc->op), rhs);
+                        sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(), jocc->op,
+                                                                                   RHS->getName() + "(= " +  RHS->getConstString() + ")");
+                        return visitNode(sef, n->getCompSuccess());
+                    }
+                    else
+                    {
+                        shared_ptr<CFGNode> nextnode = getFailNode(sef, n);
+                        if (nextnode == nullptr) return false;
+                        sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(), Relations::negateRelop(jocc->op),
+                                                                                   RHS->getName() + "(= " +  RHS->getConstString() + ")");
+                        return visitNode(sef, nextnode);
+                    }
 
-                        shared_ptr<CFGNode> nextNode = getFailNode(sef, n);
-                        if (nextNode == nullptr) return false;
-                        return visitNode(sef, nextNode);
-                    }
-                    case SymbolicVariable::MAY:
-                    {
-                        return branchOnType(sef, LHS->getName(), jocc->op,
-                                                           jocc->term2, LHS->getType(), false);
-                    }
-                    case SymbolicVariable::MUST:
-                    {
-                        sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(), jocc->op, rhs);
-
-                        shared_ptr<CFGNode> nextNode = getFailNode(sef, n);
-                        if (nextNode == nullptr) return false;
-                        return visitNode(sef, nextNode);
-                    }
-                    default:
-                        throw runtime_error("very weird enum");
+                }
+                else //rhs undetermined, lhs determined
+                {
+                    Relations::Relop mirroredOp = Relations::mirrorRelop(jocc->op);
+                    return branchOnType(sef, RHS->getName(), mirroredOp,
+                                                       LHS->getConstString(), RHS->getType(), true);
                 }
             }
-            else //comparing to another variable
+            else if (RHS->isDetermined())
             {
-                VarPointer RHS = sef->symbolicVarSet->findVar(jocc->term2);
-                if (RHS == nullptr)
-                {
-                    sef->error(Reporter::UNDECLARED_USE, "'" + jocc->term2 + "' used without being declared",
-                               jocc->getLineNum());
-                    return false;
-                }
+                return branchOnType(sef, LHS->getName(), jocc->op, RHS->getConstString(), LHS->getType(), false);
+            }
 
-                if (LHS->getType() != RHS->getType())
-                {
-                    sef->error(Reporter::TYPE, "'" + jocc->term1 + "' (type " + TypeEnumNames[LHS->getType()] +
-                            ") compared to '" + jocc->term2 + "' (type " + TypeEnumNames[RHS->getType()] + ")",
-                               jocc->getLineNum());
-                    return false;
-                }
-
-                if (LHS->isDetermined())
-                {
-                    if (RHS->isDetermined())
-                    {
-                        if (LHS->meetsConstComparison(jocc->op, RHS->getConstString()))
-                        {
-                            sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(), jocc->op,
-                                                                                       RHS->getName() + "(= " +  RHS->getConstString() + ")");
-                            return visitNode(sef, n->getCompSuccess());
-                        }
-                        else
-                        {
-                            shared_ptr<CFGNode> nextnode = getFailNode(sef, n);
-                            if (nextnode == nullptr) return false;
-                            sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(), Relations::negateRelop(jocc->op),
-                                                                                       RHS->getName() + "(= " +  RHS->getConstString() + ")");
-                            return visitNode(sef, nextnode);
-                        }
-
-                    }
-                    else //rhs undetermined, lhs determined
-                    {
-                        Relations::Relop mirroredOp = Relations::mirrorRelop(jocc->op);
-                        return branchOnType(sef, RHS->getName(), mirroredOp,
-                                                           LHS->getConstString(), RHS->getType(), true);
-                    }
-                }
-                else if (RHS->isDetermined())
-                {
-                    return branchOnType(sef, LHS->getName(), jocc->op, RHS->getConstString(), LHS->getType(), false);
-                }
-
-                //neither are determined here
-                if (LHS->getType() == STRING)
-                {
-                    VarTemplatePointer<string> LHS = static_pointer_cast<SymbolicVariableTemplate<string>>(LHS);
-                    VarTemplatePointer<string> RHS = static_pointer_cast<SymbolicVariableTemplate<string>>(RHS);
-                    return varBranch<string>(sef, n, LHS, jocc->op, RHS);
-                }
-                else if (LHS->getType() == DOUBLE)
-                {
-                    VarTemplatePointer<double> LHS = static_pointer_cast<SymbolicVariableTemplate<double>>(LHS);
-                    VarTemplatePointer<double> RHS = static_pointer_cast<SymbolicVariableTemplate<double>>(RHS);
-                    return varBranch<double>(sef, n, LHS, jocc->op, RHS);
-                }
+            //neither are determined here
+            if (LHS->getType() == STRING)
+            {
+                VarTemplatePointer<string> LHS = static_pointer_cast<SymbolicVariableTemplate<string>>(LHS);
+                VarTemplatePointer<string> RHS = static_pointer_cast<SymbolicVariableTemplate<string>>(RHS);
+                return varBranch<string>(sef, n, LHS, jocc->op, RHS);
+            }
+            else if (LHS->getType() == DOUBLE)
+            {
+                VarTemplatePointer<double> LHS = static_pointer_cast<SymbolicVariableTemplate<double>>(LHS);
+                VarTemplatePointer<double> RHS = static_pointer_cast<SymbolicVariableTemplate<double>>(RHS);
+                return varBranch<double>(sef, n, LHS, jocc->op, RHS);
             }
         }
     }

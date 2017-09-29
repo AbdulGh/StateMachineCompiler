@@ -2,13 +2,14 @@
 // Created by abdul on 10/08/17.
 //
 #include <iostream>
+#include <algorithm>
 
 #include "../CFGOpt/Optimiser.h"
 #include "Compiler.h"
 
 using namespace std;
 
-Compiler::Compiler(vector<Token>& st, string auxFileName): stream(st), reporter(move(auxFileName)) {}
+Compiler::Compiler(vector<Token>& st, string auxFileName): stream(st), reporter(move(auxFileName)), cfg(reporter) {}
 
 void Compiler::error(string err)
 {
@@ -19,9 +20,7 @@ void Compiler::error(string err)
 
 void Compiler::warning(string warn)
 {
-    ostringstream o;
-    o << warn << " (line " << lookahead.line << ")\n";
-    reporter.warn(Reporter::AlertType::COMPILER, o.str());
+    reporter.warn(Reporter::AlertType::COMPILER, warn, lookahead.line);
 }
 
 string Compiler::quoteString(string &s)
@@ -38,7 +37,41 @@ void Compiler::compile(stringstream& out)
     while (lookahead.type != END) body();
 
     cfg.setLast(functionTable["main"]->getLastNode()->getName());
+
+    auto debugFunc = [&, this]() -> void
+    {
+        unordered_map<string, shared_ptr<CFGNode>>& list = this->cfg.getCurrentNodes();
+        for (const auto& liasd : list)
+        {
+            for (const auto& asdf : liasd.second->getReturnSuccessors())
+            {
+                cout << liasd.first << " has as a succ " << asdf->getName() << "\n";
+                if (asdf->getPredecessors().find(liasd.first) == asdf->getPredecessors().end())
+                {
+                    cout << "but that succ does not have it as a parent!\n";
+                }
+            }
+            for (const auto& liasdParent : liasd.second->getPredecessors())
+            {
+                if (!((liasdParent.second->getCompSuccess() != nullptr
+                       && liasdParent.second->getCompSuccess()->getName() == liasd.first)
+                      || (liasdParent.second->getCompFail() != nullptr
+                          && liasdParent.second->getCompFail()->getName() == liasd.first)
+                    || ((find_if(liasdParent.second->getReturnSuccessors().begin(),
+                                liasdParent.second->getReturnSuccessors().end(),
+                                [&, liasd](shared_ptr<CFGNode> p) -> bool
+                                {
+                                    return p->getName() == liasd.second->getName();
+                                })) != liasdParent.second->getReturnSuccessors().end()))) //haha
+                {
+                    cout << liasdParent.first << " does not recognise " << liasd.first << " as a child!\n";
+                }
+            }
+        }
+    };
+
     Optimise::optimise(symbolTable, cfg);
+    debugFunc();
     //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
     //symMan.search();
     //Optimise::optimise(symbolTable, cfg);

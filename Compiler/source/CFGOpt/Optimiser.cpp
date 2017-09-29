@@ -25,7 +25,7 @@ namespace Optimise
 
     void collapseSmallStates(ControlFlowGraph& controlFlowGraph)
     {
-        unordered_map<string, NodePointer> &nodes = controlFlowGraph.getCurrentNodes();
+        unordered_map<string, NodePointer>& nodes = controlFlowGraph.getCurrentNodes();
         auto pair = nodes.begin();
         while (pair != nodes.end())
         {
@@ -41,13 +41,14 @@ namespace Optimise
                 controlFlowGraph.setLast(last->getPredecessors().cbegin()->second->getName()); //->.*(().->)->*()->;
             }
 
-            vector<shared_ptr<AbstractCommand>> &instructionList = current->getInstrs();
+            vector<shared_ptr<AbstractCommand>>& instructionList = current->getInstrs();
             if (instructionList.size() <= 4 || current->getPredecessors().size() == 1) //is small
             {
                 unordered_map<string, NodePointer>& preds = current->getPredecessors();
                 auto parentit = preds.begin();
                 while (parentit != preds.end())
                 {
+                    string debug = parentit->first;
                     NodePointer swallowing = parentit->second;
                     if (!swallowing->swallowNode(current)) ++parentit;
                     else parentit = preds.erase(parentit);
@@ -56,10 +57,7 @@ namespace Optimise
                 {
                     if (current->getCompFail() != nullptr) current->getCompFail()->removeParent(current);
                     if (current->getCompSuccess() != nullptr) current->getCompSuccess()->removeParent(current);
-                    for (const shared_ptr<CFGNode>& returnSucc : current->getReturnSuccessors())
-                    {
-                        returnSucc->removeParent(current->getName());
-                    }
+                    current->clearReturnSuccessors();
                     pair = nodes.erase(pair);
                 }
                 else ++pair;

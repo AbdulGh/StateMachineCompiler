@@ -243,7 +243,9 @@ public:
         return std::make_shared<PopCommand>(getData(), getLineNum());
     }
 
-    std::string translation() const override{return "pop " + getData() + ";\n";}
+    bool isEmpty() const {return getData() == "";}
+
+    std::string translation() const override {return isEmpty() ? "pop;\n" : "pop " + getData() + ";\n";}
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
 };
 
@@ -309,7 +311,6 @@ public:
 
     std::string translation() const override
     {
-        std::string debug = VariableTypeEnumNames[vt] + " " + getData() + ";\n";
         return VariableTypeEnumNames[vt] + " " + getData() + ";\n";
     }
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;

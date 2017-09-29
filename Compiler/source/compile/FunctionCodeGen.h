@@ -30,10 +30,11 @@ public:
     bool checkTypes(std::vector<VariableType>& potential);
     bool isOfType(VariableType c);
     VariableType getReturnType() const;
-    const std::shared_ptr<CFGNode> &getLastNode();
-    void setLastNode(const std::shared_ptr<CFGNode> &lastNode);
+    const std::shared_ptr<CFGNode>& getLastNode();
+    void setLastNode(const std::shared_ptr<CFGNode>& lastNode);
     const std::shared_ptr<CFGNode>& getFirstNode();
-    void setFirstNode(const std::shared_ptr<CFGNode> &firstNode);
+    void setFirstNode(const std::shared_ptr<CFGNode>& firstNode);
+    void giveNodesTo(FunctionCodeGen* to);
     const std::shared_ptr<CFGNode>& getCurrentNode() const;
     const std::vector<std::string>& getVars();
     void addVar(std::string);

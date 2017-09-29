@@ -64,6 +64,7 @@ VariableType Compiler::genFunctionCall(shared_ptr<FunctionCodeGen> fromFS, share
     fromFS->genNewState(nextState);
     shared_ptr<CFGNode> created = fromFS->getCurrentNode();
     created->addParent(toFS.getLastNode());
+    toFS.getLastNode()->addReturnSuccessor(created);
 
     //pop all vars back
     for (auto rit = fromVars.rbegin(); rit != fromVars.rend(); ++rit)

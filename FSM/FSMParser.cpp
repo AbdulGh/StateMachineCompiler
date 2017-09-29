@@ -331,7 +331,7 @@ FSM FSMParser::readFSM()
                     }
 
                 }
-                catch (invalid_argument e)
+                catch (invalid_argument)
                 {
                     if (stateName == "pop")
                     {

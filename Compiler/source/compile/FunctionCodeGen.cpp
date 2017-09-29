@@ -1,3 +1,5 @@
+#include <stack>
+
 #include "FunctionCodeGen.h"
 
 using namespace std;
@@ -6,6 +8,78 @@ FunctionCodeGen::FunctionCodeGen(VariableType rt, std::vector<VariableType> type
     returnType(rt), paramTypes(move(types)), ident(move(in)),
     currentStates(1), endedState(false), cfg(c)
     {currentNode = cfg.createNode("F_" + ident + "_0", this, false, false);}
+
+
+//assumes the entire function is reachable from the first node (most unreachable parts will be removed by symbolic execution)
+void FunctionCodeGen::giveNodesTo(FunctionCodeGen *to)
+{
+    getLastNode()->setReturnSuccessors(to->getLastNode()->getReturnSuccessors());
+    to->getLastNode()->clearReturnSuccessors();
+
+    stack<shared_ptr<CFGNode>> toConvert({getFirstNode()});
+    while (!toConvert.empty())
+    {
+        shared_ptr<CFGNode> converting = (toConvert.top()); //why will this only work with parentheses?
+        toConvert.pop();
+        converting->setParentFunction(to);
+        if (converting->getCompSuccess() != nullptr
+            && converting->getCompSuccess()->getParentFunction()->getIdentifier() == getIdentifier())
+        {
+            toConvert.push(converting->getCompSuccess());
+        }
+        if (converting->getCompFail() != nullptr
+            && converting->getCompFail()->getParentFunction()->getIdentifier() == getIdentifier())
+        {
+            toConvert.push(converting->getCompFail());
+        }
+    }
+    to->setLastNode(getLastNode());
+}
+
+const shared_ptr<CFGNode>& FunctionCodeGen::getLastNode()
+{
+    if (lastNode == nullptr)
+    {
+        vector<shared_ptr<AbstractCommand>> returnCommand({make_shared<ReturnCommand>(-1)});
+        lastNode =
+                cfg.createNode("F_" + ident + "_fin", this, false, true);
+    }
+
+    return lastNode;
+}
+
+void FunctionCodeGen::setLastNode(const shared_ptr<CFGNode>& ln)
+{
+    if (lastNode != nullptr) lastNode->setLast(false);
+    lastNode = ln;
+    lastNode->setLast();
+}
+
+const shared_ptr<CFGNode>& FunctionCodeGen::getFirstNode()
+{
+    if (firstNode == nullptr) firstNode = cfg.createNode("F_" + ident + "_0", this, true, false);
+    return firstNode;
+}
+
+void FunctionCodeGen::setFirstNode(const shared_ptr<CFGNode>& firstNode)
+{
+    FunctionCodeGen::firstNode = firstNode;
+}
+
+const shared_ptr<CFGNode>& FunctionCodeGen::getCurrentNode() const
+{
+    return currentNode;
+}
+
+const vector<string>& FunctionCodeGen::getVars()
+{
+    return vars;
+}
+
+void FunctionCodeGen::addVar(string s)
+{
+    vars.push_back(s);
+}
 
 bool FunctionCodeGen::checkTypes(std::vector<VariableType>& potential)
 {
@@ -124,49 +198,6 @@ void FunctionCodeGen::genAssignment(std::string LHS, std::string RHS, int linenu
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(make_shared<AssignVarCommand>(LHS, RHS, linenum));
-}
-
-const shared_ptr<CFGNode>& FunctionCodeGen::getLastNode()
-{
-    if (lastNode == nullptr)
-    {
-        vector<shared_ptr<AbstractCommand>> returnCommand({make_shared<ReturnCommand>(-1)});
-        lastNode =
-                cfg.createNode("F_" + ident + "_fin", this, false, true);
-    }
-
-    return lastNode;
-}
-
-void FunctionCodeGen::setLastNode(const shared_ptr<CFGNode> &lastNode)
-{
-    FunctionCodeGen::lastNode = lastNode;
-}
-
-const shared_ptr<CFGNode>& FunctionCodeGen::getFirstNode()
-{
-    if (firstNode == nullptr) firstNode = cfg.createNode("F_" + ident + "_0", this, true, false);
-    return firstNode;
-}
-
-void FunctionCodeGen::setFirstNode(const shared_ptr<CFGNode> &firstNode)
-{
-    FunctionCodeGen::firstNode = firstNode;
-}
-
-const shared_ptr<CFGNode> &FunctionCodeGen::getCurrentNode() const
-{
-    return currentNode;
-}
-
-const vector<string>& FunctionCodeGen::getVars()
-{
-    return vars;
-}
-
-void FunctionCodeGen::addVar(string s)
-{
-    vars.push_back(s);
 }
 
 

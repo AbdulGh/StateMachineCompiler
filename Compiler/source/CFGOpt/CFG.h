@@ -6,6 +6,7 @@
 #include "../compile/SymbolTable.h"
 #include "../compile/Token.h"
 #include "../Command.h"
+#include "../compile/Reporter.h"
 
 class FunctionCodeGen;
 typedef std::shared_ptr<FunctionCodeGen> FunctionPointer;
@@ -19,8 +20,11 @@ private:
     std::unordered_map<std::string, std::shared_ptr<CFGNode>> currentNodes;
     std::shared_ptr<CFGNode> first;
     std::shared_ptr<CFGNode> last;
+    Reporter& reporter;
+
 
 public:
+    ControlFlowGraph(Reporter& r) : reporter(r) {};
     std::shared_ptr<CFGNode> createNode(const std::string &name, FunctionCodeGen* parent, bool overwrite, bool last);
     std::shared_ptr<CFGNode> getNode(const std::string& name);
     void removeNode(std::string name);
@@ -30,6 +34,8 @@ public:
     std::shared_ptr<CFGNode> getLast() const;
     void setFirst(const std::string& firstname);
     void setLast(const std::string& lastName);
+
+    friend class CFGNode;
 
 };
 
@@ -54,28 +60,35 @@ public:
     bool addParent(std::shared_ptr<CFGNode>); //returns false if parent was already in
     void removeParent(std::shared_ptr<CFGNode>);
     void removeParent(const std::string&);
-    void setInstructions(std::vector<std::shared_ptr<AbstractCommand>> &in);
-    const std::string &getName() const;
-    void setCompSuccess(const std::shared_ptr<CFGNode> &compSuccess);
-    void setCompFail(const std::shared_ptr<CFGNode> &compFail);
-    void setComp(const std::shared_ptr<JumpOnComparisonCommand> &comp);
+
+    void setInstructions(std::vector<std::shared_ptr<AbstractCommand>>& in);
+    void setCompSuccess(const std::shared_ptr<CFGNode>& compSuccess);
+    void setCompFail(const std::shared_ptr<CFGNode>& compFail);
+    void setComp(const std::shared_ptr<JumpOnComparisonCommand>& comp);
     void setParentFunction(FunctionCodeGen* pf);
     void setLast(bool last = true);
+
+    void addReturnSuccessor(const std::shared_ptr<CFGNode>& other);
+    void addReturnSuccessors(const std::vector<std::shared_ptr<CFGNode>>& newRet);
+    void clearReturnSuccessors();
+    void setReturnSuccessors(std::vector<std::shared_ptr<CFGNode>>& newRet);
+
     //tries to merge with other (if it can fix the jumps so that it can do so)
     //returns true if successful
-    bool swallowNode (std::shared_ptr<CFGNode> other);
-    bool isLastNode() const;
+    bool swallowNode(std::shared_ptr<CFGNode> other);
+
     std::shared_ptr<JumpOnComparisonCommand> getComp();
     std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getPredecessors();
     std::vector<std::shared_ptr<CFGNode>>& getReturnSuccessors();
     std::shared_ptr<CFGNode> getCompSuccess();
     int getJumpline() const;
-    void addReturnSuccessor(std::shared_ptr<CFGNode> returningTo);
     std::shared_ptr<CFGNode> getCompFail();
-    std::vector<std::shared_ptr<AbstractCommand>> &getInstrs();
+    const std::string &getName() const;
+    std::vector<std::shared_ptr<AbstractCommand>>& getInstrs();
     ControlFlowGraph& getParentGraph() const;
     FunctionCodeGen* getParentFunction() const;
     std::string getSource();
+    bool isLastNode() const;
 };
 
 #endif

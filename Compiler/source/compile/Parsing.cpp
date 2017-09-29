@@ -68,7 +68,7 @@ bool Compiler::statement(FunctionPointer fs)
         match(LBRACE);
         symbolTable.pushScope();
         finishedState = statement(fs);
-        while(lookahead.type != RBRACE) finishedState =  statement(fs);
+        while(lookahead.type != RBRACE) finishedState = statement(fs);
         symbolTable.popScope();
         match(RBRACE);
     }
@@ -76,20 +76,29 @@ bool Compiler::statement(FunctionPointer fs)
     {
         match(PRINT);
         match(LPAREN);
-        if (lookahead.type == STRINGLIT)
+        while (lookahead.type != RPAREN)
         {
-            fs->genPrint(quoteString(lookahead.lexemeString), lookahead.line);
-            match(STRINGLIT);
-        }
-        else if (lookahead.type == NUMBER)
-        {
-            fs->genPrint(lookahead.lexemeString, lookahead.line);
-            match(NUMBER);
-        }
-        else
-        {
-            shared_ptr<Identifier> id = findVariable(ident());
-            fs->genPrint(id->getUniqueID(), lookahead.line);
+            if (lookahead.type == STRINGLIT)
+            {
+                fs->genPrint(quoteString(lookahead.lexemeString), lookahead.line);
+                match(STRINGLIT);
+            }
+            else if (lookahead.type == NUMBER)
+            {
+                fs->genPrint(lookahead.lexemeString, lookahead.line);
+                match(NUMBER);
+            }
+            else
+            {
+                shared_ptr<Identifier> id = findVariable(ident());
+                fs->genPrint(id->getUniqueID(), lookahead.line);
+            }
+
+            if (lookahead.type == COMMA)
+            {
+                match(COMMA);
+                if (lookahead.type == RPAREN) warning("Extra comma found in print statement - ignoring");
+            }
         }
         match(RPAREN);
         match(SEMIC);

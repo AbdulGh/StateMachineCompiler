@@ -28,7 +28,7 @@ void AbstractCommand::setChangeState(bool b)
 
 /*PrintCommand*/
 template <typename T>
-std::string PrintCommand<T>::unescape(const string& in) //omg
+std::string PrintCommand<T>::unescape(const string& in)
 {
     string ret;
     string::const_iterator it = in.begin();
@@ -156,7 +156,7 @@ void PushCommand<T>::execute()
 
 /*PopCommand*/
 PopCommand::PopCommand(std::shared_ptr<Variable> varPtr, FSM &stackOwner):
-        var(varPtr),
+        var(move(varPtr)),
         popFrom(&stackOwner.sharedStack)
 {}
 
