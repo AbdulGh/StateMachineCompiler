@@ -28,11 +28,7 @@ string CFGNode::getSource()
     stringstream outs;
 
     outs << name << '\n';
-    for (shared_ptr<AbstractCommand>& ac: instrs)
-    {
-        if (ac == nullptr) outs << "null\n";//debug
-        else outs << ac->translation();
-    }
+    for (shared_ptr<AbstractCommand>& ac: instrs) outs << ac->translation();
     if (compSuccess != nullptr) outs << comp->translation();
     if (compFail != nullptr) outs << JumpCommand(compFail->getName(), jumpline).translation();
     else outs << ReturnCommand(jumpline).translation();
@@ -145,10 +141,7 @@ bool CFGNode::constProp()
                 if (pushc->pushType == PushCommand::PUSHSTATE)
                 {
                     shared_ptr<CFGNode> node = parentGraph.getNode(pushc->getData());
-                    string debug = pushc->getData();
                     if (node == nullptr) throw "found a bad state";
-                    auto debug1 = node.get();
-                    printf("%s wants to leave %s\n", getName().c_str(), node->getName().c_str());
                     //node->removeParent(getName()); todo debug this stuff
                     /*for (auto returnSuccIt = returnTo.cbegin(); returnSuccIt != returnTo.cend(); returnSuccIt++)
                     {
@@ -232,12 +225,11 @@ bool CFGNode::constProp()
         auto stackTop = pushedThings.top();
         shared_ptr<PushCommand> pushc = static_pointer_cast<PushCommand>(*stackTop);
         if (pushc->pushType != PushCommand::PUSHSTATE) throw runtime_error("tried to jump to var");
-        string debug = pushc->getData();
         shared_ptr<CFGNode> jumpingTo = parentGraph.getNode(pushc->getData());
         if (jumpingTo == nullptr) throw runtime_error("Tried to jump to nonexistent state");
         compFail = jumpingTo;
         newInstrs.erase(stackTop);
-        if (!returnTo.size() == 1) throw "check";
+        if (returnTo.size() != 1) throw "check";
         returnTo.at(0)->removeParent(name);
         returnTo.clear();
         skippedReturn = true;
@@ -256,29 +248,34 @@ bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
             vector<shared_ptr<AbstractCommand>> newInstrs = instrs;
             vector<shared_ptr<AbstractCommand>>& addingInstrs = other->getInstrs();
             newInstrs.reserve(instrs.size() + addingInstrs.size() + 3);
-            printf("%s swallowing %s\n", getName().c_str(), other->getName().c_str());
-            if (!returnTo.empty()) //must be in second part of if condition
-            {
-                printf("return swallow\n");
-                returnTo.clear();
-                newInstrs.push_back(make_shared<PopCommand>("", -1));//this sort of thing should worry me I think
-            }
+            if (!returnTo.empty()) printf("return swallow\n"); //must be in second part of if condition
 
-            for (shared_ptr<AbstractCommand>& newInst : addingInstrs) newInstrs.push_back(newInst->clone());
+            for (shared_ptr<AbstractCommand>& newInst : addingInstrs)
+            {
+                if (newInst->getType() == CommandType::PUSH)
+                {
+                    auto pc = static_pointer_cast<PushCommand>(newInst);
+                    if (pc->pushType == PushCommand::PUSHSTATE) parentGraph.getNode(pc->getData())
+                                ->addPushingState(shared_from_this());
+                }
+                newInstrs.push_back(newInst->clone());
+            }
             setInstructions(newInstrs);
             if (other->getComp() != nullptr)
             {
                 setComp(static_pointer_cast<JumpOnComparisonCommand>(other->getComp()->clone()));
             }
-            else setComp(nullptr);
+            else
+            {
+                setComp(nullptr);
+                if (other->getCompFail() == nullptr)
+                {
+                    if (other->getPredecessors().size() != 1) throw "uh-oh";
+                    setReturnSuccessors(other->getReturnSuccessors());
+                }
+            }
             setCompSuccess(other->getCompSuccess());
             setCompFail(other->getCompFail());
-            if (name == "start" && other->getCompFail() != nullptr)
-            {
-                string debug1 = other->getCompFail()->getName();
-                int poo;
-                poo = 2;
-            }
             return true;
         }
     }
@@ -332,15 +329,6 @@ void CFGNode::setInstructions(vector<shared_ptr<AbstractCommand>>& in)
 
 bool CFGNode::addParent(shared_ptr<CFGNode> parent)
 {
-    if (name == "F_loopheader_3")
-    {
-        string d = parent->getName();
-        if (d == "start")
-        {
-            int debug;
-            debug = 2;
-        }
-    }
     auto it = predecessors.find(parent->getName());
     if (it != predecessors.end()) return false;
     predecessors[parent->getName()] = parent;
@@ -354,11 +342,7 @@ void CFGNode::removeParent(shared_ptr<CFGNode> leaving)
 
 void CFGNode::removeParent(const string& s)
 {
-    if (predecessors.erase(s) == 0)
-    {
-        printf("%s\n", parentGraph.getSource().c_str());
-        throw runtime_error("Parent is not in");
-    }
+    if (predecessors.erase(s) == 0) throw runtime_error("Parent is not in");
 }
 
 void CFGNode::setParentFunction(FunctionCodeGen *pf)
@@ -459,4 +443,37 @@ void CFGNode::setReturnSuccessors(vector<shared_ptr<CFGNode>>& newRet)
 {
     clearReturnSuccessors();
     for (const auto& newSucc : newRet) addReturnSuccessor(newSucc);
+}
+
+void CFGNode::addPushingState(const shared_ptr<CFGNode>& cfgn)
+{
+    pushingStates.push_back(cfgn);
+}
+
+void CFGNode::removePushes()
+{
+    auto it = pushingStates.begin();
+    while (it != pushingStates.end())
+    {
+        vector<shared_ptr<AbstractCommand>>& pushingInstrs =  (*it)->instrs;
+        auto instructionIt = pushingInstrs.begin();
+        bool found = false;
+        while (instructionIt != pushingInstrs.end())
+        {
+            shared_ptr<AbstractCommand> ac = *instructionIt;
+            if (ac->getType() == CommandType::PUSH)
+            {
+                shared_ptr<PushCommand> pc = static_pointer_cast<PushCommand>(ac);
+                if (pc->pushType == PushCommand::PUSHSTATE && pc->getData() == name)
+                {
+                    pushingInstrs.erase(instructionIt);
+                    found = true;
+                    break;
+                }
+            }
+            ++instructionIt;
+        }
+        if (!found) throw "couldnt find push in pushing state";
+        it = pushingStates.erase(it);
+    }
 }

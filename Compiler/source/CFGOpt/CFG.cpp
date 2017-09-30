@@ -60,7 +60,10 @@ string ControlFlowGraph::getSource()
     stringstream outs;
     outs << first->getSource() << '\n';
 
-    for (auto it : currentNodes)
+    //order nodes
+    map<string, shared_ptr<CFGNode>> ordered(currentNodes.begin(), currentNodes.end());
+
+    for (auto it : ordered)
     {
         if (it.first == first->getName()) continue;
         outs << it.second->getSource() << '\n';

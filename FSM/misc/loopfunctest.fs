@@ -8,8 +8,7 @@ _0_0_x = 0;
 push state F_main_1;
 LHS = 0;
 RHS = 10.000000;
-jumpif 0 < 10.000000 F_loopheader_4;
-jump F_loopheader_3;
+jump F_loopheader_4;
 end
 
 F_loopheader_4

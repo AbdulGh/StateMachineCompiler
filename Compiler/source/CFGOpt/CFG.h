@@ -47,8 +47,9 @@ private:
     std::unordered_map<std::string, std::shared_ptr<CFGNode>> predecessors;
     std::shared_ptr<CFGNode> compSuccess;
     std::shared_ptr<CFGNode> compFail; //unconditional jump at the end of the node
-    std::vector<std::shared_ptr<AbstractCommand>> instrs;
-    std::vector<std::shared_ptr<CFGNode>> returnTo;
+    std::vector<std::shared_ptr<AbstractCommand>> instrs; //todo why pointers here?
+    std::vector<std::shared_ptr<CFGNode>> pushingStates; //used to remove pushes if the node is being removed
+    std::vector<std::shared_ptr<CFGNode>> returnTo; //todo make this go to the function
     ControlFlowGraph& parentGraph;
     FunctionCodeGen* parentFunction;
     bool isLast;
@@ -72,6 +73,8 @@ public:
     void addReturnSuccessors(const std::vector<std::shared_ptr<CFGNode>>& newRet);
     void clearReturnSuccessors();
     void setReturnSuccessors(std::vector<std::shared_ptr<CFGNode>>& newRet);
+    void addPushingState(const std::shared_ptr<CFGNode>& cfgn);
+    void removePushes(); //assumes the pop is handled elsewhere
 
     //tries to merge with other (if it can fix the jumps so that it can do so)
     //returns true if successful

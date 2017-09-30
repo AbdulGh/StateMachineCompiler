@@ -70,8 +70,8 @@ void Compiler::compile(stringstream& out)
         }
     };
 
-    Optimise::optimise(symbolTable, cfg);
     debugFunc();
+    Optimise::optimise(symbolTable, cfg);
     //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
     //symMan.search();
     //Optimise::optimise(symbolTable, cfg);

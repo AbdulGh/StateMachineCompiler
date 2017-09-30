@@ -42,25 +42,24 @@ namespace Optimise
             }
 
             vector<shared_ptr<AbstractCommand>>& instructionList = current->getInstrs();
-            if (instructionList.size() <= 4 || current->getPredecessors().size() == 1) //is small
+            unordered_map<string, NodePointer>& preds = current->getPredecessors();
+            if (instructionList.size() <= 4 || preds.size() == 1) //is small
             {
-                unordered_map<string, NodePointer>& preds = current->getPredecessors();
                 auto parentit = preds.begin();
                 while (parentit != preds.end())
                 {
-                    string debug = parentit->first;
                     NodePointer swallowing = parentit->second;
                     if (!swallowing->swallowNode(current)) ++parentit;
                     else parentit = preds.erase(parentit);
                 }
-                if (preds.empty())
-                {
-                    if (current->getCompFail() != nullptr) current->getCompFail()->removeParent(current);
-                    if (current->getCompSuccess() != nullptr) current->getCompSuccess()->removeParent(current);
-                    current->clearReturnSuccessors();
-                    pair = nodes.erase(pair);
-                }
-                else ++pair;
+            }
+            if (preds.empty())
+            {
+                if (current->getCompFail() != nullptr) current->getCompFail()->removeParent(current);
+                if (current->getCompSuccess() != nullptr) current->getCompSuccess()->removeParent(current);
+                current->removePushes();
+                current->clearReturnSuccessors();
+                pair = nodes.erase(pair);
             }
             else ++pair;
         }
