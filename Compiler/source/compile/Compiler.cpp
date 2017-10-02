@@ -70,11 +70,12 @@ void Compiler::compile(stringstream& out)
         }
     };
 
-    debugFunc();
     Optimise::optimise(symbolTable, cfg);
+    debugFunc();
     //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
     //symMan.search();
     //Optimise::optimise(symbolTable, cfg);
+    //out << cfg.getDotGraph();
     out << cfg.getSource();
 }
 

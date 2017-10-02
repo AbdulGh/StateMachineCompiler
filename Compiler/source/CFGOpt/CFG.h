@@ -30,6 +30,7 @@ public:
     void removeNode(std::string name);
     std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getCurrentNodes();
     std::string getSource();
+    std::string getDotGraph();
     std::shared_ptr<CFGNode> getFirst() const;
     std::shared_ptr<CFGNode> getLast() const;
     void setFirst(const std::string& firstname);
@@ -74,7 +75,9 @@ public:
     void clearReturnSuccessors();
     void setReturnSuccessors(std::vector<std::shared_ptr<CFGNode>>& newRet);
     void addPushingState(const std::shared_ptr<CFGNode>& cfgn);
-    void removePushes(); //assumes the pop is handled elsewhere
+    //assumes the pop is handled elsewhere
+    void removePushes();
+    void replacePushes(const std::string& rep);
 
     //tries to merge with other (if it can fix the jumps so that it can do so)
     //returns true if successful
@@ -90,7 +93,8 @@ public:
     std::vector<std::shared_ptr<AbstractCommand>>& getInstrs();
     ControlFlowGraph& getParentGraph() const;
     FunctionCodeGen* getParentFunction() const;
-    std::string getSource();
+    void putSource(std::stringstream& outs, bool makeState = true, std::string delim="\n");
+    void putDotNode(std::stringstream& outs);
     bool isLastNode() const;
 };
 

@@ -6,13 +6,21 @@ double retD;
 double _0_0_x;
 _0_0_x = 0;
 push state F_main_1;
-LHS = 0;
+LHS = _0_0_x;
 RHS = 10.000000;
-jump F_loopheader_4;
+jumpif LHS < RHS F_loopheader_4;
+jump F_loopheader_3;
+end
+
+F_loopbody_1
+jump F_loopheader_fin;
+end
+
+F_loopheader_3
+jump F_loopheader_fin;
 end
 
 F_loopheader_4
-push state F_loopheader_5;
 print _0_0_x;
 print "\n";
 _0_0_x = _0_0_x + 1;
@@ -23,14 +31,10 @@ jumpif _0_0_x < 10.000000 F_loopheader_4;
 jump F_loopheader_3;
 end
 
-F_loopbody_1
+F_loopheader_fin
 return;
 end
 
 F_main_1
-return;
-end
-
-F_loopheader_3
 return;
 end

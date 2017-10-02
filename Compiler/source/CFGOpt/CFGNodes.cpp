@@ -23,17 +23,47 @@ const string &CFGNode::getName() const
     return name;
 }
 
-string CFGNode::getSource()
+void CFGNode::putSource(stringstream& outs, bool makeState, string delim)
 {
-    stringstream outs;
+    if (makeState)
+    {
+        outs << name << delim;
+        for (shared_ptr<AbstractCommand>& ac: instrs) outs << ac->translation(delim);
+        if (compSuccess != nullptr) outs << comp->translation(delim);
+        if (compFail != nullptr) outs << JumpCommand(compFail->getName(), jumpline).translation(delim);
+        else outs << ReturnCommand(jumpline).translation(delim);
+        outs << "end" << delim;
+    }
+    else for (shared_ptr<AbstractCommand>& ac: instrs) outs << ac->translation(delim);
+}
 
-    outs << name << '\n';
-    for (shared_ptr<AbstractCommand>& ac: instrs) outs << ac->translation();
-    if (compSuccess != nullptr) outs << comp->translation();
-    if (compFail != nullptr) outs << JumpCommand(compFail->getName(), jumpline).translation();
-    else outs << ReturnCommand(jumpline).translation();
-    outs << "end" << '\n';
-    return outs.str();
+void CFGNode::putDotNode(stringstream& outs)
+{
+    outs << getName() << "[label='<B><I>" << getName() << "</I></B>\\n";
+    putSource(outs, false, "\\n");
+    outs << "'];\n";
+    if (compSuccess != nullptr)
+    {
+        string trans = comp->translation("");
+        outs << getName() << "->" << compSuccess->getName()
+             << "[label='" << trans << "'];\n";
+    }
+    if (compFail != nullptr)
+    {
+        if (comp != nullptr)
+        {
+            string trans = comp->negatedTranslation("");
+            outs << getName() << "->" << compFail->getName()
+                 << "[label='" << trans << "'];\n";
+        }
+        else outs << getName() << "->" << compFail->getName()
+                  << "[label='jump'];\n";
+    }
+    else for (auto& nodePointer : returnTo)
+    {
+        outs << getName() << "->" << nodePointer->getName()
+             << "[label='return'];\n";
+    }
 }
 
 bool CFGNode::constProp()
@@ -68,10 +98,7 @@ bool CFGNode::constProp()
                     assignments[avc->getData()] = constit->second;
                     avc->RHS = constit->second;
                 }
-                else
-                {
-                    assignments[avc->getData()] = avc->RHS;
-                }
+                else assignments[avc->getData()] = avc->RHS;
             }
             if (avc->getData() != avc->RHS) newInstrs.push_back(current);
         }
@@ -195,9 +222,9 @@ bool CFGNode::constProp()
 
             else
             {
-                string trans = comp->translation();
+                string trans = comp->translation("");
                 parentGraph.reporter.optimising(Reporter::USELESS_OP, 
-                                                "Constant comparison: '" + trans.substr(0, trans.length() - 2) + "'",
+                                                "Constant comparison: '" + trans + "'",
                                                 comp->getLineNum());
 
                 //replace conditionals with true/false
@@ -242,13 +269,13 @@ bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
 {
     if (compSuccess == nullptr)
     {
-        if (compFail != nullptr &&  compFail->getName() == other->getName()
+        if (compFail != nullptr && compFail->getName() == other->getName()
             || returnTo.size() == 1 && returnTo.at(0)->getName() == other->getName())
         {
             vector<shared_ptr<AbstractCommand>> newInstrs = instrs;
             vector<shared_ptr<AbstractCommand>>& addingInstrs = other->getInstrs();
             newInstrs.reserve(instrs.size() + addingInstrs.size() + 3);
-            if (!returnTo.empty()) printf("return swallow\n"); //must be in second part of if condition
+            if (!returnTo.empty()) returnTo.clear();//must be in second part of if condition
 
             for (shared_ptr<AbstractCommand>& newInst : addingInstrs)
             {
@@ -278,6 +305,14 @@ bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
             setCompFail(other->getCompFail());
             return true;
         }
+    }
+    else if (compFail != nullptr && compFail->getName() == other->getName()
+             && compFail->getCompSuccess() == nullptr && compFail->getInstrs().empty())
+    {
+        printf("%s bypassing %s to %s\n", getName().c_str(), compFail->getName().c_str(),
+            compFail->getCompFail() == nullptr ? "null" : compFail->getCompFail()->getName().c_str());
+        setCompFail(other->getCompFail());
+        return true;
     }
     return false;
 }
@@ -467,6 +502,33 @@ void CFGNode::removePushes()
                 if (pc->pushType == PushCommand::PUSHSTATE && pc->getData() == name)
                 {
                     pushingInstrs.erase(instructionIt);
+                    found = true;
+                    break;
+                }
+            }
+            ++instructionIt;
+        }
+        if (!found) throw "couldnt find push in pushing state";
+        it = pushingStates.erase(it);
+    }
+}
+
+void CFGNode::replacePushes(const std::string& other)
+{
+    auto it = pushingStates.begin();
+    while (it != pushingStates.end())
+    {
+        vector<shared_ptr<AbstractCommand>>& pushingInstrs =  (*it)->instrs;
+        auto instructionIt = pushingInstrs.begin();
+        bool found = false;
+        while (instructionIt != pushingInstrs.end())
+        {
+            shared_ptr<AbstractCommand> ac = *instructionIt;
+            if (ac->getType() == CommandType::PUSH)
+            {
+                if (ac->getData() == name)
+                {
+                    ac->setData(other);
                     found = true;
                     break;
                 }

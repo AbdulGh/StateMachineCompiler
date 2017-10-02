@@ -58,7 +58,8 @@ string ControlFlowGraph::getSource()
 {
     if (first == nullptr) return "";
     stringstream outs;
-    outs << first->getSource() << '\n';
+    first->putSource(outs);
+    outs << '\n';
 
     //order nodes
     map<string, shared_ptr<CFGNode>> ordered(currentNodes.begin(), currentNodes.end());
@@ -66,7 +67,39 @@ string ControlFlowGraph::getSource()
     for (auto it : ordered)
     {
         if (it.first == first->getName()) continue;
-        outs << it.second->getSource() << '\n';
+        it.second->putSource(outs);
+        outs<< '\n';
+    }
+
+    return outs.str();
+}
+
+string ControlFlowGraph::getDotGraph()
+{
+    stringstream outs;
+    outs << "digraph{\n";
+    if (first == nullptr)
+    {
+        outs << "}";
+        return outs.str();
+    }
+    else first->putDotNode(outs);
+
+    map<string, shared_ptr<CFGNode>> ordered(currentNodes.begin(), currentNodes.end());
+    string currentFunc;
+    for (auto it : ordered) //the nodes should be grouped by function due to name ordering
+    {
+        if (it.first == first->getName()) continue;
+        shared_ptr<CFGNode> n = it.second;
+        if (n->getParentFunction()->getIdentifier() != currentFunc)
+        {
+            if (!currentFunc.empty()) outs << "}\n";
+            currentFunc = n->getParentFunction()->getIdentifier();
+            outs << "subgraph cluster_" << currentFunc << "{\n";
+            outs << "label='" << currentFunc << "';\n";
+        }
+        n->putDotNode(outs);
+        outs<< '\n';
     }
 
     return outs.str();

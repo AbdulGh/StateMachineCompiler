@@ -8,6 +8,7 @@
 #include "../CFGOpt/CFG.h"
 #include "../Command.h"
 
+//todo enforce ordering w/ numbers
 class FunctionCodeGen : public std::enable_shared_from_this<FunctionCodeGen>
 {
 private:
