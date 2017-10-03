@@ -77,7 +77,9 @@ public:
     void addPushingState(const std::shared_ptr<CFGNode>& cfgn);
     //assumes the pop is handled elsewhere
     void removePushes();
+    void removePushingState(const std::string& name);
     void replacePushes(const std::string& rep);
+    void prepareToDie();
 
     //tries to merge with other (if it can fix the jumps so that it can do so)
     //returns true if successful

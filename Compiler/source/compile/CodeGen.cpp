@@ -23,7 +23,7 @@ VariableType Compiler::genFunctionCall(shared_ptr<FunctionCodeGen> fromFS, share
     for (const string& s : fromVars) fromFS->genPush(PushCommand::PUSHSTR, s, lookahead.line);
 
     string nextState = fromFS->newStateName();
-    cfg.createNode(nextState, fromFS.get(), false, false)->addPushingState(fromFS->getCurrentNode());
+    //cfg.createNode(nextState, fromFS.get(), false, false)->addPushingState(fromFS->getCurrentNode());
     fromFS->genPush(PushCommand::PUSHSTATE, nextState, lookahead.line);
 
     vector<VariableType> paramTypes;

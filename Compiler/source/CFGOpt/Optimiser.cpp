@@ -34,16 +34,27 @@ namespace Optimise
             while (pair != nodes.end())
             {
                 NodePointer current = pair->second;
+
                 if (current->getName() == controlFlowGraph.getFirst()->getName())
                 {
                     ++pair;
                     continue;
                 }
                 NodePointer last = controlFlowGraph.getLast();
-                bool currentIsLast = last->getName() == current->getName();
-                if (currentIsLast && last->getPredecessors().size() != 1)
+                if (last->getName() == current->getName())
                 {
-                    ++pair;
+                    if (current->getPredecessors().size() != 1) ++pair;
+                    else
+                    {
+                        shared_ptr<CFGNode> pred = current->getPredecessors().cbegin()->second;
+                        if (!pred->swallowNode(current)) ++pair;
+                        else
+                        {
+                            controlFlowGraph.setLast(pred->getName());
+                            current->getParentFunction()->setLastNode(pred);
+                            pair = nodes.erase(pair);
+                        }
+                    }
                     continue;
                 }
 
@@ -53,8 +64,7 @@ namespace Optimise
                 if (instructionList.empty() && current->getCompSuccess() == nullptr && current->getCompFail() != nullptr)
                 {
                     current->replacePushes(current->getCompFail()->getName());
-                    current->getCompFail()->removeParent(current->getName());
-                    for (const auto& parentit : preds)
+                    for (auto parentit : preds)
                     {
                         shared_ptr<CFGNode> parent = parentit.second;
                         if (parent->getCompSuccess() != nullptr && parent->getCompSuccess()->getName() == current->getName())
@@ -106,17 +116,9 @@ namespace Optimise
                 }
                 if (preds.empty())
                 {
-                    if (current->getCompFail() != nullptr) current->getCompFail()->removeParent(current);
-                    if (current->getCompSuccess() != nullptr)
-                    {
-                        current->getCompSuccess()->removeParent(current);
-                    }
-                    if (currentIsLast)
-                    {
-                        controlFlowGraph.setLast(last->getPredecessors().cbegin()->second->getName()); //->.*(().->)->*()->;
-                    }
-                    current->removePushes();
-                    current->clearReturnSuccessors();
+                    current->prepareToDie();
+                    printf("deleting %s\n", current->getName().c_str());
+                    if (current->getName() == "F_loopbody_0") printf("%s\n--\n", controlFlowGraph.getSource().c_str());
                     pair = nodes.erase(pair);
                 }
                 else ++pair;
