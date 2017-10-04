@@ -18,11 +18,6 @@ shared_ptr<CFGNode> ControlFlowGraph::getNode(const string& name)
 
 void ControlFlowGraph::removeNode(string name)
 {
-    if (last != nullptr && last->getName() == name)
-    {
-        if (last->getPredecessors().size() != 1) throw runtime_error("Can't replace last node");
-        last = last->getPredecessors().cbegin()->second;
-    }
     auto it = currentNodes.find(name);
     if (it == currentNodes.end()) throw "Check";
     shared_ptr<CFGNode> nodePointer = it->second;
@@ -51,6 +46,7 @@ ControlFlowGraph::createNode(const string &name, FunctionCodeGen* parentFunc, bo
         introducing = make_shared<CFGNode>(*this, parentFunc, name, isLast);
         currentNodes[introducing->getName()] = introducing;
     }
+
     return introducing;
 }
 

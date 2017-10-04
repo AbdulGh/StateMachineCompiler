@@ -117,8 +117,6 @@ namespace Optimise
                 if (preds.empty())
                 {
                     current->prepareToDie();
-                    printf("deleting %s\n", current->getName().c_str());
-                    if (current->getName() == "F_loopbody_0") printf("%s\n--\n", controlFlowGraph.getSource().c_str());
                     pair = nodes.erase(pair);
                 }
                 else ++pair;

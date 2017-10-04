@@ -109,6 +109,7 @@ void Compiler::findGlobalsAndMakeStates()
     };
 
     lookahead = nextToken();
+    bool globals = false;
     int depth = 0;
     while (lookahead.type != END)
     {
@@ -164,6 +165,7 @@ void Compiler::findGlobalsAndMakeStates()
 
             else //must be a global variable declaration
             {
+                globals = true;
                 VariableType t = vtype();
                 string id = ident();
                 shared_ptr<Identifier> i = symbolTable.declare(id, t, lookahead.line);
@@ -190,10 +192,12 @@ void Compiler::findGlobalsAndMakeStates()
             }
         }
     }
-
-    initialState.push_back(make_shared<JumpCommand>("F_main_0", -1));
-    cfg.createNode("start", nullptr, false, false)->setInstructions(initialState);
-    cfg.setFirst("start");
+    if (globals || functionTable.size() >= 2) //todo test this
+    {
+        initialState.push_back(make_shared<JumpCommand>("F_main_0", -1));
+        cfg.createNode("start", nullptr, false, false)->setInstructions(initialState);
+        cfg.setFirst("start");
+    }
 }
 
 void Compiler::match(Type t)

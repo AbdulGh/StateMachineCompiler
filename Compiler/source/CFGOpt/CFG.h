@@ -73,8 +73,9 @@ public:
     void addReturnSuccessor(const std::shared_ptr<CFGNode>& other);
     void addReturnSuccessors(const std::vector<std::shared_ptr<CFGNode>>& newRet);
     void clearReturnSuccessors();
+    void removeReturnSuccessor(const std::string& ret);
     void setReturnSuccessors(std::vector<std::shared_ptr<CFGNode>>& newRet);
-    void addPushingState(const std::shared_ptr<CFGNode>& cfgn);
+    void addPushingState(const std::shared_ptr<CFGNode>& cfgn, bool idempotent = false);
     //assumes the pop is handled elsewhere
     void removePushes();
     void removePushingState(const std::string& name);
