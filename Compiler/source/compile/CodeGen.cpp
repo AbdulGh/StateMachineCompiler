@@ -1,11 +1,11 @@
 #include "Compiler.h"
 
 using namespace std;
-VariableType Compiler::genFunctionCall(shared_ptr<FunctionCodeGen> fromFS, shared_ptr<Identifier> toVar)
+VariableType Compiler::genFunctionCall(FunctionSymbol& fromFS, shared_ptr<Identifier> toVar)
 {
     match(Type::CALL);
     string fid = ident();
-    FunctionCodeGen& toFS = *(findFunction(fid));
+    FunctionSymbol& toFS = functionTable.getFunction(fid);
     VariableType expectedType;
     if (toVar != nullptr)
     {
@@ -19,11 +19,11 @@ VariableType Compiler::genFunctionCall(shared_ptr<FunctionCodeGen> fromFS, share
     match(Type::LPAREN);
 
     //push all vars
-    const vector<string>& fromVars = fromFS->getVars();
-    for (const string& s : fromVars) fromFS->genPush(PushCommand::PUSHSTR, s, lookahead.line);
+    const vector<string>& fromVars = fromFS.getVars();
+    for (const string& s : fromVars) fromFS.genPush(PushCommand::PUSHSTR, s, lookahead.line);
 
-    string nextState = fromFS->newStateName();
-    fromFS->genPush(PushCommand::PUSHSTATE, nextState, lookahead.line);
+    string nextState = fromFS.newStateName();
+    fromFS.genPush(PushCommand::PUSHSTATE, nextState, lookahead.line);
 
     vector<VariableType> paramTypes;
     while (lookahead.type != Type::RPAREN)
@@ -33,21 +33,21 @@ VariableType Compiler::genFunctionCall(shared_ptr<FunctionCodeGen> fromFS, share
             string toPush = lookahead.lexemeString;
             match(Type::NUMBER);
             paramTypes.push_back(VariableType::DOUBLE);
-            fromFS->genPush(PushCommand::PUSHSTR, toPush, lookahead.line);
+            fromFS.genPush(PushCommand::PUSHSTR, toPush, lookahead.line);
         }
         else if (lookahead.type == Type::STRINGLIT)
         {
             string toPush = lookahead.lexemeString;
             match(Type::STRINGLIT);
             paramTypes.push_back(VariableType::STRING);
-            fromFS->genPush(PushCommand::PUSHSTR, quoteString(toPush), lookahead.line);
+            fromFS.genPush(PushCommand::PUSHSTR, quoteString(toPush), lookahead.line);
         }
         else
         {
             string iid = ident();
             shared_ptr<Identifier> idp = findVariable(iid);
             paramTypes.push_back(idp->getType());
-            fromFS->genPush(PushCommand::PUSHSTR, idp->getUniqueID(), lookahead.line);
+            fromFS.genPush(PushCommand::PUSHSTR, idp->getUniqueID(), lookahead.line);
         }
         if (lookahead.type == Type::COMMA)
         {
@@ -59,17 +59,17 @@ VariableType Compiler::genFunctionCall(shared_ptr<FunctionCodeGen> fromFS, share
 
     if (!toFS.checkTypes(paramTypes)) error("Type mismatch in parameters for function '" + fid + "'");
 
-    fromFS->genJump(toFS.getFirstNode()->getName(), lookahead.line);
-    fromFS->genEndState();
-    fromFS->genNewState(nextState);
-    shared_ptr<CFGNode> created = fromFS->getCurrentNode();
+    fromFS.genJump(toFS.getFirstNode()->getName(), lookahead.line);
+    fromFS.genEndState();
+    fromFS.genNewState(nextState);
+    shared_ptr<CFGNode> created = fromFS.getCurrentNode();
     created->addParent(toFS.getLastNode());
-    toFS.getLastNode()->addReturnSuccessor(created);
+    toFS.addReturnSuccessor(created.get());
 
     //pop all vars back
     for (auto rit = fromVars.rbegin(); rit != fromVars.rend(); ++rit)
     {
-        fromFS->genPop(*rit, lookahead.line);
+        fromFS.genPop(*rit, lookahead.line);
     }
 
     if (toVar != nullptr)
@@ -77,10 +77,10 @@ VariableType Compiler::genFunctionCall(shared_ptr<FunctionCodeGen> fromFS, share
         switch (toFS.getReturnType())
         {
             case DOUBLE:
-                fromFS->genAssignment(toVar->getUniqueID(), "retD", lookahead.line);
+                fromFS.genAssignment(toVar->getUniqueID(), "retD", lookahead.line);
                 break;
             case STRING:
-                fromFS->genAssignment(toVar->getUniqueID(), "retS", lookahead.line);
+                fromFS.genAssignment(toVar->getUniqueID(), "retS", lookahead.line);
                 break;
             default:
                 throw runtime_error("Unaccounted for variable type");
@@ -89,17 +89,17 @@ VariableType Compiler::genFunctionCall(shared_ptr<FunctionCodeGen> fromFS, share
     return toFS.getReturnType();
 }
 
-void Compiler::genIf(FunctionPointer fs)
+void Compiler::genIf(FunctionSymbol& fs)
 {
-    string success = fs->newStateName();
-    string fail = fs->newStateName();
+    string success = fs.newStateName();
+    string fail = fs.newStateName();
 
     match(IF);
     match(LPAREN);
     ors(fs, success, fail);
     match(RPAREN);
 
-    fs->genNewState(success);
+    fs.genNewState(success);
 
     bool finishedState;
     if (lookahead.type != LBRACE) finishedState = statement(fs);
@@ -118,10 +118,10 @@ void Compiler::genIf(FunctionPointer fs)
         match(ELSE);
         if (!finishedState)
         {
-            string skip = fs->newStateName();
-            fs->genJump(skip, lookahead.line);
-            fs->genEndState();
-            fs->genNewState(fail);
+            string skip = fs.newStateName();
+            fs.genJump(skip, lookahead.line);
+            fs.genEndState();
+            fs.genNewState(fail);
             if (lookahead.type != LBRACE) finishedState = statement(fs);
             else
             {
@@ -135,33 +135,33 @@ void Compiler::genIf(FunctionPointer fs)
 
             if (!finishedState)
             {
-                fs->genJump(skip, lookahead.line);
-                fs->genEndState();
+                fs.genJump(skip, lookahead.line);
+                fs.genEndState();
             }
-            fs->genNewState(skip);
+            fs.genNewState(skip);
         }
-        else fs->genNewState(fail);
+        else fs.genNewState(fail);
     }
     else
     {
         if (!finishedState)
         {
-            fs->genJump(fail, lookahead.line);
-            fs->genEndState();
+            fs.genJump(fail, lookahead.line);
+            fs.genEndState();
         }
-        fs->genNewState(fail);
+        fs.genNewState(fail);
     }
 }
 
-void Compiler::genWhile(FunctionPointer fs)
+void Compiler::genWhile(FunctionSymbol& fs)
 {
-    string loopcheck = fs->newStateName();
-    string body = fs->newStateName();
-    string end = fs->newStateName();
+    string loopcheck = fs.newStateName();
+    string body = fs.newStateName();
+    string end = fs.newStateName();
 
-    fs->genJump(loopcheck, lookahead.line);
-    fs->genEndState();
-    fs->genNewState(loopcheck);
+    fs.genJump(loopcheck, lookahead.line);
+    fs.genEndState();
+    fs.genNewState(loopcheck);
 
     match(WHILE);
     match(LPAREN);
@@ -174,7 +174,7 @@ void Compiler::genWhile(FunctionPointer fs)
     {
         match(LBRACE);
         symbolTable.pushScope();
-        fs->genNewState(body);
+        fs.genNewState(body);
         finishedState = statement(fs);
         while (lookahead.type != RBRACE) finishedState = statement(fs);
         match(RBRACE);
@@ -182,52 +182,52 @@ void Compiler::genWhile(FunctionPointer fs)
     }
     if (!finishedState)
     {
-        fs->genJump(loopcheck, lookahead.line);
-        fs->genEndState();
+        fs.genJump(loopcheck, lookahead.line);
+        fs.genEndState();
     }
-    fs->genNewState(end);
+    fs.genNewState(end);
 }
 
-void Compiler::ors(FunctionPointer fs, string success, string fail)
+void Compiler::ors(FunctionSymbol& fs, string success, string fail)
 {
-    string IM = fs->newStateName();
+    string IM = fs.newStateName();
     ands(fs, success, IM);
     while (lookahead.type == COMPOR)
     {
         match(COMPOR);
-        fs->genNewState(IM);
-        IM = fs->newStateName();
+        fs.genNewState(IM);
+        IM = fs.newStateName();
         ands(fs, success, IM);
     }
-    fs->genNewState(IM);
-    fs->genJump(fail, lookahead.line);
-    fs->genEndState();
+    fs.genNewState(IM);
+    fs.genJump(fail, lookahead.line);
+    fs.genEndState();
 }
 
-void Compiler::ands(FunctionPointer fs, string success, string fail)
+void Compiler::ands(FunctionSymbol& fs, string success, string fail)
 {
-    string IM = fs->newStateName();
+    string IM = fs.newStateName();
     condition(fs, IM, fail);
     while (lookahead.type == COMPAND)
     {
         match(COMPAND);
-        fs->genNewState(IM);
-        IM = fs->newStateName();
+        fs.genNewState(IM);
+        IM = fs.newStateName();
         condition(fs, IM, fail);
     }
 
-    fs->genNewState(IM);
-    fs->genJump(success, lookahead.line);
-    fs->genEndState();
+    fs.genNewState(IM);
+    fs.genJump(success, lookahead.line);
+    fs.genEndState();
 }
 
-void Compiler::condition(FunctionPointer fs, string success, string fail)
+void Compiler::condition(FunctionSymbol& fs, string success, string fail)
 {
     expression(fs, "LHS");
     Relations::Relop r = relop();
     expression(fs, "RHS");
 
-    fs->genConditionalJump(success, "LHS", r, "RHS", lookahead.line);
-    fs->genJump(fail, lookahead.line);
-    fs->genEndState();
+    fs.genConditionalJump(success, "LHS", r, "RHS", lookahead.line);
+    fs.genJump(fail, lookahead.line);
+    fs.genEndState();
 }

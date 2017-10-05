@@ -5,9 +5,8 @@
 #include <memory>
 
 #include "Token.h"
-#include "FunctionCodeGen.h"
+#include "Functions.h"
 
-typedef std::shared_ptr<FunctionCodeGen> FunctionPointer;
 
 class Compiler;
 
@@ -75,17 +74,17 @@ private:
     static unsigned int nextUnique;
     int currentUnique;
     Compiler& parent;
-    ExprNodePointer expression(FunctionPointer);
-    ExprNodePointer term(FunctionPointer);
-    ExprNodePointer factor(FunctionPointer);
-    std::string genTemp(FunctionPointer, unsigned int i);
-    std::string genUnique(FunctionPointer);
-    bool translateTree(ExprNodePointer, FunctionPointer, unsigned int, double&);
+    ExprNodePointer expression(FunctionSymbol&);
+    ExprNodePointer term(FunctionSymbol&);
+    ExprNodePointer factor(FunctionSymbol&);
+    std::string genTemp(FunctionSymbol&, unsigned int i);
+    std::string genUnique(FunctionSymbol&);
+    bool translateTree(ExprNodePointer, FunctionSymbol&, unsigned int, double&);
     std::string goingto;
     
 public:
     ExpressionCodeGenerator(Compiler& parent, const std::string& assignee);
-    void CompileExpression(FunctionPointer fs);
+    void CompileExpression(FunctionSymbol& fs);
 };
 
 #endif

@@ -8,9 +8,8 @@
 #include "../Command.h"
 #include "../compile/Reporter.h"
 
-class FunctionCodeGen;
-typedef std::shared_ptr<FunctionCodeGen> FunctionPointer;
-
+class FunctionSymbol;
+class FunctionTable;
 //todo use unique pointers here
 
 class CFGNode;
@@ -21,11 +20,13 @@ private:
     std::shared_ptr<CFGNode> first;
     std::shared_ptr<CFGNode> last;
     Reporter& reporter;
+    FunctionTable& functionTable;
 
 
 public:
-    ControlFlowGraph(Reporter& r) : reporter(r) {};
-    std::shared_ptr<CFGNode> createNode(const std::string &name, FunctionCodeGen* parent, bool overwrite, bool last);
+    ControlFlowGraph(Reporter& r, FunctionTable& fc) : reporter(r), functionTable(fc) {};
+    std::shared_ptr<CFGNode> createNode(const std::string& name, bool overwrite, bool last, FunctionSymbol& parentFunc);
+    std::shared_ptr<CFGNode> createNode(const std::string& name, bool overwrite, bool last);
     std::shared_ptr<CFGNode> getNode(const std::string& name);
     void removeNode(std::string name);
     std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getCurrentNodes();
@@ -50,14 +51,13 @@ private:
     std::shared_ptr<CFGNode> compFail; //unconditional jump at the end of the node
     std::vector<std::shared_ptr<AbstractCommand>> instrs; //todo why pointers here?
     std::vector<std::shared_ptr<CFGNode>> pushingStates; //used to remove pushes if the node is being removed
-    std::vector<std::shared_ptr<CFGNode>> returnTo; //todo make this go to the function
     ControlFlowGraph& parentGraph;
-    FunctionCodeGen* parentFunction;
+    FunctionSymbol& parentFunction;
     bool isLast;
     int jumpline;
 
 public:
-    CFGNode(ControlFlowGraph& p, FunctionCodeGen* pf, std::string n, bool last = false);
+    CFGNode(ControlFlowGraph& p, FunctionSymbol& pf, std::string n, bool last = false);
     bool constProp(); //returns true if it bypassed some return
     bool addParent(std::shared_ptr<CFGNode>); //returns false if parent was already in
     void removeParent(std::shared_ptr<CFGNode>);
@@ -67,14 +67,9 @@ public:
     void setCompSuccess(const std::shared_ptr<CFGNode>& compSuccess);
     void setCompFail(const std::shared_ptr<CFGNode>& compFail);
     void setComp(const std::shared_ptr<JumpOnComparisonCommand>& comp);
-    void setParentFunction(FunctionCodeGen* pf);
+    //void setParentFunction(FunctionSymbol& pf);
     void setLast(bool last = true);
 
-    void addReturnSuccessor(const std::shared_ptr<CFGNode>& other);
-    void addReturnSuccessors(const std::vector<std::shared_ptr<CFGNode>>& newRet);
-    void clearReturnSuccessors();
-    void removeReturnSuccessor(const std::string& ret);
-    void setReturnSuccessors(std::vector<std::shared_ptr<CFGNode>>& newRet);
     void addPushingState(const std::shared_ptr<CFGNode>& cfgn, bool idempotent = false);
     //assumes the pop is handled elsewhere
     void removePushes();
@@ -88,14 +83,13 @@ public:
 
     std::shared_ptr<JumpOnComparisonCommand> getComp();
     std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getPredecessors();
-    std::vector<std::shared_ptr<CFGNode>>& getReturnSuccessors();
     std::shared_ptr<CFGNode> getCompSuccess();
     int getJumpline() const;
     std::shared_ptr<CFGNode> getCompFail();
     const std::string &getName() const;
     std::vector<std::shared_ptr<AbstractCommand>>& getInstrs();
     ControlFlowGraph& getParentGraph() const;
-    FunctionCodeGen* getParentFunction() const;
+    FunctionSymbol& getParentFunction() const;
     void putSource(std::stringstream& outs, bool makeState = true, std::string delim="\n");
     void putDotNode(std::stringstream& outs);
     bool isLastNode() const;

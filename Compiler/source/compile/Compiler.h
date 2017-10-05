@@ -6,9 +6,9 @@
 #include "Lexer.h"
 #include "Token.h"
 #include "SymbolTable.h"
-#include "FunctionCodeGen.h"
+#include "Functions.h"
 #include "ExpressionCodeGenerator.h"
-#include "FunctionCodeGen.h"
+#include "Functions.h"
 #include "Reporter.h"
 #include "../symbolic/SymbolicExecution.h"
 
@@ -26,7 +26,7 @@ private:
     std::vector<Token>::const_iterator tp;
     Token lookahead;
     SymbolTable symbolTable;
-    std::unordered_map<std::string, FunctionPointer> functionTable;
+    FunctionTable functionTable;
     ControlFlowGraph cfg;
     Reporter reporter;
 
@@ -35,25 +35,27 @@ private:
     Token nextToken();
     void findGlobalsAndMakeStates();
     std::shared_ptr<Identifier> findVariable(std::string);
-    FunctionPointer findFunction(std::string);
     std::string quoteString(std::string& s);
 
     /*parsing*/
     void match(Type t);
     void body();
-    bool statement(FunctionPointer fs); //returns true if the state has been ended
+    bool statement(FunctionSymbol& fs); //returns true if the state has been ended
     Relations::Relop relop();
-    void expression(FunctionPointer fs, const std::string& to);
+    void expression(FunctionSymbol& fs, const std::string& to);
     VariableType vtype();
     std::string ident();
 
     /*code generation*/
-    VariableType genFunctionCall(FunctionPointer, std::shared_ptr<Identifier> toPtr = nullptr);
-    void genIf(FunctionPointer);
-    void genWhile(FunctionPointer);
-    void ands(FunctionPointer fs, std::string success, std::string fail);
-    void ors(FunctionPointer fs, std::string success, std::string fail);
-    void condition(FunctionPointer fs, std::string success, std::string fail);
+    VariableType genFunctionCall(FunctionSymbol&, std::shared_ptr<Identifier> toPtr = nullptr);
+    void genIf(FunctionSymbol&);
+    void genWhile(FunctionSymbol&);
+    void ands(FunctionSymbol& fs, std::string success, std::string fail);
+    void ors(FunctionSymbol& fs, std::string success, std::string fail);
+    void condition(FunctionSymbol& fs, std::string success, std::string fail);
+
+    friend class FunctionTable;
+    friend class ControlFlowGraph;
 };
 
 

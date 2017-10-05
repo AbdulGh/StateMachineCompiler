@@ -2,7 +2,7 @@
 #define PROJECT_OPTIMISE_H
 
 #include "../compile/SymbolTable.h"
-#include "../compile/FunctionCodeGen.h"
+#include "../compile/Functions.h"
 #include "../Command.h"
 
 namespace Optimise

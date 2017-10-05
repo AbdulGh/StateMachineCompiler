@@ -4,7 +4,7 @@
 #include <stack>
 #include <memory>
 
-#include "../compile/FunctionCodeGen.h"
+#include "../compile/Functions.h"
 #include "CFG.h"
 
 using namespace std;
@@ -25,20 +25,18 @@ void ControlFlowGraph::removeNode(string name)
     {
         if (nodePointer->getPredecessors().size() != 1) throw runtime_error("Can't replace last node");
         shared_ptr<CFGNode> newLast = last->getPredecessors().cbegin()->second;
-        nodePointer->getParentFunction()->setLastNode(newLast);
+        nodePointer->getParentFunction().setLastNode(newLast);
         if (last->getName() == nodePointer->getName()) last = newLast;
     }
     currentNodes.erase(it);
 }
 
-shared_ptr<CFGNode>
-ControlFlowGraph::createNode(const string &name, FunctionCodeGen* parentFunc, bool overwrite, bool isLast)
+shared_ptr<CFGNode> ControlFlowGraph::createNode(const string &name, bool overwrite, bool isLast, FunctionSymbol& parentFunc)
 {
     shared_ptr<CFGNode> introducing;
     if ((introducing = getNode(name)) != nullptr)
     {
         if (!overwrite) throw runtime_error("node already exists");
-        introducing->setParentFunction(parentFunc);
         introducing->setLast(isLast);
     }
     else
@@ -49,6 +47,25 @@ ControlFlowGraph::createNode(const string &name, FunctionCodeGen* parentFunc, bo
 
     return introducing;
 }
+
+shared_ptr<CFGNode> ControlFlowGraph::createNode(const string &name, bool overwrite, bool isLast)
+{
+    shared_ptr<CFGNode> introducing;
+    if ((introducing = getNode(name)) != nullptr)
+    {
+        if (!overwrite) throw runtime_error("node already exists");
+        introducing->setLast(isLast);
+    }
+    else
+    {
+        FunctionSymbol& parentFunc = functionTable.getParentFunc(name);
+        introducing = make_shared<CFGNode>(*this, parentFunc, name, isLast);
+        currentNodes[introducing->getName()] = introducing;
+    }
+
+    return introducing;
+}
+
 
 string ControlFlowGraph::getSource()
 {
@@ -87,10 +104,17 @@ string ControlFlowGraph::getDotGraph()
     {
         if (it.first == first->getName()) continue;
         shared_ptr<CFGNode> n = it.second;
-        if (n->getParentFunction()->getIdentifier() != currentFunc)
+        if (n->getParentFunction().getPrefix() != currentFunc)
         {
             if (!currentFunc.empty()) outs << "}\n";
-            currentFunc = n->getParentFunction()->getIdentifier();
+            FunctionSymbol& oldFS = functionTable.getFunction(currentFunc); //could be done by keeping a pointer but oh well
+            string oldLastNode = oldFS.getLastNode()->getName();
+            for (auto& nodePointer : oldFS.getReturnTo())
+            {
+                outs << oldLastNode << "->" << nodePointer->getName()
+                     << "[label='return'];\n";
+            }
+            currentFunc = n->getParentFunction().getPrefix();
             outs << "subgraph cluster_" << currentFunc << "{\n";
             outs << "label='" << currentFunc << "';\n";
         }

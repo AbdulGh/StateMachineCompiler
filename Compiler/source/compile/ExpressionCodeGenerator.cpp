@@ -9,14 +9,14 @@ ExpressionCodeGenerator::ExpressionCodeGenerator(Compiler &p, const string& asig
         currentUnique(0),
         goingto(asignee){}
 
-void ExpressionCodeGenerator::CompileExpression(FunctionPointer fs)
+void ExpressionCodeGenerator::CompileExpression(FunctionSymbol& fs)
 {
     ExprNodePointer tree = expression(fs);
     double df;
-    if (translateTree(tree, fs,  0, df)) fs->genAssignment(goingto, to_string(df), parent.lookahead.line);
+    if (translateTree(tree, fs,  0, df)) fs.genAssignment(goingto, to_string(df), parent.lookahead.line);
 }
 
-ExprNodePointer ExpressionCodeGenerator::expression(FunctionPointer fs)
+ExprNodePointer ExpressionCodeGenerator::expression(FunctionSymbol& fs)
 {
     ExprNodePointer currentLeft = term(fs);
     if (!(parent.lookahead.type == OP)) return currentLeft;
@@ -38,7 +38,7 @@ ExprNodePointer ExpressionCodeGenerator::expression(FunctionPointer fs)
     return currentLeft;
 }
 
-ExprNodePointer ExpressionCodeGenerator::term(FunctionPointer fs)
+ExprNodePointer ExpressionCodeGenerator::term(FunctionSymbol& fs)
 {
     ExprNodePointer currentLeft = factor(fs);
     if (!(parent.lookahead.type == OP)) return currentLeft;
@@ -61,7 +61,7 @@ ExprNodePointer ExpressionCodeGenerator::term(FunctionPointer fs)
     return currentLeft;
 }
 
-ExprNodePointer ExpressionCodeGenerator::factor(FunctionPointer fs)
+ExprNodePointer ExpressionCodeGenerator::factor(FunctionSymbol& fs)
 {
     bool toNegate = false;
     while (parent.lookahead.type == OP && ((Op)parent.lookahead.auxType == MINUS))
@@ -109,21 +109,21 @@ ExprNodePointer ExpressionCodeGenerator::factor(FunctionPointer fs)
             parent.error("Function in expression does not return double");
         }
         string uni = genUnique(fs);
-        fs->genAssignment(uni, "retD", parent.lookahead.line);
+        fs.genAssignment(uni, "retD", parent.lookahead.line);
         return withNeg(make_shared<AtomNode>(uni, false));
     }
     else parent.error("Expected identifier or double in expression");
 }
 
 unsigned int ExpressionCodeGenerator::nextTemp = 0;
-string ExpressionCodeGenerator::genTemp(FunctionPointer fs, unsigned int i)
+string ExpressionCodeGenerator::genTemp(FunctionSymbol& fs, unsigned int i)
 {
     if (i == 0) return goingto;
     i -= 1;
     if (i == nextTemp)
     {
         string s = "temp" + to_string(nextTemp++);
-        fs->genVariableDecl(DOUBLE, s, parent.lookahead.line);
+        fs.genVariableDecl(DOUBLE, s, parent.lookahead.line);
         return s;
     }
     if (i > nextTemp) throw "Something went wrong somehow";
@@ -131,20 +131,20 @@ string ExpressionCodeGenerator::genTemp(FunctionPointer fs, unsigned int i)
 }
 
 unsigned int ExpressionCodeGenerator::nextUnique = 0;
-string ExpressionCodeGenerator::genUnique(FunctionPointer fs)
+string ExpressionCodeGenerator::genUnique(FunctionSymbol& fs)
 {
     if (currentUnique == nextUnique)
     {
         string s = "unique" + to_string(nextUnique++);
         ++currentUnique;
-        fs->genVariableDecl(DOUBLE, s, parent.lookahead.line);
+        fs.genVariableDecl(DOUBLE, s, parent.lookahead.line);
         return s;
     }
     else if (currentUnique > nextUnique) throw "Something went wrong somehow";
     return "unique" + to_string(currentUnique++);
 }
 
-bool ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer fs, unsigned int reg, double& ret)
+bool ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionSymbol& fs, unsigned int reg, double& ret)
 {
     if (p->isAtom())
     {
@@ -155,7 +155,7 @@ bool ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer f
         }
         else
         {
-            fs->genAssignment(genTemp(fs, reg), p->getData(), parent.lookahead.line);
+            fs.genAssignment(genTemp(fs, reg), p->getData(), parent.lookahead.line);
             return false;
         }
     }
@@ -187,7 +187,7 @@ bool ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionPointer f
     }
     else
     {
-        fs->genExpr(genTemp(fs, reg), left, p->getOp(), right, parent.lookahead.line);
+        fs.genExpr(genTemp(fs, reg), left, p->getOp(), right, parent.lookahead.line);
         return false;
     }
 }

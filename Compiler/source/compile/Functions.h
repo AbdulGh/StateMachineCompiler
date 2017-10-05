@@ -8,26 +8,28 @@
 #include "../CFGOpt/CFG.h"
 #include "../Command.h"
 
-//todo enforce ordering w/ numbers
-class FunctionCodeGen : public std::enable_shared_from_this<FunctionCodeGen>
+class Compiler;
+
+class FunctionSymbol : public std::enable_shared_from_this<FunctionSymbol>
 {
 private:
     VariableType returnType;
     std::vector<VariableType> paramTypes;
     int currentStates;
-    std::string ident;
+    std::string prefix;
     bool endedState;
     std::shared_ptr<CFGNode> lastNode;
     std::shared_ptr<CFGNode> firstNode;
     std::shared_ptr<CFGNode> currentNode;
-    std::vector<std::string> vars;
+    std::vector<std::string> vars; //used to save vars during function calls
     std::vector<std::shared_ptr<AbstractCommand>> currentInstrs;
     ControlFlowGraph& cfg;
+    std::vector<CFGNode*> returnTo;
 
 public:
-    FunctionCodeGen(VariableType returnType, std::vector<VariableType> types, std::string ident, ControlFlowGraph& cfg);
+    FunctionSymbol(VariableType returnType, std::vector<VariableType> types, std::string ident, ControlFlowGraph& cfg);
     const std::string newStateName();
-    const std::string& getIdentifier() const;
+    const std::string& getPrefix() const;
     bool checkTypes(std::vector<VariableType>& potential);
     bool isOfType(VariableType c);
     VariableType getReturnType() const;
@@ -35,10 +37,19 @@ public:
     void setLastNode(const std::shared_ptr<CFGNode>& lastNode);
     const std::shared_ptr<CFGNode>& getFirstNode();
     void setFirstNode(const std::shared_ptr<CFGNode>& firstNode);
-    void giveNodesTo(FunctionCodeGen* to);
+    void giveNodesTo(FunctionSymbol& to); //todo use this
     const std::shared_ptr<CFGNode>& getCurrentNode() const;
     const std::vector<std::string>& getVars();
     void addVar(std::string);
+
+    //return stuff
+    std::vector<CFGNode*>& getReturnTo();
+    void addReturnSuccessor(CFGNode* other);
+    void addReturnSuccessors(const std::vector<CFGNode*>& newRet);
+    void clearReturnSuccessors();
+    void removeReturnSuccessor(const std::string& ret);
+    void setReturnSuccessors(std::vector<CFGNode*>& newRet);
+    std::vector<CFGNode*>& getReturnSuccessors();
 
     //codegen
     void genNewState(std::string);
@@ -54,8 +65,22 @@ public:
     void genVariableDecl(VariableType t, std::string n, int);
     void genAssignment(std::string LHS, std::string RHS, int);
     void addCommand(std::shared_ptr<AbstractCommand> ac);
+    void addCommands(std::vector<std::shared_ptr<AbstractCommand>> acs);
 };
 
-typedef std::shared_ptr<FunctionCodeGen> FunctionPointer;
+class FunctionTable
+{
+private:
+    std::unordered_map<std::string, std::unique_ptr<FunctionSymbol>> functionTable;
+    Compiler& parent;
+public:
+    FunctionTable(Compiler& p) : parent(p) {}
+    bool containsFunction(const std::string& funcName);
+    FunctionSymbol& getFunction(const std::string& funcName);
+    FunctionSymbol& getParentFunc(std::string stateName);
+    FunctionSymbol& addFunction(VariableType returnType, std::vector<VariableType>& types, std::string& ident);
+    unsigned long getSize() {return functionTable.size();}
+};
+
 
 #endif

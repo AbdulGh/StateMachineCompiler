@@ -9,7 +9,8 @@
 
 using namespace std;
 
-Compiler::Compiler(vector<Token>& st, string auxFileName): stream(st), reporter(move(auxFileName)), cfg(reporter) {}
+Compiler::Compiler(vector<Token>& st, string auxFileName): stream(st), reporter(move(auxFileName)),
+                                                           functionTable(*this), cfg(reporter, functionTable) {}
 
 void Compiler::error(string err)
 {
@@ -36,9 +37,9 @@ void Compiler::compile(stringstream& out)
     lookahead = nextToken();
     while (lookahead.type != END) body();
 
-    cfg.setLast(functionTable["main"]->getLastNode()->getName());
+    cfg.setLast(functionTable.getFunction("main").getLastNode()->getName());
 
-    auto debugFunc = [&, this]() -> void
+    /*auto debugFunc = [&, this]() -> void
     {
         unordered_map<string, shared_ptr<CFGNode>>& list = this->cfg.getCurrentNodes();
         for (const auto& liasd : list)
@@ -68,10 +69,10 @@ void Compiler::compile(stringstream& out)
                 }
             }
         }
-    };
+    };*/
 
     Optimise::optimise(symbolTable, cfg);
-    debugFunc();
+    //debugFunc();
     //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
     //symMan.search();
     //Optimise::optimise(symbolTable, cfg);
@@ -91,15 +92,9 @@ shared_ptr<Identifier> Compiler::findVariable(string name)
     return ret;
 }
 
-FunctionPointer Compiler::findFunction(string fid)
-{
-    unordered_map<string, FunctionPointer>::const_iterator it = functionTable.find(fid);
-    if (it == functionTable.cend()) error("Undefined function '" + fid + "'");
-    return it->second;
-}
-
 void Compiler::findGlobalsAndMakeStates()
 {
+
     vector<shared_ptr<AbstractCommand>> initialState =
     {
         make_shared<DeclareVarCommand>(DOUBLE, "LHS", -1),
@@ -159,8 +154,7 @@ void Compiler::findGlobalsAndMakeStates()
                 }
                 else warning("Function '" + id + "' has no dtype - assuming void");
 
-                FunctionPointer ptr = make_shared<FunctionCodeGen>(ret, paramTypes, id, cfg);
-                functionTable[id] = ptr;
+                functionTable.addFunction(ret, paramTypes, id);
             }
 
             else //must be a global variable declaration
@@ -192,11 +186,12 @@ void Compiler::findGlobalsAndMakeStates()
             }
         }
     }
-    if (globals || functionTable.size() >= 2) //todo test this
+    if (globals || functionTable.getSize() > 1) //todo test this
     {
-        initialState.push_back(make_shared<JumpCommand>("F_main_0", -1));
-        cfg.createNode("start", nullptr, false, false)->setInstructions(initialState);
-        cfg.setFirst("start");
+        if (!functionTable.containsFunction("main")) error("Function 'main' must be defined");
+        FunctionSymbol& mainSymbol = functionTable.getFunction("main");
+        mainSymbol.addCommands(initialState);
+        cfg.setFirst(mainSymbol.getFirstNode()->getName());
     }
 }
 

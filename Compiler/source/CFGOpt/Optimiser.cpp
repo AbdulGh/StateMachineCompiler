@@ -51,7 +51,7 @@ namespace Optimise
                         else
                         {
                             controlFlowGraph.setLast(pred->getName());
-                            current->getParentFunction()->setLastNode(pred);
+                            current->getParentFunction().setLastNode(pred);
                             pair = nodes.erase(pair);
                         }
                     }
@@ -77,14 +77,14 @@ namespace Optimise
                             parent->setCompFail(current->getCompFail());
                             continue;
                         }
-                        else
+                        else if (parent->isLastNode())
                         {
                             bool found = false;
-                            vector<shared_ptr<CFGNode>>& parentRetSuccessors = parent->getReturnSuccessors();
+                            vector<CFGNode*>& parentRetSuccessors = parent->getParentFunction().getReturnSuccessors();
                             for (auto iterator = parentRetSuccessors.begin();
                                  iterator != parentRetSuccessors.end(); iterator++)
                             {
-                                shared_ptr<CFGNode> retPointer = *iterator;
+                                CFGNode* retPointer = *iterator;
                                 if (retPointer->getName() == current->getName())
                                 {
                                     found = true;
@@ -93,8 +93,9 @@ namespace Optimise
                                 }
                             }
                             if (!found) throw "couldn't find self in parent";
-                            parentRetSuccessors.push_back(current->getCompFail());
+                            parentRetSuccessors.push_back(current->getCompFail().get());
                         }
+                        else throw "couldn't find self in parent";
                     }
                     preds.clear();
                 }
