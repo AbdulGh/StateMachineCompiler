@@ -264,7 +264,8 @@ bool CFGNode::constProp()
 
 bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
 {
-    if (compSuccess == nullptr)
+    if (isLast && parentFunction.getReturnSuccessors().size() != 1) return false;
+    else if (compSuccess == nullptr)
     {
         vector<CFGNode*>& returnTo = parentFunction.getReturnTo();
         if (compFail != nullptr && compFail->getName() == other->getName()
@@ -283,20 +284,10 @@ bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
             {
                 setComp(static_pointer_cast<JumpOnComparisonCommand>(other->getComp()->clone()));
             }
-            else
-            {
-                setComp(nullptr);
-                if (other->getCompFail() == nullptr)
-                {
-                    if (!other->isLastNode() || other->getPredecessors().size() != 1) throw "uh-oh";
-                    if (other->getParentFunction().getPrefix() != parentFunction.getPrefix())
-                    {
-                        //todo use giveNodes
-                    }
-                }
-            }
+            else setComp(nullptr);
             setCompSuccess(other->getCompSuccess());
             setCompFail(other->getCompFail());
+            if (isLast) other->parentFunction.giveNodesTo(parentFunction);
             return true;
         }
     }
@@ -434,6 +425,11 @@ void CFGNode::setLast(bool last)
     isLast = last;
 }
 
+void CFGNode::setParentFunction(FunctionSymbol *pf)
+{
+    parentFunction = pf;
+}
+
 ControlFlowGraph& CFGNode::getParentGraph() const
 {
     return parentGraph;
@@ -441,7 +437,7 @@ ControlFlowGraph& CFGNode::getParentGraph() const
 
 FunctionSymbol& CFGNode::getParentFunction() const
 {
-    return parentFunction;
+    return *parentFunction;
 }
 
 int CFGNode::getJumpline() const

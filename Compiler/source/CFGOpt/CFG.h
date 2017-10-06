@@ -52,7 +52,7 @@ private:
     std::vector<std::shared_ptr<AbstractCommand>> instrs; //todo why pointers here?
     std::vector<std::shared_ptr<CFGNode>> pushingStates; //used to remove pushes if the node is being removed
     ControlFlowGraph& parentGraph;
-    FunctionSymbol& parentFunction;
+    FunctionSymbol* parentFunction;
     bool isLast;
     int jumpline;
 
@@ -67,7 +67,7 @@ public:
     void setCompSuccess(const std::shared_ptr<CFGNode>& compSuccess);
     void setCompFail(const std::shared_ptr<CFGNode>& compFail);
     void setComp(const std::shared_ptr<JumpOnComparisonCommand>& comp);
-    //void setParentFunction(FunctionSymbol& pf);
+    void setParentFunction(FunctionSymbol* pf);
     void setLast(bool last = true);
 
     void addPushingState(const std::shared_ptr<CFGNode>& cfgn, bool idempotent = false);

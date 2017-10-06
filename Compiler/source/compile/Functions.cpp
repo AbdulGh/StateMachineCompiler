@@ -13,27 +13,26 @@ FunctionSymbol::FunctionSymbol(VariableType rt, std::vector<VariableType> types,
 //assumes the entire function is reachable from the first node (most unreachable parts will be removed by symbolic execution)
 void FunctionSymbol::giveNodesTo(FunctionSymbol& to)
 {
-    /*getLastNode()->setReturnSuccessors(to.getLastNode()->getReturnSuccessors());
-    to.getLastNode()->clearReturnSuccessors();
-
+    to.getLastNode()->setLast(false);
+    to.setLastNode(getLastNode());
     stack<shared_ptr<CFGNode>> toConvert({getFirstNode()});
     while (!toConvert.empty())
     {
         shared_ptr<CFGNode> converting = (toConvert.top()); //why will this only work with parentheses?
         toConvert.pop();
-        converting->setParentFunction(to);
+        converting->setParentFunction(&to);
         if (converting->getCompSuccess() != nullptr
-            && converting->getCompSuccess()->getParentFunction().getIdentifier() == getIdentifier())
+            && converting->getCompSuccess()->getParentFunction().getPrefix() == getPrefix())
         {
             toConvert.push(converting->getCompSuccess());
         }
         if (converting->getCompFail() != nullptr
-            && converting->getCompFail()->getParentFunction().getIdentifier() == getIdentifier())
+            && converting->getCompFail()->getParentFunction().getPrefix() == getPrefix())
         {
             toConvert.push(converting->getCompFail());
         }
     }
-    to.setLastNode(getLastNode());*/
+    to.setLastNode(getLastNode());
 }
 
 const shared_ptr<CFGNode>& FunctionSymbol::getLastNode()
@@ -122,6 +121,12 @@ void FunctionSymbol::addReturnSuccessor(CFGNode* returningTo)
 
     returnTo.push_back(returningTo);
     returningTo->addParent(getLastNode()->shared_from_this());
+
+    if (returningTo->getName() == "F0_main_0")
+    {
+        int debug;
+        debug = 2;
+    }
 
     printf("%s added as return succ of %s\n", returningTo->getName().c_str(), this->getPrefix().c_str());
 }
