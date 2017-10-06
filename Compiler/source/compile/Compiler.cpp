@@ -37,7 +37,7 @@ void Compiler::compile(stringstream& out)
     lookahead = nextToken();
     while (lookahead.type != END) body();
 
-    cfg.setLast(functionTable.getFunction("main").getLastNode()->getName());
+    cfg.setLast(functionTable.getFunction("main")->getLastNode()->getName());
 
     /*auto debugFunc = [&, this]() -> void
     {
@@ -186,12 +186,12 @@ void Compiler::findGlobalsAndMakeStates()
             }
         }
     }
-    if (globals || functionTable.getSize() > 1) //todo test this
+    if (globals || functionTable.getSize() > 1)
     {
         if (!functionTable.containsFunction("main")) error("Function 'main' must be defined");
-        FunctionSymbol& mainSymbol = functionTable.getFunction("main");
-        mainSymbol.addCommands(initialState);
-        cfg.setFirst(mainSymbol.getFirstNode()->getName());
+        FunctionSymbol* mainSymbol = functionTable.getFunction("main");
+        mainSymbol->addCommands(initialState);
+        cfg.setFirst(mainSymbol->getFirstNode()->getName());
     }
 }
 

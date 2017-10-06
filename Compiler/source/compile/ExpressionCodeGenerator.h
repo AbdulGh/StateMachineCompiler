@@ -74,17 +74,17 @@ private:
     static unsigned int nextUnique;
     int currentUnique;
     Compiler& parent;
-    ExprNodePointer expression(FunctionSymbol&);
-    ExprNodePointer term(FunctionSymbol&);
-    ExprNodePointer factor(FunctionSymbol&);
-    std::string genTemp(FunctionSymbol&, unsigned int i);
-    std::string genUnique(FunctionSymbol&);
-    bool translateTree(ExprNodePointer, FunctionSymbol&, unsigned int, double&);
+    ExprNodePointer expression(FunctionSymbol*);
+    ExprNodePointer term(FunctionSymbol*);
+    ExprNodePointer factor(FunctionSymbol*);
+    std::string genTemp(FunctionSymbol*, unsigned int i);
+    std::string genUnique(FunctionSymbol*);
+    bool translateTree(ExprNodePointer, FunctionSymbol*, unsigned int, double&);
     std::string goingto;
     
 public:
     ExpressionCodeGenerator(Compiler& parent, const std::string& assignee);
-    void CompileExpression(FunctionSymbol& fs);
+    void CompileExpression(FunctionSymbol* fs);
 };
 
 #endif

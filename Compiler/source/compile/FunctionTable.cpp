@@ -2,18 +2,18 @@
 #include "Compiler.h"
 using namespace std;
 
-FunctionSymbol& FunctionTable::getFunction(const std::string& funcName)
+FunctionSymbol* FunctionTable::getFunction(const std::string& funcName)
 {
     auto it = functionTable.find(funcName);
     if (it == functionTable.cend()) parent.error("Undefined function '" + funcName + "'");
-    return *(it->second);
+    return it->second.get();
 }
 
-FunctionSymbol& FunctionTable::addFunction(VariableType returnType, std::vector<VariableType>& types, std::string& ident)
+FunctionSymbol* FunctionTable::addFunction(VariableType returnType, std::vector<VariableType>& types, std::string& ident)
 {
     string prefix = "F" + to_string(functionTable.size()) + "_" + ident + "_";
     functionTable[ident] = std::make_unique<FunctionSymbol>(returnType, types, prefix, parent.cfg);
-    return (*functionTable[ident]);
+    return functionTable[ident].get();
 }
 
 bool FunctionTable::containsFunction(const std::string& funcName)
@@ -22,7 +22,7 @@ bool FunctionTable::containsFunction(const std::string& funcName)
 }
 
 //assumes it's in the right format
-FunctionSymbol& FunctionTable::getParentFunc(std::string stateName)
+FunctionSymbol* FunctionTable::getParentFunc(std::string stateName)
 {
     if (stateName.empty()) throw "not good";
     unsigned long underscore = 0;

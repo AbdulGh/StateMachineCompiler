@@ -7,32 +7,31 @@ using namespace std;
 FunctionSymbol::FunctionSymbol(VariableType rt, std::vector<VariableType> types, std::string in, ControlFlowGraph& c):
     returnType(rt), paramTypes(move(types)), prefix(move(in)),
     currentStates(1), endedState(false), cfg(c)
-    {currentNode = cfg.createNode(prefix + "0", false, false, *this);}
+    {currentNode = cfg.createNode(prefix + "0", false, false, this);}
 
 
 //assumes the entire function is reachable from the first node (most unreachable parts will be removed by symbolic execution)
-void FunctionSymbol::giveNodesTo(FunctionSymbol& to)
+void FunctionSymbol::giveNodesTo(FunctionSymbol* to)
 {
-    to.getLastNode()->setLast(false);
-    to.setLastNode(getLastNode());
+    to->getLastNode()->setLast(false);
+    to->setLastNode(getLastNode());
     stack<shared_ptr<CFGNode>> toConvert({getFirstNode()});
     while (!toConvert.empty())
     {
         shared_ptr<CFGNode> converting = (toConvert.top()); //why will this only work with parentheses?
         toConvert.pop();
-        converting->setParentFunction(&to);
+        converting->setParentFunction(to);
         if (converting->getCompSuccess() != nullptr
-            && converting->getCompSuccess()->getParentFunction().getPrefix() == getPrefix())
+            && converting->getCompSuccess()->getParentFunction()->getPrefix() == getPrefix())
         {
             toConvert.push(converting->getCompSuccess());
         }
         if (converting->getCompFail() != nullptr
-            && converting->getCompFail()->getParentFunction().getPrefix() == getPrefix())
+            && converting->getCompFail()->getParentFunction()->getPrefix() == getPrefix())
         {
             toConvert.push(converting->getCompFail());
         }
     }
-    to.setLastNode(getLastNode());
 }
 
 const shared_ptr<CFGNode>& FunctionSymbol::getLastNode()
@@ -41,7 +40,7 @@ const shared_ptr<CFGNode>& FunctionSymbol::getLastNode()
     {
         vector<shared_ptr<AbstractCommand>> returnCommand({make_shared<ReturnCommand>(-1)});
         lastNode =
-                cfg.createNode(prefix + "fin", false, true, *this);
+                cfg.createNode(prefix + "fin", false, true, this);
     }
 
     return lastNode;
@@ -56,7 +55,7 @@ void FunctionSymbol::setLastNode(const shared_ptr<CFGNode>& ln)
 
 const shared_ptr<CFGNode>& FunctionSymbol::getFirstNode()
 {
-    if (firstNode == nullptr) firstNode = cfg.createNode(prefix + "0", true, false, *this);
+    if (firstNode == nullptr) firstNode = cfg.createNode(prefix + "0", true, false, this);
     return firstNode;
 }
 
@@ -122,12 +121,6 @@ void FunctionSymbol::addReturnSuccessor(CFGNode* returningTo)
     returnTo.push_back(returningTo);
     returningTo->addParent(getLastNode()->shared_from_this());
 
-    if (returningTo->getName() == "F0_main_0")
-    {
-        int debug;
-        debug = 2;
-    }
-
     printf("%s added as return succ of %s\n", returningTo->getName().c_str(), this->getPrefix().c_str());
 }
 
@@ -150,7 +143,7 @@ void FunctionSymbol::setReturnSuccessors(vector<CFGNode*>& newRet)
 
 }
 
-std::vector<CFGNode*>& FunctionSymbol::getReturnSuccessors()
+const std::vector<CFGNode*>& FunctionSymbol::getReturnSuccessors()
 {
     return returnTo;
 }
@@ -175,7 +168,7 @@ void FunctionSymbol::removeReturnSuccessor(const std::string& ret)
 void FunctionSymbol::genNewState(std::string n)
 {
     if (!endedState) throw "Unfinished state";
-    currentNode = cfg.createNode(n, true, false, *this);
+    currentNode = cfg.createNode(n, true, false, this);
     endedState = false;
 }
 
@@ -218,7 +211,7 @@ void FunctionSymbol::genReturn(int linenum)
     {
         vector<shared_ptr<AbstractCommand>> returnCommand({make_shared<ReturnCommand>(-1)});
         lastNode =
-                cfg.createNode(prefix + "fin", false, true, *this);
+                cfg.createNode(prefix + "fin", false, true, this);
         lastNode->setInstructions(returnCommand);
     }
     currentInstrs.push_back(make_shared<JumpCommand>(lastNode->getName(), linenum));

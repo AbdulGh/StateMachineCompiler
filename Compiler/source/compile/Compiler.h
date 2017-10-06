@@ -40,19 +40,19 @@ private:
     /*parsing*/
     void match(Type t);
     void body();
-    bool statement(FunctionSymbol& fs); //returns true if the state has been ended
+    bool statement(FunctionSymbol* fs); //returns true if the state has been ended
     Relations::Relop relop();
-    void expression(FunctionSymbol& fs, const std::string& to);
+    void expression(FunctionSymbol* fs, const std::string& to);
     VariableType vtype();
     std::string ident();
 
     /*code generation*/
-    VariableType genFunctionCall(FunctionSymbol&, std::shared_ptr<Identifier> toPtr = nullptr);
-    void genIf(FunctionSymbol&);
-    void genWhile(FunctionSymbol&);
-    void ands(FunctionSymbol& fs, std::string success, std::string fail);
-    void ors(FunctionSymbol& fs, std::string success, std::string fail);
-    void condition(FunctionSymbol& fs, std::string success, std::string fail);
+    VariableType genFunctionCall(FunctionSymbol*, std::shared_ptr<Identifier> toPtr = nullptr);
+    void genIf(FunctionSymbol*);
+    void genWhile(FunctionSymbol*);
+    void ands(FunctionSymbol* fs, std::string success, std::string fail);
+    void ors(FunctionSymbol* fs, std::string success, std::string fail);
+    void condition(FunctionSymbol* fs, std::string success, std::string fail);
 
     friend class FunctionTable;
     friend class ControlFlowGraph;

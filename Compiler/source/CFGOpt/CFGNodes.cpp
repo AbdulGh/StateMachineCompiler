@@ -13,7 +13,7 @@
 
 using namespace std;
 
-CFGNode::CFGNode(ControlFlowGraph& p, FunctionSymbol& pf, string n, bool last):
+CFGNode::CFGNode(ControlFlowGraph& p, FunctionSymbol* pf, string n, bool last):
         parentGraph(p), name(move(n)), isLast(last), comp{}, parentFunction(pf),
         compSuccess{}, compFail{}, jumpline(-1) {}
 
@@ -253,7 +253,7 @@ bool CFGNode::constProp()
         if (jumpingTo == nullptr) throw runtime_error("Tried to jump to nonexistent state");
         compFail = jumpingTo;
         newInstrs.erase(stackTop);
-        vector<CFGNode*>& returnTo = parentFunction.getReturnTo();
+        vector<CFGNode*>& returnTo = parentFunction->getReturnTo();
         if (returnTo.size() != 1) throw "check";
         returnTo.clear();
         skippedReturn = true;
@@ -264,10 +264,10 @@ bool CFGNode::constProp()
 
 bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
 {
-    if (isLast && parentFunction.getReturnSuccessors().size() != 1) return false;
+    if (isLast && parentFunction->getReturnSuccessors().size() != 1) return false;
     else if (compSuccess == nullptr)
     {
-        vector<CFGNode*>& returnTo = parentFunction.getReturnTo();
+        vector<CFGNode*>& returnTo = parentFunction->getReturnTo();
         if (compFail != nullptr && compFail->getName() == other->getName()
             || isLast && returnTo.size() == 1 && returnTo.at(0)->getName() == other->getName())
         {
@@ -287,7 +287,7 @@ bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
             else setComp(nullptr);
             setCompSuccess(other->getCompSuccess());
             setCompFail(other->getCompFail());
-            if (isLast) other->parentFunction.giveNodesTo(parentFunction);
+            if (isLast) other->parentFunction->giveNodesTo(parentFunction);
             return true;
         }
     }
@@ -320,7 +320,7 @@ void CFGNode::setInstructions(vector<shared_ptr<AbstractCommand>>& in)
                 if (pushedNode == nullptr)
                     parentGraph.createNode(pc->getData(), false, false)
                             ->addPushingState(shared_from_this()); //will be created properly later
-                else pushedNode->addPushingState(shared_from_this(), true);
+                else pushedNode->addPushingState(shared_from_this());
             }
         }
         ++it;
@@ -435,9 +435,9 @@ ControlFlowGraph& CFGNode::getParentGraph() const
     return parentGraph;
 }
 
-FunctionSymbol& CFGNode::getParentFunction() const
+FunctionSymbol* CFGNode::getParentFunction() const
 {
-    return *parentFunction;
+    return parentFunction;
 }
 
 int CFGNode::getJumpline() const
@@ -450,14 +450,13 @@ bool CFGNode::isLastNode() const
     return isLast;
 }
 
-void CFGNode::addPushingState(const shared_ptr<CFGNode>& cfgn, bool idempotent)
+void CFGNode::addPushingState(const shared_ptr<CFGNode>& cfgn)
 {
     for (const auto& ptr : pushingStates)
     {
         if (ptr->getName() == cfgn->getName()) return;
     }
     pushingStates.push_back(cfgn);
-    parentFunction.addReturnSuccessor(cfgn.get());
 }
 
 void CFGNode::removePushes()
@@ -483,7 +482,7 @@ void CFGNode::removePushes()
             ++instructionIt;
         }
         if (!found) throw "couldnt find push in pushing state";
-        (*it)->parentFunction.removeReturnSuccessor(name);
+        (*it)->parentFunction->removeReturnSuccessor(name);
         it = pushingStates.erase(it);
     }
 }
@@ -514,7 +513,6 @@ void CFGNode::replacePushes(const std::string& other)
             ++instructionIt;
         }
         if (!found) throw "couldnt find push in pushing state";
-        (*it)->parentFunction.removeReturnSuccessor(name);
         it = pushingStates.erase(it);
     }
 }

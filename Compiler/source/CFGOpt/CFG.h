@@ -25,7 +25,7 @@ private:
 
 public:
     ControlFlowGraph(Reporter& r, FunctionTable& fc) : reporter(r), functionTable(fc) {};
-    std::shared_ptr<CFGNode> createNode(const std::string& name, bool overwrite, bool last, FunctionSymbol& parentFunc);
+    std::shared_ptr<CFGNode> createNode(const std::string& name, bool overwrite, bool last, FunctionSymbol* parentFunc);
     std::shared_ptr<CFGNode> createNode(const std::string& name, bool overwrite, bool last);
     std::shared_ptr<CFGNode> getNode(const std::string& name);
     void removeNode(std::string name);
@@ -57,7 +57,7 @@ private:
     int jumpline;
 
 public:
-    CFGNode(ControlFlowGraph& p, FunctionSymbol& pf, std::string n, bool last = false);
+    CFGNode(ControlFlowGraph& p, FunctionSymbol* pf, std::string n, bool last = false);
     bool constProp(); //returns true if it bypassed some return
     bool addParent(std::shared_ptr<CFGNode>); //returns false if parent was already in
     void removeParent(std::shared_ptr<CFGNode>);
@@ -70,7 +70,7 @@ public:
     void setParentFunction(FunctionSymbol* pf);
     void setLast(bool last = true);
 
-    void addPushingState(const std::shared_ptr<CFGNode>& cfgn, bool idempotent = false);
+    void addPushingState(const std::shared_ptr<CFGNode>& cfgn);
     //assumes the pop is handled elsewhere
     void removePushes();
     void removePushingState(const std::string& name);
@@ -89,7 +89,7 @@ public:
     const std::string &getName() const;
     std::vector<std::shared_ptr<AbstractCommand>>& getInstrs();
     ControlFlowGraph& getParentGraph() const;
-    FunctionSymbol& getParentFunction() const;
+    FunctionSymbol* getParentFunction() const;
     void putSource(std::stringstream& outs, bool makeState = true, std::string delim="\n");
     void putDotNode(std::stringstream& outs);
     bool isLastNode() const;

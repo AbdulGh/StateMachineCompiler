@@ -37,7 +37,7 @@ public:
     void setLastNode(const std::shared_ptr<CFGNode>& lastNode);
     const std::shared_ptr<CFGNode>& getFirstNode();
     void setFirstNode(const std::shared_ptr<CFGNode>& firstNode);
-    void giveNodesTo(FunctionSymbol& to); //todo use this
+    void giveNodesTo(FunctionSymbol* to); //todo use this
     const std::shared_ptr<CFGNode>& getCurrentNode() const;
     const std::vector<std::string>& getVars();
     void addVar(std::string);
@@ -49,7 +49,7 @@ public:
     void clearReturnSuccessors();
     void removeReturnSuccessor(const std::string& ret);
     void setReturnSuccessors(std::vector<CFGNode*>& newRet);
-    std::vector<CFGNode*>& getReturnSuccessors();
+    const std::vector<CFGNode*>& getReturnSuccessors();
 
     //codegen
     void genNewState(std::string);
@@ -76,9 +76,9 @@ private:
 public:
     FunctionTable(Compiler& p) : parent(p) {}
     bool containsFunction(const std::string& funcName);
-    FunctionSymbol& getFunction(const std::string& funcName);
-    FunctionSymbol& getParentFunc(std::string stateName);
-    FunctionSymbol& addFunction(VariableType returnType, std::vector<VariableType>& types, std::string& ident);
+    FunctionSymbol* getFunction(const std::string& funcName);
+    FunctionSymbol* getParentFunc(std::string stateName);
+    FunctionSymbol* addFunction(VariableType returnType, std::vector<VariableType>& types, std::string& ident);
     unsigned long getSize() {return functionTable.size();}
 };
 

@@ -29,6 +29,8 @@ namespace Optimise
         bool changes = true;
         while (changes)
         {
+            //debug
+
             changes = false;
             auto pair = nodes.begin();
             while (pair != nodes.end())
@@ -51,7 +53,7 @@ namespace Optimise
                         else
                         {
                             controlFlowGraph.setLast(pred->getName());
-                            current->getParentFunction().setLastNode(pred);
+                            current->getParentFunction()->setLastNode(pred);
                             pair = nodes.erase(pair);
                         }
                     }
@@ -61,6 +63,7 @@ namespace Optimise
                 vector<shared_ptr<AbstractCommand>>& instructionList = current->getInstrs();
                 unordered_map<string, NodePointer>& preds = current->getPredecessors();
 
+                //if its just an unconditional jump
                 if (instructionList.empty() && current->getCompSuccess() == nullptr && current->getCompFail() != nullptr)
                 {
                     current->replacePushes(current->getCompFail()->getName());
@@ -79,21 +82,9 @@ namespace Optimise
                         }
                         else if (parent->isLastNode())
                         {
-                            bool found = false;
-                            vector<CFGNode*>& parentRetSuccessors = parent->getParentFunction().getReturnSuccessors();
-                            for (auto iterator = parentRetSuccessors.begin();
-                                 iterator != parentRetSuccessors.end(); iterator++)
-                            {
-                                CFGNode* retPointer = *iterator;
-                                if (retPointer->getName() == current->getName())
-                                {
-                                    found = true;
-                                    parentRetSuccessors.erase(iterator);
-                                    break;
-                                }
-                            }
-                            if (!found) throw "couldn't find self in parent";
-                            parentRetSuccessors.push_back(current->getCompFail().get());
+                            FunctionSymbol* ppf = parent->getParentFunction();
+                            ppf->removeReturnSuccessor(current->getName());
+                            ppf->addReturnSuccessor(current->getCompFail().get());
                         }
                         else throw "couldn't find self in parent";
                     }
