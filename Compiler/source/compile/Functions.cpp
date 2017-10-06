@@ -13,7 +13,6 @@ FunctionSymbol::FunctionSymbol(VariableType rt, std::vector<VariableType> types,
 //assumes the entire function is reachable from the first node (most unreachable parts will be removed by symbolic execution)
 void FunctionSymbol::giveNodesTo(FunctionSymbol* to)
 {
-    to->getLastNode()->setLast(false);
     to->setLastNode(getLastNode());
     stack<shared_ptr<CFGNode>> toConvert({getFirstNode()});
     while (!toConvert.empty())
@@ -39,8 +38,7 @@ const shared_ptr<CFGNode>& FunctionSymbol::getLastNode()
     if (lastNode == nullptr)
     {
         vector<shared_ptr<AbstractCommand>> returnCommand({make_shared<ReturnCommand>(-1)});
-        lastNode =
-                cfg.createNode(prefix + "fin", false, true, this);
+        lastNode = cfg.createNode(prefix + "fin", false, true, this);
     }
 
     return lastNode;
@@ -48,9 +46,14 @@ const shared_ptr<CFGNode>& FunctionSymbol::getLastNode()
 
 void FunctionSymbol::setLastNode(const shared_ptr<CFGNode>& ln)
 {
-    if (lastNode != nullptr) lastNode->setLast(false);
+    if (lastNode != nullptr)
+    {
+        lastNode->setLast(false);
+        for (const auto& ret : returnTo) ret->removeParent(lastNode);
+    }
     lastNode = ln;
     lastNode->setLast();
+    for (const auto& ret : returnTo) ret->addParent(lastNode);
 }
 
 const shared_ptr<CFGNode>& FunctionSymbol::getFirstNode()

@@ -264,8 +264,7 @@ bool CFGNode::constProp()
 
 bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
 {
-    if (isLast && parentFunction->getReturnSuccessors().size() != 1) return false;
-    else if (compSuccess == nullptr)
+    if (compSuccess == nullptr)
     {
         vector<CFGNode*>& returnTo = parentFunction->getReturnTo();
         if (compFail != nullptr && compFail->getName() == other->getName()
@@ -287,7 +286,6 @@ bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
             else setComp(nullptr);
             setCompSuccess(other->getCompSuccess());
             setCompFail(other->getCompFail());
-            if (isLast) other->parentFunction->giveNodesTo(parentFunction);
             return true;
         }
     }
@@ -482,7 +480,6 @@ void CFGNode::removePushes()
             ++instructionIt;
         }
         if (!found) throw "couldnt find push in pushing state";
-        (*it)->parentFunction->removeReturnSuccessor(name);
         it = pushingStates.erase(it);
     }
 }

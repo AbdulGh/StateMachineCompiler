@@ -29,19 +29,19 @@ namespace Optimise
         bool changes = true;
         while (changes)
         {
-            //debug
-
             changes = false;
             auto pair = nodes.begin();
             while (pair != nodes.end())
             {
                 NodePointer current = pair->second;
 
+
                 if (current->getName() == controlFlowGraph.getFirst()->getName())
                 {
                     ++pair;
                     continue;
                 }
+
                 NodePointer last = controlFlowGraph.getLast();
                 if (last->getName() == current->getName())
                 {
@@ -91,7 +91,17 @@ namespace Optimise
                     preds.clear();
                 }
 
-                else if (instructionList.size() <= 4 || preds.size() == 1) //is small
+                else if (preds.size() == 1)
+                {
+                    shared_ptr<CFGNode> parent = preds.cbegin()->second;
+                    if (parent->swallowNode(current))
+                    {
+                        if (parent->isLastNode()) current->getParentFunction()->giveNodesTo(parent->getParentFunction());
+                        preds.clear();
+                    }
+                }
+
+                else if (instructionList.size() <= 4)
                 {
                     auto parentit = preds.begin();
                     while (parentit != preds.end())

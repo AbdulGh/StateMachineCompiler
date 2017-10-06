@@ -39,40 +39,8 @@ void Compiler::compile(stringstream& out)
 
     cfg.setLast(functionTable.getFunction("main")->getLastNode()->getName());
 
-    /*auto debugFunc = [&, this]() -> void
-    {
-        unordered_map<string, shared_ptr<CFGNode>>& list = this->cfg.getCurrentNodes();
-        for (const auto& liasd : list)
-        {
-            for (const auto& asdf : liasd.second->getReturnSuccessors())
-            {
-                cout << liasd.first << " has as a succ " << asdf->getName() << "\n";
-                if (asdf->getPredecessors().find(liasd.first) == asdf->getPredecessors().end())
-                {
-                    cout << "but that succ does not have it as a parent!\n";
-                }
-            }
-            for (const auto& liasdParent : liasd.second->getPredecessors())
-            {
-                if (!((liasdParent.second->getCompSuccess() != nullptr
-                       && liasdParent.second->getCompSuccess()->getName() == liasd.first)
-                      || (liasdParent.second->getCompFail() != nullptr
-                          && liasdParent.second->getCompFail()->getName() == liasd.first)
-                    || ((find_if(liasdParent.second->getReturnSuccessors().begin(),
-                                liasdParent.second->getReturnSuccessors().end(),
-                                [&, liasd](shared_ptr<CFGNode> p) -> bool
-                                {
-                                    return p->getName() == liasd.second->getName();
-                                })) != liasdParent.second->getReturnSuccessors().end()))) //haha
-                {
-                    cout << liasdParent.first << " does not recognise " << liasd.first << " as a child!\n";
-                }
-            }
-        }
-    };*/
-
     Optimise::optimise(symbolTable, cfg);
-    //debugFunc();
+    //printf("%s\n", cfg.getNode("F2_loopbody_fin")->getPredecessors().cbegin()->second->getName().c_str());
     //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
     //symMan.search();
     //Optimise::optimise(symbolTable, cfg);
@@ -94,7 +62,6 @@ shared_ptr<Identifier> Compiler::findVariable(string name)
 
 void Compiler::findGlobalsAndMakeStates()
 {
-
     vector<shared_ptr<AbstractCommand>> initialState =
     {
         make_shared<DeclareVarCommand>(DOUBLE, "LHS", -1),
