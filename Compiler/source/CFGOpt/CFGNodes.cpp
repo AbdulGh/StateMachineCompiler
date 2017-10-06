@@ -28,7 +28,11 @@ void CFGNode::putSource(stringstream& outs, bool makeState, string delim)
     if (makeState)
     {
         outs << name << delim;
-        for (shared_ptr<AbstractCommand>& ac: instrs) outs << ac->translation(delim);
+        for (shared_ptr<AbstractCommand>& ac: instrs)
+        {
+            if (ac == nullptr) outs << "null\n"; //debug
+            else outs << ac->translation(delim);
+        }
         if (compSuccess != nullptr) outs << comp->translation(delim);
         if (compFail != nullptr) outs << JumpCommand(compFail->getName(), jumpline).translation(delim);
         else outs << ReturnCommand(jumpline).translation(delim);
@@ -242,9 +246,13 @@ bool CFGNode::constProp()
             }
         }
     }
-    else if (compFail == nullptr && !pushedThings.empty()) //there should be a state on top
+    if (compFail == nullptr && !pushedThings.empty()) //there should be a state on top
     {
-        if (!isLast) throw "returning but not last";
+        if (!isLast)
+        {
+            printf("%s\n", parentGraph.getSource().c_str());
+            throw "returning but not last";
+        }
         auto stackTop = pushedThings.top();
         shared_ptr<PushCommand> pushc = static_pointer_cast<PushCommand>(*stackTop);
         if (pushc->pushType != PushCommand::PUSHSTATE) throw runtime_error("tried to jump to var");
@@ -286,6 +294,7 @@ bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
             else setComp(nullptr);
             setCompSuccess(other->getCompSuccess());
             setCompFail(other->getCompFail());
+            //if (compFail == nullptr) parentFunction->
             return true;
         }
     }

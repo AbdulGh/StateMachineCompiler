@@ -35,15 +35,13 @@ namespace Optimise
             {
                 NodePointer current = pair->second;
 
-
                 if (current->getName() == controlFlowGraph.getFirst()->getName())
                 {
                     ++pair;
                     continue;
                 }
 
-                NodePointer last = controlFlowGraph.getLast();
-                if (last->getName() == current->getName())
+                if (current->isLastNode())
                 {
                     if (current->getPredecessors().size() != 1) ++pair;
                     else
@@ -52,8 +50,8 @@ namespace Optimise
                         if (!pred->swallowNode(current)) ++pair;
                         else
                         {
-                            controlFlowGraph.setLast(pred->getName());
                             current->getParentFunction()->setLastNode(pred);
+                            current->prepareToDie();
                             pair = nodes.erase(pair);
                         }
                     }
@@ -63,32 +61,35 @@ namespace Optimise
                 vector<shared_ptr<AbstractCommand>>& instructionList = current->getInstrs();
                 unordered_map<string, NodePointer>& preds = current->getPredecessors();
 
-                //if its just an unconditional jump
-                if (instructionList.empty() && current->getCompSuccess() == nullptr && current->getCompFail() != nullptr)
+                if (instructionList.empty() && current->getCompSuccess() == nullptr)
                 {
-                    current->replacePushes(current->getCompFail()->getName());
-                    for (auto parentit : preds)
+                    //if its just an unconditional jump
+                    if (current->getCompFail() != nullptr)
                     {
-                        shared_ptr<CFGNode> parent = parentit.second;
-                        if (parent->getCompSuccess() != nullptr && parent->getCompSuccess()->getName() == current->getName())
+                        current->replacePushes(current->getCompFail()->getName());
+                        for (auto parentit : preds)
                         {
-                            parent->setCompSuccess(current->getCompFail());
-                            continue;
+                            shared_ptr<CFGNode> parent = parentit.second;
+                            if (parent->getCompSuccess() != nullptr && parent->getCompSuccess()->getName() == current->getName())
+                            {
+                                parent->setCompSuccess(current->getCompFail());
+                                continue;
+                            }
+                            else if (parent->getCompFail() != nullptr && parent->getCompFail()->getName() == current->getName())
+                            {
+                                parent->setCompFail(current->getCompFail());
+                                continue;
+                            }
+                            else if (parent->isLastNode())
+                            {
+                                FunctionSymbol* ppf = parent->getParentFunction();
+                                ppf->removeReturnSuccessor(current->getName());
+                                ppf->addReturnSuccessor(current->getCompFail().get());
+                            }
+                            else throw "couldn't find self in parent";
                         }
-                        else if (parent->getCompFail() != nullptr && parent->getCompFail()->getName() == current->getName())
-                        {
-                            parent->setCompFail(current->getCompFail());
-                            continue;
-                        }
-                        else if (parent->isLastNode())
-                        {
-                            FunctionSymbol* ppf = parent->getParentFunction();
-                            ppf->removeReturnSuccessor(current->getName());
-                            ppf->addReturnSuccessor(current->getCompFail().get());
-                        }
-                        else throw "couldn't find self in parent";
+                        preds.clear();
                     }
-                    preds.clear();
                 }
 
                 else if (preds.size() == 1)

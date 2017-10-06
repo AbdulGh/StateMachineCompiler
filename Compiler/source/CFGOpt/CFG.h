@@ -49,7 +49,7 @@ private:
     std::unordered_map<std::string, std::shared_ptr<CFGNode>> predecessors;
     std::shared_ptr<CFGNode> compSuccess;
     std::shared_ptr<CFGNode> compFail; //unconditional jump at the end of the node
-    std::vector<std::shared_ptr<AbstractCommand>> instrs; //todo why pointers here?
+    std::vector<std::shared_ptr<AbstractCommand>> instrs; //shared_ptrs to allow downcasting
     std::vector<std::shared_ptr<CFGNode>> pushingStates; //used to remove pushes if the node is being removed
     ControlFlowGraph& parentGraph;
     FunctionSymbol* parentFunction;
