@@ -7,8 +7,8 @@
 
 namespace Optimise
 {
-    void optimise(SymbolTable& symbolTable, ControlFlowGraph& controlFlowGraph);
-    void collapseSmallStates(ControlFlowGraph& controlFlowGraph);
+    void optimise(SymbolTable& symbolTable, FunctionTable& functionTable, ControlFlowGraph& controlFlowGraph);
+    void collapseSmallStates(ControlFlowGraph& controlFlowGraph, FunctionTable& functionTable);
 };
 
 

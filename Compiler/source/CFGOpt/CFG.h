@@ -50,7 +50,6 @@ private:
     std::shared_ptr<CFGNode> compSuccess;
     std::shared_ptr<CFGNode> compFail; //unconditional jump at the end of the node
     std::vector<std::shared_ptr<AbstractCommand>> instrs; //shared_ptrs to allow downcasting
-    std::vector<std::shared_ptr<CFGNode>> pushingStates; //used to remove pushes if the node is being removed
     ControlFlowGraph& parentGraph;
     FunctionSymbol* parentFunction;
     bool isLast;
@@ -62,6 +61,7 @@ public:
     bool addParent(std::shared_ptr<CFGNode>); //returns false if parent was already in
     void removeParent(std::shared_ptr<CFGNode>);
     void removeParent(const std::string&);
+    std::vector<std::shared_ptr<CFGNode>> pushingStates; //used to remove pushes if the node is being removed todo make private
 
     void setInstructions(std::vector<std::shared_ptr<AbstractCommand>>& in);
     void setCompSuccess(const std::shared_ptr<CFGNode>& compSuccess);
@@ -93,6 +93,7 @@ public:
     void putSource(std::stringstream& outs, bool makeState = true, std::string delim="\n");
     void putDotNode(std::stringstream& outs);
     bool isLastNode() const;
+    bool isFirstNode() const;
 };
 
 #endif

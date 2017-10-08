@@ -9,21 +9,21 @@ typedef shared_ptr<CFGNode> NodePointer;
 
 namespace Optimise
 {
-    void optimise(SymbolTable& symbolTable, ControlFlowGraph& controlFlowGraph)
+    void optimise(SymbolTable& symbolTable, FunctionTable& functionTable, ControlFlowGraph& controlFlowGraph)
     {
         bool changes = true;
         while (changes)
         {
             changes = false;
-            Optimise::collapseSmallStates(controlFlowGraph);
+            Optimise::collapseSmallStates(controlFlowGraph, functionTable);
             for (auto node : controlFlowGraph.getCurrentNodes())
             {
-                if (node.second->constProp()) changes = true;
+                //if (node.second->constProp()) changes = true;
             }
         }
     }
 
-    void collapseSmallStates(ControlFlowGraph& controlFlowGraph)
+    void collapseSmallStates(ControlFlowGraph& controlFlowGraph, FunctionTable& functionTable)
     {
         unordered_map<string, NodePointer>& nodes = controlFlowGraph.getCurrentNodes();
         bool changes = true;
@@ -53,6 +53,7 @@ namespace Optimise
                             current->getParentFunction()->setLastNode(pred);
                             current->prepareToDie();
                             pair = nodes.erase(pair);
+                            changes = true;
                         }
                     }
                     continue;
@@ -61,62 +62,36 @@ namespace Optimise
                 vector<shared_ptr<AbstractCommand>>& instructionList = current->getInstrs();
                 unordered_map<string, NodePointer>& preds = current->getPredecessors();
 
-                if (instructionList.empty() && current->getCompSuccess() == nullptr)
+                //if its just an unconditional jump
+                if (instructionList.empty() && current->getCompSuccess() == nullptr && current->getCompFail() != nullptr)
                 {
-                    //if its just an unconditional jump
-                    if (current->getCompFail() != nullptr)
-                    {
-                        current->replacePushes(current->getCompFail()->getName());
-                        for (auto parentit : preds)
-                        {
-                            shared_ptr<CFGNode> parent = parentit.second;
-                            if (parent->getCompSuccess() != nullptr && parent->getCompSuccess()->getName() == current->getName())
-                            {
-                                parent->setCompSuccess(current->getCompFail());
-                                continue;
-                            }
-                            else if (parent->getCompFail() != nullptr && parent->getCompFail()->getName() == current->getName())
-                            {
-                                parent->setCompFail(current->getCompFail());
-                                continue;
-                            }
-                            else if (parent->isLastNode())
-                            {
-                                FunctionSymbol* ppf = parent->getParentFunction();
-                                ppf->removeReturnSuccessor(current->getName());
-                                ppf->addReturnSuccessor(current->getCompFail().get());
-                            }
-                            else throw "couldn't find self in parent";
-                        }
-                        preds.clear();
-                    }
+                    current->replacePushes(current->getCompFail()->getName());
                 }
-
                 else if (preds.size() == 1)
                 {
                     shared_ptr<CFGNode> parent = preds.cbegin()->second;
                     if (parent->swallowNode(current))
                     {
-                        if (parent->isLastNode()) current->getParentFunction()->giveNodesTo(parent->getParentFunction());
+                        string oldFSPrefix = current->getParentFunction()->getPrefix();
+                        if (current->isFirstNode()) current->getParentFunction()->giveNodesTo(parent->getParentFunction());
+                        functionTable.removeFunction(oldFSPrefix);
                         preds.clear();
+                        changes = true;
                     }
                 }
-
-                else if (instructionList.size() <= 4)
+                auto parentit = preds.begin();
+                while (parentit != preds.end())
                 {
-                    auto parentit = preds.begin();
-                    while (parentit != preds.end())
-                    {
-                        NodePointer swallowing = parentit->second;
+                    NodePointer swallowing = parentit->second;
 
-                        if (!swallowing->swallowNode(current)) ++parentit;
-                        else
-                        {
-                            changes = true;
-                            parentit = preds.erase(parentit);
-                        }
+                    if (!swallowing->swallowNode(current)) ++parentit;
+                    else
+                    {
+                        changes = true;
+                        parentit = preds.erase(parentit);
                     }
                 }
+
                 if (preds.empty())
                 {
                     current->prepareToDie();

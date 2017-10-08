@@ -204,14 +204,17 @@ public:
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
 };
 
+class FunctionSymbol;
 class PushCommand: public AbstractCommand
 {
 public:
     enum PushType{PUSHSTR, PUSHSTATE};
     PushType pushType;
+    FunctionSymbol* calledFunction;
 
-    PushCommand(PushType pt, const std::string& in, int linenum):
-            AbstractCommand(linenum), pushType(pt)
+    PushCommand(const std::string& in, int linenum, FunctionSymbol* cf = nullptr):
+            AbstractCommand(linenum), calledFunction(cf),
+            pushType(cf == nullptr ? PUSHSTR : PUSHSTATE)
     {
         setData(in);
         setType(CommandType::PUSH);
@@ -225,7 +228,7 @@ public:
 
     std::shared_ptr<AbstractCommand> clone() override
     {
-        return std::make_shared<PushCommand>(pushType, getData(), getLineNum());
+        return std::make_shared<PushCommand>(getData(), getLineNum(), calledFunction);
     }
 
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;

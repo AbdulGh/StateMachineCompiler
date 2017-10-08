@@ -73,12 +73,6 @@ const shared_ptr<CFGNode>& FunctionSymbol::getCurrentNode() const
 }
 
 
-vector<CFGNode*>& FunctionSymbol::getReturnTo()
-{
-    return returnTo;
-}
-
-
 const vector<string>& FunctionSymbol::getVars()
 {
     return vars;
@@ -121,13 +115,11 @@ void FunctionSymbol::addReturnSuccessor(CFGNode* returningTo)
         if (ptr->getName() == returningTo->getName()) return;
     }
 
-    returnTo.push_back(returningTo);
+    returnTo.insert(returningTo);
     returningTo->addParent(getLastNode()->shared_from_this());
-
-    printf("%s added as return succ of %s\n", returningTo->getName().c_str(), this->getPrefix().c_str());
 }
 
-void FunctionSymbol::addReturnSuccessors(const vector<CFGNode*>& newRetSuccessors)
+void FunctionSymbol::addReturnSuccessors(const set<CFGNode*>& newRetSuccessors)
 {
     for (const auto& ret : newRetSuccessors) addReturnSuccessor(ret);
 }
@@ -139,32 +131,31 @@ void FunctionSymbol::clearReturnSuccessors()
     returnTo.clear();
 }
 
-void FunctionSymbol::setReturnSuccessors(vector<CFGNode*>& newRet)
+void FunctionSymbol::setReturnSuccessors(set<CFGNode*>& newRet)
 {
     clearReturnSuccessors();
     for (const auto& newSucc : newRet) addReturnSuccessor(newSucc);
-
 }
 
-const std::vector<CFGNode*>& FunctionSymbol::getReturnSuccessors()
+const std::set<CFGNode*>& FunctionSymbol::getReturnSuccessors()
 {
     return returnTo;
 }
 
 void FunctionSymbol::removeReturnSuccessor(const std::string& ret)
 {
-    printf("%s being removed as return succ of %s\n", ret.c_str(), this->getPrefix().c_str());
     bool found = false;
     for (auto it = returnTo.begin(); it != returnTo.end(); it++)
     {
         if ((*it)->getName() == ret)
         {
             returnTo.erase(it);
+            (*it)->removeParent(lastNode);
             found = true;
             break;
         }
     }
-    if (!found) throw "couldnt find return successor";
+    //if (!found) throw "couldnt find return successor";
 }
 
 /*generation*/
@@ -221,10 +212,10 @@ void FunctionSymbol::genReturn(int linenum)
 }
 
 
-void FunctionSymbol::genPush(PushCommand::PushType pt, std::string s, int linenum)
+void FunctionSymbol::genPush(std::string s, int linenum, FunctionSymbol* cf)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_shared<PushCommand>(pt, s, linenum));
+    currentInstrs.push_back(make_shared<PushCommand>(s, linenum, cf));
 }
 
 void FunctionSymbol::genInput(std::string s, int linenum)

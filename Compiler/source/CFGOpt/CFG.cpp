@@ -37,11 +37,17 @@ shared_ptr<CFGNode> ControlFlowGraph::createNode(const string &name, bool overwr
     if ((introducing = getNode(name)) != nullptr)
     {
         if (!overwrite) throw runtime_error("node already exists");
+        if (isLast) parentFunc->setLastNode(introducing);
         introducing->setLast(isLast);
     }
     else
     {
-        introducing = make_shared<CFGNode>(*this, parentFunc, name, isLast);
+        introducing = make_shared<CFGNode>(*this, parentFunc, name);
+        if (isLast)
+        {
+            parentFunc->setLastNode(introducing);
+            introducing->setLast(true);
+        }
         currentNodes[introducing->getName()] = introducing;
     }
 
@@ -75,16 +81,16 @@ string ControlFlowGraph::getSource()
     outs << '\n';
 
     //order nodes
-    map<string, shared_ptr<CFGNode>> ordered(currentNodes.begin(), currentNodes.end());
+    //map<string, shared_ptr<CFGNode>> ordered(currentNodes.begin(), currentNodes.end());
 
-    for (auto it : ordered)
+    for (auto it : currentNodes)
     {
         if (it.first == first->getName()) continue;
         it.second->putSource(outs);
-        outs<< '\n';
+        outs << '\n';
     }
 
-    return outs.str();
+    return string(outs.str());
 }
 
 string ControlFlowGraph::getDotGraph()
@@ -109,7 +115,7 @@ string ControlFlowGraph::getDotGraph()
             if (!currentFunc.empty()) outs << "}\n";
             FunctionSymbol* oldFS = functionTable.getFunction(currentFunc); //could be done by keeping a pointer but oh well
             string oldLastNode = oldFS->getLastNode()->getName();
-            for (auto& nodePointer : oldFS->getReturnTo())
+            for (auto& nodePointer : oldFS->getReturnSuccessors())
             {
                 outs << oldLastNode << "->" << nodePointer->getName()
                      << "[label='return'];\n";

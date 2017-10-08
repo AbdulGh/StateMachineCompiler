@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <sstream>
+#include <set>
 
 #include "Token.h"
 #include "../CFGOpt/CFG.h"
@@ -21,10 +22,10 @@ private:
     std::shared_ptr<CFGNode> lastNode;
     std::shared_ptr<CFGNode> firstNode;
     std::shared_ptr<CFGNode> currentNode;
-    std::vector<std::string> vars; //used to save vars during function calls
+    std::vector<std::string> vars; //used to save vars during function calls (todo make set)
     std::vector<std::shared_ptr<AbstractCommand>> currentInstrs;
     ControlFlowGraph& cfg;
-    std::vector<CFGNode*> returnTo;
+    std::set<CFGNode*> returnTo;
 
 public:
     FunctionSymbol(VariableType returnType, std::vector<VariableType> types, std::string ident, ControlFlowGraph& cfg);
@@ -37,19 +38,18 @@ public:
     void setLastNode(const std::shared_ptr<CFGNode>& lastNode);
     const std::shared_ptr<CFGNode>& getFirstNode();
     void setFirstNode(const std::shared_ptr<CFGNode>& firstNode);
-    void giveNodesTo(FunctionSymbol* to); //todo use this
+    void giveNodesTo(FunctionSymbol* to);
     const std::shared_ptr<CFGNode>& getCurrentNode() const;
     const std::vector<std::string>& getVars();
     void addVar(std::string);
 
     //return stuff
-    std::vector<CFGNode*>& getReturnTo();
     void addReturnSuccessor(CFGNode* other);
-    void addReturnSuccessors(const std::vector<CFGNode*>& newRet);
+    void addReturnSuccessors(const std::set<CFGNode*>& newRet);
     void clearReturnSuccessors();
     void removeReturnSuccessor(const std::string& ret);
-    void setReturnSuccessors(std::vector<CFGNode*>& newRet);
-    const std::vector<CFGNode*>& getReturnSuccessors();
+    void setReturnSuccessors(std::set<CFGNode*>& newRet);
+    const std::set<CFGNode*>& getReturnSuccessors();
 
     //codegen
     void genNewState(std::string);
@@ -57,7 +57,7 @@ public:
     void genPrint(std::string, int);
     void genJump(std::string, int);
     void genConditionalJump(std::string, std::string, Relations::Relop r, std::string, int);
-    void genPush(PushCommand::PushType, std::string, int);
+    void genPush(std::string, int, FunctionSymbol* = nullptr);
     void genPop(std::string, int);
     void genReturn(int);
     void genInput(std::string, int);
@@ -72,6 +72,7 @@ class FunctionTable
 {
 private:
     std::unordered_map<std::string, std::unique_ptr<FunctionSymbol>> functionTable;
+    std::string removeUnderscoreWrappers(std::string underscored);
     Compiler& parent;
 public:
     FunctionTable(Compiler& p) : parent(p) {}
@@ -79,6 +80,7 @@ public:
     FunctionSymbol* getFunction(const std::string& funcName);
     FunctionSymbol* getParentFunc(std::string stateName);
     FunctionSymbol* addFunction(VariableType returnType, std::vector<VariableType>& types, std::string& ident);
+    void removeFunction(const std::string& bye);
     unsigned long getSize() {return functionTable.size();}
 };
 

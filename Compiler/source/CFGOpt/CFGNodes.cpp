@@ -7,6 +7,7 @@
 #include <set>
 #include <stack>
 #include <memory>
+#include <iostream>
 
 #include "../compile/Functions.h"
 #include "CFG.h"
@@ -39,6 +40,21 @@ void CFGNode::putSource(stringstream& outs, bool makeState, string delim)
         outs << "end" << delim;
     }
     else for (shared_ptr<AbstractCommand>& ac: instrs) outs << ac->translation(delim);
+    /*f (makeState)
+    {
+        cout << name << delim;
+        for (shared_ptr<AbstractCommand>& ac: instrs)
+        {
+            if (ac == nullptr) cout << "null\n"; //debug
+            else cout << ac->translation(delim);
+        }
+        if (compSuccess != nullptr) cout << comp->translation(delim);
+        if (compFail != nullptr) cout << JumpCommand(compFail->getName(), jumpline).translation(delim);
+        else cout << ReturnCommand(jumpline).translation(delim);
+        cout << "end" << delim;
+    }
+    else for (shared_ptr<AbstractCommand>& ac: instrs) cout << ac->translation(delim);
+    cout << "\n";*/
 }
 
 void CFGNode::putDotNode(stringstream& outs)
@@ -248,22 +264,19 @@ bool CFGNode::constProp()
     }
     if (compFail == nullptr && !pushedThings.empty()) //there should be a state on top
     {
-        if (!isLast)
-        {
-            printf("%s\n", parentGraph.getSource().c_str());
-            throw "returning but not last";
-        }
+        if (!isLast) throw "returning but not last";
         auto stackTop = pushedThings.top();
         shared_ptr<PushCommand> pushc = static_pointer_cast<PushCommand>(*stackTop);
         if (pushc->pushType != PushCommand::PUSHSTATE) throw runtime_error("tried to jump to var");
         shared_ptr<CFGNode> jumpingTo = parentGraph.getNode(pushc->getData());
         jumpingTo->removePushingState(name);
+        pushc->calledFunction->removeReturnSuccessor(pushc->getData());
         if (jumpingTo == nullptr) throw runtime_error("Tried to jump to nonexistent state");
         compFail = jumpingTo;
         newInstrs.erase(stackTop);
-        vector<CFGNode*>& returnTo = parentFunction->getReturnTo();
+        const set<CFGNode*>& returnTo = parentFunction->getReturnSuccessors();
         if (returnTo.size() != 1) throw "check";
-        returnTo.clear();
+        parentFunction->clearReturnSuccessors();
         skippedReturn = true;
     }
     instrs = move(newInstrs);
@@ -272,11 +285,11 @@ bool CFGNode::constProp()
 
 bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
 {
-    if (compSuccess == nullptr)
+    const set<CFGNode*>& returnTo = parentFunction->getReturnSuccessors();
+    bool otherIsOnlyRetSuccessor = isLast && returnTo.size() == 1 && (*returnTo.cbegin())->getName() == other->getName();
+    if (compSuccess == nullptr) //unconditional jump to the other
     {
-        vector<CFGNode*>& returnTo = parentFunction->getReturnTo();
-        if (compFail != nullptr && compFail->getName() == other->getName()
-            || isLast && returnTo.size() == 1 && returnTo.at(0)->getName() == other->getName())
+        if (compFail != nullptr && compFail->getName() == other->getName() || otherIsOnlyRetSuccessor)
         {
             vector<shared_ptr<AbstractCommand>> newInstrs = instrs;
             vector<shared_ptr<AbstractCommand>>& addingInstrs = other->getInstrs();
@@ -285,6 +298,16 @@ bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
             for (shared_ptr<AbstractCommand>& newInst : addingInstrs)
             {
                 newInstrs.push_back(newInst->clone());
+                if (newInst->getType() == CommandType::PUSH)
+                {
+                    shared_ptr<PushCommand> pc = static_pointer_cast<PushCommand>(newInst);
+                    if (pc->pushType == PushCommand::PUSHSTATE)
+                    {
+                        shared_ptr<CFGNode> node = parentGraph.getNode(pc->getData());
+                        if (node == nullptr) throw "pushing nonexistant node";
+                        node->addPushingState(shared_from_this());
+                    }
+                }
             }
             setInstructions(newInstrs);
             if (other->getComp() != nullptr)
@@ -294,14 +317,37 @@ bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
             else setComp(nullptr);
             setCompSuccess(other->getCompSuccess());
             setCompFail(other->getCompFail());
-            //if (compFail == nullptr) parentFunction->
+            if (otherIsOnlyRetSuccessor) parentFunction->removeReturnSuccessor(other->getName());
             return true;
         }
     }
-    else if (compFail != nullptr && compFail->getName() == other->getName()
-             && compFail->getCompSuccess() == nullptr && compFail->getInstrs().empty())
+    if (other->getInstrs().empty() && other->getCompSuccess() == nullptr)
     {
-        setCompFail(other->getCompFail());
+        if (compSuccess != nullptr &&  other->getName() == compSuccess->getName())
+        {
+            if (other->getCompFail() == nullptr)
+            {
+                if (compFail == nullptr) setCompSuccess(nullptr); //always return anyway
+                else //swap condition
+                {
+                    comp->op = Relations::negateRelop(comp->op);
+                    compSuccess = compFail;
+                    compFail = nullptr;
+                }
+            }
+            else setCompSuccess(other->getCompFail());
+        }
+
+        else if (compFail != nullptr)
+        {
+            if (compFail->getName() != other->getName()) throw "should be compfail";
+            setCompFail(other->getCompFail());
+        }
+
+        else if (otherIsOnlyRetSuccessor && predecessors.size() == 1) setCompFail(other->getCompFail());
+
+        else return false;
+
         return true;
     }
     return false;
@@ -318,18 +364,6 @@ void CFGNode::setInstructions(vector<shared_ptr<AbstractCommand>>& in)
     {
         shared_ptr<AbstractCommand> current = move(*it);
         instrs.push_back(current);
-        if (current->getType() == CommandType::PUSH)
-        {
-            shared_ptr<PushCommand> pc = static_pointer_cast<PushCommand>(current);
-            if (pc->pushType == PushCommand::PUSHSTATE)
-            {
-                shared_ptr<CFGNode> pushedNode = parentGraph.getNode(current->getData());
-                if (pushedNode == nullptr)
-                    parentGraph.createNode(pc->getData(), false, false)
-                            ->addPushingState(shared_from_this()); //will be created properly later
-                else pushedNode->addPushingState(shared_from_this());
-            }
-        }
         ++it;
     }
 
@@ -430,6 +464,10 @@ void CFGNode::setComp(const shared_ptr<JumpOnComparisonCommand>& comparison)
 void CFGNode::setLast(bool last)
 {
     isLast = last;
+    if (isLast && (parentFunction->getLastNode() == nullptr || parentFunction->getLastNode()->getName() != name))
+    {
+        throw "must be function last";
+    }
 }
 
 void CFGNode::setParentFunction(FunctionSymbol *pf)
@@ -457,12 +495,14 @@ bool CFGNode::isLastNode() const
     return isLast;
 }
 
+bool CFGNode::isFirstNode() const
+{
+    return name == parentFunction->getFirstNode()->getName();
+}
+
 void CFGNode::addPushingState(const shared_ptr<CFGNode>& cfgn)
 {
-    for (const auto& ptr : pushingStates)
-    {
-        if (ptr->getName() == cfgn->getName()) return;
-    }
+    for (const auto& ptr : pushingStates) if (ptr->getName() == cfgn->getName()) return;
     pushingStates.push_back(cfgn);
 }
 
@@ -471,19 +511,22 @@ void CFGNode::removePushes()
     auto it = pushingStates.begin();
     while (it != pushingStates.end())
     {
-        vector<shared_ptr<AbstractCommand>>& pushingInstrs =  (*it)->instrs;
+        shared_ptr<CFGNode> pushing = *it;
+        vector<shared_ptr<AbstractCommand>>& pushingInstrs =  pushing->instrs;
         auto instructionIt = pushingInstrs.begin();
         bool found = false;
         while (instructionIt != pushingInstrs.end())
         {
             shared_ptr<AbstractCommand> ac = *instructionIt;
-            if (ac->getType() == CommandType::PUSH)
+            if (ac->getType() == CommandType::PUSH && ac->getData() == name)
             {
                 shared_ptr<PushCommand> pc = static_pointer_cast<PushCommand>(ac);
-                if (pc->pushType == PushCommand::PUSHSTATE && pc->getData() == name)
+                if (pc->pushType == PushCommand::PUSHSTATE)
                 {
+                    pc->calledFunction->removeReturnSuccessor(name);
                     pushingInstrs.erase(instructionIt);
                     found = true;
+                    break;
                 }
             }
             ++instructionIt;
@@ -501,19 +544,24 @@ void CFGNode::replacePushes(const std::string& other)
     auto it = pushingStates.begin();
     while (it != pushingStates.end())
     {
-        vector<shared_ptr<AbstractCommand>>& pushingInstrs =  (*it)->instrs;
+        shared_ptr<CFGNode> pushing = *it;
+        vector<shared_ptr<AbstractCommand>>& pushingInstrs =  pushing->instrs;
         auto instructionIt = pushingInstrs.begin();
         bool found = false;
         while (instructionIt != pushingInstrs.end())
         {
             shared_ptr<AbstractCommand> ac = *instructionIt;
-            if (ac->getType() == CommandType::PUSH)
+            if (ac->getType() == CommandType::PUSH && ac->getData() == name)
             {
-                if (ac->getData() == name)
+                shared_ptr<PushCommand> pc = static_pointer_cast<PushCommand>(ac);
+                if (pc->pushType == PushCommand::PUSHSTATE)
                 {
-                    ac->setData(other);
+                    pc->setData(other);
+                    pc->calledFunction->removeReturnSuccessor(name);
+                    pc->calledFunction->addReturnSuccessor(toReplaceWith.get());
                     found = true;
-                    toReplaceWith->addPushingState(*it);
+                    toReplaceWith->addPushingState(pushing);
+                    break;
                 }
             }
             ++instructionIt;
@@ -525,17 +573,11 @@ void CFGNode::replacePushes(const std::string& other)
 
 void CFGNode::removePushingState(const string& bye)
 {
-    bool found = false;
-    for (auto it = pushingStates.begin(); it != pushingStates.end(); it++)
+    for (auto it = pushingStates.begin(); it != pushingStates.end();)
     {
-        if ((*it)->getName() == bye)
-        {
-            found = true;
-            pushingStates.erase(it);
-            break;
-        }
+        if ((*it)->getName() == bye) pushingStates.erase(it);
+        else ++it;
     }
-    if (!found) throw "couldnt find state in pushing states";
 }
 
 void CFGNode::prepareToDie()
@@ -553,6 +595,7 @@ void CFGNode::prepareToDie()
             if (pc->pushType == PushCommand::PUSHSTATE)
             {
                 parentGraph.getNode(pc->getData())->removePushingState(name);
+                pc->calledFunction->removeReturnSuccessor(pc->getData());
             }
         }
     }

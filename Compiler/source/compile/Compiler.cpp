@@ -37,10 +37,8 @@ void Compiler::compile(stringstream& out)
     lookahead = nextToken();
     while (lookahead.type != END) body();
 
-
-    Optimise::optimise(symbolTable, cfg);
+    Optimise::optimise(symbolTable, functionTable, cfg);
     cfg.setLast(functionTable.getFunction("main")->getLastNode()->getName());
-    //printf("%s\n", cfg.getNode("F2_loopbody_fin")->getPredecessors().cbegin()->second->getName().c_str());
     //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
     //symMan.search();
     //Optimise::optimise(symbolTable, cfg);

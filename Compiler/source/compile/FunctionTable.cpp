@@ -22,16 +22,29 @@ bool FunctionTable::containsFunction(const std::string& funcName)
 }
 
 //assumes it's in the right format
+std::string FunctionTable::removeUnderscoreWrappers(std::string underscored)
+{
+    if (underscored.empty()) throw "not good";
+    unsigned long underscore = 0;
+    while (underscored[underscore] != '_') ++underscore;
+    underscored.erase(0, underscore+1);
+
+    underscore = underscored.size() - 1;
+    while (underscored[underscore] != '_') --underscore;
+    underscored.erase(underscore, underscored.size() - 1);
+    return underscored;
+}
+
 FunctionSymbol* FunctionTable::getParentFunc(std::string stateName)
 {
-    if (stateName.empty()) throw "not good";
-    unsigned long underscore = 0;
-    while (stateName[underscore] != '_') ++underscore;
-    stateName.erase(0, underscore+1);
-
-    underscore = stateName.size() - 1;
-    while (stateName[underscore] != '_') --underscore;
-    stateName.erase(underscore, stateName.size() - 1);
-
+    stateName = removeUnderscoreWrappers(stateName);
     return getFunction(stateName);
+}
+
+void FunctionTable::removeFunction(const std::string& bye)
+{
+    string ident = removeUnderscoreWrappers(bye);
+    auto it = functionTable.find(ident);
+    if (it == functionTable.cend()) throw "cant find function to remove";
+    functionTable.erase(it);
 }

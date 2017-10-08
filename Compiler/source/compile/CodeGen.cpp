@@ -20,10 +20,11 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, shared_ptr<Identi
 
     //push all vars
     const vector<string>& fromVars = fromFS->getVars();
-    for (const string& s : fromVars) fromFS->genPush(PushCommand::PUSHSTR, s, lookahead.line);
+    for (const string& s : fromVars) fromFS->genPush(s, lookahead.line);
 
     string nextState = fromFS->newStateName();
-    fromFS->genPush(PushCommand::PUSHSTATE, nextState, lookahead.line);
+    fromFS->genPush(nextState, lookahead.line, toFS);
+
 
     vector<VariableType> paramTypes;
     while (lookahead.type != Type::RPAREN)
@@ -33,21 +34,21 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, shared_ptr<Identi
             string toPush = lookahead.lexemeString;
             match(Type::NUMBER);
             paramTypes.push_back(VariableType::DOUBLE);
-            fromFS->genPush(PushCommand::PUSHSTR, toPush, lookahead.line);
+            fromFS->genPush(toPush, lookahead.line);
         }
         else if (lookahead.type == Type::STRINGLIT)
         {
             string toPush = lookahead.lexemeString;
             match(Type::STRINGLIT);
             paramTypes.push_back(VariableType::STRING);
-            fromFS->genPush(PushCommand::PUSHSTR, quoteString(toPush), lookahead.line);
+            fromFS->genPush(quoteString(toPush), lookahead.line);
         }
         else
         {
             string iid = ident();
             shared_ptr<Identifier> idp = findVariable(iid);
             paramTypes.push_back(idp->getType());
-            fromFS->genPush(PushCommand::PUSHSTR, idp->getUniqueID(), lookahead.line);
+            fromFS->genPush(idp->getUniqueID(), lookahead.line);
         }
         if (lookahead.type == Type::COMMA)
         {
@@ -60,9 +61,11 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, shared_ptr<Identi
     if (!toFS->checkTypes(paramTypes)) error("Type mismatch in parameters for function '" + fid + "'");
 
     fromFS->genJump(toFS->getFirstNode()->getName(), lookahead.line);
+    shared_ptr<CFGNode> finishedState = fromFS->getCurrentNode();
     fromFS->genEndState();
     fromFS->genNewState(nextState);
     shared_ptr<CFGNode> created = fromFS->getCurrentNode();
+    created->addPushingState(finishedState);
     created->addParent(toFS->getLastNode());
     toFS->addReturnSuccessor(created.get());
 
