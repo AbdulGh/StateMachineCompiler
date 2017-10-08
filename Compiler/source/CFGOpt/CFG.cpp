@@ -3,6 +3,7 @@
 #include <set>
 #include <stack>
 #include <memory>
+#include <iostream>
 
 #include "../compile/Functions.h"
 #include "CFG.h"
@@ -73,12 +74,11 @@ shared_ptr<CFGNode> ControlFlowGraph::createNode(const string &name, bool overwr
 }
 
 
-string ControlFlowGraph::getSource()
+void ControlFlowGraph::printSource()
 {
-    if (first == nullptr) return "";
-    stringstream outs;
-    first->putSource(outs);
-    outs << '\n';
+    if (first == nullptr) return;
+    first->printSource();
+    cout << '\n';
 
     //order nodes
     //map<string, shared_ptr<CFGNode>> ordered(currentNodes.begin(), currentNodes.end());
@@ -86,23 +86,20 @@ string ControlFlowGraph::getSource()
     for (auto it : currentNodes)
     {
         if (it.first == first->getName()) continue;
-        it.second->putSource(outs);
-        outs << '\n';
+        it.second->printSource();
+        cout << '\n';
     }
-
-    return string(outs.str());
 }
 
-string ControlFlowGraph::getDotGraph()
+void ControlFlowGraph::printDotGraph()
 {
-    stringstream outs;
-    outs << "digraph{\n";
+    cout << "digraph{\n";
     if (first == nullptr)
     {
-        outs << "}";
-        return outs.str();
+        cout << "}";
+        return;
     }
-    else first->putDotNode(outs);
+    else first->printDotNode();
 
     map<string, shared_ptr<CFGNode>> ordered(currentNodes.begin(), currentNodes.end());
     string currentFunc;
@@ -112,23 +109,21 @@ string ControlFlowGraph::getDotGraph()
         shared_ptr<CFGNode> n = it.second;
         if (n->getParentFunction()->getPrefix() != currentFunc)
         {
-            if (!currentFunc.empty()) outs << "}\n";
+            if (!currentFunc.empty()) cout << "}\n";
             FunctionSymbol* oldFS = functionTable.getFunction(currentFunc); //could be done by keeping a pointer but oh well
             string oldLastNode = oldFS->getLastNode()->getName();
             for (auto& nodePointer : oldFS->getReturnSuccessors())
             {
-                outs << oldLastNode << "->" << nodePointer->getName()
+                cout << oldLastNode << "->" << nodePointer->getName()
                      << "[label='return'];\n";
             }
             currentFunc = n->getParentFunction()->getPrefix();
-            outs << "subgraph cluster_" << currentFunc << "{\n";
-            outs << "label='" << currentFunc << "';\n";
+            cout << "subgraph cluster_" << currentFunc << "{\n";
+            cout << "label='" << currentFunc << "';\n";
         }
-        n->putDotNode(outs);
-        outs<< '\n';
+        n->printDotNode();
+        cout << '\n';
     }
-
-    return outs.str();
 }
 
 unordered_map<string, shared_ptr<CFGNode>>& ControlFlowGraph::getCurrentNodes()

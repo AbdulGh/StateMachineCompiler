@@ -30,8 +30,8 @@ public:
     std::shared_ptr<CFGNode> getNode(const std::string& name);
     void removeNode(std::string name);
     std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getCurrentNodes();
-    std::string getSource();
-    std::string getDotGraph();
+    void printSource();
+    void printDotGraph();
     std::shared_ptr<CFGNode> getFirst() const;
     std::shared_ptr<CFGNode> getLast() const;
     void setFirst(const std::string& firstname);
@@ -52,6 +52,7 @@ private:
     std::vector<std::shared_ptr<AbstractCommand>> instrs; //shared_ptrs to allow downcasting
     ControlFlowGraph& parentGraph;
     FunctionSymbol* parentFunction;
+    std::vector<std::shared_ptr<CFGNode>> pushingStates; //used to remove pushes if the node is being removed
     bool isLast;
     int jumpline;
 
@@ -61,7 +62,6 @@ public:
     bool addParent(std::shared_ptr<CFGNode>); //returns false if parent was already in
     void removeParent(std::shared_ptr<CFGNode>);
     void removeParent(const std::string&);
-    std::vector<std::shared_ptr<CFGNode>> pushingStates; //used to remove pushes if the node is being removed todo make private
 
     void setInstructions(std::vector<std::shared_ptr<AbstractCommand>>& in);
     void setCompSuccess(const std::shared_ptr<CFGNode>& compSuccess);
@@ -90,8 +90,8 @@ public:
     std::vector<std::shared_ptr<AbstractCommand>>& getInstrs();
     ControlFlowGraph& getParentGraph() const;
     FunctionSymbol* getParentFunction() const;
-    void putSource(std::stringstream& outs, bool makeState = true, std::string delim="\n");
-    void putDotNode(std::stringstream& outs);
+    void printSource(bool makeState = true, std::string delim = "\n");
+    void printDotNode();
     bool isLastNode() const;
     bool isFirstNode() const;
 };

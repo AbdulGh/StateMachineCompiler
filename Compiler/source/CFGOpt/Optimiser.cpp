@@ -16,7 +16,7 @@ namespace Optimise
         {
             changes = false;
             Optimise::collapseSmallStates(controlFlowGraph, functionTable);
-            for (auto node : controlFlowGraph.getCurrentNodes())
+            for (const auto& node : controlFlowGraph.getCurrentNodes())
             {
                 //if (node.second->constProp()) changes = true;
             }

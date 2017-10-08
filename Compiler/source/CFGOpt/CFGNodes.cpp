@@ -24,22 +24,26 @@ const string &CFGNode::getName() const
     return name;
 }
 
-void CFGNode::putSource(stringstream& outs, bool makeState, string delim)
+void CFGNode::printSource(bool makeState, std::string delim)
 {
     if (makeState)
     {
-        outs << name << delim;
+        cout << name << delim;
         for (shared_ptr<AbstractCommand>& ac: instrs)
         {
-            if (ac == nullptr) outs << "null\n"; //debug
-            else outs << ac->translation(delim);
+            if (ac == nullptr) cout << "null\n"; //debug
+            else
+            {
+                string debug = ac->translation(delim);
+                cout << debug;
+            }
         }
-        if (compSuccess != nullptr) outs << comp->translation(delim);
-        if (compFail != nullptr) outs << JumpCommand(compFail->getName(), jumpline).translation(delim);
-        else outs << ReturnCommand(jumpline).translation(delim);
-        outs << "end" << delim;
+        if (compSuccess != nullptr) cout << comp->translation(delim);
+        if (compFail != nullptr) cout << JumpCommand(compFail->getName(), jumpline).translation(delim);
+        else cout << ReturnCommand(jumpline).translation(delim);
+        cout << "end" + delim;
     }
-    else for (shared_ptr<AbstractCommand>& ac: instrs) outs << ac->translation(delim);
+    else for (shared_ptr<AbstractCommand>& ac: instrs) cout << ac->translation(delim);
     /*f (makeState)
     {
         cout << name << delim;
@@ -57,15 +61,15 @@ void CFGNode::putSource(stringstream& outs, bool makeState, string delim)
     cout << "\n";*/
 }
 
-void CFGNode::putDotNode(stringstream& outs)
+void CFGNode::printDotNode()
 {
-    outs << getName() << "[label='<B><I>" << getName() << "</I></B>\\n";
-    putSource(outs, false, "\\n");
-    outs << "'];\n";
+    cout << getName() << "[label='<B><I>" << getName() << "</I></B>\\n";
+    printSource(false, "\\n");
+    cout << "'];\n";
     if (compSuccess != nullptr)
     {
         string trans = comp->translation("");
-        outs << getName() << "->" << compSuccess->getName()
+        cout << getName() << "->" << compSuccess->getName()
              << "[label='" << trans << "'];\n";
     }
     if (compFail != nullptr)
@@ -73,10 +77,10 @@ void CFGNode::putDotNode(stringstream& outs)
         if (comp != nullptr)
         {
             string trans = comp->negatedTranslation("");
-            outs << getName() << "->" << compFail->getName()
+            cout << getName() << "->" << compFail->getName()
                  << "[label='" << trans << "'];\n";
         }
-        else outs << getName() << "->" << compFail->getName()
+        else cout << getName() << "->" << compFail->getName()
                   << "[label='jump'];\n";
     }
 }
@@ -103,6 +107,8 @@ bool CFGNode::constProp()
             shared_ptr<AssignVarCommand> avc = static_pointer_cast<AssignVarCommand>(current);
             if (AbstractCommand::getStringType(avc->RHS) != AbstractCommand::StringType::ID)
             {
+                auto debug = avc.get();
+                string debug2 = avc->getData();
                 assignments[avc->getData()] = avc->RHS;
             }
             else
@@ -264,8 +270,7 @@ bool CFGNode::constProp()
     }
     if (compFail == nullptr && !pushedThings.empty()) //there should be a state on top
     {
-        if (!isLast) throw "returning but not last";
-        auto stackTop = pushedThings.top();
+        /*auto stackTop = pushedThings.top();
         shared_ptr<PushCommand> pushc = static_pointer_cast<PushCommand>(*stackTop);
         if (pushc->pushType != PushCommand::PUSHSTATE) throw runtime_error("tried to jump to var");
         shared_ptr<CFGNode> jumpingTo = parentGraph.getNode(pushc->getData());
@@ -277,7 +282,7 @@ bool CFGNode::constProp()
         const set<CFGNode*>& returnTo = parentFunction->getReturnSuccessors();
         if (returnTo.size() != 1) throw "check";
         parentFunction->clearReturnSuccessors();
-        skippedReturn = true;
+        skippedReturn = true;*/
     }
     instrs = move(newInstrs);
     return skippedReturn;
@@ -582,6 +587,7 @@ void CFGNode::removePushingState(const string& bye)
 
 void CFGNode::prepareToDie()
 {
+    if (isLastNode()) throw "cant delete last node";
     if (getCompFail() != nullptr) getCompFail()->removeParent(name);
     if (getCompSuccess() != nullptr) getCompSuccess()->removeParent(name);
     removePushes();

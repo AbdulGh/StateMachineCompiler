@@ -43,7 +43,7 @@ void Compiler::compile(stringstream& out)
     //symMan.search();
     //Optimise::optimise(symbolTable, cfg);
     //out << cfg.getDotGraph();
-    out << cfg.getSource();
+    cfg.printSource();
 }
 
 Token Compiler::nextToken()
