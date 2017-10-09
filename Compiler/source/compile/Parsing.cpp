@@ -24,7 +24,7 @@ void Compiler::body()
         //get stack parameters into variables
         symbolTable.pushScope();
         match(LPAREN);
-        stack<shared_ptr<AbstractCommand>> argumentStack;
+        stack<unique_ptr<AbstractCommand>> argumentStack;
         while (lookahead.type != RPAREN)
         {
             VariableType t = vtype();
@@ -32,8 +32,8 @@ void Compiler::body()
             string s = ident();
             shared_ptr<Identifier> vid = symbolTable.declare(s, t, line);
             const string& vidName = vid->getUniqueID();
-            argumentStack.push(make_shared<PopCommand>(vidName, lookahead.line));
-            argumentStack.push(make_shared<DeclareVarCommand>(t, vidName, lookahead.line));
+            argumentStack.push(make_unique<PopCommand>(vidName, lookahead.line));
+            argumentStack.push(make_unique<DeclareVarCommand>(t, vidName, lookahead.line));
             fs->addVar(vidName);
             if (lookahead.type == COMMA)
             {
@@ -46,7 +46,7 @@ void Compiler::body()
 
         while (!argumentStack.empty())
         {
-            fs->addCommand(argumentStack.top());
+            fs->addCommand(move(argumentStack.top()));
             argumentStack.pop();
         }
 

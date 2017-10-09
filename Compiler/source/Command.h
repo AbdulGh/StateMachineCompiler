@@ -26,7 +26,7 @@ public:
     AbstractCommand() {}
     AbstractCommand(int line): linenumber(line) {}
     virtual ~AbstractCommand() {}
-    virtual std::shared_ptr<AbstractCommand> clone() = 0;
+    virtual std::unique_ptr<AbstractCommand> clone() = 0;
 
     //returns if the symbolic execution of this command went through
     virtual bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs);
@@ -79,9 +79,9 @@ public:
 
     std::string translation(std::string delim) const override {return "print " + getData() + ";" + delim;}
 
-    std::shared_ptr<AbstractCommand> clone() override
+    std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_shared<PrintCommand>(getData(), getLineNum());
+        return std::make_unique<PrintCommand>(getData(), getLineNum());
     }
 };
 
@@ -95,9 +95,9 @@ public:
     }
     std::string translation(std::string delim) const override {return "return;" + delim;} //meta
 
-    std::shared_ptr<AbstractCommand> clone() override
+    std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_shared<ReturnCommand>(getLineNum());
+        return std::make_unique<ReturnCommand>(getLineNum());
     }
 };
 
@@ -111,9 +111,9 @@ public:
     }
     std::string translation(std::string delim) const override{return "jump " + getData() + ";" + delim;};
 
-    std::shared_ptr<AbstractCommand> clone() override
+    std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_shared<JumpCommand>(getData(), getLineNum());
+        return std::make_unique<JumpCommand>(getData(), getLineNum());
     }
 };
 
@@ -176,9 +176,9 @@ public:
         }
     }
 
-    std::shared_ptr<AbstractCommand> clone() override
+    std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_shared<JumpOnComparisonCommand>(getData(), term1, term2, op, getLineNum());
+        return std::make_unique<JumpOnComparisonCommand>(getData(), term1, term2, op, getLineNum());
     }
 
     std::string translation(std::string delim) const override {return "jumpif " + term1 + relEnumStrs[op] + term2 + " " + getData() + ";" + delim;}
@@ -196,9 +196,9 @@ public:
     }
     std::string translation(std::string delim) const override{return "input " + getData() + ";" + delim;};
 
-    std::shared_ptr<AbstractCommand> clone() override
+    std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_shared<InputVarCommand>(getData(), getLineNum());
+        return std::make_unique<InputVarCommand>(getData(), getLineNum());
     }
 
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
@@ -226,9 +226,9 @@ public:
         else return "push " + getData() + ";" + delim;
     }
 
-    std::shared_ptr<AbstractCommand> clone() override
+    std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_shared<PushCommand>(getData(), getLineNum(), calledFunction);
+        return std::make_unique<PushCommand>(getData(), getLineNum(), calledFunction);
     }
 
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
@@ -243,9 +243,9 @@ public:
         setType(CommandType::POP);
     }
 
-    std::shared_ptr<AbstractCommand> clone() override
+    std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_shared<PopCommand>(getData(), getLineNum());
+        return std::make_unique<PopCommand>(getData(), getLineNum());
     }
 
     bool isEmpty() const {return getData() == "";}
@@ -266,9 +266,9 @@ public:
         setType(CommandType::ASSIGNVAR);
     }
 
-    std::shared_ptr<AbstractCommand> clone() override
+    std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_shared<AssignVarCommand>(getData(), RHS, getLineNum());
+        return std::make_unique<AssignVarCommand>(getData(), RHS, getLineNum());
     }
 
     std::string translation(std::string delim) const override{return getData() + " = " + RHS + ";" + delim;}
@@ -289,9 +289,9 @@ public:
         setType(CommandType::EXPR);
     }
 
-    std::shared_ptr<AbstractCommand> clone() override
+    std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_shared<EvaluateExprCommand>(getData(), term1, op, term2, getLineNum());
+        return std::make_unique<EvaluateExprCommand>(getData(), term1, op, term2, getLineNum());
     }
 
     std::string translation(std::string delim) const override{return getData() + " = " + term1 + ' '
@@ -310,9 +310,9 @@ public:
         setType(CommandType::DECLAREVAR);
     }
 
-    std::shared_ptr<AbstractCommand> clone() override
+    std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_shared<DeclareVarCommand>(vt, getData(), getLineNum());
+        return std::make_unique<DeclareVarCommand>(vt, getData(), getLineNum());
     }
 
     std::string translation(std::string delim) const override

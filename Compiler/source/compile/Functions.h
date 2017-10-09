@@ -23,7 +23,7 @@ private:
     std::shared_ptr<CFGNode> firstNode;
     std::shared_ptr<CFGNode> currentNode;
     std::vector<std::string> vars; //used to save vars during function calls (todo make set)
-    std::vector<std::shared_ptr<AbstractCommand>> currentInstrs;
+    std::vector<std::unique_ptr<AbstractCommand>> currentInstrs;
     ControlFlowGraph& cfg;
     std::set<CFGNode*> returnTo;
 
@@ -64,8 +64,8 @@ public:
     void genExpr(std::string lh, std::string t1, Op o, std::string t2, int);
     void genVariableDecl(VariableType t, std::string n, int);
     void genAssignment(std::string LHS, std::string RHS, int);
-    void addCommand(std::shared_ptr<AbstractCommand> ac);
-    void addCommands(std::vector<std::shared_ptr<AbstractCommand>> acs);
+    void addCommand(std::unique_ptr<AbstractCommand> ac);
+    void addCommands(std::vector<std::unique_ptr<AbstractCommand>>& acs);
 };
 
 class FunctionTable

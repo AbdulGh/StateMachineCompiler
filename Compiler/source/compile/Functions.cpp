@@ -1,4 +1,5 @@
 #include <stack>
+#include <algorithm>
 
 #include "Functions.h"
 
@@ -35,12 +36,7 @@ void FunctionSymbol::giveNodesTo(FunctionSymbol* to)
 
 const shared_ptr<CFGNode>& FunctionSymbol::getLastNode()
 {
-    if (lastNode == nullptr)
-    {
-        vector<shared_ptr<AbstractCommand>> returnCommand({make_shared<ReturnCommand>(-1)});
-        lastNode = cfg.createNode(prefix + "fin", false, true, this);
-    }
-
+    if (lastNode == nullptr) lastNode = cfg.createNode(prefix + "fin", false, true, this);
     return lastNode;
 }
 
@@ -144,18 +140,21 @@ const std::set<CFGNode*>& FunctionSymbol::getReturnSuccessors()
 
 void FunctionSymbol::removeReturnSuccessor(const std::string& ret)
 {
-    bool found = false;
-    for (auto it = returnTo.begin(); it != returnTo.end(); it++)
+    auto eraseIt = find_if(returnTo.begin(), returnTo.end(),
+                                  [&, ret](CFGNode* node)
+                                  { return node->getName() == ret; });
+    CFGNode* debug = (*eraseIt);
+    if (eraseIt != returnTo.end()) returnTo.erase(eraseIt);
+    //returnTo.erase(eraseEnd, returnTo.end());
+    /*for (auto it = returnTo.begin(); it != returnTo.end(); it++)
     {
         if ((*it)->getName() == ret)
         {
-            returnTo.erase(it);
             (*it)->removeParent(lastNode);
-            found = true;
+            returnTo.erase(it);
             break;
         }
-    }
-    //if (!found) throw "couldnt find return successor";
+    }*/
 }
 
 /*generation*/
@@ -177,25 +176,25 @@ void FunctionSymbol::genEndState()
 void FunctionSymbol::genJump(std::string s, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_shared<JumpCommand>(s, linenum));
+    currentInstrs.push_back(make_unique<JumpCommand>(s, linenum));
 }
 
 void FunctionSymbol::genPrint(std::string s, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_shared<PrintCommand>(s, linenum));
+    currentInstrs.push_back(make_unique<PrintCommand>(s, linenum));
 }
 
 void FunctionSymbol::genConditionalJump(std::string state, std::string lh, Relations::Relop r, std::string rh, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_shared<JumpOnComparisonCommand>(state, lh, rh, r, linenum));
+    currentInstrs.push_back(make_unique<JumpOnComparisonCommand>(state, lh, rh, r, linenum));
 }
 
 void FunctionSymbol::genPop(std::string s, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_shared<PopCommand>(s, linenum));
+    currentInstrs.push_back(make_unique<PopCommand>(s, linenum));
 }
 
 void FunctionSymbol::genReturn(int linenum)
@@ -203,60 +202,57 @@ void FunctionSymbol::genReturn(int linenum)
     if (endedState) throw "No state to add to";
     if (lastNode == nullptr)
     {
-        vector<shared_ptr<AbstractCommand>> returnCommand({make_shared<ReturnCommand>(-1)});
-        lastNode =
-                cfg.createNode(prefix + "fin", false, true, this);
-        lastNode->setInstructions(returnCommand);
+        lastNode = cfg.createNode(prefix + "fin", false, true, this);
     }
-    currentInstrs.push_back(make_shared<JumpCommand>(lastNode->getName(), linenum));
+    currentInstrs.push_back(make_unique<JumpCommand>(lastNode->getName(), linenum));
 }
 
 
 void FunctionSymbol::genPush(std::string s, int linenum, FunctionSymbol* cf)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_shared<PushCommand>(s, linenum, cf));
+    currentInstrs.push_back(make_unique<PushCommand>(s, linenum, cf));
 }
 
 void FunctionSymbol::genInput(std::string s, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_shared<InputVarCommand>(s, linenum));
+    currentInstrs.push_back(make_unique<InputVarCommand>(s, linenum));
 }
 
 void FunctionSymbol::genExpr(std::string lh, std::string t1, Op o, std::string t2, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_shared<EvaluateExprCommand>(lh, t1, o, t2, linenum));
+    currentInstrs.push_back(make_unique<EvaluateExprCommand>(lh, t1, o, t2, linenum));
 }
 
 void FunctionSymbol::genVariableDecl(VariableType t, std::string n, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_shared<DeclareVarCommand>(t, n, linenum));
+    currentInstrs.push_back(make_unique<DeclareVarCommand>(t, n, linenum));
 
     //find wont work for whatever reason
     for (const string& s : vars) if (s == n) return;
     vars.push_back(n);
 }
 
-void FunctionSymbol::addCommand(shared_ptr<AbstractCommand> ac)
+void FunctionSymbol::addCommand(unique_ptr<AbstractCommand> ac)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(ac);
+    currentInstrs.push_back(move(ac));
 }
 
 void FunctionSymbol::genAssignment(std::string LHS, std::string RHS, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_shared<AssignVarCommand>(LHS, RHS, linenum));
+    currentInstrs.push_back(make_unique<AssignVarCommand>(LHS, RHS, linenum));
 }
 
-void FunctionSymbol::addCommands(std::vector<std::shared_ptr<AbstractCommand>> acs)
+void FunctionSymbol::addCommands(std::vector<std::unique_ptr<AbstractCommand>>& acs)
 {
     if (endedState) throw "No state to add to";
     currentInstrs.reserve(currentInstrs.size() + acs.size());
-    currentInstrs.insert(currentInstrs.end(), acs.begin(), acs.end());
+    currentInstrs.insert(currentInstrs.end(), make_move_iterator(acs.begin()), make_move_iterator(acs.end()));
 }
 
 

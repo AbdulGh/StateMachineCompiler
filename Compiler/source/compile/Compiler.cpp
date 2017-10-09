@@ -37,8 +37,8 @@ void Compiler::compile(stringstream& out)
     lookahead = nextToken();
     while (lookahead.type != END) body();
 
-    Optimise::optimise(symbolTable, functionTable, cfg);
     cfg.setLast(functionTable.getFunction("main")->getLastNode()->getName());
+    Optimise::optimise(symbolTable, functionTable, cfg);
     //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
     //symMan.search();
     //Optimise::optimise(symbolTable, cfg);
@@ -60,13 +60,11 @@ shared_ptr<Identifier> Compiler::findVariable(string name)
 
 void Compiler::findGlobalsAndMakeStates()
 {
-    vector<shared_ptr<AbstractCommand>> initialState =
-    {
-        make_shared<DeclareVarCommand>(DOUBLE, "LHS", -1),
-        make_shared<DeclareVarCommand>(DOUBLE, "RHS", -1),
-        make_shared<DeclareVarCommand>(STRING, "retS", -1),
-        make_shared<DeclareVarCommand>(DOUBLE, "retD", -1)
-    };
+    vector<unique_ptr<AbstractCommand>> initialState;
+    initialState.push_back(make_unique<DeclareVarCommand>(DOUBLE, "LHS", -1));
+    initialState.push_back(make_unique<DeclareVarCommand>(DOUBLE, "RHS", -1));
+    initialState.push_back(make_unique<DeclareVarCommand>(STRING, "retS", -1));
+    initialState.push_back(make_unique<DeclareVarCommand>(DOUBLE, "retD", -1));
 
     lookahead = nextToken();
     bool globals = false;
@@ -128,20 +126,20 @@ void Compiler::findGlobalsAndMakeStates()
                 VariableType t = vtype();
                 string id = ident();
                 shared_ptr<Identifier> i = symbolTable.declare(id, t, lookahead.line);
-                initialState.push_back(make_shared<DeclareVarCommand>(t, i->getUniqueID(), lookahead.line));
+                initialState.push_back(make_unique<DeclareVarCommand>(t, i->getUniqueID(), lookahead.line));
                 if (lookahead.type == ASSIGN)
                 {
                     match(ASSIGN);
                     i->setDefined();
                     if (t == STRING && lookahead.type == STRINGLIT)
                     {
-                        initialState.push_back(make_shared<AssignVarCommand>
+                        initialState.push_back(make_unique<AssignVarCommand>
                                                        (i->getUniqueID(), lookahead.lexemeString, lookahead.line));
                         match(STRINGLIT);
                     }
                     else if (t == DOUBLE && lookahead.type == NUMBER)
                     {
-                        initialState.push_back(make_shared<AssignVarCommand>
+                        initialState.push_back(make_unique<AssignVarCommand>
                                                        (i->getUniqueID(), lookahead.lexemeString, lookahead.line));
                         match(NUMBER);
                     }

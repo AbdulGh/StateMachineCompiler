@@ -105,7 +105,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     if (!sef->isFeasable()) return false;
     else if (sef->hasSeen(n->getName())) return true;
 
-    for (const shared_ptr<AbstractCommand>& command : n->getInstrs())
+    for (const auto& command : n->getInstrs())
     {
         if (!command->acceptSymbolicExecution(sef)) return false;
     }
@@ -122,7 +122,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
         else throw runtime_error("bad vtype");
     };
 
-    shared_ptr<JumpOnComparisonCommand> jocc = n->getComp();
+    JumpOnComparisonCommand* jocc = n->getComp();
     if (jocc != nullptr) //is a conditional jump
     {
         //const comparisons were caught during compilation

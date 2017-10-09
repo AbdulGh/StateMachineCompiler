@@ -29,7 +29,7 @@ void CFGNode::printSource(bool makeState, std::string delim)
     if (makeState)
     {
         cout << name << delim;
-        for (shared_ptr<AbstractCommand>& ac: instrs)
+        for (auto& ac: instrs)
         {
             if (ac == nullptr) cout << "null\n"; //debug
             else
@@ -43,7 +43,7 @@ void CFGNode::printSource(bool makeState, std::string delim)
         else cout << ReturnCommand(jumpline).translation(delim);
         cout << "end" + delim;
     }
-    else for (shared_ptr<AbstractCommand>& ac: instrs) cout << ac->translation(delim);
+    else for (auto& ac: instrs) cout << ac->translation(delim);
     /*f (makeState)
     {
         cout << name << delim;
@@ -88,27 +88,26 @@ void CFGNode::printDotNode()
 bool CFGNode::constProp()
 {
     unordered_map<string,string> assignments;
-    stack<vector<shared_ptr<AbstractCommand>>::iterator> pushedThings;
+    stack<vector<unique_ptr<AbstractCommand>>::iterator> pushedThings;
 
     auto it = instrs.begin();
-    vector<shared_ptr<AbstractCommand>> newInstrs;
+    vector<unique_ptr<AbstractCommand>> newInstrs;
     newInstrs.reserve(instrs.size()); //avoid reallocation to keep iterators in pushedThings valid
 
     while (it != instrs.end())
     {
-        shared_ptr<AbstractCommand> current = move(*it);
+        unique_ptr<AbstractCommand> current = move(*it);
         if (current->getType() == CommandType::CHANGEVAR)
         {
             assignments.erase(current->getData());
-            newInstrs.push_back(current);
+            newInstrs.push_back(move(current));
         }
         else if (current->getType() == CommandType::ASSIGNVAR)
         {
-            shared_ptr<AssignVarCommand> avc = static_pointer_cast<AssignVarCommand>(current);
+
+            auto avc = static_cast<AssignVarCommand*>(current.get());
             if (AbstractCommand::getStringType(avc->RHS) != AbstractCommand::StringType::ID)
             {
-                auto debug = avc.get();
-                string debug2 = avc->getData();
                 assignments[avc->getData()] = avc->RHS;
             }
             else
@@ -121,11 +120,11 @@ bool CFGNode::constProp()
                 }
                 else assignments[avc->getData()] = avc->RHS;
             }
-            if (avc->getData() != avc->RHS) newInstrs.push_back(current);
+            if (avc->getData() != avc->RHS) newInstrs.push_back(move(current));
         }
         else if (current->getType() == CommandType::EXPR)
         {
-            shared_ptr<EvaluateExprCommand> eec = static_pointer_cast<EvaluateExprCommand>(current);
+            EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(current.get());
             //literals will not be found
             if (AbstractCommand::getStringType(eec->term1) == AbstractCommand::StringType::ID)
             {
@@ -149,7 +148,7 @@ bool CFGNode::constProp()
                     double result = evaluateOp(lhs, eec->op, rhs);
                     string resultstr = to_string(result);
                     assignments[eec->getData()] = resultstr;
-                    newInstrs.push_back(make_shared<AssignVarCommand>(eec->getData(), resultstr, eec->getLineNum()));
+                    newInstrs.push_back(make_unique<AssignVarCommand>(eec->getData(), resultstr, eec->getLineNum()));
                 }
                 catch (invalid_argument&)
                 {
@@ -157,7 +156,7 @@ bool CFGNode::constProp()
                     {
                         string result = eec->term1 + eec->term2;
                         assignments[eec->getData()] = result;
-                        newInstrs.push_back(make_shared<AssignVarCommand>(eec->getData(), result, eec->getLineNum()));
+                        newInstrs.push_back(make_unique<AssignVarCommand>(eec->getData(), result, eec->getLineNum()));
                     }
                     else throw runtime_error("Strings only support +");
                 }
@@ -165,25 +164,25 @@ bool CFGNode::constProp()
             else
             {
                 assignments.erase(eec->getData());
-                newInstrs.push_back(current);
+                newInstrs.push_back(move(current));
             }
         }
         else if (current->getType() == CommandType::PUSH)
         {
-            shared_ptr<PushCommand> pushc = static_pointer_cast<PushCommand>(current);
+            auto pushc = static_cast<PushCommand*>(current.get());
             if (pushc->pushType == PushCommand::PUSHSTR)
             {
                 auto pushedVarIt = assignments.find(current->getData());
                 if (pushedVarIt != assignments.end()) current->setData(pushedVarIt->second);
             }
-            newInstrs.push_back(current);
+            newInstrs.push_back(move(current));
             pushedThings.push(prev(newInstrs.end()));
         }
         else if (current->getType() == CommandType::POP && !pushedThings.empty())
         {
-            shared_ptr<PopCommand> popc = static_pointer_cast<PopCommand>(current);
+            auto popc = static_cast<PopCommand*>(current.get());
             auto stackTop = pushedThings.top();
-            shared_ptr<PushCommand> pushc = static_pointer_cast<PushCommand>(*stackTop);
+            auto pushc = static_cast<PushCommand*>((*stackTop).get());
             if (popc->isEmpty())
             {
                 if (pushc->pushType == PushCommand::PUSHSTATE)
@@ -212,14 +211,14 @@ bool CFGNode::constProp()
                     pushedThings.pop();
                     if (current->getData() != pushc->getData())
                     {
-                        newInstrs.push_back(make_shared<AssignVarCommand>
+                        newInstrs.push_back(make_unique<AssignVarCommand>
                                                     (current->getData(), pushc->getData(), current->getLineNum()));
                     }
                     newInstrs.erase(stackTop);
                 }
             }
         }
-        else newInstrs.push_back(current);
+        else newInstrs.push_back(move(current));
         ++it;
     }
 
@@ -296,16 +295,16 @@ bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
     {
         if (compFail != nullptr && compFail->getName() == other->getName() || otherIsOnlyRetSuccessor)
         {
-            vector<shared_ptr<AbstractCommand>> newInstrs = instrs;
-            vector<shared_ptr<AbstractCommand>>& addingInstrs = other->getInstrs();
+            vector<unique_ptr<AbstractCommand>> newInstrs = move(instrs);
+            vector<unique_ptr<AbstractCommand>>& addingInstrs = other->getInstrs();
             newInstrs.reserve(instrs.size() + addingInstrs.size() + 3);
 
-            for (shared_ptr<AbstractCommand>& newInst : addingInstrs)
+            for (auto& newInst : addingInstrs)
             {
                 newInstrs.push_back(newInst->clone());
                 if (newInst->getType() == CommandType::PUSH)
                 {
-                    shared_ptr<PushCommand> pc = static_pointer_cast<PushCommand>(newInst);
+                    auto pc = static_cast<PushCommand*>(newInst.get());
                     if (pc->pushType == PushCommand::PUSHSTATE)
                     {
                         shared_ptr<CFGNode> node = parentGraph.getNode(pc->getData());
@@ -317,7 +316,8 @@ bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
             setInstructions(newInstrs);
             if (other->getComp() != nullptr)
             {
-                setComp(static_pointer_cast<JumpOnComparisonCommand>(other->getComp()->clone()));
+                JumpOnComparisonCommand* jocc = other->getComp();
+                setComp(make_unique<JumpOnComparisonCommand>(jocc->getData(), jocc->term1, jocc->term2, jocc->op, jocc->getLineNum()));
             }
             else setComp(nullptr);
             setCompSuccess(other->getCompSuccess());
@@ -358,7 +358,7 @@ bool CFGNode::swallowNode(shared_ptr<CFGNode> other)
     return false;
 }
 
-void CFGNode::setInstructions(vector<shared_ptr<AbstractCommand>>& in)
+void CFGNode::setInstructions(vector<unique_ptr<AbstractCommand>>& in)
 {
     instrs.clear();
     auto it = in.begin();
@@ -367,8 +367,7 @@ void CFGNode::setInstructions(vector<shared_ptr<AbstractCommand>>& in)
            && (*it)->getType() != CommandType::JUMP
            && (*it)->getType() != CommandType::CONDJUMP)
     {
-        shared_ptr<AbstractCommand> current = move(*it);
-        instrs.push_back(current);
+        instrs.push_back(move(*it));
         ++it;
     }
 
@@ -376,10 +375,11 @@ void CFGNode::setInstructions(vector<shared_ptr<AbstractCommand>>& in)
 
     if ((*it)->getType() == CommandType::CONDJUMP)
     {
-        compSuccess = parentGraph.getNode((*it)->getData());
-        if (compSuccess == nullptr) compSuccess = parentGraph.createNode((*it)->getData(), false, false);
+        JumpOnComparisonCommand* jocc = static_cast<JumpOnComparisonCommand*>(it->get());
+        compSuccess = parentGraph.getNode(jocc->getData());
+        if (compSuccess == nullptr) compSuccess = parentGraph.createNode(jocc->getData(), false, false);
         compSuccess->addParent(shared_from_this());
-        comp = static_pointer_cast<JumpOnComparisonCommand>(move(*it)->clone());
+        setComp(make_unique<JumpOnComparisonCommand>(jocc->getData(), jocc->term1, jocc->term2, jocc->op, jocc->getLineNum()));
 
         if (++it == in.cend()) return;
     }
@@ -418,9 +418,9 @@ void CFGNode::removeParent(const string& s)
     if (predecessors.erase(s) == 0) throw runtime_error("Parent '" + s + "' not found in '" + getName() + "'");
 }
 
-shared_ptr<JumpOnComparisonCommand> CFGNode::getComp()
+JumpOnComparisonCommand* CFGNode::getComp()
 {
-    return comp;
+    return comp.get();
 }
 
 unordered_map<string, shared_ptr<CFGNode>>& CFGNode::getPredecessors()
@@ -438,7 +438,7 @@ shared_ptr<CFGNode> CFGNode::getCompFail()
     return compFail;
 }
 
-vector<shared_ptr<AbstractCommand>>& CFGNode::getInstrs()
+vector<unique_ptr<AbstractCommand>>& CFGNode::getInstrs()
 {
     return instrs;
 }
@@ -461,9 +461,10 @@ void CFGNode::setCompFail(const shared_ptr<CFGNode>& compareFail)
     if (compFail != nullptr) compFail->addParent(shared_from_this());
 }
 
-void CFGNode::setComp(const shared_ptr<JumpOnComparisonCommand>& comparison)
+void CFGNode::setComp(unique_ptr<JumpOnComparisonCommand> comparison)
 {
-    comp = comparison;
+    if (comp != nullptr) comp.release();
+    comp.swap(comparison);
 }
 
 void CFGNode::setLast(bool last)
@@ -517,15 +518,15 @@ void CFGNode::removePushes()
     while (it != pushingStates.end())
     {
         shared_ptr<CFGNode> pushing = *it;
-        vector<shared_ptr<AbstractCommand>>& pushingInstrs =  pushing->instrs;
+        vector<unique_ptr<AbstractCommand>>& pushingInstrs =  pushing->instrs;
         auto instructionIt = pushingInstrs.begin();
         bool found = false;
         while (instructionIt != pushingInstrs.end())
         {
-            shared_ptr<AbstractCommand> ac = *instructionIt;
+            AbstractCommand* ac = (*instructionIt).get();
             if (ac->getType() == CommandType::PUSH && ac->getData() == name)
             {
-                shared_ptr<PushCommand> pc = static_pointer_cast<PushCommand>(ac);
+                auto pc = static_cast<PushCommand*>(ac);
                 if (pc->pushType == PushCommand::PUSHSTATE)
                 {
                     pc->calledFunction->removeReturnSuccessor(name);
@@ -550,15 +551,15 @@ void CFGNode::replacePushes(const std::string& other)
     while (it != pushingStates.end())
     {
         shared_ptr<CFGNode> pushing = *it;
-        vector<shared_ptr<AbstractCommand>>& pushingInstrs =  pushing->instrs;
+        vector<unique_ptr<AbstractCommand>>& pushingInstrs =  pushing->instrs;
         auto instructionIt = pushingInstrs.begin();
         bool found = false;
         while (instructionIt != pushingInstrs.end())
         {
-            shared_ptr<AbstractCommand> ac = *instructionIt;
+            AbstractCommand* ac = (*instructionIt).get();
             if (ac->getType() == CommandType::PUSH && ac->getData() == name)
             {
-                shared_ptr<PushCommand> pc = static_pointer_cast<PushCommand>(ac);
+                PushCommand* pc = static_cast<PushCommand*>(ac);
                 if (pc->pushType == PushCommand::PUSHSTATE)
                 {
                     pc->setData(other);
@@ -597,7 +598,7 @@ void CFGNode::prepareToDie()
     {
         if (ac->getType() == CommandType::PUSH)
         {
-            shared_ptr<PushCommand> pc = static_pointer_cast<PushCommand>(ac);
+            auto pc = static_cast<PushCommand*>(ac.get());
             if (pc->pushType == PushCommand::PUSHSTATE)
             {
                 parentGraph.getNode(pc->getData())->removePushingState(name);

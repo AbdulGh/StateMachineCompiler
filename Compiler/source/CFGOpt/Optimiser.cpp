@@ -18,7 +18,7 @@ namespace Optimise
             Optimise::collapseSmallStates(controlFlowGraph, functionTable);
             for (const auto& node : controlFlowGraph.getCurrentNodes())
             {
-                //if (node.second->constProp()) changes = true;
+                if (node.second->constProp()) changes = true;
             }
         }
     }
@@ -59,7 +59,7 @@ namespace Optimise
                     continue;
                 }
 
-                vector<shared_ptr<AbstractCommand>>& instructionList = current->getInstrs();
+                vector<unique_ptr<AbstractCommand>>& instructionList = current->getInstrs();
                 unordered_map<string, NodePointer>& preds = current->getPredecessors();
 
                 //if its just an unconditional jump

@@ -45,11 +45,11 @@ class CFGNode: public std::enable_shared_from_this<CFGNode>
 {
 private:
     std::string name;
-    std::shared_ptr<JumpOnComparisonCommand> comp;
+    std::unique_ptr<JumpOnComparisonCommand> comp;
     std::unordered_map<std::string, std::shared_ptr<CFGNode>> predecessors;
     std::shared_ptr<CFGNode> compSuccess;
     std::shared_ptr<CFGNode> compFail; //unconditional jump at the end of the node
-    std::vector<std::shared_ptr<AbstractCommand>> instrs; //shared_ptrs to allow downcasting
+    std::vector<std::unique_ptr<AbstractCommand>> instrs; //pointers to allow downcasting (avoid object slicing)
     ControlFlowGraph& parentGraph;
     FunctionSymbol* parentFunction;
     std::vector<std::shared_ptr<CFGNode>> pushingStates; //used to remove pushes if the node is being removed
@@ -63,10 +63,10 @@ public:
     void removeParent(std::shared_ptr<CFGNode>);
     void removeParent(const std::string&);
 
-    void setInstructions(std::vector<std::shared_ptr<AbstractCommand>>& in);
+    void setInstructions(std::vector<std::unique_ptr<AbstractCommand>>& in);
     void setCompSuccess(const std::shared_ptr<CFGNode>& compSuccess);
     void setCompFail(const std::shared_ptr<CFGNode>& compFail);
-    void setComp(const std::shared_ptr<JumpOnComparisonCommand>& comp);
+    void setComp(std::unique_ptr<JumpOnComparisonCommand> comp);
     void setParentFunction(FunctionSymbol* pf);
     void setLast(bool last = true);
 
@@ -81,13 +81,13 @@ public:
     //returns true if successful
     bool swallowNode(std::shared_ptr<CFGNode> other);
 
-    std::shared_ptr<JumpOnComparisonCommand> getComp();
+    JumpOnComparisonCommand* getComp();
     std::unordered_map<std::string, std::shared_ptr<CFGNode>>& getPredecessors();
     std::shared_ptr<CFGNode> getCompSuccess();
     int getJumpline() const;
     std::shared_ptr<CFGNode> getCompFail();
     const std::string &getName() const;
-    std::vector<std::shared_ptr<AbstractCommand>>& getInstrs();
+    std::vector<std::unique_ptr<AbstractCommand>>& getInstrs();
     ControlFlowGraph& getParentGraph() const;
     FunctionSymbol* getParentFunction() const;
     void printSource(bool makeState = true, std::string delim = "\n");
