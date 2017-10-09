@@ -9,22 +9,23 @@ ExpressionCodeGenerator::ExpressionCodeGenerator(Compiler &p, const string& asig
         currentUnique(0),
         goingto(asignee){}
 
-void ExpressionCodeGenerator::CompileExpression(FunctionSymbol* fs)
+void ExpressionCodeGenerator::compileExpression(FunctionSymbol *fs)
 {
-    ExprNodePointer tree = expression(fs);
+    AbstractExprNode* tree = expression(fs);
     double df;
     if (translateTree(tree, fs,  0, df)) fs->genAssignment(goingto, to_string(df), parent.lookahead.line);
+    delete tree;
 }
 
-ExprNodePointer ExpressionCodeGenerator::expression(FunctionSymbol* fs)
+AbstractExprNode* ExpressionCodeGenerator::expression(FunctionSymbol* fs)
 {
-    ExprNodePointer currentLeft = term(fs);
+    AbstractExprNode* currentLeft = term(fs);
     if (!(parent.lookahead.type == OP)) return currentLeft;
     else while (parent.lookahead.type == OP
                 && ((Op)parent.lookahead.auxType == PLUS || (Op)parent.lookahead.auxType == MINUS))
     {
         Op lastOp = (Op)parent.lookahead.auxType;
-        ExprNodePointer ref = make_shared<OperatorNode>(lastOp);
+        AbstractExprNode* ref = new OperatorNode(lastOp);
         ref->addNode(currentLeft);
 
         do
@@ -38,16 +39,16 @@ ExprNodePointer ExpressionCodeGenerator::expression(FunctionSymbol* fs)
     return currentLeft;
 }
 
-ExprNodePointer ExpressionCodeGenerator::term(FunctionSymbol* fs)
+AbstractExprNode* ExpressionCodeGenerator::term(FunctionSymbol* fs)
 {
-    ExprNodePointer currentLeft = factor(fs);
+    AbstractExprNode* currentLeft = factor(fs);
     if (!(parent.lookahead.type == OP)) return currentLeft;
 
     else while (parent.lookahead.type == OP && ((Op)parent.lookahead.auxType == MULT
                 || (Op)parent.lookahead.auxType == DIV || (Op)parent.lookahead.auxType == MOD))
     {
         Op lastOp = (Op)parent.lookahead.auxType;
-        ExprNodePointer ref = make_shared<OperatorNode>(lastOp);
+        AbstractExprNode* ref = new OperatorNode(lastOp);
         ref->addNode(currentLeft);
 
         do
@@ -61,7 +62,7 @@ ExprNodePointer ExpressionCodeGenerator::term(FunctionSymbol* fs)
     return currentLeft;
 }
 
-ExprNodePointer ExpressionCodeGenerator::factor(FunctionSymbol* fs)
+AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
 {
     bool toNegate = false;
     while (parent.lookahead.type == OP && ((Op)parent.lookahead.auxType == MINUS))
@@ -70,13 +71,13 @@ ExprNodePointer ExpressionCodeGenerator::factor(FunctionSymbol* fs)
         parent.match(OP);
     }
 
-    auto withNeg = [&, toNegate] (ExprNodePointer ep) -> ExprNodePointer
+    auto withNeg = [&, toNegate] (AbstractExprNode* ep) -> AbstractExprNode*
     {
         if (toNegate)
         {
-            ExprNodePointer negateMul = make_shared<OperatorNode>(MULT);
+            AbstractExprNode* negateMul = new OperatorNode(MULT);
             negateMul->addNode(ep);
-            negateMul->addNode(make_shared<AtomNode>("-1", true));
+            negateMul->addNode(new AtomNode("-1", true));
             return negateMul;
         }
         else return ep;
@@ -86,11 +87,11 @@ ExprNodePointer ExpressionCodeGenerator::factor(FunctionSymbol* fs)
     {
         shared_ptr<Identifier> id = parent.findVariable(parent.ident());
         if (!id->isDefined()) parent.warning(id->getLexeme() + " may not be defined");
-        return withNeg(make_shared<AtomNode>(id->getUniqueID(), false));
+        return withNeg(new AtomNode(id->getUniqueID(), false));
     }
     else if (parent.lookahead.type == NUMBER)
     {
-        ExprNodePointer ref = make_shared<AtomNode>(toNegate ? "-" +parent.lookahead.lexemeString :
+        AbstractExprNode* ref = new AtomNode(toNegate ? "-" +parent.lookahead.lexemeString :
                                                     parent.lookahead.lexemeString, true);
         parent.match(NUMBER);
         return ref;
@@ -98,7 +99,7 @@ ExprNodePointer ExpressionCodeGenerator::factor(FunctionSymbol* fs)
     else if (parent.lookahead.type == LPAREN)
     {
         parent.match(LPAREN);
-        ExprNodePointer tree = expression(fs);
+        AbstractExprNode* tree = expression(fs);
         parent.match(RPAREN);
         return withNeg(tree);
     }
@@ -110,7 +111,7 @@ ExprNodePointer ExpressionCodeGenerator::factor(FunctionSymbol* fs)
         }
         string uni = genUnique(fs);
         fs->genAssignment(uni, "retD", parent.lookahead.line);
-        return withNeg(make_shared<AtomNode>(uni, false));
+        return withNeg(new AtomNode(uni, false));
     }
     else parent.error("Expected identifier or double in expression");
 }
@@ -144,7 +145,7 @@ string ExpressionCodeGenerator::genUnique(FunctionSymbol* fs)
     return "unique" + to_string(currentUnique++);
 }
 
-bool ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionSymbol* fs, unsigned int reg, double& ret)
+bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol* fs, unsigned int reg, double& ret)
 {
     if (p->isAtom())
     {
@@ -160,8 +161,8 @@ bool ExpressionCodeGenerator::translateTree(ExprNodePointer p, FunctionSymbol* f
         }
     }
 
-    ExprNodePointer leftp = p->getLeft();
-    ExprNodePointer rightp = p->getRight();
+    AbstractExprNode* leftp = p->getLeft();
+    AbstractExprNode* rightp = p->getRight();
     double dl, dr;
     string left, right;
     bool leftlit = leftp->getType() == LITERAL;

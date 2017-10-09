@@ -36,8 +36,9 @@ void Compiler::compile(stringstream& out)
     tp = stream.cbegin();
     lookahead = nextToken();
     while (lookahead.type != END) body();
-
-    cfg.setLast(functionTable.getFunction("main")->getLastNode()->getName());
+    FunctionSymbol* mainFuncSym = functionTable.getFunction("main");
+    cfg.setFirst(mainFuncSym->getFirstNode()->getName());
+    cfg.setLast(mainFuncSym->getLastNode()->getName());
     Optimise::optimise(symbolTable, functionTable, cfg);
     //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
     //symMan.search();
@@ -149,13 +150,12 @@ void Compiler::findGlobalsAndMakeStates()
             }
         }
     }
-    if (globals || functionTable.getSize() > 1)
-    {
+    //if (globals || functionTable.getSize() > 1)
+    //{
         if (!functionTable.containsFunction("main")) error("Function 'main' must be defined");
         FunctionSymbol* mainSymbol = functionTable.getFunction("main");
         mainSymbol->addCommands(initialState);
-        cfg.setFirst(mainSymbol->getFirstNode()->getName());
-    }
+    //}
 }
 
 void Compiler::match(Type t)

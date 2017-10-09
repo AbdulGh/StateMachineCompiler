@@ -10,9 +10,14 @@
 
 using namespace std;
 
-shared_ptr<CFGNode> ControlFlowGraph::getNode(const string& name)
+ControlFlowGraph::~ControlFlowGraph()
 {
-    unordered_map<string, shared_ptr<CFGNode>>::const_iterator it = currentNodes.find(name);
+    for (auto& node : currentNodes) delete node.second;
+}
+
+CFGNode* ControlFlowGraph::getNode(const string& name)
+{
+    unordered_map<string, CFGNode*>::const_iterator it = currentNodes.find(name);
     if (it == currentNodes.cend()) return nullptr;
     return it->second;
 }
@@ -21,20 +26,21 @@ void ControlFlowGraph::removeNode(string name)
 {
     auto it = currentNodes.find(name);
     if (it == currentNodes.end()) throw "Check";
-    shared_ptr<CFGNode> nodePointer = it->second;
+    CFGNode* nodePointer = it->second;
     if (nodePointer->isLastNode())
     {
         if (nodePointer->getPredecessors().size() != 1) throw runtime_error("Can't replace last node");
-        shared_ptr<CFGNode> newLast = last->getPredecessors().cbegin()->second;
+        CFGNode* newLast = last->getPredecessors().cbegin()->second;
         nodePointer->getParentFunction()->setLastNode(newLast);
         if (last->getName() == nodePointer->getName()) last = newLast;
     }
+    delete nodePointer;
     currentNodes.erase(it);
 }
 
-shared_ptr<CFGNode> ControlFlowGraph::createNode(const string &name, bool overwrite, bool isLast, FunctionSymbol* parentFunc)
+CFGNode* ControlFlowGraph::createNode(const string &name, bool overwrite, bool isLast, FunctionSymbol* parentFunc)
 {
-    shared_ptr<CFGNode> introducing;
+    CFGNode* introducing;
     if ((introducing = getNode(name)) != nullptr)
     {
         if (!overwrite) throw runtime_error("node already exists");
@@ -43,7 +49,7 @@ shared_ptr<CFGNode> ControlFlowGraph::createNode(const string &name, bool overwr
     }
     else
     {
-        introducing = make_shared<CFGNode>(*this, parentFunc, name);
+        introducing = new CFGNode(*this, parentFunc, name);
         if (isLast)
         {
             parentFunc->setLastNode(introducing);
@@ -51,13 +57,12 @@ shared_ptr<CFGNode> ControlFlowGraph::createNode(const string &name, bool overwr
         }
         currentNodes[introducing->getName()] = introducing;
     }
-
     return introducing;
 }
 
-shared_ptr<CFGNode> ControlFlowGraph::createNode(const string &name, bool overwrite, bool isLast)
+CFGNode* ControlFlowGraph::createNode(const string &name, bool overwrite, bool isLast)
 {
-    shared_ptr<CFGNode> introducing;
+    CFGNode* introducing;
     if ((introducing = getNode(name)) != nullptr)
     {
         if (!overwrite) throw runtime_error("node already exists");
@@ -66,8 +71,9 @@ shared_ptr<CFGNode> ControlFlowGraph::createNode(const string &name, bool overwr
     else
     {
         FunctionSymbol* parentFunc = functionTable.getParentFunc(name);
-        introducing = make_shared<CFGNode>(*this, parentFunc, name, isLast);
-        currentNodes[introducing->getName()] = introducing;
+        CFGNode* nodePointer = new CFGNode(*this, parentFunc, name, isLast);
+        introducing = nodePointer;
+        currentNodes[introducing->getName()] = nodePointer;
     }
 
     return introducing;
@@ -83,7 +89,7 @@ void ControlFlowGraph::printSource()
     //order nodes
     //map<string, shared_ptr<CFGNode>> ordered(currentNodes.begin(), currentNodes.end());
 
-    for (auto it : currentNodes)
+    for (auto& it : currentNodes)
     {
         if (it.first == first->getName()) continue;
         it.second->printSource();
@@ -101,12 +107,12 @@ void ControlFlowGraph::printDotGraph()
     }
     else first->printDotNode();
 
-    map<string, shared_ptr<CFGNode>> ordered(currentNodes.begin(), currentNodes.end());
+    map<string, CFGNode*> ordered(currentNodes.begin(), currentNodes.end());
     string currentFunc;
-    for (auto it : ordered) //the nodes should be grouped by function due to name ordering
+    for (auto& it : ordered) //the nodes should be grouped by function due to name ordering
     {
         if (it.first == first->getName()) continue;
-        shared_ptr<CFGNode> n = it.second;
+        CFGNode* n = it.second;
         if (n->getParentFunction()->getPrefix() != currentFunc)
         {
             if (!currentFunc.empty()) cout << "}\n";
@@ -126,17 +132,17 @@ void ControlFlowGraph::printDotGraph()
     }
 }
 
-unordered_map<string, shared_ptr<CFGNode>>& ControlFlowGraph::getCurrentNodes()
+unordered_map<string, CFGNode*>& ControlFlowGraph::getCurrentNodes()
 {
     return currentNodes;
 }
 
-shared_ptr<CFGNode> ControlFlowGraph::getFirst() const
+CFGNode* ControlFlowGraph::getFirst() const
 {
     return first;
 }
 
-shared_ptr<CFGNode> ControlFlowGraph::getLast() const
+CFGNode* ControlFlowGraph::getLast() const
 {
     return last;
 }

@@ -12,42 +12,41 @@ class Compiler;
 
 enum NodeType{COMM, NOTCOMM, LITERAL, IDENTIFIER};
 
-//todo get double rather than casting constantly
 class AbstractExprNode
 {
 protected:
     NodeType type;
     Op op;
-    unsigned int varsRequired;
+    unsigned int varsRequired = 0;
     void setType(NodeType);
 
 public:
     virtual ~AbstractExprNode() = default;
-    virtual void addNode(std::shared_ptr<AbstractExprNode>) = 0;
+    virtual void addNode(AbstractExprNode*) = 0;
     virtual const std::string& getData() const {throw std::runtime_error("no data");}
     NodeType getType() const;
     bool isAtom();
-    virtual std::shared_ptr<AbstractExprNode> getLeft() = 0;
-    virtual std::shared_ptr<AbstractExprNode> getRight() = 0;
+    virtual AbstractExprNode* getLeft() = 0;
+    virtual AbstractExprNode* getRight() = 0;
     virtual double getDouble() {throw std::runtime_error("not a double lit");}
     unsigned int getVarsRequired() const;
 
     Op getOp() const;
 };
-typedef std::shared_ptr<AbstractExprNode> ExprNodePointer;
 
 class OperatorNode : public AbstractExprNode
 {
 private:
-    ExprNodePointer left;
-    ExprNodePointer right;
+    AbstractExprNode* left;
+    AbstractExprNode* right;
 
 public:
-    ExprNodePointer getLeft() override;
-    ExprNodePointer getRight() override;
+    AbstractExprNode* getLeft() override;
+    AbstractExprNode* getRight() override;
 
     OperatorNode(Op);
-    void addNode(ExprNodePointer) override;
+    ~OperatorNode();
+    void addNode(AbstractExprNode*) override;
 };
 
 class AtomNode : public AbstractExprNode
@@ -57,34 +56,34 @@ private:
     int varsRequired;
     double doub;
 public:
-    ExprNodePointer getLeft() override;
-    ExprNodePointer getRight() override;
+    AbstractExprNode* getLeft() override;
+    AbstractExprNode* getRight() override;
 
     AtomNode(std::string, bool);
     double getDouble() override {return doub;}
     const std::string& getData() const override;
     void setData(std::string);
-    void addNode(ExprNodePointer) override;
+    void addNode(AbstractExprNode*) override;
 };
 
-class ExpressionCodeGenerator
+class ExpressionCodeGenerator //todo make namespace or sth
 {
 private:
     static unsigned int nextTemp;
     static unsigned int nextUnique;
     int currentUnique;
     Compiler& parent;
-    ExprNodePointer expression(FunctionSymbol*);
-    ExprNodePointer term(FunctionSymbol*);
-    ExprNodePointer factor(FunctionSymbol*);
+    AbstractExprNode* expression(FunctionSymbol*);
+    AbstractExprNode* term(FunctionSymbol*);
+    AbstractExprNode* factor(FunctionSymbol*);
     std::string genTemp(FunctionSymbol*, unsigned int i);
     std::string genUnique(FunctionSymbol*);
-    bool translateTree(ExprNodePointer, FunctionSymbol*, unsigned int, double&);
+    bool translateTree(AbstractExprNode*, FunctionSymbol*, unsigned int, double&);
     std::string goingto;
     
 public:
     ExpressionCodeGenerator(Compiler& parent, const std::string& assignee);
-    void CompileExpression(FunctionSymbol* fs);
+    void compileExpression(FunctionSymbol *fs);
 };
 
 #endif

@@ -1,12 +1,8 @@
-start
+F1_main_0
 double LHS;
 double RHS;
 string retS;
 double retD;
-jump F_main_0;
-end
-
-F_main_0
 double _2_1_a;
 double _2_1_x;
 double _2_1_b;

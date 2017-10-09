@@ -244,7 +244,7 @@ Relations::Relop Compiler::relop()
 void Compiler::expression(FunctionSymbol* fs, const std::string& to)
 {
     ExpressionCodeGenerator gen(*this, to);
-    gen.CompileExpression(fs);
+    gen.compileExpression(fs);
 }
 
 VariableType Compiler::vtype()

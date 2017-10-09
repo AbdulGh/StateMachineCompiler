@@ -61,13 +61,13 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, shared_ptr<Identi
     if (!toFS->checkTypes(paramTypes)) error("Type mismatch in parameters for function '" + fid + "'");
 
     fromFS->genJump(toFS->getFirstNode()->getName(), lookahead.line);
-    shared_ptr<CFGNode> finishedState = fromFS->getCurrentNode();
+    CFGNode* finishedState = fromFS->getCurrentNode();
     fromFS->genEndState();
     fromFS->genNewState(nextState);
-    shared_ptr<CFGNode> created = fromFS->getCurrentNode();
+    CFGNode* created = fromFS->getCurrentNode();
     created->addPushingState(finishedState);
     created->addParent(toFS->getLastNode());
-    toFS->addReturnSuccessor(created.get());
+    toFS->addReturnSuccessor(created);
 
     //pop all vars back
     for (auto rit = fromVars.rbegin(); rit != fromVars.rend(); ++rit)

@@ -7,18 +7,24 @@ using namespace std;
 
 FunctionSymbol::FunctionSymbol(VariableType rt, std::vector<VariableType> types, std::string in, ControlFlowGraph& c):
     returnType(rt), paramTypes(move(types)), prefix(move(in)),
-    currentStates(1), endedState(false), cfg(c)
-    {currentNode = cfg.createNode(prefix + "0", false, false, this);}
+    currentStates(1), endedState(false), cfg(c), lastNode{nullptr}
+    {currentNode = cfg.createNode(prefix + "0", false, false, this); firstNode = currentNode;}
 
 
 //assumes the entire function is reachable from the first node (most unreachable parts will be removed by symbolic execution)
 void FunctionSymbol::giveNodesTo(FunctionSymbol* to)
 {
-    to->setLastNode(getLastNode());
-    stack<shared_ptr<CFGNode>> toConvert({getFirstNode()});
+    if (to->getPrefix() == getPrefix()) return;
+
+    for (auto pair : cfg.getCurrentNodes())
+    {
+        if (pair.second->getParentFunction()->getPrefix() == getPrefix()) pair.second->setParentFunction(to);
+    }
+
+    /*stack<CFGNode*> toConvert({getFirstNode()});
     while (!toConvert.empty())
     {
-        shared_ptr<CFGNode> converting = (toConvert.top()); //why will this only work with parentheses?
+        CFGNode* converting = (toConvert.top()); //why will this only work with parentheses?
         toConvert.pop();
         converting->setParentFunction(to);
         if (converting->getCompSuccess() != nullptr
@@ -31,17 +37,23 @@ void FunctionSymbol::giveNodesTo(FunctionSymbol* to)
         {
             toConvert.push(converting->getCompFail());
         }
-    }
+    }*/
+    to->setLastNode(getLastNode());
 }
 
-const shared_ptr<CFGNode>& FunctionSymbol::getLastNode()
+CFGNode* FunctionSymbol::getLastNode()
 {
     if (lastNode == nullptr) lastNode = cfg.createNode(prefix + "fin", false, true, this);
     return lastNode;
 }
 
-void FunctionSymbol::setLastNode(const shared_ptr<CFGNode>& ln)
+void FunctionSymbol::setLastNode(CFGNode* ln)
 {
+    if (ln->getParentFunction()->getPrefix() != getPrefix())
+    {
+        ln->getParentGraph().printSource();
+        throw "not my node";
+    }
     if (lastNode != nullptr)
     {
         lastNode->setLast(false);
@@ -52,22 +64,21 @@ void FunctionSymbol::setLastNode(const shared_ptr<CFGNode>& ln)
     for (const auto& ret : returnTo) ret->addParent(lastNode);
 }
 
-const shared_ptr<CFGNode>& FunctionSymbol::getFirstNode()
+CFGNode* FunctionSymbol::getFirstNode()
 {
     if (firstNode == nullptr) firstNode = cfg.createNode(prefix + "0", true, false, this);
     return firstNode;
 }
 
-void FunctionSymbol::setFirstNode(const shared_ptr<CFGNode>& firstNode)
+void FunctionSymbol::setFirstNode(CFGNode* firstNode)
 {
     FunctionSymbol::firstNode = firstNode;
 }
 
-const shared_ptr<CFGNode>& FunctionSymbol::getCurrentNode() const
+CFGNode* FunctionSymbol::getCurrentNode() const
 {
     return currentNode;
 }
-
 
 const vector<string>& FunctionSymbol::getVars()
 {
@@ -111,11 +122,11 @@ void FunctionSymbol::addReturnSuccessor(CFGNode* returningTo)
         if (ptr->getName() == returningTo->getName()) return;
     }
 
-    returnTo.insert(returningTo);
-    returningTo->addParent(getLastNode()->shared_from_this());
+    returnTo.push_back(returningTo);
+    returningTo->addParent(getLastNode());
 }
 
-void FunctionSymbol::addReturnSuccessors(const set<CFGNode*>& newRetSuccessors)
+void FunctionSymbol::addReturnSuccessors(const vector<CFGNode*>& newRetSuccessors)
 {
     for (const auto& ret : newRetSuccessors) addReturnSuccessor(ret);
 }
@@ -127,26 +138,21 @@ void FunctionSymbol::clearReturnSuccessors()
     returnTo.clear();
 }
 
-void FunctionSymbol::setReturnSuccessors(set<CFGNode*>& newRet)
+void FunctionSymbol::setReturnSuccessors(vector<CFGNode*>& newRet)
 {
     clearReturnSuccessors();
     for (const auto& newSucc : newRet) addReturnSuccessor(newSucc);
 }
 
-const std::set<CFGNode*>& FunctionSymbol::getReturnSuccessors()
+const std::vector<CFGNode*>& FunctionSymbol::getReturnSuccessors()
 {
     return returnTo;
 }
 
 void FunctionSymbol::removeReturnSuccessor(const std::string& ret)
 {
-    auto eraseIt = find_if(returnTo.begin(), returnTo.end(),
-                                  [&, ret](CFGNode* node)
-                                  { return node->getName() == ret; });
-    CFGNode* debug = (*eraseIt);
-    if (eraseIt != returnTo.end()) returnTo.erase(eraseIt);
     //returnTo.erase(eraseEnd, returnTo.end());
-    /*for (auto it = returnTo.begin(); it != returnTo.end(); it++)
+    for (auto it = returnTo.begin(); it != returnTo.end(); it++)
     {
         if ((*it)->getName() == ret)
         {
@@ -154,7 +160,7 @@ void FunctionSymbol::removeReturnSuccessor(const std::string& ret)
             returnTo.erase(it);
             break;
         }
-    }*/
+    }
 }
 
 /*generation*/

@@ -27,14 +27,21 @@ Op AbstractExprNode::getOp() const
     return op;
 }
 
-OperatorNode::OperatorNode(Op o): left(nullptr), right(nullptr)
+OperatorNode::OperatorNode(Op o): left{nullptr}, right{nullptr}
 {
     op = o;
     if (op == PLUS || op == MULT) setType(COMM);
     else setType(NOTCOMM);
 }
 
-void OperatorNode::addNode(ExprNodePointer p)
+OperatorNode::~OperatorNode()
+{
+    //delete on nullptr does nothing (ie doesnt crash)
+    delete left;
+    delete right;
+}
+
+void OperatorNode::addNode(AbstractExprNode* p)
 {
     if (left == nullptr)
     {
@@ -58,7 +65,7 @@ void OperatorNode::addNode(ExprNodePointer p)
             if (right == nullptr) right = p;
             else if (right->getVarsRequired() > p->getVarsRequired())
             {
-                ExprNodePointer newP = make_shared<OperatorNode>(op);
+                AbstractExprNode* newP = new OperatorNode(op);
                 newP->addNode(left);
                 newP->addNode(right);
                 left = newP;
@@ -66,7 +73,7 @@ void OperatorNode::addNode(ExprNodePointer p)
             }
             else
             {
-                ExprNodePointer newP = make_shared<OperatorNode>(op);
+                AbstractExprNode* newP = new OperatorNode(op);
                 newP->addNode(left);
                 newP->addNode(p);
                 left = newP;
@@ -82,7 +89,7 @@ void OperatorNode::addNode(ExprNodePointer p)
         if (right == nullptr) right = p;
         else
         {
-            ExprNodePointer newP = make_shared<OperatorNode>(op);
+            AbstractExprNode* newP = new OperatorNode(op);
             newP->addNode(left);
             newP->addNode(right);
             left = newP;
@@ -91,12 +98,12 @@ void OperatorNode::addNode(ExprNodePointer p)
     }
 }
 
-ExprNodePointer OperatorNode::getLeft()
+AbstractExprNode* OperatorNode::getLeft()
 {
     return left;
 }
 
-ExprNodePointer OperatorNode::getRight()
+AbstractExprNode* OperatorNode::getRight()
 {
     return right;
 }
@@ -113,17 +120,17 @@ AtomNode::AtomNode(string in, bool num):
     else setType(IDENTIFIER);
 }
 
-ExprNodePointer AtomNode::getLeft()
+AbstractExprNode* AtomNode::getLeft()
 {
     return nullptr;
 }
 
-ExprNodePointer AtomNode::getRight()
+AbstractExprNode* AtomNode::getRight()
 {
     return nullptr;
 }
 
-void AtomNode::addNode(ExprNodePointer)
+void AtomNode::addNode(AbstractExprNode*)
 {
     throw "Atoms have no children";
 }
@@ -135,5 +142,5 @@ const string& AtomNode::getData() const
 
 void AtomNode::setData(std::string s)
 {
-    data = s;
+    data = move(s);
 }

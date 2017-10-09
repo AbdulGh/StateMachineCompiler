@@ -55,12 +55,12 @@ void SymbolicExecutionManager::search()
         if (p.second == 0) // no feasable visits - remove
         {
             reporter.optimising(Reporter::DEADCODE, "State '" + p.first + "' is unreachable and will be removed");
-            shared_ptr<CFGNode> lonelyNode = cfg.getNode(p.first);
+            CFGNode* lonelyNode = cfg.getNode(p.first);
             if (lonelyNode->getCompSuccess() != nullptr) lonelyNode->getCompSuccess()->removeParent(lonelyNode);
             if (lonelyNode->getCompFail() != nullptr) lonelyNode->getCompFail()->removeParent(lonelyNode);
             for (auto& parentPair : lonelyNode->getPredecessors())
             {
-                shared_ptr<CFGNode> parent = parentPair.second;
+                CFGNode* parent = parentPair.second;
                 if (parent->getCompSuccess() != nullptr &&
                         parent->getCompSuccess()->getName() == lonelyNode->getName()) parent->setCompSuccess(nullptr);
 
@@ -78,10 +78,10 @@ void SymbolicExecutionManager::search()
     }
 }
 
-shared_ptr<CFGNode>
-SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFringe> returningSEF, shared_ptr<CFGNode> n)
+CFGNode*
+SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFringe> returningSEF, CFGNode* n)
 {
-    shared_ptr<CFGNode> failNode = n->getCompFail();
+    CFGNode* failNode = n->getCompFail();
     if (failNode == nullptr) //return to top of stack
     {
         if (returningSEF->currentStack->getTopType() != SymbolicStackMemberType::STATE)
@@ -100,7 +100,7 @@ SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFringe> return
     return failNode;
 }
 
-bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n)
+bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n)
 {
     if (!sef->isFeasable()) return false;
     else if (sef->hasSeen(n->getName())) return true;
@@ -164,7 +164,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                     sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(),
                                                                                Relations::negateRelop(jocc->op), rhs);
 
-                    shared_ptr<CFGNode> nextNode = getFailNode(sef, n);
+                    CFGNode* nextNode = getFailNode(sef, n);
                     if (nextNode == nullptr) return false;
                     return visitNode(sef, nextNode);
                 }
@@ -177,7 +177,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                 {
                     sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(), jocc->op, rhs);
 
-                    shared_ptr<CFGNode> nextNode = getFailNode(sef, n);
+                    CFGNode* nextNode = getFailNode(sef, n);
                     if (nextNode == nullptr) return false;
                     return visitNode(sef, nextNode);
                 }
@@ -215,7 +215,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                     }
                     else
                     {
-                        shared_ptr<CFGNode> nextnode = getFailNode(sef, n);
+                        CFGNode* nextnode = getFailNode(sef, n);
                         if (nextnode == nullptr) return false;
                         sef->pathConditions[n->getName()] = make_shared<Condition>(LHS->getName(), Relations::negateRelop(jocc->op),
                                                                                    RHS->getName() + "(= " +  RHS->getConstString() + ")");
@@ -253,7 +253,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     else //unconditional jump
     {
         if (n->getName() == cfg.getLast()->getName()) return true;
-        shared_ptr<CFGNode> retNode = getFailNode(sef, n);
+        CFGNode* retNode = getFailNode(sef, n);
         if (retNode == nullptr) return false;
         return visitNode(sef, retNode);
     }
@@ -262,7 +262,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
 //these things below will usually be called when we already have
 //a ptr to the vars but we want to copy that var into the 'new scope'
 template <typename T>
-bool SymbolicExecutionManager::branch(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n, string lhsvar,
+bool SymbolicExecutionManager::branch(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n, string lhsvar,
                                       Relations::Relop op, const T& rhsconst, bool reverse)
 {
     switch(op)
@@ -285,7 +285,7 @@ bool SymbolicExecutionManager::branch(shared_ptr<SymbolicExecutionFringe> sef, s
 }
 
 template <typename T>
-bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
+bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                         string lhsvar, const T& rhsconst, bool reverse)
 {
     bool feasable = false;
@@ -298,7 +298,7 @@ bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(seflt, n->getCompSuccess());}
     else
     {
-        shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
+        CFGNode* failNode = getFailNode(seflt, n);
         if (failNode == nullptr)
         {
             return false;
@@ -313,7 +313,7 @@ bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
             = make_shared<Condition>(lhsvar, Relations::EQ, rhsconst);
     if (reverse)
     {
-        shared_ptr<CFGNode> failNode = getFailNode(sefeq, n);
+        CFGNode* failNode = getFailNode(sefeq, n);
         if (failNode == nullptr) return false;
         visitWithFeasable(sefeq, failNode);
     }
@@ -333,7 +333,7 @@ bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(sefgt, n->getCompSuccess());}
     else
     {
-        shared_ptr<CFGNode> failNode = getFailNode(sefgt, n);
+        CFGNode* failNode = getFailNode(sefgt, n);
         if (failNode == nullptr) return false;
         visitWithFeasable(sefgt, failNode);
     }
@@ -343,7 +343,7 @@ bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
 }
 
 template <typename T>
-bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
+bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                         string lhsvar, const T& rhsconst, bool reverse)
 {
     bool feasable = false;
@@ -353,7 +353,7 @@ bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
     seflt->pathConditions[n->getName()] = make_shared<Condition>(lhsvar, Relations::LT, rhsconst);
     if (reverse)
     {
-        shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
+        CFGNode* failNode = getFailNode(seflt, n);
         if (failNode == nullptr) return false;
         visitWithFeasable(seflt, failNode);
     }
@@ -367,7 +367,7 @@ bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(seflt, n->getCompSuccess());}
     else
     {
-        shared_ptr<CFGNode> failNode = getFailNode(sefeq, n);
+        CFGNode* failNode = getFailNode(sefeq, n);
         if (failNode == nullptr) return false;
         visitWithFeasable(sefeq, failNode);
     }
@@ -380,7 +380,7 @@ bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
             = make_shared<Condition>(lhsvar, Relations::GT, rhsconst);
     if (reverse)
     {
-        shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
+        CFGNode* failNode = getFailNode(seflt, n);
         if (failNode == nullptr) return false;
         visitWithFeasable(seflt, failNode);
     }
@@ -390,7 +390,7 @@ bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
 }
 
 template <typename T>
-bool SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
+bool SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                         string lhsvar, const T& rhsconst, bool reverse)
 {
     bool feasable = false;
@@ -402,7 +402,7 @@ bool SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef,
 
     if (reverse)
     {
-        shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
+        CFGNode* failNode = getFailNode(seflt, n);
         if (failNode == nullptr) return false;
         visitWithFeasable(seflt, failNode);
     }
@@ -417,7 +417,7 @@ bool SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(sefge, n->getCompSuccess());}
     else
     {
-        shared_ptr<CFGNode> failNode = getFailNode(sefge, n);
+        CFGNode* failNode = getFailNode(sefge, n);
         if (failNode == nullptr) return false;
         visitWithFeasable(sefge, failNode);
     }
@@ -426,7 +426,7 @@ bool SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef,
 }
 
 template <typename T>
-bool SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
+bool SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                         string lhsvar, const T& rhsconst, bool reverse)
 {
     bool feasable = false;
@@ -438,7 +438,7 @@ bool SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef,
 
     if (reverse)
     {
-        shared_ptr<CFGNode> failNode = getFailNode(sefle, n);
+        CFGNode* failNode = getFailNode(sefle, n);
         if (failNode == nullptr) return false;
         visitWithFeasable(sefle, failNode);
     }
@@ -453,7 +453,7 @@ bool SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(sefgt, n->getCompSuccess());}
     else
     {
-        shared_ptr<CFGNode> failNode = getFailNode(sefgt, n);
+        CFGNode* failNode = getFailNode(sefgt, n);
         if (failNode == nullptr) return false;
         visitWithFeasable(sefgt, failNode);
     }
@@ -462,7 +462,7 @@ bool SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef,
 }
 
 template <typename T>
-bool SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
+bool SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                         string lhsvar, const T& rhsconst, bool reverse)
 {
     bool feasable = false;
@@ -474,7 +474,7 @@ bool SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef,
 
     if (reverse)
     {
-        shared_ptr<CFGNode> failNode = getFailNode(sefgt, n);
+        CFGNode* failNode = getFailNode(sefgt, n);
         if (failNode == nullptr) return false;
         visitWithFeasable(sefgt, failNode);
     }
@@ -490,7 +490,7 @@ bool SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(sefle, n->getCompSuccess());}
     else
     {
-        shared_ptr<CFGNode> failNode = getFailNode(sefle, n);
+        CFGNode* failNode = getFailNode(sefle, n);
         if (failNode == nullptr) return false;
         visitWithFeasable(sefle, failNode);
     }
@@ -499,7 +499,7 @@ bool SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef,
 }
 
 template <typename T>
-bool SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
+bool SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                         string lhsvar, const T& rhsconst, bool reverse)
 {
     bool feasable = false;
@@ -511,7 +511,7 @@ bool SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
 
     if (reverse)
     {
-        shared_ptr<CFGNode> failNode = getFailNode(sefge, n);
+        CFGNode* failNode = getFailNode(sefge, n);
         if (failNode == nullptr) return false;
         visitWithFeasable(sefge, failNode);
     }
@@ -526,7 +526,7 @@ bool SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(seflt, n->getCompSuccess());}
     else
     {
-        shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
+        CFGNode* failNode = getFailNode(seflt, n);
         if (failNode == nullptr) return false;
         visitWithFeasable(seflt, failNode);
     }
@@ -536,7 +536,7 @@ bool SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
 
 //branching on var comparison
 template <typename T>
-bool SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
+bool SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                          VarTemplatePointer<T> LHS, Relations::Relop op,
                                          VarTemplatePointer<T> RHS)
 {
@@ -560,13 +560,13 @@ bool SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe> sef
 }
 
 template <typename T>
-bool SymbolicExecutionManager::varBranchGE(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
+bool SymbolicExecutionManager::varBranchGE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                            VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
 {
     bool feasable = false;
     
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
+    CFGNode* failNode = getFailNode(seflt, n);
     if (failNode == nullptr) return false;
     seflt->pathConditions[n->getName()]
             = make_shared<Condition>(lhsvar->getName(), Relations::LT, rhsvar->getName());
@@ -584,12 +584,12 @@ bool SymbolicExecutionManager::varBranchGE(shared_ptr<SymbolicExecutionFringe> s
 }
 
 template <typename T>
-bool SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
+bool SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                               VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
 {
     bool feasable = false;
     shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
-    shared_ptr<CFGNode> failNode = getFailNode(sefle, n);
+    CFGNode* failNode = getFailNode(sefle, n);
     if (failNode == nullptr) return false;
     if (!sefle->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipUpperBound(rhsvar->getUpperBound())) return false;
     sefle->pathConditions[n->getName()]
@@ -608,13 +608,13 @@ bool SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> s
 }
 
 template <typename T>
-bool SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
+bool SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                               VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
 {
 
     bool feasable = false;
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    shared_ptr<CFGNode> failNode = getFailNode(seflt, n);
+    CFGNode* failNode = getFailNode(seflt, n);
     if (failNode == nullptr) return false;
     if (!seflt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipUpperBound(rhsvar->getUpperBound(), false)) return false;
     seflt->pathConditions[n->getName()]
@@ -633,13 +633,13 @@ bool SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> s
 }
 
 template <typename T>
-bool SymbolicExecutionManager::varBranchLE(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
+bool SymbolicExecutionManager::varBranchLE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                               VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
 {
     bool feasable = false;
 
     shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
-    shared_ptr<CFGNode> failNode = getFailNode(sefle, n);
+    CFGNode* failNode = getFailNode(sefle, n);
     if (failNode == nullptr) return false;
     if (!sefle->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipUpperBound(rhsvar->getUpperBound())) return false;
     sefle->pathConditions[n->getName()]
@@ -658,13 +658,13 @@ bool SymbolicExecutionManager::varBranchLE(shared_ptr<SymbolicExecutionFringe> s
 }
 
 template <typename T>
-bool SymbolicExecutionManager::varBranchNE(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
+bool SymbolicExecutionManager::varBranchNE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                            VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
 {
     bool feasable = false;
 
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
-    shared_ptr<CFGNode> failNode = getFailNode(sefeq, n);
+    CFGNode* failNode = getFailNode(sefeq, n);
     if (failNode == nullptr) return false;
     VarTemplatePointer<T>& glbvar = getGreatestLowerBound(lhsvar, rhsvar);
     if (glbvar->isBoundedBelow())
@@ -705,7 +705,7 @@ bool SymbolicExecutionManager::varBranchNE(shared_ptr<SymbolicExecutionFringe> s
 }
 
 template <typename T>
-bool SymbolicExecutionManager::varBranchEQ(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n,
+bool SymbolicExecutionManager::varBranchEQ(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                            VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
 {
     bool feasable = false;
@@ -736,7 +736,7 @@ bool SymbolicExecutionManager::varBranchEQ(shared_ptr<SymbolicExecutionFringe> s
     
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    shared_ptr<CFGNode> failNode = getFailNode(sefgt, n);
+    CFGNode* failNode = getFailNode(sefgt, n);
     if (failNode == nullptr) return false;
     if (!sefgt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipLowerBound(rhsvar->getUpperBound(), false)) return false;
     visitWithFeasable(sefgt, n->getCompSuccess());
@@ -778,7 +778,7 @@ void SymbolicExecutionManager::findJumps()
     visitNodeSimple(sef, cfg.getFirst());
 }
 
-void SymbolicExecutionManager::visitNodeSimple(shared_ptr<SymbolicExecutionFringe> sef, shared_ptr<CFGNode> n)
+void SymbolicExecutionManager::visitNodeSimple(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n)
 {
     /*if (!sef->isFeasable()) return;
     else if (sef->hasSeen(n->getName())) return;

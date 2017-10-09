@@ -6,19 +6,30 @@ FunctionSymbol* FunctionTable::getFunction(const std::string& funcName)
 {
     auto it = functionTable.find(funcName);
     if (it == functionTable.cend()) parent.error("Undefined function '" + funcName + "'");
-    return it->second.get();
+    return it->second;
 }
 
 FunctionSymbol* FunctionTable::addFunction(VariableType returnType, std::vector<VariableType>& types, std::string& ident)
 {
     string prefix = "F" + to_string(functionTable.size()) + "_" + ident + "_";
-    functionTable[ident] = std::make_unique<FunctionSymbol>(returnType, types, prefix, parent.cfg);
-    return functionTable[ident].get();
+    FunctionSymbol* newFunc = new FunctionSymbol(returnType, types, prefix, parent.cfg);
+    functionTable[ident] = newFunc;
+    return newFunc;
 }
 
 bool FunctionTable::containsFunction(const std::string& funcName)
 {
     return (functionTable.find(funcName) != functionTable.cend());
+}
+
+bool FunctionTable::containsFunctionPrefix(const std::string& funcName)
+{
+    return (functionTable.find(removeUnderscoreWrappers(funcName)) != functionTable.cend());
+}
+
+FunctionTable::~FunctionTable()
+{
+    for (auto& symbol : functionTable) delete symbol.second;
 }
 
 //assumes it's in the right format
@@ -46,5 +57,6 @@ void FunctionTable::removeFunction(const std::string& bye)
     string ident = removeUnderscoreWrappers(bye);
     auto it = functionTable.find(ident);
     if (it == functionTable.cend()) throw "cant find function to remove";
+    delete it->second;
     functionTable.erase(it);
 }

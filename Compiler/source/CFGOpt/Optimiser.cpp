@@ -5,8 +5,6 @@
 
 using namespace std;
 
-typedef shared_ptr<CFGNode> NodePointer;
-
 namespace Optimise
 {
     void optimise(SymbolTable& symbolTable, FunctionTable& functionTable, ControlFlowGraph& controlFlowGraph)
@@ -25,7 +23,7 @@ namespace Optimise
 
     void collapseSmallStates(ControlFlowGraph& controlFlowGraph, FunctionTable& functionTable)
     {
-        unordered_map<string, NodePointer>& nodes = controlFlowGraph.getCurrentNodes();
+        unordered_map<string, CFGNode*>& nodes = controlFlowGraph.getCurrentNodes();
         bool changes = true;
         while (changes)
         {
@@ -33,7 +31,7 @@ namespace Optimise
             auto pair = nodes.begin();
             while (pair != nodes.end())
             {
-                NodePointer current = pair->second;
+                CFGNode* current = pair->second;
 
                 if (current->getName() == controlFlowGraph.getFirst()->getName())
                 {
@@ -46,11 +44,12 @@ namespace Optimise
                     if (current->getPredecessors().size() != 1) ++pair;
                     else
                     {
-                        shared_ptr<CFGNode> pred = current->getPredecessors().cbegin()->second;
+                        CFGNode* pred = current->getPredecessors().cbegin()->second;
                         if (!pred->swallowNode(current)) ++pair;
                         else
                         {
-                            current->getParentFunction()->setLastNode(pred);
+                            current->getParentFunction()->giveNodesTo(pred->getParentFunction()); //does nothing if they're the same
+                            pred->getParentFunction()->setLastNode(pred);
                             current->prepareToDie();
                             pair = nodes.erase(pair);
                             changes = true;
@@ -60,7 +59,7 @@ namespace Optimise
                 }
 
                 vector<unique_ptr<AbstractCommand>>& instructionList = current->getInstrs();
-                unordered_map<string, NodePointer>& preds = current->getPredecessors();
+                unordered_map<string, CFGNode*>& preds = current->getPredecessors();
 
                 //if its just an unconditional jump
                 if (instructionList.empty() && current->getCompSuccess() == nullptr && current->getCompFail() != nullptr)
@@ -69,12 +68,14 @@ namespace Optimise
                 }
                 else if (preds.size() == 1)
                 {
-                    shared_ptr<CFGNode> parent = preds.cbegin()->second;
+                    CFGNode* parent = preds.cbegin()->second;
                     if (parent->swallowNode(current))
                     {
-                        string oldFSPrefix = current->getParentFunction()->getPrefix();
-                        if (current->isFirstNode()) current->getParentFunction()->giveNodesTo(parent->getParentFunction());
-                        functionTable.removeFunction(oldFSPrefix);
+                        if (current->isFirstNode())
+                        {
+                            current->getParentFunction()->giveNodesTo(parent->getParentFunction());
+                            functionTable.removeFunction(current->getParentFunction()->getPrefix());
+                        }
                         preds.clear();
                         changes = true;
                     }
@@ -82,7 +83,7 @@ namespace Optimise
                 auto parentit = preds.begin();
                 while (parentit != preds.end())
                 {
-                    NodePointer swallowing = parentit->second;
+                    CFGNode* swallowing = parentit->second;
 
                     if (!swallowing->swallowNode(current)) ++parentit;
                     else
