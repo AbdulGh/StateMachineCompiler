@@ -17,7 +17,7 @@ class CFGNode;
 class ControlFlowGraph
 {
 private:
-    std::unordered_map<std::string, CFGNode*> currentNodes;
+    std::unordered_map<std::string, std::unique_ptr<CFGNode>> currentNodes;
     CFGNode* first;
     CFGNode* last;
     Reporter& reporter;
@@ -26,14 +26,13 @@ private:
 
 public:
     ControlFlowGraph(Reporter& r, FunctionTable& fc) : reporter(r), functionTable(fc) {};
-    ~ControlFlowGraph();
     CFGNode* createNode(const std::string& name, bool overwrite, bool last, FunctionSymbol* parentFunc);
     CFGNode* createNode(const std::string& name, bool overwrite, bool last);
     CFGNode* getNode(const std::string& name);
     void removeNode(std::string name);
-    std::unordered_map<std::string, CFGNode*>& getCurrentNodes();
-    void printSource();
-    void printDotGraph();
+    std::unordered_map<std::string, std::unique_ptr<CFGNode>>& getCurrentNodes();
+    std:: string getSource();
+    std::string getDotGraph();
     CFGNode* getFirst() const;
     CFGNode* getLast() const;
     void setFirst(const std::string& firstname);
@@ -92,8 +91,8 @@ public:
     std::vector<std::unique_ptr<AbstractCommand>>& getInstrs();
     ControlFlowGraph& getParentGraph() const;
     FunctionSymbol* getParentFunction() const;
-    void printSource(bool makeState = true, std::string delim = "\n");
-    void printDotNode();
+    std::string getSource(bool makeState = true, std::string delim = "\n", bool escape = false);
+    std::string getDotNode();
     bool isLastNode() const;
     bool isFirstNode() const;
 };

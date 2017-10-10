@@ -23,7 +23,7 @@ namespace Optimise
 
     void collapseSmallStates(ControlFlowGraph& controlFlowGraph, FunctionTable& functionTable)
     {
-        unordered_map<string, CFGNode*>& nodes = controlFlowGraph.getCurrentNodes();
+        unordered_map<string, unique_ptr<CFGNode>>& nodes = controlFlowGraph.getCurrentNodes();
         bool changes = true;
         while (changes)
         {
@@ -31,7 +31,7 @@ namespace Optimise
             auto pair = nodes.begin();
             while (pair != nodes.end())
             {
-                CFGNode* current = pair->second;
+                CFGNode* current = pair->second.get();
 
                 if (current->getName() == controlFlowGraph.getFirst()->getName())
                 {

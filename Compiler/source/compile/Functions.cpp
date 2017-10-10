@@ -16,7 +16,7 @@ void FunctionSymbol::giveNodesTo(FunctionSymbol* to)
 {
     if (to->getPrefix() == getPrefix()) return;
 
-    for (auto pair : cfg.getCurrentNodes())
+    for (auto& pair : cfg.getCurrentNodes())
     {
         if (pair.second->getParentFunction()->getPrefix() == getPrefix()) pair.second->setParentFunction(to);
     }
@@ -51,7 +51,7 @@ void FunctionSymbol::setLastNode(CFGNode* ln)
 {
     if (ln->getParentFunction()->getPrefix() != getPrefix())
     {
-        ln->getParentGraph().printSource();
+        ln->getParentGraph().getSource();
         throw "not my node";
     }
     if (lastNode != nullptr)

@@ -10,23 +10,18 @@
 
 using namespace std;
 
-ControlFlowGraph::~ControlFlowGraph()
-{
-    for (auto& node : currentNodes) delete node.second;
-}
-
 CFGNode* ControlFlowGraph::getNode(const string& name)
 {
-    unordered_map<string, CFGNode*>::const_iterator it = currentNodes.find(name);
+    unordered_map<string, unique_ptr<CFGNode>>::const_iterator it = currentNodes.find(name);
     if (it == currentNodes.cend()) return nullptr;
-    return it->second;
+    return it->second.get();
 }
 
 void ControlFlowGraph::removeNode(string name)
 {
     auto it = currentNodes.find(name);
     if (it == currentNodes.end()) throw "Check";
-    CFGNode* nodePointer = it->second;
+    unique_ptr<CFGNode>& nodePointer = it->second;
     if (nodePointer->isLastNode())
     {
         if (nodePointer->getPredecessors().size() != 1) throw runtime_error("Can't replace last node");
@@ -34,7 +29,6 @@ void ControlFlowGraph::removeNode(string name)
         nodePointer->getParentFunction()->setLastNode(newLast);
         if (last->getName() == nodePointer->getName()) last = newLast;
     }
-    delete nodePointer;
     currentNodes.erase(it);
 }
 
@@ -49,13 +43,14 @@ CFGNode* ControlFlowGraph::createNode(const string &name, bool overwrite, bool i
     }
     else
     {
-        introducing = new CFGNode(*this, parentFunc, name);
+        unique_ptr<CFGNode> newPtr = make_unique<CFGNode>(*this, parentFunc, name);
+        introducing = newPtr.get();
         if (isLast)
         {
             parentFunc->setLastNode(introducing);
             introducing->setLast(true);
         }
-        currentNodes[introducing->getName()] = introducing;
+        currentNodes[introducing->getName()] = move(newPtr);
     }
     return introducing;
 }
@@ -71,43 +66,49 @@ CFGNode* ControlFlowGraph::createNode(const string &name, bool overwrite, bool i
     else
     {
         FunctionSymbol* parentFunc = functionTable.getParentFunc(name);
-        CFGNode* nodePointer = new CFGNode(*this, parentFunc, name, isLast);
-        introducing = nodePointer;
-        currentNodes[introducing->getName()] = nodePointer;
+        unique_ptr<CFGNode> nodePointer = make_unique<CFGNode>(*this, parentFunc, name, isLast);
+        introducing = nodePointer.get();
+        currentNodes[introducing->getName()] = move(nodePointer);
     }
 
     return introducing;
 }
 
-
-void ControlFlowGraph::printSource()
+string ControlFlowGraph::getSource()
 {
-    if (first == nullptr) return;
-    first->printSource();
-    cout << '\n';
+    if (first == nullptr) return "";
+
+    stringstream outs;
+    outs << first->getSource();
+    outs << '\n';
 
     //order nodes
-    //map<string, shared_ptr<CFGNode>> ordered(currentNodes.begin(), currentNodes.end());
+    map<string, CFGNode*> ordered;
+    for (auto& node : currentNodes) ordered[node.first] = node.second.get();
 
-    for (auto& it : currentNodes)
+    for (auto& it : ordered)
     {
         if (it.first == first->getName()) continue;
-        it.second->printSource();
-        cout << '\n';
+        outs << it.second->getSource() << '\n';
     }
+
+    return outs.str();
 }
 
-void ControlFlowGraph::printDotGraph()
+string ControlFlowGraph::getDotGraph()
 {
-    cout << "digraph{\n";
+    stringstream outs;
+    outs << "digraph{\ngraph [pad=\"0.8\", nodesep=\"0.8\", ranksep=\"0.8\"];\n";
     if (first == nullptr)
     {
-        cout << "}";
-        return;
+        outs << "}";
+        return outs.str();
     }
-    else first->printDotNode();
+    else first->getDotNode();
 
-    map<string, CFGNode*> ordered(currentNodes.begin(), currentNodes.end());
+    map<string, CFGNode*> ordered;
+    for (auto& node : currentNodes) ordered[node.first] = node.second.get();
+    
     string currentFunc;
     for (auto& it : ordered) //the nodes should be grouped by function due to name ordering
     {
@@ -115,24 +116,29 @@ void ControlFlowGraph::printDotGraph()
         CFGNode* n = it.second;
         if (n->getParentFunction()->getPrefix() != currentFunc)
         {
-            if (!currentFunc.empty()) cout << "}\n";
-            FunctionSymbol* oldFS = functionTable.getFunction(currentFunc); //could be done by keeping a pointer but oh well
-            string oldLastNode = oldFS->getLastNode()->getName();
-            for (auto& nodePointer : oldFS->getReturnSuccessors())
+            if (!currentFunc.empty())
             {
-                cout << oldLastNode << "->" << nodePointer->getName()
-                     << "[label='return'];\n";
+                outs << "}\n";
+                FunctionSymbol* oldFS = functionTable.getFunction(currentFunc); //could be done by keeping a pointer but oh well
+                string oldLastNode = oldFS->getLastNode()->getName();
+                for (auto& nodePointer : oldFS->getReturnSuccessors())
+                {
+                    outs << oldLastNode << "->" << nodePointer->getName()
+                         << "[label=\\\"return\\\"];\n";
+                }
             }
             currentFunc = n->getParentFunction()->getPrefix();
-            cout << "subgraph cluster_" << currentFunc << "{\n";
-            cout << "label='" << currentFunc << "';\n";
+            outs << "subgraph cluster_" << currentFunc << "{\n";
+            outs << "label=\"" << currentFunc << "\";\n";
         }
-        n->printDotNode();
-        cout << '\n';
+        outs << n->getDotNode();
+        outs << '\n';
     }
+    outs << "}}\n";
+    return outs.str();
 }
 
-unordered_map<string, CFGNode*>& ControlFlowGraph::getCurrentNodes()
+unordered_map<string, unique_ptr<CFGNode>>& ControlFlowGraph::getCurrentNodes()
 {
     return currentNodes;
 }
@@ -151,12 +157,12 @@ void ControlFlowGraph::setFirst(const string& firstName)
 {
     auto it = currentNodes.find(firstName);
     if (it == currentNodes.end()) throw "Check";
-    first = it->second;
+    first = it->second.get();
 }
 
 void ControlFlowGraph::setLast(const string& lastName)
 {
     auto it = currentNodes.find(lastName);
     if (it == currentNodes.end()) throw "Check";
-    last = it->second;
+    last = it->second.get();
 }

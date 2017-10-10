@@ -22,7 +22,7 @@ protected:
     }
 
 public:
-    virtual std::string translation(std::string delim = "\n") const = 0;
+    virtual std::string translation(const std::string& delim = "\n") const = 0;
     AbstractCommand() {}
     AbstractCommand(int line): linenumber(line) {}
     virtual ~AbstractCommand() {}
@@ -77,7 +77,7 @@ public:
         setType(CommandType::NONE);
     }
 
-    std::string translation(std::string delim) const override {return "print " + getData() + ";" + delim;}
+    std::string translation(const std::string& delim) const override {return "print " + getData() + ";" + delim;}
 
     std::unique_ptr<AbstractCommand> clone() override
     {
@@ -93,7 +93,7 @@ public:
         setData("return");
         setType(CommandType::JUMP);
     }
-    std::string translation(std::string delim) const override {return "return;" + delim;} //meta
+    std::string translation(const std::string& delim) const override {return "return;" + delim;} //meta
 
     std::unique_ptr<AbstractCommand> clone() override
     {
@@ -109,7 +109,7 @@ public:
         setData(to);
         setType(CommandType::JUMP);
     }
-    std::string translation(std::string delim) const override{return "jump " + getData() + ";" + delim;};
+    std::string translation(const std::string& delim) const override{return "jump " + getData() + ";" + delim;};
 
     std::unique_ptr<AbstractCommand> clone() override
     {
@@ -181,9 +181,11 @@ public:
         return std::make_unique<JumpOnComparisonCommand>(getData(), term1, term2, op, getLineNum());
     }
 
-    std::string translation(std::string delim) const override {return "jumpif " + term1 + relEnumStrs[op] + term2 + " " + getData() + ";" + delim;}
-    std::string negatedTranslation(std::string delim) const {return "jumpif " + term1 +
+    std::string translation(const std::string& delim) const override {return "jumpif " + term1 + relEnumStrs[op] + term2 + " " + getData() + ";" + delim;}
+    std::string negatedTranslation(const std::string& delim) const {return "jumpif " + term1 +
                 relEnumStrs[Relations::negateRelop(op)] + term2 + " " + getData() + ";" + delim;}
+    std::string condition(const std::string& delim) const {return term1 + relEnumStrs[op] + term2 + delim;}
+    std::string negatedCondition(const std::string& delim) const {return term1 + relEnumStrs[Relations::negateRelop(op)] + term2 + delim;}
 };
 
 class InputVarCommand: public AbstractCommand
@@ -194,7 +196,7 @@ public:
         setData(assigning);
         setType(CommandType::CHANGEVAR);
     }
-    std::string translation(std::string delim) const override{return "input " + getData() + ";" + delim;};
+    std::string translation(const std::string& delim) const override{return "input " + getData() + ";" + delim;};
 
     std::unique_ptr<AbstractCommand> clone() override
     {
@@ -220,7 +222,7 @@ public:
         setType(CommandType::PUSH);
     }
 
-    std::string translation(std::string delim) const override
+    std::string translation(const std::string& delim) const override
     {
         if (pushType == PUSHSTATE) return "push state " + getData() + ";" + delim;
         else return "push " + getData() + ";" + delim;
@@ -250,7 +252,7 @@ public:
 
     bool isEmpty() const {return getData() == "";}
 
-    std::string translation(std::string delim) const override {return isEmpty() ? "pop;" + delim : "pop " + getData() + ";" + delim;}
+    std::string translation(const std::string& delim) const override {return isEmpty() ? "pop;" + delim : "pop " + getData() + ";" + delim;}
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
 };
 
@@ -271,7 +273,7 @@ public:
         return std::make_unique<AssignVarCommand>(getData(), RHS, getLineNum());
     }
 
-    std::string translation(std::string delim) const override{return getData() + " = " + RHS + ";" + delim;}
+    std::string translation(const std::string& delim) const override{return getData() + " = " + RHS + ";" + delim;}
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
 };
 
@@ -294,7 +296,7 @@ public:
         return std::make_unique<EvaluateExprCommand>(getData(), term1, op, term2, getLineNum());
     }
 
-    std::string translation(std::string delim) const override{return getData() + " = " + term1 + ' '
+    std::string translation(const std::string& delim) const override{return getData() + " = " + term1 + ' '
                                                                      + opEnumChars[op]  + ' ' + term2 + ";" + delim;}
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
 };
@@ -315,7 +317,7 @@ public:
         return std::make_unique<DeclareVarCommand>(vt, getData(), getLineNum());
     }
 
-    std::string translation(std::string delim) const override
+    std::string translation(const std::string& delim) const override
     {
         return VariableTypeEnumNames[vt] + " " + getData() + ";" + delim;
     }

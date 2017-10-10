@@ -43,8 +43,7 @@ void Compiler::compile(stringstream& out)
     //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
     //symMan.search();
     //Optimise::optimise(symbolTable, cfg);
-    //out << cfg.getDotGraph();
-    cfg.printSource();
+    cout << cfg.getSource();
 }
 
 Token Compiler::nextToken()
@@ -150,12 +149,10 @@ void Compiler::findGlobalsAndMakeStates()
             }
         }
     }
-    //if (globals || functionTable.getSize() > 1)
-    //{
-        if (!functionTable.containsFunction("main")) error("Function 'main' must be defined");
-        FunctionSymbol* mainSymbol = functionTable.getFunction("main");
-        mainSymbol->addCommands(initialState);
-    //}
+
+    if (!functionTable.containsFunction("main")) error("Function 'main' must be defined");
+    FunctionSymbol* mainSymbol = functionTable.getFunction("main");
+    mainSymbol->addCommands(initialState);
 }
 
 void Compiler::match(Type t)

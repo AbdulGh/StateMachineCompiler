@@ -24,60 +24,61 @@ const string &CFGNode::getName() const
     return name;
 }
 
-void CFGNode::printSource(bool makeState, std::string delim)
+string CFGNode::getSource(bool makeState, std::string delim, bool escape)
 {
+    stringstream outs;
+
     if (makeState)
     {
-        cout << name << delim;
+        outs << name << delim;
         for (auto& ac: instrs)
         {
-            cout << ac->translation(delim);
+            outs << ac->translation(delim);
         }
-        if (compSuccess != nullptr) cout << comp->translation(delim);
-        if (compFail != nullptr) cout << JumpCommand(compFail->getName(), jumpline).translation(delim);
-        else cout << ReturnCommand(jumpline).translation(delim);
-        cout << "end" + delim;
+        if (compSuccess != nullptr) outs << comp->translation(delim);
+        if (compFail != nullptr) outs << JumpCommand(compFail->getName(), jumpline).translation(delim);
+        else outs << ReturnCommand(jumpline).translation(delim);
+        outs << "end" + delim;
     }
-    else for (auto& ac: instrs) cout << ac->translation(delim);
-    /*f (makeState)
+    else for (auto& ac: instrs) outs << ac->translation(delim);
+    if (escape)
     {
-        cout << name << delim;
-        for (shared_ptr<AbstractCommand>& ac: instrs)
+        string out;
+        for (char c : outs.str())
         {
-            if (ac == nullptr) cout << "null\n"; //debug
-            else cout << ac->translation(delim);
+            if (c == '"') out += "\\\"";
+            else if (c == '\\') out += "\\\\";
+            else out += c;
         }
-        if (compSuccess != nullptr) cout << comp->translation(delim);
-        if (compFail != nullptr) cout << JumpCommand(compFail->getName(), jumpline).translation(delim);
-        else cout << ReturnCommand(jumpline).translation(delim);
-        cout << "end" << delim;
+        return out;
     }
-    else for (shared_ptr<AbstractCommand>& ac: instrs) cout << ac->translation(delim);
-    cout << "\n";*/
+    return outs.str();
 }
 
-void CFGNode::printDotNode()
+string CFGNode::getDotNode()
 {
-    cout << getName() << "[label='<B><I>" << getName() << "</I></B>\\n";
-    printSource(false, "\\n");
-    cout << "'];\n";
+    stringstream outs;
+    outs << getName() << "[label=<<B>" << getName() << "</B><br/>";
+    outs << getSource(false, "<br/>", false);
+    outs << "> shape=box];\n";
     if (compSuccess != nullptr)
     {
-        string trans = comp->translation("");
-        cout << getName() << "->" << compSuccess->getName()
-             << "[label='" << trans << "'];\n";
+        string trans = comp->condition("");
+        outs << getName() << "->" << compSuccess->getName()
+             << "[label=\"" << trans << "\"];\n";
     }
     if (compFail != nullptr)
     {
         if (comp != nullptr)
         {
-            string trans = comp->negatedTranslation("");
-            cout << getName() << "->" << compFail->getName()
-                 << "[label='" << trans << "'];\n";
+            string trans = comp->negatedCondition("");
+            outs << getName() << "->" << compFail->getName()
+                 << "[label=\" " << trans << "\"];\n";
         }
-        else cout << getName() << "->" << compFail->getName()
-                  << "[label='jump'];\n";
+        else outs << getName() << "->" << compFail->getName()
+                  << "[label=\"  jump\"];\n";
     }
+    return outs.str();
 }
 
 bool CFGNode::constProp()
