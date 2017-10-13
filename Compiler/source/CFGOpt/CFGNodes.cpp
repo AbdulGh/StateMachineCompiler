@@ -55,6 +55,24 @@ string CFGNode::getSource(bool makeState, std::string delim, bool escape)
     return outs.str();
 }
 
+/*string CFGNode::getInstructions()
+{
+    stringstream outs;
+
+    if (makeState)
+    {
+        outs << name << delim;
+        for (auto& ac: instrs)
+        {
+            outs << ac->translation(delim);
+        }
+        if (compSuccess != nullptr) outs << comp->translation(delim);
+        if (compFail != nullptr) outs << JumpCommand(compFail->getName(), jumpline).translation(delim);
+        else outs << ReturnCommand(jumpline).translation(delim);
+        outs << "end" + delim;
+    }
+}*/
+
 string CFGNode::getDotNode()
 {
     stringstream outs;
@@ -134,10 +152,37 @@ bool CFGNode::constProp()
                 if (t2it != assignments.end()) eec->term2 = t2it->second;
             }
 
+
+            if (eec->term1 == eec->term2
+                && AbstractCommand::getStringType(eec->term1) == AbstractCommand::StringType::ID
+                && AbstractCommand::getStringType(eec->term2) == AbstractCommand::StringType::ID)
+            {
+                if (parentGraph.symbolTable.findIdentifier(eec->term1)->getType() == DOUBLE
+                    && parentGraph.symbolTable.findIdentifier(eec->term2)->getType() == DOUBLE)
+                {
+                    switch (eec->op)
+                    {
+                        case MINUS:
+                            assignments[eec->getData()] = "0";
+                            newInstrs.push_back(make_unique<AssignVarCommand>(eec->getData(), "0", eec->getLineNum()));
+                            break;
+                        case PLUS:
+                            assignments.erase(eec->getData());
+                            eec->op = MULT;
+                            eec->term2 = "2";
+                            newInstrs.push_back(move(current));
+                            break;
+                        default:
+                            assignments.erase(eec->getData());
+                            newInstrs.push_back(move(current));
+                    }
+                }
+            }
+
             if (AbstractCommand::getStringType(eec->term1) != AbstractCommand::StringType::ID
                 && AbstractCommand::getStringType(eec->term2) != AbstractCommand::StringType::ID)
             {
-                try //todo simplify statements where t1 = t2
+                try
                 {
                     double lhs = stod(eec->term1);
                     double rhs = stod(eec->term2);
@@ -185,16 +230,18 @@ bool CFGNode::constProp()
                 {
                     CFGNode* node = parentGraph.getNode(pushc->getData());
                     if (node == nullptr) throw "found a bad state";
-                    //node->removeParent(getName()); todo debug this stuff
-                    /*for (auto returnSuccIt = returnTo.cbegin(); returnSuccIt != returnTo.cend(); returnSuccIt++)
+                    node->removeParent(getName());
+                    bool found = false;
+                    for (const auto& returnSucc : pushc->calledFunction->getReturnSuccessors())
                     {
-                        if ((*returnSuccIt)->getName() == node->getName())
+                        if (returnSucc->getName() == node->getName())
                         {
-                            returnTo.erase(returnSuccIt);
-                            continue;
+                            pushc->calledFunction->removeReturnSuccessor(node->getName());
+                            found = true;
+                            break;
                         }
                     }
-                    throw "could not find state in return successors";*/
+                    if (!found) throw "could not find state in return successors";
                 }
                 newInstrs.erase(pushedThings.top());
                 pushedThings.pop();
@@ -265,8 +312,8 @@ bool CFGNode::constProp()
     }
     if (compFail == nullptr && !pushedThings.empty()) //there should be a state on top
     {
-        /*auto stackTop = pushedThings.top();
-        shared_ptr<PushCommand> pushc = static_pointer_cast<PushCommand>(*stackTop);
+        auto stackTop = pushedThings.top();
+        PushCommand* pushc = static_cast<PushCommand*>((*stackTop).get());
         if (pushc->pushType != PushCommand::PUSHSTATE) throw runtime_error("tried to jump to var");
         CFGNode* jumpingTo = parentGraph.getNode(pushc->getData());
         jumpingTo->removePushingState(name);
@@ -277,7 +324,7 @@ bool CFGNode::constProp()
         const set<CFGNode*>& returnTo = parentFunction->getReturnSuccessors();
         if (returnTo.size() != 1) throw "check";
         parentFunction->clearReturnSuccessors();
-        skippedReturn = true;*/
+        skippedReturn = true;
     }
     instrs = move(newInstrs);
     return skippedReturn;
@@ -285,9 +332,10 @@ bool CFGNode::constProp()
 
 bool CFGNode::swallowNode(CFGNode* other)
 {
-    const vector<CFGNode*>& returnTo = parentFunction->getReturnSuccessors();
+    const set<CFGNode*>& returnTo = parentFunction->getReturnSuccessors();
     bool otherIsOnlyRetSuccessor = isLast && returnTo.size() == 1 && (*returnTo.cbegin())->getName() == other->getName();
-    if (compSuccess == nullptr) //unconditional jump to the other
+
+    if (compSuccess == nullptr)
     {
         if (compFail != nullptr && compFail->getName() == other->getName() || otherIsOnlyRetSuccessor)
         {
@@ -324,7 +372,7 @@ bool CFGNode::swallowNode(CFGNode* other)
     }
     if (other->getInstrs().empty() && other->getCompSuccess() == nullptr)
     {
-        if (compSuccess != nullptr &&  other->getName() == compSuccess->getName())
+        if (compSuccess != nullptr && other->getName() == compSuccess->getName())
         {
             if (other->getCompFail() == nullptr)
             {
@@ -411,7 +459,11 @@ void CFGNode::removeParent(CFGNode* leaving)
 
 void CFGNode::removeParent(const string& s)
 {
-    if (predecessors.erase(s) == 0) throw runtime_error("Parent '" + s + "' not found in '" + getName() + "'");
+    if (predecessors.erase(s) == 0)
+    {
+        cout << parentGraph.getBinarySource() << '\n';
+        throw runtime_error("Parent '" + s + "' not found in '" + getName() + "'");
+    }
 }
 
 JumpOnComparisonCommand* CFGNode::getComp()
@@ -502,10 +554,14 @@ bool CFGNode::isFirstNode() const
     return name == parentFunction->getFirstNode()->getName();
 }
 
+unsigned int CFGNode::getNumPushingStates()
+{
+    return pushingStates.size();
+}
+
 void CFGNode::addPushingState(CFGNode* cfgn)
 {
-    for (const auto& ptr : pushingStates) if (ptr->getName() == cfgn->getName()) return;
-    pushingStates.push_back(cfgn);
+    if (!pushingStates.insert(cfgn).second) throw "already in";
 }
 
 void CFGNode::removePushes()
@@ -575,11 +631,10 @@ void CFGNode::replacePushes(const std::string& other)
 
 void CFGNode::removePushingState(const string& bye)
 {
-    for (auto it = pushingStates.begin(); it != pushingStates.end();)
-    {
-        if ((*it)->getName() == bye) pushingStates.erase(it);
-        else ++it;
-    }
+    auto it = find_if(pushingStates.begin(), pushingStates.end(),
+    [&, bye](CFGNode* other){return bye == other->getName();});
+    if (it != pushingStates.end()) pushingStates.erase(it);
+    else throw "couldnt find pushing state";
 }
 
 void CFGNode::prepareToDie()
@@ -598,7 +653,7 @@ void CFGNode::prepareToDie()
             if (pc->pushType == PushCommand::PUSHSTATE)
             {
                 parentGraph.getNode(pc->getData())->removePushingState(name);
-                pc->calledFunction->removeReturnSuccessor(pc->getData());
+                //pc->calledFunction->removeReturnSuccessor(pc->getData());
             }
         }
     }

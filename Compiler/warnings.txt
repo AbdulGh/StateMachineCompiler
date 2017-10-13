@@ -1,0 +1,1 @@
+OPTIMISATION : USELESS OP : Constant comparison: 'jumpif 0 < 10.000000 F1_loopheader_4;' (line 5)

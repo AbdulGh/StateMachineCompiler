@@ -10,7 +10,7 @@
 using namespace std;
 
 Compiler::Compiler(vector<Token>& st, string auxFileName): stream(st), reporter(move(auxFileName)),
-                                                           functionTable(*this), cfg(reporter, functionTable) {}
+                                                           functionTable(*this), cfg(reporter, functionTable, symbolTable) {}
 
 void Compiler::error(string err)
 {
@@ -40,10 +40,13 @@ void Compiler::compile(stringstream& out)
     cfg.setFirst(mainFuncSym->getFirstNode()->getName());
     cfg.setLast(mainFuncSym->getLastNode()->getName());
     Optimise::optimise(symbolTable, functionTable, cfg);
+    int debug = 0;
+    for (const auto& node : cfg.getCurrentNodes()) if ((*node.second).getParentFunction()->getIdent() == "loopbody") debug++;
+    bool debug2 = cfg.getNode("F2_loopbody_fin")->isLastNode() && cfg.getNode("F2_loopbody_fin")->isFirstNode();
     //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
     //symMan.search();
     //Optimise::optimise(symbolTable, cfg);
-    cout << cfg.getSource();
+    cout << cfg.getBinarySource();
 }
 
 Token Compiler::nextToken()

@@ -66,7 +66,7 @@ public:
     void addNode(AbstractExprNode*) override;
 };
 
-class ExpressionCodeGenerator //todo make namespace or sth
+class ExpressionCodeGenerator
 {
 private:
     static unsigned int nextTemp;

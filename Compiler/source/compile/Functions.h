@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <sstream>
+#include <set>
 
 #include "Token.h"
 #include "../CFGOpt/CFG.h"
@@ -17,19 +18,21 @@ private:
     std::vector<VariableType> paramTypes;
     int currentStates;
     std::string prefix;
+    std::string ident;
     bool endedState;
     CFGNode* lastNode;
     CFGNode* firstNode;
     CFGNode* currentNode;
-    std::vector<std::string> vars; //used to save vars during function calls (todo make set)
+    std::set<std::string> vars; //used to save vars during function calls
     std::vector<std::unique_ptr<AbstractCommand>> currentInstrs;
     ControlFlowGraph& cfg;
-    std::vector<CFGNode*> returnTo;
+    std::set<CFGNode*> returnTo;
 
 public:
-    FunctionSymbol(VariableType returnType, std::vector<VariableType> types, std::string ident, ControlFlowGraph& cfg);
+    FunctionSymbol(VariableType returnType, std::vector<VariableType> types, std::string ident, std::string prefix, ControlFlowGraph& cfg);
     const std::string newStateName();
     const std::string& getPrefix() const;
+    const std::string& getIdent() const;
     bool checkTypes(std::vector<VariableType>& potential);
     bool isOfType(VariableType c);
     VariableType getReturnType() const;
@@ -39,24 +42,23 @@ public:
     void setFirstNode(CFGNode* firstNode);
     void giveNodesTo(FunctionSymbol* to);
     CFGNode* getCurrentNode() const;
-    const std::vector<std::string>& getVars();
-    void addVar(std::string);
+    const std::set<std::string>& getVars();
+    void addVar(const std::string& id);
 
     //return stuff
     void addReturnSuccessor(CFGNode* other);
-    void addReturnSuccessors(const std::vector<CFGNode*>& newRet);
+    void addReturnSuccessors(const std::set<CFGNode*>& newRet);
     void clearReturnSuccessors();
     void removeReturnSuccessor(const std::string& ret);
-    void setReturnSuccessors(std::vector<CFGNode*>& newRet);
-    const std::vector<CFGNode*>& getReturnSuccessors();
-
+    void setReturnSuccessors(std::set<CFGNode*>& newRet);
+    const std::set<CFGNode*>& getReturnSuccessors();
     //codegen
     void genNewState(std::string);
     void genEndState();
     void genPrint(std::string, int);
     void genJump(std::string, int);
     void genConditionalJump(std::string, std::string, Relations::Relop r, std::string, int);
-    void genPush(std::string, int, FunctionSymbol* = nullptr);
+    void genPush(std::string, int, FunctionSymbol* calledFuntion = nullptr);
     void genPop(std::string, int);
     void genReturn(int);
     void genInput(std::string, int);
@@ -67,19 +69,15 @@ public:
     void addCommands(std::vector<std::unique_ptr<AbstractCommand>>& acs);
 };
 
-
-//owns the FunctionSymbols
 class FunctionTable
 {
 private:
-    std::unordered_map<std::string, FunctionSymbol*> functionTable;
+    std::unordered_map<std::string, std::unique_ptr<FunctionSymbol>> functionTable;
     std::string removeUnderscoreWrappers(std::string underscored);
     Compiler& parent;
 public:
     FunctionTable(Compiler& p) : parent(p) {}
-    ~FunctionTable();
     bool containsFunction(const std::string& funcName);
-    bool containsFunctionPrefix(const std::string& funcName); //todo delete
     FunctionSymbol* getFunction(const std::string& funcName);
     FunctionSymbol* getParentFunc(std::string stateName);
     FunctionSymbol* addFunction(VariableType returnType, std::vector<VariableType>& types, std::string& ident);

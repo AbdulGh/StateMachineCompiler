@@ -2,6 +2,7 @@
 #define PROJECT_CFG_H
 
 #include <unordered_map>
+#include <set>
 
 #include "../compile/SymbolTable.h"
 #include "../compile/Token.h"
@@ -22,17 +23,19 @@ private:
     CFGNode* last;
     Reporter& reporter;
     FunctionTable& functionTable;
+    SymbolTable& symbolTable;
 
 
 public:
-    ControlFlowGraph(Reporter& r, FunctionTable& fc) : reporter(r), functionTable(fc) {};
+    ControlFlowGraph(Reporter& r, FunctionTable& fc, SymbolTable& st) : reporter(r), functionTable(fc), symbolTable(st) {};
     CFGNode* createNode(const std::string& name, bool overwrite, bool last, FunctionSymbol* parentFunc);
     CFGNode* createNode(const std::string& name, bool overwrite, bool last);
     CFGNode* getNode(const std::string& name);
     void removeNode(std::string name);
     std::unordered_map<std::string, std::unique_ptr<CFGNode>>& getCurrentNodes();
-    std:: string getSource();
+    std::string getBinarySource();
     std::string getDotGraph();
+    std::string getFinalSource();
     CFGNode* getFirst() const;
     CFGNode* getLast() const;
     void setFirst(const std::string& firstname);
@@ -53,7 +56,7 @@ private:
     std::vector<std::unique_ptr<AbstractCommand>> instrs; //pointers to allow downcasting (avoid object slicing)
     ControlFlowGraph& parentGraph;
     FunctionSymbol* parentFunction;
-    std::vector<CFGNode*> pushingStates; //used to remove pushes if the node is being removed
+    std::set<CFGNode*> pushingStates; //used to remove pushes if the node is being removed
     bool isLast;
     int jumpline;
 
@@ -76,6 +79,7 @@ public:
     void removePushes();
     void removePushingState(const std::string& name);
     void replacePushes(const std::string& rep);
+    unsigned int getNumPushingStates();
     void prepareToDie();
 
     //tries to merge with other (if it can fix the jumps so that it can do so)
@@ -92,6 +96,7 @@ public:
     ControlFlowGraph& getParentGraph() const;
     FunctionSymbol* getParentFunction() const;
     std::string getSource(bool makeState = true, std::string delim = "\n", bool escape = false);
+    //std::string getInstructionStrings();
     std::string getDotNode();
     bool isLastNode() const;
     bool isFirstNode() const;

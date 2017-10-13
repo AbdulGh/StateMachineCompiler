@@ -5,8 +5,8 @@
 
 using namespace std;
 
-FunctionSymbol::FunctionSymbol(VariableType rt, std::vector<VariableType> types, std::string in, ControlFlowGraph& c):
-    returnType(rt), paramTypes(move(types)), prefix(move(in)),
+FunctionSymbol::FunctionSymbol(VariableType rt, std::vector<VariableType> types, std::string id, std::string p, ControlFlowGraph& c):
+    returnType(rt), paramTypes(move(types)), ident(move(id)), prefix(move(p)),
     currentStates(1), endedState(false), cfg(c), lastNode{nullptr}
     {currentNode = cfg.createNode(prefix + "0", false, false, this); firstNode = currentNode;}
 
@@ -14,30 +14,15 @@ FunctionSymbol::FunctionSymbol(VariableType rt, std::vector<VariableType> types,
 //assumes the entire function is reachable from the first node (most unreachable parts will be removed by symbolic execution)
 void FunctionSymbol::giveNodesTo(FunctionSymbol* to)
 {
+    return;
     if (to->getPrefix() == getPrefix()) return;
-
     for (auto& pair : cfg.getCurrentNodes())
     {
-        if (pair.second->getParentFunction()->getPrefix() == getPrefix()) pair.second->setParentFunction(to);
+        if (pair.second->getParentFunction()->getPrefix() == getPrefix())
+        {
+            pair.second->setParentFunction(to);
+        }
     }
-
-    /*stack<CFGNode*> toConvert({getFirstNode()});
-    while (!toConvert.empty())
-    {
-        CFGNode* converting = (toConvert.top()); //why will this only work with parentheses?
-        toConvert.pop();
-        converting->setParentFunction(to);
-        if (converting->getCompSuccess() != nullptr
-            && converting->getCompSuccess()->getParentFunction()->getPrefix() == getPrefix())
-        {
-            toConvert.push(converting->getCompSuccess());
-        }
-        if (converting->getCompFail() != nullptr
-            && converting->getCompFail()->getParentFunction()->getPrefix() == getPrefix())
-        {
-            toConvert.push(converting->getCompFail());
-        }
-    }*/
     to->setLastNode(getLastNode());
 }
 
@@ -51,7 +36,7 @@ void FunctionSymbol::setLastNode(CFGNode* ln)
 {
     if (ln->getParentFunction()->getPrefix() != getPrefix())
     {
-        ln->getParentGraph().getSource();
+        ln->getParentGraph().getBinarySource();
         throw "not my node";
     }
     if (lastNode != nullptr)
@@ -80,14 +65,14 @@ CFGNode* FunctionSymbol::getCurrentNode() const
     return currentNode;
 }
 
-const vector<string>& FunctionSymbol::getVars()
+const set<string>& FunctionSymbol::getVars()
 {
     return vars;
 }
 
-void FunctionSymbol::addVar(string s)
+void FunctionSymbol::addVar(const string& s)
 {
-    vars.push_back(s);
+    vars.insert(s);
 }
 
 bool FunctionSymbol::checkTypes(std::vector<VariableType>& potential)
@@ -105,6 +90,11 @@ const string& FunctionSymbol::getPrefix() const
     return prefix;
 }
 
+const string& FunctionSymbol::getIdent() const
+{
+    return ident;
+}
+
 bool FunctionSymbol::isOfType(VariableType c)
 {
     return (c == returnType);
@@ -115,18 +105,14 @@ VariableType FunctionSymbol::getReturnType() const
     return returnType;
 }
 
+//each node should only be returned to once
 void FunctionSymbol::addReturnSuccessor(CFGNode* returningTo)
 {
-    for (const auto& ptr : returnTo)
-    {
-        if (ptr->getName() == returningTo->getName()) return;
-    }
-
-    returnTo.push_back(returningTo);
+    if (!returnTo.insert(returningTo).second) throw "return successor already in";
     returningTo->addParent(getLastNode());
 }
 
-void FunctionSymbol::addReturnSuccessors(const vector<CFGNode*>& newRetSuccessors)
+void FunctionSymbol::addReturnSuccessors(const set<CFGNode*>& newRetSuccessors)
 {
     for (const auto& ret : newRetSuccessors) addReturnSuccessor(ret);
 }
@@ -138,29 +124,31 @@ void FunctionSymbol::clearReturnSuccessors()
     returnTo.clear();
 }
 
-void FunctionSymbol::setReturnSuccessors(vector<CFGNode*>& newRet)
+void FunctionSymbol::setReturnSuccessors(set<CFGNode*>& newRet)
 {
     clearReturnSuccessors();
     for (const auto& newSucc : newRet) addReturnSuccessor(newSucc);
 }
 
-const std::vector<CFGNode*>& FunctionSymbol::getReturnSuccessors()
+const std::set<CFGNode*>& FunctionSymbol::getReturnSuccessors()
 {
     return returnTo;
 }
 
 void FunctionSymbol::removeReturnSuccessor(const std::string& ret)
 {
-    //returnTo.erase(eraseEnd, returnTo.end());
-    for (auto it = returnTo.begin(); it != returnTo.end(); it++)
+    auto it = returnTo.begin();
+    while (it != returnTo.end())
     {
         if ((*it)->getName() == ret)
         {
             (*it)->removeParent(lastNode);
             returnTo.erase(it);
-            break;
+            return;
         }
+        ++it;
     }
+    throw "couldnt find ret successor";
 }
 
 /*generation*/
@@ -214,10 +202,10 @@ void FunctionSymbol::genReturn(int linenum)
 }
 
 
-void FunctionSymbol::genPush(std::string s, int linenum, FunctionSymbol* cf)
+void FunctionSymbol::genPush(std::string s, int linenum, FunctionSymbol* calledFunction)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_unique<PushCommand>(s, linenum, cf));
+    currentInstrs.push_back(make_unique<PushCommand>(s, linenum, calledFunction));
 }
 
 void FunctionSymbol::genInput(std::string s, int linenum)
@@ -239,7 +227,7 @@ void FunctionSymbol::genVariableDecl(VariableType t, std::string n, int linenum)
 
     //find wont work for whatever reason
     for (const string& s : vars) if (s == n) return;
-    vars.push_back(n);
+    vars.insert(n);
 }
 
 void FunctionSymbol::addCommand(unique_ptr<AbstractCommand> ac)

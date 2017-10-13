@@ -6,7 +6,7 @@ const std::string Reporter::enumNames[NUM_ALERTS] =
 Reporter::Reporter(std::string filename)
 {
     output.open(filename);
-    for (int i = 0; i < NUM_ALERTS; i++) toWarn[i] = true;
+    for (int i = 0; i < NUM_ALERTS; ++i) toWarn[i] = true;
 }
 
 Reporter::~Reporter()

@@ -19,7 +19,7 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, shared_ptr<Identi
     match(Type::LPAREN);
 
     //push all vars
-    const vector<string>& fromVars = fromFS->getVars();
+    const set<string>& fromVars = fromFS->getVars(); //sets are ordered
     for (const string& s : fromVars) fromFS->genPush(s, lookahead.line);
 
     string nextState = fromFS->newStateName();

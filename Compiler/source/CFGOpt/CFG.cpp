@@ -74,7 +74,7 @@ CFGNode* ControlFlowGraph::createNode(const string &name, bool overwrite, bool i
     return introducing;
 }
 
-string ControlFlowGraph::getSource()
+string ControlFlowGraph::getBinarySource()
 {
     if (first == nullptr) return "";
 
@@ -93,6 +93,11 @@ string ControlFlowGraph::getSource()
     }
 
     return outs.str();
+}
+
+string ControlFlowGraph::getFinalSource()
+{
+
 }
 
 string ControlFlowGraph::getDotGraph()
