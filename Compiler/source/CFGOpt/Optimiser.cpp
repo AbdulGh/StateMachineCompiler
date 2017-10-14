@@ -85,7 +85,7 @@ namespace Optimise
                         else
                         {
                             current->removePushes();
-                            //current->getParentFunction()->giveNodesTo(pred->getParentFunction()); //does nothing if they're the same
+                            current->getParentFunction()->giveNodesTo(pred->getParentFunction()); //does nothing if they're the same
                             pred->getParentFunction()->setLastNode(pred);
                             current->prepareToDie();
                             pair = nodes.erase(pair);
@@ -109,16 +109,11 @@ namespace Optimise
                     changes = true;
                 }
 
-                if (preds.size() == 1)
+                if (preds.size() == 1) //here
                 {
                     CFGNode* parent = preds.cbegin()->second;
                     if (parent->swallowNode(current))
                     {
-                        /*if (current->isFirstNode())
-                        {
-                            current->getParentFunction()->giveNodesTo(parent->getParentFunction());
-                            functionTable.removeFunction(current->getParentFunction()->getPrefix());
-                        }*/
                         preds.clear();
                         changes = true;
                     }

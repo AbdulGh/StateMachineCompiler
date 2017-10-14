@@ -14,7 +14,6 @@ FunctionSymbol::FunctionSymbol(VariableType rt, std::vector<VariableType> types,
 //assumes the entire function is reachable from the first node (most unreachable parts will be removed by symbolic execution)
 void FunctionSymbol::giveNodesTo(FunctionSymbol* to)
 {
-    return;
     if (to->getPrefix() == getPrefix()) return;
     for (auto& pair : cfg.getCurrentNodes())
     {
@@ -34,11 +33,8 @@ CFGNode* FunctionSymbol::getLastNode()
 
 void FunctionSymbol::setLastNode(CFGNode* ln)
 {
-    if (ln->getParentFunction()->getPrefix() != getPrefix())
-    {
-        ln->getParentGraph().getBinarySource();
-        throw "not my node";
-    }
+    if (ln->getParentFunction()->getPrefix() != getPrefix()) throw "not my node";
+
     if (lastNode != nullptr)
     {
         lastNode->setLast(false);
@@ -137,18 +133,9 @@ const std::set<CFGNode*>& FunctionSymbol::getReturnSuccessors()
 
 void FunctionSymbol::removeReturnSuccessor(const std::string& ret)
 {
-    auto it = returnTo.begin();
-    while (it != returnTo.end())
-    {
-        if ((*it)->getName() == ret)
-        {
-            (*it)->removeParent(lastNode);
-            returnTo.erase(it);
-            return;
-        }
-        ++it;
-    }
-    throw "couldnt find ret successor";
+    auto it = find_if(returnTo.begin(), returnTo.end(), [&, ret](CFGNode* other){return other->getName() == ret;});
+    if (it == returnTo.end()) throw "couldnt find ret successor";
+    else returnTo.erase(it);
 }
 
 /*generation*/
