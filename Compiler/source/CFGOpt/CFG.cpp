@@ -74,7 +74,7 @@ CFGNode* ControlFlowGraph::createNode(const string &name, bool overwrite, bool i
     return introducing;
 }
 
-string ControlFlowGraph::getBinarySource()
+string ControlFlowGraph::getStructuredSource()
 {
     if (first == nullptr) return "";
 
@@ -95,9 +95,39 @@ string ControlFlowGraph::getBinarySource()
     return outs.str();
 }
 
-string ControlFlowGraph::getFinalSource()
+string ControlFlowGraph::destroyStructureAndGetFinalSource() //todo finish this
 {
+    bool changes = true;
+    while (changes)
+    {
+        changes = false;
+        unordered_map<string, unique_ptr<CFGNode>>& nodes = getCurrentNodes();
+        auto it = nodes.begin();
+        while (it != nodes.end())
+        {
+            CFGNode* current = it->second.get();
+            if (current->getInstrs().empty() && current->getCompSuccess() == nullptr)
+            {
+                if (current->getCompFail() == nullptr)
+                {
+                    current->removePushes();
 
+                    for (auto& parent : current->getPredecessors())
+                    {
+                        if (parent.second->getCompFail() == nullptr &&
+                                (parent.second->getCompSuccess() == nullptr ||
+                                        parent.second->getCompSuccess()->getName() != current->getName())) continue;
+                        if (!parent.second->swallowNode(current)) throw "should swallow";
+                    }
+                    it = nodes.erase(it);
+                    changes=true;
+                }
+                else ++it;
+            }
+            else ++it;
+        }
+    }
+    return getStructuredSource();
 }
 
 string ControlFlowGraph::getDotGraph()
@@ -119,7 +149,7 @@ string ControlFlowGraph::getDotGraph()
     {
         if (it.first == first->getName()) continue;
         CFGNode* n = it.second;
-        if (n->getParentFunction()->getPrefix() != currentFunc)
+        if (n->getParentFunction()->getIdent() != currentFunc)
         {
             if (!currentFunc.empty())
             {
@@ -132,7 +162,7 @@ string ControlFlowGraph::getDotGraph()
                          << "[label=\\\"return\\\"];\n";
                 }
             }
-            currentFunc = n->getParentFunction()->getPrefix();
+            currentFunc = n->getParentFunction()->getIdent();
             outs << "subgraph cluster_" << currentFunc << "{\n";
             outs << "label=\"" << currentFunc << "\";\n";
         }

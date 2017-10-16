@@ -99,9 +99,8 @@ string CFGNode::getDotNode()
     return outs.str();
 }
 
-bool CFGNode::constProp()
+bool CFGNode::constProp(unordered_map<string,string> assignments)
 {
-    unordered_map<string,string> assignments;
     stack<vector<unique_ptr<AbstractCommand>>::iterator> pushedThings;
 
     auto it = instrs.begin();
@@ -118,7 +117,6 @@ bool CFGNode::constProp()
         }
         else if (current->getType() == CommandType::ASSIGNVAR)
         {
-
             auto avc = static_cast<AssignVarCommand*>(current.get());
             if (AbstractCommand::getStringType(avc->RHS) != AbstractCommand::StringType::ID)
             {
@@ -152,32 +150,27 @@ bool CFGNode::constProp()
                 if (t2it != assignments.end()) eec->term2 = t2it->second;
             }
 
-
             if (eec->term1 == eec->term2
                 && AbstractCommand::getStringType(eec->term1) == AbstractCommand::StringType::ID
-                && AbstractCommand::getStringType(eec->term2) == AbstractCommand::StringType::ID)
+                && parentGraph.symbolTable.findIdentifier(eec->term1)->getType() == DOUBLE)
             {
-                if (parentGraph.symbolTable.findIdentifier(eec->term1)->getType() == DOUBLE
-                    && parentGraph.symbolTable.findIdentifier(eec->term2)->getType() == DOUBLE)
+                switch (eec->op)
                 {
-                    switch (eec->op)
-                    {
-                        case MINUS:
-                            assignments[eec->getData()] = "0";
-                            newInstrs.push_back(make_unique<AssignVarCommand>(eec->getData(), "0", eec->getLineNum()));
-                            break;
-                        case PLUS:
-                            assignments.erase(eec->getData());
-                            eec->op = MULT;
-                            eec->term2 = "2";
-                            newInstrs.push_back(move(current));
-                            break;
-                        default:
-                            assignments.erase(eec->getData());
-                            newInstrs.push_back(move(current));
-                    }
+                    case MINUS:
+                        assignments[eec->getData()] = "0";
+                        newInstrs.push_back(make_unique<AssignVarCommand>(eec->getData(), "0", eec->getLineNum()));
+                        break;
+                    case PLUS:
+                        assignments.erase(eec->getData());
+                        eec->op = MULT;
+                        eec->term2 = "2";
+                        newInstrs.push_back(move(current));
+                        break;
+                    default:
+                        assignments.erase(eec->getData());
+                        newInstrs.push_back(move(current));
                 }
-            }
+            }//when we leave this at least one term is an ID so we dont enter the next condition
 
             if (AbstractCommand::getStringType(eec->term1) != AbstractCommand::StringType::ID
                 && AbstractCommand::getStringType(eec->term2) != AbstractCommand::StringType::ID)
@@ -462,7 +455,7 @@ void CFGNode::removeParent(const string& s)
 {
     if (predecessors.erase(s) == 0)
     {
-        cout << parentGraph.getBinarySource() << '\n';
+        cout << parentGraph.getStructuredSource() << '\n';
         throw runtime_error("Parent '" + s + "' not found in '" + getName() + "'");
     }
 }

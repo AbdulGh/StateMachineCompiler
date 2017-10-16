@@ -43,7 +43,7 @@ void Compiler::compile(stringstream& out)
     //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
     //symMan.search();
     //Optimise::optimise(symbolTable, cfg);
-    cout << cfg.getBinarySource();
+    cout << cfg.destroyStructureAndGetFinalSource();
 }
 
 Token Compiler::nextToken()

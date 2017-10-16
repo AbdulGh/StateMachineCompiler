@@ -33,9 +33,9 @@ public:
     CFGNode* getNode(const std::string& name);
     void removeNode(std::string name);
     std::unordered_map<std::string, std::unique_ptr<CFGNode>>& getCurrentNodes();
-    std::string getBinarySource();
+    std::string getStructuredSource();
     std::string getDotGraph();
-    std::string getFinalSource();
+    std::string destroyStructureAndGetFinalSource();
     CFGNode* getFirst() const;
     CFGNode* getLast() const;
     void setFirst(const std::string& firstname);
@@ -62,7 +62,7 @@ private:
 
 public:
     CFGNode(ControlFlowGraph& p, FunctionSymbol* pf, std::string n, bool last = false);
-    bool constProp(); //returns true if it bypassed some return
+    bool constProp(std::unordered_map<std::string, std::string> assignments = std::unordered_map<std::string, std::string>()); //returns true if it bypassed some return
     bool addParent(CFGNode*); //returns false if parent was already in
     void removeParent(CFGNode*);
     void removeParent(const std::string&);
@@ -96,7 +96,6 @@ public:
     ControlFlowGraph& getParentGraph() const;
     FunctionSymbol* getParentFunction() const;
     std::string getSource(bool makeState = true, std::string delim = "\n", bool escape = false);
-    //std::string getInstructionStrings();
     std::string getDotNode();
     bool isLastNode() const;
     bool isFirstNode() const;
