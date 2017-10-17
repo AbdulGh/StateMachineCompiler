@@ -7,21 +7,21 @@ namespace DataFlow
 {
     //as Ts are put in ordered sets they must have comparison stuff
     template<typename T>
-    std::set<T> intersectSets(std::vector<std::set<T>&>& sets)
+    std::set<T> intersectSets(std::vector<std::set<T>*>& sets)
     {
-        const auto& setIterator = sets.begin();
-        std::set<T> intersect = *setIterator;
+        auto setIterator = sets.begin();
+        std::set<T> intersect = **setIterator;
         ++setIterator;
         //sets are sorted so this works and is reasonably fast
         while (!intersect.empty() && setIterator != sets.end())
         {
             auto intersectIterator = intersect.begin();
-            const auto& parentIter = *setIterator.begin();
+            auto parentIter = (*setIterator)->begin();
 
-            while (intersectIterator != intersect.end() && parentIter != *setIterator.end())
+            while (intersectIterator != intersect.end() && parentIter != (*setIterator)->end())
             {
                 if (*intersectIterator < *parentIter) intersectIterator = intersect.erase(intersectIterator);
-                else if (*intersectIterator > *parentIter) ++parentIter;
+                else if (*parentIter < *intersectIterator) ++parentIter;
                 else
                 {
                     ++intersectIterator;
@@ -36,11 +36,11 @@ namespace DataFlow
     template<typename T>
     std::set<T> intersectPredecessors(CFGNode *node, std::unordered_map<std::string, std::set<T>>& outSets)
     {
-        std::vector < std::set<T>& > predSets; //by reference!
+        std::vector < std::set<T>* > predSets; //by reference!
         for (const auto& pair : node->getPredecessors())
         {
             std::set<T>& parentOut = outSets[pair.first];
-            if (!parentOut.empty()) predSets.push_back(parentOut);
+            if (!parentOut.empty()) predSets.push_back(&parentOut);
         }
         if (predSets.empty()) return std::set<T>(); //return empty std::set
         else return move(intersectSets(predSets));
@@ -58,25 +58,25 @@ namespace DataFlow
     }
 
     template<typename T>
-    std::vector<std::set<T>&> getSuccessorOutSets(CFGNode *node, std::unordered_map<std::string, std::set<T>>& outSets)
+    std::vector<std::set<T>*> getSuccessorOutSets(CFGNode *node, std::unordered_map<std::string, std::set<T>>& outSets)
     {
-        std::vector < std::set<T> &> succSets;
+        std::vector <std::set<T>*> succSets;
         if (node->getCompSuccess() != nullptr)
         {
             std::set<T>& compSuccessOutSet = outSets[node->getCompSuccess()->getName()];
-            if (!compSuccessOutSet.empty()) succSets.push_back(compSuccessOutSet);
+            if (!compSuccessOutSet.empty()) succSets.push_back(&compSuccessOutSet);
         }
         if (node->getCompFail() != nullptr)
         {
             std::set<T>& compFailOutSet = outSets[node->getCompFail()->getName()];
-            if (!compFailOutSet.empty()) succSets.push_back(compFailOutSet);
+            if (!compFailOutSet.empty()) succSets.push_back(&compFailOutSet);
         } else
         {
             if (!node->isLastNode()) throw "only last node can return";
             for (const auto& retSucc : node->getParentFunction()->getReturnSuccessors())
             {
                 std::set<T>& returnSuccessorOutSet = outSets[retSucc->getName()];
-                if (!returnSuccessorOutSet.empty()) succSets.push_back(returnSuccessorOutSet);
+                if (!returnSuccessorOutSet.empty()) succSets.push_back(&returnSuccessorOutSet);
             }
         }
         return succSets;
@@ -85,7 +85,7 @@ namespace DataFlow
     template<typename T>
     std::set<T> intersectSuccessors(CFGNode *node, std::unordered_map <std::string, std::set<T>>& outSets)
     {
-        std::vector < std::set<T> &> succSets = getSuccessorOutSets(node, outSets);
+        std::vector <std::set<T>*> succSets = getSuccessorOutSets(node, outSets);
         if (succSets.empty()) return std::set<T>(); //return empty std::set
         else return intersectSets(succSets);
     }
