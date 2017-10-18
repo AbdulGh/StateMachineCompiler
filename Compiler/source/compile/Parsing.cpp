@@ -30,7 +30,7 @@ void Compiler::body()
             VariableType t = vtype();
             unsigned int line = lookahead.line;
             string s = ident();
-            shared_ptr<Identifier> vid = symbolTable.declare(s, t, line);
+            shared_ptr<Identifier> vid = symbolTable.declare(t, s, line);
             const string& vidName = vid->getUniqueID();
             argumentStack.push(make_unique<PopCommand>(vidName, lookahead.line));
             argumentStack.push(make_unique<DeclareVarCommand>(t, vidName, lookahead.line));
@@ -146,7 +146,7 @@ bool Compiler::statement(FunctionSymbol* fs)
         }
         else
         {
-            shared_ptr<Identifier> idPtr =  symbolTable.declare(id, t, lookahead.line);
+            shared_ptr<Identifier> idPtr = symbolTable.declare(t, id, lookahead.line);
             fs->genVariableDecl(t, idPtr->getUniqueID(), lookahead.line);
 
             if (lookahead.type == ASSIGN)

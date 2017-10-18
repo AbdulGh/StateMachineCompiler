@@ -28,7 +28,7 @@ void SymbolTable::popScope()
     sTable.pop_front();
 }
 
-shared_ptr<Identifier> SymbolTable::declare(string name, VariableType type, unsigned int lineNum)
+std::shared_ptr<Identifier> SymbolTable::declare(VariableType type, std::string name, int lineNum)
 {
     shared_ptr<Identifier> sp = make_shared<Identifier>(name, type, lineNum, depth, scopeDepths[depth]);
     currentMap->operator[](name) = sp;
@@ -52,14 +52,10 @@ bool SymbolTable::isDefined(const string& name)
     return false;
 }
 
-bool SymbolTable::define(VariableType type, const string& name)
+void SymbolTable::define(VariableType type, const string& name)
 {
-    if (shared_ptr<Identifier> id = findIdentifier(name))
-    {
-        id->setDefined();
-        return true;
-    }
-    return false;
+    if (shared_ptr<Identifier> id = findIdentifier(name)) id->setDefined();
+    throw runtime_error("Variable '" + name + "' not found");
 }
 
 shared_ptr<Identifier> SymbolTable::findIdentifier(string name)

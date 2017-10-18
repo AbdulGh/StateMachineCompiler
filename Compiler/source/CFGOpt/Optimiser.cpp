@@ -1,7 +1,7 @@
 #include <algorithm>
 
 #include "Optimiser.h"
-#include "../Command.h"
+#include "DataFlow.h"
 
 using namespace std;
 
@@ -19,6 +19,7 @@ namespace Optimise
                 if (node.second->constProp()) changes = true;
             }
         }
+        DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();
     }
 
     void collapseSmallStates(ControlFlowGraph& controlFlowGraph, FunctionTable& functionTable)

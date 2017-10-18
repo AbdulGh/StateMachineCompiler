@@ -42,7 +42,18 @@ namespace DataFlow
             std::set<T>& parentOut = outSets[pair.first];
             if (!parentOut.empty()) predSets.push_back(&parentOut);
         }
-        if (predSets.empty()) return std::set<T>(); //return empty std::set
+
+        if (node->getName() == "F0_main_5")
+        {
+            int size = predSets.size();
+            std::vector<std::set<T>> predies;
+            for (const auto& pair : node->getPredecessors()) predies.push_back(outSets[pair.first]);
+            //auto wilkins = (*(predSets.at(0)->begin()));
+            int debug;
+            debug = '3';
+        }
+
+        if (predSets.empty()) return std::set<T>(); //return set
         else return move(intersectSets(predSets));
     }
 

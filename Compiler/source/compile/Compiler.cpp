@@ -58,16 +58,20 @@ shared_ptr<Identifier> Compiler::findVariable(string name)
     return ret;
 }
 
+#define NUM_INITIAL 4
 void Compiler::findGlobalsAndMakeStates()
 {
     vector<unique_ptr<AbstractCommand>> initialState;
-    initialState.push_back(make_unique<DeclareVarCommand>(DOUBLE, "LHS", -1));
-    initialState.push_back(make_unique<DeclareVarCommand>(DOUBLE, "RHS", -1));
-    initialState.push_back(make_unique<DeclareVarCommand>(STRING, "retS", -1));
-    initialState.push_back(make_unique<DeclareVarCommand>(DOUBLE, "retD", -1));
+    string initialNames[NUM_INITIAL] = {"LHS", "RHS", "retD", "retS"};
+    VariableType initialTypes[NUM_INITIAL] = {DOUBLE, DOUBLE, STRING, DOUBLE};
+
+    for (int i = 0; i < NUM_INITIAL; ++i)
+    {
+        initialState.push_back(make_unique<DeclareVarCommand>(initialTypes[i], initialNames[i], -1));
+        symbolTable.declare(initialTypes[i], initialNames[i], -1);
+    }
 
     lookahead = nextToken();
-    bool globals = false;
     int depth = 0;
     while (lookahead.type != END)
     {
@@ -122,10 +126,9 @@ void Compiler::findGlobalsAndMakeStates()
 
             else //must be a global variable declaration
             {
-                globals = true;
                 VariableType t = vtype();
                 string id = ident();
-                shared_ptr<Identifier> i = symbolTable.declare(id, t, lookahead.line);
+                shared_ptr<Identifier> i = symbolTable.declare(t, id, lookahead.line);
                 initialState.push_back(make_unique<DeclareVarCommand>(t, i->getUniqueID(), lookahead.line));
                 if (lookahead.type == ASSIGN)
                 {

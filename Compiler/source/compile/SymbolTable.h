@@ -72,8 +72,8 @@ public:
     std::shared_ptr<Identifier> findIdentifier(std::string name);
     void pushScope();
     void popScope();
-    std::shared_ptr<Identifier> declare(std::string name, VariableType type, unsigned int lineNum);
-    bool define(VariableType type, const std::string& name);
+    std::shared_ptr<Identifier> declare(VariableType type, std::string name, int lineNum);
+    void define(VariableType type, const std::string& name);
     bool isDeclared(const std::string& name);
     bool isDefined(const std::string& name);
     bool isInScope(const std::string& name);

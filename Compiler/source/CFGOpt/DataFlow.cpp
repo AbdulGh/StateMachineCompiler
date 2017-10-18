@@ -4,13 +4,6 @@
 
 #include "DataFlow.h"
 
-#define instantiateTemplateFunctions(type) \
-    template <typename T> set<type> intersectSets<type>(vector<set<type>&>& sets);\
-    template <typename T> set<type> intersectPredecessors<type>(CFGNode* node, unordered_map<string, set<type>>& outSets);\
-    template <typename T> set<type> unionPredecessors<type>(CFGNode* node, unordered_map<string, set<type>>& outSets);\
-    template <typename T> set<type> intersectSuccessors<type>(CFGNode* node, unordered_map<string, set<type>>& outSets);\
-    template <typename T> set<type> unionSuccessors<type>(CFGNode* node, unordered_map<string, set<type>>& outSets);\
-
 using namespace std;
 using namespace DataFlow;
 
@@ -49,32 +42,15 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
         set<Assignment> genSet;
         set<string> killSet;
 
-        //these lambdas should be inlined
-        auto findAssignment = [&, genSet](const string& name) -> set<Assignment>::iterator
-        {
-            return find_if(genSet.begin(), genSet.end(),
-                           [name] (const Assignment& ass) {return ass.lhs == name;});
-        };
-
-        /*auto eraseAssignment = [&, genSet]( string& name, bool addToKillSet) -> void
-        {
-            auto it = findAssignment(name);
-            if (it != genSet.end()) genSet.erase(it);
-            if (addToKillSet) killSet.insert(name);
-        };
-
-        auto insertAssignment = [&, genSet](const string& lhs, const string& rhs) -> void
-        {
-
-        };*/
-
         vector<unique_ptr<AbstractCommand>>& instrs = node->getInstrs();
         
         for (const auto& instr : instrs)
         {
             if (instr->getType() == CommandType::CHANGEVAR)
             {
-                auto it = findAssignment(node->getName());
+                const std::string& data = instr->getData();
+                auto it = find_if(genSet.begin(), genSet.end(),
+                                  [&, data] (const Assignment& ass) {return ass.lhs == data;});
                 if (it != genSet.end()) genSet.erase(it);
                 killSet.insert(node->getName());
             }
@@ -82,13 +58,24 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
             {
                 auto avc = static_cast<AssignVarCommand*>(instr.get());
                 const string& lhs = avc->getData();
-                auto it = findAssignment(lhs);
+                auto it =find_if(genSet.begin(), genSet.end(),
+                                 [&, lhs] (const Assignment& ass) {return ass.lhs == lhs;});
                 if (it != genSet.end()) genSet.erase(it);
                 genSet.insert(Assignment(lhs, avc->RHS));
                 killSet.erase(lhs);
             }
+            else if (instr->getType() == CommandType::DECLAREVAR)
+            {
+                DeclareVarCommand* dvc = static_cast<DeclareVarCommand*>(instr.get());
+                const string& lhs = dvc->getData();
+                auto it = find_if(genSet.begin(), genSet.end(),
+                                  [&, lhs] (const Assignment& ass) {return ass.lhs == lhs;});
+                if (it != genSet.end()) genSet.erase(it);
+                string defaultStr = dvc->vt == DOUBLE ? "0" : "";
+                genSet.insert(Assignment(lhs, move(defaultStr)));
+                killSet.erase(lhs);
+            }
         }
-
         genSets[node->getName()] = move(genSet);
         killSets[node->getName()] = move(killSet);
     }

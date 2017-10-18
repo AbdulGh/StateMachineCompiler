@@ -4,6 +4,6 @@ function main() void
     double y;
     input y;
     if (y < 3) x = 6;
-    else x = 7;
+    else x = 6;
     print(x);
 }
