@@ -10,7 +10,7 @@ using namespace DataFlow;
 template <typename T, set<T>(*in)(CFGNode*, unordered_map<string, set<T>>&)>
 void AbstractDataFlow<T, in>::worklist()
 {
-	stack<CFGNode*> list({controlFlowGraph.getFirst()});
+	stack<CFGNode*> list({startNode});
 	
 	while (!list.empty())
 	{
@@ -30,12 +30,12 @@ void AbstractDataFlow<T, in>::worklist()
 	}
     finish();
 }
-template class AbstractDataFlow<Assignment, &intersectPredecessors<Assignment>>;
+template class AbstractDataFlow<Assignment, intersectPredecessors<Assignment>>;
+template class AbstractDataFlow<string, unionSuccessors<string>>;
 
 //AssignmentPropogationDataFlow
-
 AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& cfg, SymbolTable& st)
-        : AbstractDataFlow(cfg, st)
+        : AbstractDataFlow(cfg, st, cfg.getFirst())
 {
     for (const auto& pair : controlFlowGraph.getCurrentNodes()) //intra-propogation already done in Optimiser
     {
@@ -53,7 +53,7 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
                 auto it = find_if(genSet.begin(), genSet.end(),
                                   [&, data] (const Assignment& ass) {return ass.lhs == data;});
                 if (it != genSet.end()) genSet.erase(it);
-                killSet.insert(node->getName());
+                killSet.insert(data);
             }
             else if (instr->getType() == CommandType::ASSIGNVAR)
             {
@@ -108,5 +108,131 @@ void AssignmentPropogationDataFlow::finish()
         unordered_map<string, string> mapToPass;
         for (const Assignment& ass : inAss) mapToPass[ass.lhs] = ass.rhs;
         node->constProp(move(mapToPass));
+    }
+}
+
+#define insertIfNotInKillSet(inserting) \
+    if (isalpha(inserting[0]))\
+    {\
+        it = killSet.find(inserting);\
+        if (it == killSet.end()) genSet.insert(inserting);\
+    }
+
+//LiveVariableDataFlow
+LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& st)
+        : AbstractDataFlow(cfg, st, cfg.getLast())
+{
+    for (const auto& pair : controlFlowGraph.getCurrentNodes()) //intra-propogation already done in Optimiser
+    {
+        CFGNode* node = pair.second.get();
+        set<string> genSet;
+        set<string> killSet;
+        set<string>::iterator it;
+
+        /*auto insertIfNotInKillSet = [&, genSet, killSet] (string insert, bool checkVar) mutable -> void
+        {
+            if (checkVar && !isalpha(insert[0])) return;
+            auto it = killSet.find(insert);
+            if (it == killSet.end()) genSet.insert(insert);
+        };*/
+
+        vector<unique_ptr<AbstractCommand>>& instrs = node->getInstrs();
+
+        for (const auto& instr : instrs)
+        {
+            switch (instr->getType())
+            {
+                //commands that just stop some variable being live
+                case CommandType::CHANGEVAR:
+                case CommandType::DECLAREVAR:
+                case CommandType::POP:
+                    killSet.insert(instr->getData());
+                    break;
+                //simple commands that just read some variable
+                case CommandType::PUSH:
+                {
+                    PushCommand* pvc = static_cast<PushCommand*>(instr.get());
+                    const string& data = pvc->getData();
+                    if (pvc->pushType == PushCommand::PUSHSTR && isalnum(data[0])) insertIfNotInKillSet(instr->getData());
+                    break;
+                }
+                case CommandType::PRINT:
+                    insertIfNotInKillSet(instr->getData());
+                    break;
+                case CommandType::ASSIGNVAR:
+                {
+                    vars.insert(instr->getData());
+                    auto avc = static_cast<AssignVarCommand*>(instr.get());
+                    killSet.insert(avc->getData());
+                    insertIfNotInKillSet(avc->RHS);
+                    break;
+                }
+                case CommandType::EXPR:
+                {
+                    EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(instr.get());
+                    killSet.insert(eec->getData());
+                    insertIfNotInKillSet(eec->term1);
+                    insertIfNotInKillSet(eec->term2);
+                }
+            }
+        }
+
+        JumpOnComparisonCommand* jocc = node->getComp();
+        if (jocc != nullptr)
+        {
+            if (jocc->term1Type == AbstractCommand::StringType::ID)
+            {
+                it = killSet.find(jocc->term1);
+                if (it == killSet.end()) genSet.insert(jocc->term1);
+            }
+            if (jocc->term2Type == AbstractCommand::StringType::ID)
+            {
+                it = killSet.find(jocc->term1);
+                if (it == killSet.end()) genSet.insert(jocc->term1);
+            }
+        }
+        genSets[node->getName()] = move(genSet);
+        killSets[node->getName()] = move(killSet);
+    }
+}
+
+void LiveVariableDataFlow::transfer(set<string>& in, CFGNode* node)
+{
+    for (auto& live: genSets[node->getName()]) in.insert(live);
+    for (auto& kill : killSets[node->getName()]) in.erase(kill);
+}
+
+void LiveVariableDataFlow::finish()
+{
+    for (auto& pair : controlFlowGraph.getCurrentNodes())
+    {
+        unique_ptr<CFGNode>& node = pair.second;
+        set<string>& liveOut = outSets[node->getName()];
+        vector<unique_ptr<AbstractCommand>> newInstrs;
+
+        //we remove commands that assign stuff or declare dead vars
+        auto isDead = [&, liveOut](const string& varN) -> bool
+        {
+            return liveOut.find(varN) == liveOut.end();
+        };
+        for (auto& ac : node->getInstrs())
+        {
+            if ((ac->getType() == CommandType::ASSIGNVAR
+                || ac->getType() == CommandType::EXPR
+                || ac->getType() == CommandType::CHANGEVAR
+                || ac->getType() == CommandType::DECLAREVAR) &&
+                isDead(ac->getData())) continue;
+
+            else
+            {
+                if (ac->getType() == CommandType::POP && isDead(ac->getData()))
+                {
+                    PopCommand* pc = static_cast<PopCommand*>(ac.get());
+                    pc->setData("");
+                }
+                newInstrs.push_back(move(ac));
+            }
+        }
+        node->setInstructions(newInstrs);
     }
 }

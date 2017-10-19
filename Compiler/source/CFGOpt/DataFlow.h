@@ -71,9 +71,14 @@ namespace DataFlow
         {
             std::set<T>& compFailOutSet = outSets[node->getCompFail()->getName()];
             if (!compFailOutSet.empty()) succSets.push_back(&compFailOutSet);
-        } else
+        }
+        else
         {
-            if (!node->isLastNode()) throw "only last node can return";
+            if (!node->isLastNode())
+            {
+                printf("%s\n", node->getParentGraph().getStructuredSource().c_str());
+                throw "only last node can return";
+            }
             for (const auto& retSucc : node->getParentFunction()->getReturnSuccessors())
             {
                 std::set<T>& returnSuccessorOutSet = outSets[retSucc->getName()];
@@ -95,9 +100,9 @@ namespace DataFlow
     std::set<T> unionSuccessors(CFGNode *node, std::unordered_map<std::string, std::set<T>>& outSets)
     {
         std::set<T> join;
-        for (const auto& pair : getSuccessorOutSets(node, outSets))
+        for (const auto& outSet : getSuccessorOutSets(node, outSets))
         {
-            for (const T& goingIn: outSets[pair.first]) join.insert(goingIn);
+            for (const T& goingIn: *outSet) join.insert(goingIn);
         }
         return join;
     }
@@ -109,8 +114,10 @@ namespace DataFlow
         std::unordered_map<std::string, std::set<T>> outSets;
         ControlFlowGraph& controlFlowGraph;
         SymbolTable& symbolTable;
+        CFGNode* startNode;
     public:
-        AbstractDataFlow(ControlFlowGraph& cfg, SymbolTable& st) : controlFlowGraph(cfg), symbolTable(st)
+        AbstractDataFlow(ControlFlowGraph& cfg, SymbolTable& st, CFGNode* startWith)
+                :controlFlowGraph(cfg), symbolTable(st), startNode(startWith)
         {};
 
         void worklist();
@@ -147,6 +154,19 @@ namespace DataFlow
         AssignmentPropogationDataFlow(ControlFlowGraph& cfg, SymbolTable& st);
 
         void transfer(std::set<Assignment>& in, CFGNode *node) override;
+        void finish() override;
+    };
+
+    class LiveVariableDataFlow : public AbstractDataFlow<std::string, unionSuccessors<std::string>>
+    {
+    private:
+        std::unordered_map<std::string, std::set<std::string>> genSets;
+        std::unordered_map<std::string, std::set<std::string>> killSets;
+        std::set<std::string> vars;
+    public:
+        LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& st);
+
+        void transfer(std::set<std::string>& in, CFGNode *node) override;
 
         void finish() override;
     };

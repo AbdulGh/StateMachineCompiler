@@ -19,6 +19,7 @@ namespace Optimise
                 if (node.second->constProp()) changes = true;
             }
         }
+        DataFlow::LiveVariableDataFlow(controlFlowGraph, symbolTable).worklist();
         DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();
     }
 

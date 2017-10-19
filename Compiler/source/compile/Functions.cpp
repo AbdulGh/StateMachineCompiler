@@ -37,6 +37,10 @@ void FunctionSymbol::setLastNode(CFGNode* ln)
 
     if (lastNode != nullptr)
     {
+        if (lastNode->getName() == lastNode->getParentGraph().getLast()->getName())
+        {
+            lastNode->getParentGraph().setLast(ln->getName());
+        }
         lastNode->setLast(false);
         for (const auto& ret : returnTo) ret->removeParent(lastNode);
     }

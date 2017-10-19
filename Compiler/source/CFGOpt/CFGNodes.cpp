@@ -370,13 +370,16 @@ bool CFGNode::swallowNode(CFGNode* other)
                     }
                 }
             }
+            
             setInstructions(newInstrs);
+            
             if (other->getComp() != nullptr)
             {
                 JumpOnComparisonCommand* jocc = other->getComp();
                 setComp(make_unique<JumpOnComparisonCommand>(jocc->getData(), jocc->term1, jocc->term2, jocc->op, jocc->getLineNum()));
             }
             else setComp(nullptr);
+            
             setCompSuccess(other->getCompSuccess());
             setCompFail(other->getCompFail());
             if (otherIsOnlyRetSuccessor) parentFunction->removeReturnSuccessor(other->getName());
