@@ -10,7 +10,6 @@ using namespace DataFlow;
 template <typename T, set<T>(*in)(CFGNode*, unordered_map<string, set<T>>&)>
 void AbstractDataFlow<T, in>::worklist()
 {
-	unordered_map<string, set<T>> outSets;
 	stack<CFGNode*> list({controlFlowGraph.getFirst()});
 	
 	while (!list.empty())
@@ -18,10 +17,12 @@ void AbstractDataFlow<T, in>::worklist()
 		CFGNode* top = list.top();
         list.pop();
         set<T> inSet = in(top, outSets);
+
 		transfer(inSet, top);
-		if (outSets[top->getName()].size() != inSet.size())
+
+		if (outSets[top->getName()] != inSet) //inSet has been transferred to outset
 		{
-			outSets[top->getName()] = move(inSet);
+            outSets[top->getName()] = move(inSet);
 			if (top->getCompFail() != nullptr) list.push(top->getCompFail());
 			if (top->getCompSuccess() != nullptr) list.push(top->getCompSuccess());
 			if (top->isLastNode()) for (CFGNode* n : top->getParentFunction()->getReturnSuccessors()) list.push(n);
@@ -83,7 +84,12 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
 
 void AssignmentPropogationDataFlow::transfer(set<Assignment>& in, CFGNode* node)
 {
-    for (auto& ass: genSets[node->getName()]) in.insert(ass);
+    for (auto& ass: genSets[node->getName()])
+    {
+        auto it = find_if(in.begin(), in.end(), [&, ass](const Assignment& otherAss){return otherAss.lhs == ass.lhs;});
+        if (it != in.end()) in.erase(it);
+        in.insert(ass);
+    }
     for (auto& kill : killSets[node->getName()])
     {
         auto it = find_if(in.begin(), in.end(), [kill] (const Assignment& ass) {return ass.lhs == kill;});
@@ -96,6 +102,7 @@ void AssignmentPropogationDataFlow::finish()
     for (auto& pair : controlFlowGraph.getCurrentNodes())
     {
         unique_ptr<CFGNode>& node = pair.second;
+
         set<Assignment> inAss = intersectPredecessors(node.get(), outSets);
 
         unordered_map<string, string> mapToPass;

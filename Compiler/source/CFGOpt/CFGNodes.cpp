@@ -110,152 +110,171 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
     while (it != instrs.end())
     {
         unique_ptr<AbstractCommand> current = move(*it);
-        if (current->getType() == CommandType::CHANGEVAR)
+        switch (current->getType())
         {
-            assignments.erase(current->getData());
-            newInstrs.push_back(move(current));
-        }
-        else if (current->getType() == CommandType::ASSIGNVAR)
-        {
-            auto avc = static_cast<AssignVarCommand*>(current.get());
-            if (AbstractCommand::getStringType(avc->RHS) != AbstractCommand::StringType::ID)
+            case CommandType::CHANGEVAR:
             {
-                assignments[avc->getData()] = avc->RHS;
-            }
-            else
-            {
-                unordered_map<string, string>::const_iterator constit = assignments.find(avc->RHS);
-                if (constit != assignments.end())
-                {
-                    assignments[avc->getData()] = constit->second;
-                    avc->RHS = constit->second;
-                }
-                else assignments[avc->getData()] = avc->RHS;
-            }
-            if (avc->getData() != avc->RHS) newInstrs.push_back(move(current));
-        }
-        else if (current->getType() == CommandType::EXPR)
-        {
-            EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(current.get());
-            //literals will not be found
-            if (AbstractCommand::getStringType(eec->term1) == AbstractCommand::StringType::ID)
-            {
-                unordered_map<string, string>::const_iterator t1it = assignments.find(eec->term1);
-                if (t1it != assignments.end()) eec->term1 = t1it->second;
-            }
-
-            if (AbstractCommand::getStringType(eec->term2) == AbstractCommand::StringType::ID)
-            {
-                unordered_map<string, string>::const_iterator t2it = assignments.find(eec->term2);
-                if (t2it != assignments.end()) eec->term2 = t2it->second;
-            }
-
-            if (eec->term1 == eec->term2
-                && AbstractCommand::getStringType(eec->term1) == AbstractCommand::StringType::ID
-                && parentGraph.symbolTable.findIdentifier(eec->term1)->getType() == DOUBLE)
-            {
-                switch (eec->op)
-                {
-                    case MINUS:
-                        assignments[eec->getData()] = "0";
-                        newInstrs.push_back(make_unique<AssignVarCommand>(eec->getData(), "0", eec->getLineNum()));
-                        break;
-                    case PLUS:
-                        assignments.erase(eec->getData());
-                        eec->op = MULT;
-                        eec->term2 = "2";
-                        newInstrs.push_back(move(current));
-                        break;
-                    default:
-                        assignments.erase(eec->getData());
-                        newInstrs.push_back(move(current));
-                }
-            }//when we leave this at least one term is an ID so we dont enter the next condition
-
-            if (AbstractCommand::getStringType(eec->term1) != AbstractCommand::StringType::ID
-                && AbstractCommand::getStringType(eec->term2) != AbstractCommand::StringType::ID)
-            {
-                try
-                {
-                    double lhs = stod(eec->term1);
-                    double rhs = stod(eec->term2);
-                    double result = evaluateOp(lhs, eec->op, rhs);
-                    string resultstr = to_string(result);
-                    assignments[eec->getData()] = resultstr;
-                    newInstrs.push_back(make_unique<AssignVarCommand>(eec->getData(), resultstr, eec->getLineNum()));
-                }
-                catch (invalid_argument&)
-                {
-                    if (eec->op == PLUS)
-                    {
-                        string result = eec->term1 + eec->term2;
-                        assignments[eec->getData()] = result;
-                        newInstrs.push_back(make_unique<AssignVarCommand>(eec->getData(), result, eec->getLineNum()));
-                    }
-                    else throw runtime_error("Strings only support +");
-                }
-            }
-            else
-            {
-                assignments.erase(eec->getData());
+                assignments.erase(current->getData());
                 newInstrs.push_back(move(current));
+                break;
             }
-        }
-        else if (current->getType() == CommandType::PUSH)
-        {
-            auto pushc = static_cast<PushCommand*>(current.get());
-            if (pushc->pushType == PushCommand::PUSHSTR)
+            case CommandType::ASSIGNVAR:
             {
-                auto pushedVarIt = assignments.find(current->getData());
-                if (pushedVarIt != assignments.end()) current->setData(pushedVarIt->second);
-            }
-            newInstrs.push_back(move(current));
-            pushedThings.push(prev(newInstrs.end()));
-        }
-        else if (current->getType() == CommandType::POP && !pushedThings.empty())
-        {
-            auto popc = static_cast<PopCommand*>(current.get());
-            auto stackTop = pushedThings.top();
-            auto pushc = static_cast<PushCommand*>((*stackTop).get());
-            if (popc->isEmpty())
-            {
-                if (pushc->pushType == PushCommand::PUSHSTATE)
+                auto avc = static_cast<AssignVarCommand*>(current.get());
+                if (AbstractCommand::getStringType(avc->RHS) != AbstractCommand::StringType::ID)
                 {
-                    CFGNode* node = parentGraph.getNode(pushc->getData());
-                    if (node == nullptr) throw "found a bad state";
-                    node->removeParent(getName());
-                    bool found = false;
-                    for (const auto& returnSucc : pushc->calledFunction->getReturnSuccessors())
-                    {
-                        if (returnSucc->getName() == node->getName())
-                        {
-                            pushc->calledFunction->removeReturnSuccessor(node->getName());
-                            node->removeParent(pushc->calledFunction->getLastNode());
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) throw "could not find state in return successors";
+                    assignments[avc->getData()] = avc->RHS;
                 }
-                newInstrs.erase(pushedThings.top());
-                pushedThings.pop();
-            }
-            else
-            {
-                if (pushc->pushType == PushCommand::PUSHSTATE) throw runtime_error("tried to pop state into var");
                 else
                 {
-                    pushedThings.pop();
-                    if (current->getData() != pushc->getData())
+                    unordered_map<string, string>::const_iterator constit = assignments.find(avc->RHS);
+                    if (constit != assignments.end())
                     {
-                        newInstrs.push_back(make_unique<AssignVarCommand>
-                                                    (current->getData(), pushc->getData(), current->getLineNum()));
+                        assignments[avc->getData()] = constit->second;
+                        avc->RHS = constit->second;
                     }
-                    newInstrs.erase(stackTop);
+                    else assignments[avc->getData()] = avc->RHS;
+                }
+                if (avc->getData() != avc->RHS) newInstrs.push_back(move(current));
+                break;
+            }
+            case CommandType::EXPR:
+            {
+                EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(current.get());
+                //literals will not be found
+                if (AbstractCommand::getStringType(eec->term1) == AbstractCommand::StringType::ID)
+                {
+                    unordered_map<string, string>::const_iterator t1it = assignments.find(eec->term1);
+                    if (t1it != assignments.end()) eec->term1 = t1it->second;
+                }
+    
+                if (AbstractCommand::getStringType(eec->term2) == AbstractCommand::StringType::ID)
+                {
+                    unordered_map<string, string>::const_iterator t2it = assignments.find(eec->term2);
+                    if (t2it != assignments.end()) eec->term2 = t2it->second;
+                }
+    
+                if (eec->term1 == eec->term2
+                    && AbstractCommand::getStringType(eec->term1) == AbstractCommand::StringType::ID
+                    && parentGraph.symbolTable.findIdentifier(eec->term1)->getType() == DOUBLE)
+                {
+                    switch (eec->op)
+                    {
+                        case MINUS:
+                            assignments[eec->getData()] = "0";
+                            newInstrs.push_back(make_unique<AssignVarCommand>(eec->getData(), "0", eec->getLineNum()));
+                            break;
+                        case PLUS:
+                            assignments.erase(eec->getData());
+                            eec->op = MULT;
+                            eec->term2 = "2";
+                            newInstrs.push_back(move(current));
+                            break;
+                        default:
+                            assignments.erase(eec->getData());
+                            newInstrs.push_back(move(current));
+                    }
+                }//when we leave this at least one term is an ID so we dont enter the next condition
+    
+                if (AbstractCommand::getStringType(eec->term1) != AbstractCommand::StringType::ID
+                    && AbstractCommand::getStringType(eec->term2) != AbstractCommand::StringType::ID)
+                {
+                    try
+                    {
+                        double lhs = stod(eec->term1);
+                        double rhs = stod(eec->term2);
+                        double result = evaluateOp(lhs, eec->op, rhs);
+                        string resultstr = to_string(result);
+                        assignments[eec->getData()] = resultstr;
+                        newInstrs.push_back(make_unique<AssignVarCommand>(eec->getData(), resultstr, eec->getLineNum()));
+                    }
+                    catch (invalid_argument&)
+                    {
+                        if (eec->op == PLUS)
+                        {
+                            string result = eec->term1 + eec->term2;
+                            assignments[eec->getData()] = result;
+                            newInstrs.push_back(make_unique<AssignVarCommand>(eec->getData(), result, eec->getLineNum()));
+                        }
+                        else throw runtime_error("Strings only support +");
+                    }
+                }
+                else
+                {
+                    assignments.erase(eec->getData());
+                    newInstrs.push_back(move(current));
+                }
+                break;
+            }
+            case CommandType::PRINT:
+            {
+                unordered_map<string, string>::const_iterator t1it = assignments.find(current->getData());
+                if (t1it != assignments.end()) current->setData(t1it->second);
+                newInstrs.push_back(move(current));
+                break;
+            }
+            case CommandType::PUSH:
+            {
+                auto pushc = static_cast<PushCommand*>(current.get());
+                if (pushc->pushType == PushCommand::PUSHSTR)
+                {
+                    auto pushedVarIt = assignments.find(current->getData());
+                    if (pushedVarIt != assignments.end()) current->setData(pushedVarIt->second);
+                }
+                newInstrs.push_back(move(current));
+                pushedThings.push(prev(newInstrs.end()));
+                break;
+            }
+            case CommandType::POP:
+            {
+                if (!pushedThings.empty())
+                {
+                    auto popc = static_cast<PopCommand*>(current.get());
+                    auto stackTop = pushedThings.top();
+                    auto pushc = static_cast<PushCommand*>((*stackTop).get());
+                    if (popc->isEmpty())
+                    {
+                        if (pushc->pushType == PushCommand::PUSHSTATE)
+                        {
+                            CFGNode* node = parentGraph.getNode(pushc->getData());
+                            if (node == nullptr) throw "found a bad state";
+                            node->removeParent(getName());
+                            bool found = false;
+                            for (const auto& returnSucc : pushc->calledFunction->getReturnSuccessors())
+                            {
+                                if (returnSucc->getName() == node->getName())
+                                {
+                                    pushc->calledFunction->removeReturnSuccessor(node->getName());
+                                    node->removeParent(pushc->calledFunction->getLastNode());
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) throw "could not find state in return successors";
+                        }
+                        newInstrs.erase(pushedThings.top());
+                        pushedThings.pop();
+                    }
+                    else
+                    {
+                        if (pushc->pushType == PushCommand::PUSHSTATE) throw runtime_error("tried to pop state into var");
+                        else
+                        {
+                            pushedThings.pop();
+                            if (current->getData() != pushc->getData())
+                            {
+                                newInstrs.push_back(make_unique<AssignVarCommand>
+                                                            (current->getData(), pushc->getData(), current->getLineNum()));
+                            }
+                            newInstrs.erase(stackTop);
+                        }
+                    }
+                    break;
                 }
             }
+            default:
+                newInstrs.push_back(move(current));
         }
-        else newInstrs.push_back(move(current));
         ++it;
     }
 

@@ -43,16 +43,6 @@ namespace DataFlow
             if (!parentOut.empty()) predSets.push_back(&parentOut);
         }
 
-        if (node->getName() == "F0_main_5")
-        {
-            int size = predSets.size();
-            std::vector<std::set<T>> predies;
-            for (const auto& pair : node->getPredecessors()) predies.push_back(outSets[pair.first]);
-            //auto wilkins = (*(predSets.at(0)->begin()));
-            int debug;
-            debug = '3';
-        }
-
         if (predSets.empty()) return std::set<T>(); //return set
         else return move(intersectSets(predSets));
     }
@@ -125,7 +115,7 @@ namespace DataFlow
 
         void worklist();
 
-        virtual void transfer(std::set<T>& inSet, CFGNode *node) = 0; //must be monotone
+        virtual void transfer(std::set<T>& inSet, CFGNode *node) = 0;
         virtual void finish() = 0;
     };
 
@@ -140,6 +130,11 @@ namespace DataFlow
         bool operator<(const Assignment& right) const
         {
             return (lhs < right.lhs) || (lhs == right.lhs && rhs < right.rhs);
+        }
+
+        bool operator==(const Assignment& other) const
+        {
+            return lhs == other.lhs && rhs == other.rhs;
         }
     };
 

@@ -5,7 +5,7 @@
 
 #include "compile/Token.h"
 
-enum class CommandType{NONE, JUMP, CONDJUMP, DECLAREVAR, PUSH, POP, ASSIGNVAR, CHANGEVAR, EXPR};
+enum class CommandType{NONE, JUMP, CONDJUMP, DECLAREVAR, PUSH, POP, ASSIGNVAR, CHANGEVAR, EXPR, PRINT};
 
 namespace SymbolicExecution {class SymbolicExecutionFringe;}; //symbolic/SymbolicExecution.cpp
 class AbstractCommand
@@ -74,7 +74,7 @@ public:
     PrintCommand(const std::string& info, int linenum) : AbstractCommand(linenum)
     {
         setData(info);
-        setType(CommandType::NONE);
+        setType(CommandType::PRINT);
     }
 
     std::string translation(const std::string& delim) const override {return "print " + getData() + ";" + delim;}
