@@ -1,5 +1,3 @@
-#include <unordered_map>
-#include <stack>
 #include <algorithm>
 
 #include "DataFlow.h"
@@ -7,31 +5,24 @@
 using namespace std;
 using namespace DataFlow;
 
-template <typename T, set<T>(*in)(CFGNode*, unordered_map<string, set<T>>&)>
-void AbstractDataFlow<T, in>::worklist()
+std::vector<CFGNode*> DataFlow::getSuccessorNodes(CFGNode* node)
 {
-	stack<CFGNode*> list({startNode});
-	
-	while (!list.empty())
-	{
-		CFGNode* top = list.top();
-        list.pop();
-        set<T> inSet = in(top, outSets);
-
-		transfer(inSet, top);
-
-		if (outSets[top->getName()] != inSet) //inSet has been transferred to outset
-		{
-            outSets[top->getName()] = move(inSet);
-			if (top->getCompFail() != nullptr) list.push(top->getCompFail());
-			if (top->getCompSuccess() != nullptr) list.push(top->getCompSuccess());
-			if (top->isLastNode()) for (CFGNode* n : top->getParentFunction()->getReturnSuccessors()) list.push(n);
-		}
-	}
-    finish();
+    std::vector<CFGNode*> successors;
+    if (node->getCompSuccess() != nullptr) successors.push_back(node->getCompSuccess());
+    if (node->getCompFail() != nullptr) successors.push_back(node->getCompFail());
+    else
+    {
+        if (!node->isLastNode()) throw "only last node can return";
+        for (const auto& retSucc : node->getParentFunction()->getReturnSuccessors()) successors.push_back(retSucc);
+    }
+    return successors;
 }
-template class AbstractDataFlow<Assignment, intersectPredecessors<Assignment>>;
-template class AbstractDataFlow<string, unionSuccessors<string>>;
+std::vector<CFGNode*> DataFlow::getPredecessorNodes(CFGNode* node)
+{
+    std::vector<CFGNode*> predecessors;
+    for (const auto& pair : node->getPredecessors()) predecessors.push_back(pair.second);
+    return predecessors;
+}
 
 //AssignmentPropogationDataFlow
 AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& cfg, SymbolTable& st)
@@ -112,7 +103,7 @@ void AssignmentPropogationDataFlow::finish()
 }
 
 #define insertIfNotInKillSet(inserting) \
-    if (isalpha(inserting[0]))\
+    if (!isdigit(inserting[0]) && inserting[0] != '"')\
     {\
         it = killSet.find(inserting);\
         if (it == killSet.end()) genSet.insert(inserting);\
@@ -128,13 +119,6 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
         set<string> genSet;
         set<string> killSet;
         set<string>::iterator it;
-
-        /*auto insertIfNotInKillSet = [&, genSet, killSet] (string insert, bool checkVar) mutable -> void
-        {
-            if (checkVar && !isalpha(insert[0])) return;
-            auto it = killSet.find(insert);
-            if (it == killSet.end()) genSet.insert(insert);
-        };*/
 
         vector<unique_ptr<AbstractCommand>>& instrs = node->getInstrs();
 
@@ -161,7 +145,6 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                     break;
                 case CommandType::ASSIGNVAR:
                 {
-                    vars.insert(instr->getData());
                     auto avc = static_cast<AssignVarCommand*>(instr.get());
                     killSet.insert(avc->getData());
                     insertIfNotInKillSet(avc->RHS);
@@ -182,24 +165,22 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
         {
             if (jocc->term1Type == AbstractCommand::StringType::ID)
             {
-                it = killSet.find(jocc->term1);
-                if (it == killSet.end()) genSet.insert(jocc->term1);
+                killSet.erase(jocc->term1);
+                genSet.insert(jocc->term1);
             }
             if (jocc->term2Type == AbstractCommand::StringType::ID)
             {
-                it = killSet.find(jocc->term1);
-                if (it == killSet.end()) genSet.insert(jocc->term1);
+                killSet.erase(jocc->term2);
+                genSet.insert(jocc->term2);
             }
         }
         genSets[node->getName()] = move(genSet);
-        killSets[node->getName()] = move(killSet);
     }
 }
 
 void LiveVariableDataFlow::transfer(set<string>& in, CFGNode* node)
 {
     for (auto& live: genSets[node->getName()]) in.insert(live);
-    for (auto& kill : killSets[node->getName()]) in.erase(kill);
 }
 
 void LiveVariableDataFlow::finish()

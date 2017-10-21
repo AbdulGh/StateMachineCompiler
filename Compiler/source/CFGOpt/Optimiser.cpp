@@ -20,7 +20,7 @@ namespace Optimise
             }
         }
         DataFlow::LiveVariableDataFlow(controlFlowGraph, symbolTable).worklist();
-        DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();
+        //DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();
     }
 
     void collapseSmallStates(ControlFlowGraph& controlFlowGraph, FunctionTable& functionTable)
@@ -42,40 +42,6 @@ namespace Optimise
                     ++pair;
                     continue;
                 }
-                
-                /*if (current->isFirstNode())
-                {
-                    if (current->isLastNode()) //only one node - get rid of function
-                    {
-                        if (current->getCompSuccess() != nullptr && current->getCompFail() != nullptr) throw "check";
-                        if (instructionList.empty())
-                        {
-                            current->removePushes();
-
-                            for (const auto& parentit : preds)
-                            {
-                                if (!parentit.second->swallowNode(current)) throw "should swallow";
-                            }
-                            preds.clear();
-                        }
-                        else
-                        {
-                            auto parentit = preds.begin();
-                            while (parentit != preds.end())
-                            {
-                                if (parentit->second->swallowNode(current))
-                                {
-                                    parentit = preds.erase(parentit);
-                                    changes = true;
-                                }
-                                else ++parentit;
-                            }
-                        }
-                    }
-
-                    if (preds.empty()) functionTable.removeFunction(current->getParentFunction()->getIdent());
-                    else ++pair;
-                }*/
 
                 if (current->isLastNode())
                 {

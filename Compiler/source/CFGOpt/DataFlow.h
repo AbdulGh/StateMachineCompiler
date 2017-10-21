@@ -1,10 +1,19 @@
+#ifndef PROJECT_DATAFLOW_H
+#define PROJECT_DATAFLOW_H
+
 #include <set>
+#include <unordered_map>
+#include <stack>
 
 #include "CFG.h"
 #include "../compile/Functions.h"
 
 namespace DataFlow
 {
+    std::vector<CFGNode*> getSuccessorNodes(CFGNode* node);
+    std::vector<CFGNode*> getPredecessorNodes(CFGNode* node);
+
+
     //as Ts are put in ordered sets they must have comparison stuff
     template<typename T>
     std::set<T> intersectSets(std::vector<std::set<T>*>& sets)
@@ -62,28 +71,9 @@ namespace DataFlow
     std::vector<std::set<T>*> getSuccessorOutSets(CFGNode *node, std::unordered_map<std::string, std::set<T>>& outSets)
     {
         std::vector <std::set<T>*> succSets;
-        if (node->getCompSuccess() != nullptr)
+        for (const auto& successor : getSuccessorNodes(node))
         {
-            std::set<T>& compSuccessOutSet = outSets[node->getCompSuccess()->getName()];
-            if (!compSuccessOutSet.empty()) succSets.push_back(&compSuccessOutSet);
-        }
-        if (node->getCompFail() != nullptr)
-        {
-            std::set<T>& compFailOutSet = outSets[node->getCompFail()->getName()];
-            if (!compFailOutSet.empty()) succSets.push_back(&compFailOutSet);
-        }
-        else
-        {
-            if (!node->isLastNode())
-            {
-                printf("%s\n", node->getParentGraph().getStructuredSource().c_str());
-                throw "only last node can return";
-            }
-            for (const auto& retSucc : node->getParentFunction()->getReturnSuccessors())
-            {
-                std::set<T>& returnSuccessorOutSet = outSets[retSucc->getName()];
-                if (!returnSuccessorOutSet.empty()) succSets.push_back(&returnSuccessorOutSet);
-            }
+            if (!outSets[successor->getName()].empty()) succSets.push_back(&outSets[successor->getName()]);
         }
         return succSets;
     }
@@ -107,7 +97,9 @@ namespace DataFlow
         return join;
     }
 
-    template<typename T, std::set<T>(*in)(CFGNode *, std::unordered_map<std::string, std::set<T>>&)>
+    template<typename T,
+            std::set<T>(*in)(CFGNode *, std::unordered_map<std::string, std::set<T>>&),
+            std::vector<CFGNode*> (*nextNodes) (CFGNode*)>
     class AbstractDataFlow
     {
     protected:
@@ -120,7 +112,26 @@ namespace DataFlow
                 :controlFlowGraph(cfg), symbolTable(st), startNode(startWith)
         {};
 
-        void worklist();
+        void worklist()
+        {
+            std::stack<CFGNode*> list({startNode});
+
+            while (!list.empty())
+            {
+                CFGNode* top = list.top();
+                list.pop();
+                std::set<T> inSet = in(top, outSets);
+
+                transfer(inSet, top);
+
+                if (outSets[top->getName()] != inSet) //inSet has been transferred to new outset
+                {
+                    outSets[top->getName()] = move(inSet);
+                    for (CFGNode* nextNode : nextNodes(top)) list.push(nextNode);
+                }
+            }
+            finish();
+        }
 
         virtual void transfer(std::set<T>& inSet, CFGNode *node) = 0;
         virtual void finish() = 0;
@@ -145,7 +156,9 @@ namespace DataFlow
         }
     };
 
-    class AssignmentPropogationDataFlow : public AbstractDataFlow<Assignment, intersectPredecessors<Assignment>>
+    class AssignmentPropogationDataFlow : public AbstractDataFlow<DataFlow::Assignment,
+                                                                  DataFlow::intersectPredecessors<DataFlow::Assignment>,
+                                                                  DataFlow::getSuccessorNodes>
     {
     private:
         std::unordered_map<std::string, std::set<Assignment>> genSets;
@@ -157,12 +170,12 @@ namespace DataFlow
         void finish() override;
     };
 
-    class LiveVariableDataFlow : public AbstractDataFlow<std::string, unionSuccessors<std::string>>
+    class LiveVariableDataFlow : public AbstractDataFlow<std::string,
+                                                         DataFlow::unionSuccessors<std::string>,
+                                                         DataFlow::getPredecessorNodes>
     {
     private:
         std::unordered_map<std::string, std::set<std::string>> genSets;
-        std::unordered_map<std::string, std::set<std::string>> killSets;
-        std::set<std::string> vars;
     public:
         LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& st);
 
@@ -171,3 +184,5 @@ namespace DataFlow
         void finish() override;
     };
 }
+
+#endif
