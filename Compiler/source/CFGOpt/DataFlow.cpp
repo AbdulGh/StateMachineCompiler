@@ -38,34 +38,44 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
         
         for (const auto& instr : instrs)
         {
-            if (instr->getType() == CommandType::CHANGEVAR)
+            switch (instr->getType())
             {
-                const std::string& data = instr->getData();
-                auto it = find_if(genSet.begin(), genSet.end(),
-                                  [&, data] (const Assignment& ass) {return ass.lhs == data;});
-                if (it != genSet.end()) genSet.erase(it);
-                killSet.insert(data);
-            }
-            else if (instr->getType() == CommandType::ASSIGNVAR)
-            {
-                auto avc = static_cast<AssignVarCommand*>(instr.get());
-                const string& lhs = avc->getData();
-                auto it =find_if(genSet.begin(), genSet.end(),
-                                 [&, lhs] (const Assignment& ass) {return ass.lhs == lhs;});
-                if (it != genSet.end()) genSet.erase(it);
-                genSet.insert(Assignment(lhs, avc->RHS));
-                killSet.erase(lhs);
-            }
-            else if (instr->getType() == CommandType::DECLAREVAR)
-            {
-                DeclareVarCommand* dvc = static_cast<DeclareVarCommand*>(instr.get());
-                const string& lhs = dvc->getData();
-                auto it = find_if(genSet.begin(), genSet.end(),
-                                  [&, lhs] (const Assignment& ass) {return ass.lhs == lhs;});
-                if (it != genSet.end()) genSet.erase(it);
-                string defaultStr = dvc->vt == DOUBLE ? "0" : "";
-                genSet.insert(Assignment(lhs, move(defaultStr)));
-                killSet.erase(lhs);
+                case CommandType::CHANGEVAR:
+                case CommandType::EXPR:
+                {
+                    const std::string& data = instr->getData();
+                    auto it = find_if(genSet.begin(), genSet.end(),
+                                      [&, data](const Assignment& ass)
+                                      { return ass.lhs == data; });
+                    if (it != genSet.end()) genSet.erase(it);
+                    killSet.insert(data);
+                    break;
+                }
+                case CommandType::ASSIGNVAR:
+                {
+                    auto avc = static_cast<AssignVarCommand *>(instr.get());
+                    const string& lhs = avc->getData();
+                    auto it = find_if(genSet.begin(), genSet.end(),
+                                      [&, lhs](const Assignment& ass)
+                                      { return ass.lhs == lhs; });
+                    if (it != genSet.end()) genSet.erase(it);
+                    genSet.insert(Assignment(lhs, avc->RHS));
+                    killSet.erase(lhs);
+                    break;
+                }
+                case CommandType::DECLAREVAR:
+                {
+                    DeclareVarCommand *dvc = static_cast<DeclareVarCommand *>(instr.get());
+                    const string& lhs = dvc->getData();
+                    auto it = find_if(genSet.begin(), genSet.end(),
+                                      [&, lhs](const Assignment& ass)
+                                      { return ass.lhs == lhs; });
+                    if (it != genSet.end()) genSet.erase(it);
+                    string defaultStr = dvc->vt == DOUBLE ? "0" : "";
+                    genSet.insert(Assignment(lhs, move(defaultStr)));
+                    killSet.erase(lhs);
+                    break;
+                }
             }
         }
         genSets[node->getName()] = move(genSet);
@@ -163,17 +173,10 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
         JumpOnComparisonCommand* jocc = node->getComp();
         if (jocc != nullptr)
         {
-            if (jocc->term1Type == AbstractCommand::StringType::ID)
-            {
-                killSet.erase(jocc->term1);
-                genSet.insert(jocc->term1);
-            }
-            if (jocc->term2Type == AbstractCommand::StringType::ID)
-            {
-                killSet.erase(jocc->term2);
-                genSet.insert(jocc->term2);
-            }
+            if (jocc->term1Type == AbstractCommand::StringType::ID) genSet.insert(jocc->term1);
+            if (jocc->term2Type == AbstractCommand::StringType::ID) genSet.insert(jocc->term2);
         }
+        outSets[node->getName()] = genSet;//copies
         genSets[node->getName()] = move(genSet);
     }
 }

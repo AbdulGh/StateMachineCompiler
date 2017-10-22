@@ -108,21 +108,27 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource() //todo finish this
             CFGNode* current = it->second.get();
             if (current->getInstrs().empty() && current->getCompSuccess() == nullptr)
             {
-                if (current->getCompFail() == nullptr)
+                if (current->getCompFail() == nullptr) current->removePushes();
+                else current->replacePushes(current->getCompFail()->getName());
+                for (auto& parent : current->getPredecessors())
                 {
-                    current->removePushes();
-
-                    for (auto& parent : current->getPredecessors())
-                    {
-                        if (parent.second->getCompFail() == nullptr &&
-                                (parent.second->getCompSuccess() == nullptr ||
-                                        parent.second->getCompSuccess()->getName() != current->getName())) continue;
-                        if (!parent.second->swallowNode(current)) throw "should swallow";
-                    }
-                    it = nodes.erase(it);
-                    changes=true;
+                    if (parent.second->getCompFail() == nullptr &&
+                        (parent.second->getCompSuccess() == nullptr ||
+                         parent.second->getCompSuccess()->getName() != current->getName())) continue;
+                    if (!parent.second->swallowNode(current)) throw "should swallow";
                 }
-                else ++it;
+                if (current->getName() == first->getName())
+                {
+                    if (current->getCompFail() != nullptr) first = getNode(current->getCompFail()->getName());
+                    else if (current->getParentFunction()->getReturnSuccessors().size() == 1)
+                    {
+                        first = *(current->getParentFunction()->getReturnSuccessors().cbegin());
+                    }
+                    else throw "should have been one of those";
+                }
+
+                it = nodes.erase(it);
+                changes=true;
             }
             else ++it;
         }
@@ -159,7 +165,7 @@ string ControlFlowGraph::getDotGraph()
                 for (auto& nodePointer : oldFS->getReturnSuccessors())
                 {
                     outs << oldLastNode << "->" << nodePointer->getName()
-                         << "[label=\\\"return\\\"];\n";
+                         << "[label=\"return\"];\n";
                 }
             }
             currentFunc = n->getParentFunction()->getIdent();

@@ -145,7 +145,11 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
                 if (AbstractCommand::getStringType(eec->term1) == AbstractCommand::StringType::ID)
                 {
                     unordered_map<string, string>::const_iterator t1it = assignments.find(eec->term1);
-                    if (t1it != assignments.end()) eec->term1 = t1it->second;
+                    if (t1it != assignments.end())
+                    {
+                        auto debug = t1it->second;
+                        eec->term1 = t1it->second; //debug
+                    }
                 }
     
                 if (AbstractCommand::getStringType(eec->term2) == AbstractCommand::StringType::ID)
@@ -382,6 +386,12 @@ bool CFGNode::swallowNode(CFGNode* other)
             
             setCompSuccess(other->getCompSuccess());
             setCompFail(other->getCompFail());
+            if (compSuccess != nullptr && compFail != nullptr &&
+                    compSuccess->getName() == compFail->getName())
+            {
+                setComp(nullptr);
+                setCompSuccess(nullptr);
+            }
             if (otherIsOnlyRetSuccessor) parentFunction->removeReturnSuccessor(other->getName());
             return true;
         }
@@ -410,9 +420,15 @@ bool CFGNode::swallowNode(CFGNode* other)
         }
 
         else if (otherIsOnlyRetSuccessor && predecessors.size() == 1) setCompFail(other->getCompFail());
-
         else return false;
+
         if (otherIsOnlyRetSuccessor) parentFunction->removeReturnSuccessor(other->getName());
+        if (compSuccess != nullptr && compFail != nullptr &&
+               compSuccess->getName() == compFail->getName())
+        {
+            setComp(nullptr);
+            setCompSuccess(nullptr);
+        }
         return true;
     }
     return false;
@@ -477,7 +493,7 @@ void CFGNode::removeParent(const string& s)
 {
     if (predecessors.erase(s) == 0)
     {
-        cout << parentGraph.getStructuredSource() << '\n';
+        cout << parentGraph.getStructuredSource() << '\n'; //debug
         throw runtime_error("Parent '" + s + "' not found in '" + getName() + "'");
     }
 }

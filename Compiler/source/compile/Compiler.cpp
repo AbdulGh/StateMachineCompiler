@@ -40,9 +40,7 @@ void Compiler::compile(stringstream& out)
     cfg.setFirst(mainFuncSym->getFirstNode()->getName());
     cfg.setLast(mainFuncSym->getLastNode()->getName());
     Optimise::optimise(symbolTable, functionTable, cfg);
-    //SymbolicExecution::SymbolicExecutionManager symMan(cfg, symbolTable, reporter);
-    //symMan.search();
-    //Optimise::optimise(symbolTable, cfg);
+    //cout << cfg.getStructuredSource();
     cout << cfg.destroyStructureAndGetFinalSource();
 }
 

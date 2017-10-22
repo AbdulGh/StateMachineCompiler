@@ -1,35 +1,8 @@
-F0_main_0
-double LHS;
-double RHS;
-string retS;
-double retD;
-double _0_0_x;
-_0_0_x = 0;
-push state F0_main_fin;
-LHS = 0;
-RHS = 10.000000;
-jump F1_loopheader_4;
-end
+digraph{
+graph [pad="0.8", nodesep="0.8", ranksep="0.8"];
+subgraph cluster_loopheader{
+label="loopheader";
+F1_loopheader_4[label=<<B>F1_loopheader_4</B><br/>print _0_0_x;<br/>print "\n";<br/>_0_0_x = _0_0_x + 1;<br/>> shape=box];
+F1_loopheader_4->F1_loopheader_4[label="_0_0_x < 10.000000"];
 
-F2_loopbody_fin
-return;
-end
-
-F1_loopheader_4
-print _0_0_x;
-print "\n";
-_0_0_x = _0_0_x + 1;
-push state F2_loopbody_fin;
-LHS = _0_0_x;
-RHS = 10.000000;
-jumpif _0_0_x < 10.000000 F1_loopheader_4;
-return;
-end
-
-F0_main_1
-jump F0_main_fin;
-end
-
-F0_main_fin
-return;
-end
+}}

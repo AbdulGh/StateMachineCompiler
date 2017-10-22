@@ -19,8 +19,8 @@ namespace Optimise
                 if (node.second->constProp()) changes = true;
             }
         }
+        DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();
         DataFlow::LiveVariableDataFlow(controlFlowGraph, symbolTable).worklist();
-        //DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();
     }
 
     void collapseSmallStates(ControlFlowGraph& controlFlowGraph, FunctionTable& functionTable)
@@ -76,8 +76,7 @@ namespace Optimise
                     preds.clear();
                     changes = true;
                 }
-
-                if (preds.size() == 1) //here
+                if (preds.size() == 1)
                 {
                     CFGNode* parent = preds.cbegin()->second;
                     if (parent->swallowNode(current))
@@ -107,29 +106,6 @@ namespace Optimise
                     pair = nodes.erase(pair);
                 }
                 else ++pair;
-            }
-        }
-    }
-
-    void destroyBinaryCFGStructure(ControlFlowGraph& controlFlowGraph) //todo
-    {
-        unordered_map<string, unique_ptr<CFGNode>>& nodes = controlFlowGraph.getCurrentNodes();
-        bool changes = true;
-        while (changes)
-        {
-            changes = false;
-            auto pair = nodes.begin();
-            while (pair != nodes.end())
-            {
-                CFGNode *current = pair->second.get();
-                vector<unique_ptr<AbstractCommand>>& instructionList = current->getInstrs();
-                unordered_map<string, CFGNode *>& preds = current->getPredecessors();
-
-                if (instructionList.empty())
-                {
-
-                }
-
             }
         }
     }
