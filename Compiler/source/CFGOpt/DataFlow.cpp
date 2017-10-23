@@ -7,21 +7,11 @@ using namespace DataFlow;
 
 std::vector<CFGNode*> DataFlow::getSuccessorNodes(CFGNode* node)
 {
-    std::vector<CFGNode*> successors;
-    if (node->getCompSuccess() != nullptr) successors.push_back(node->getCompSuccess());
-    if (node->getCompFail() != nullptr) successors.push_back(node->getCompFail());
-    else
-    {
-        if (!node->isLastNode()) throw "only last node can return";
-        for (const auto& retSucc : node->getParentFunction()->getReturnSuccessors()) successors.push_back(retSucc);
-    }
-    return successors;
+    return node->getSuccessorVector();
 }
 std::vector<CFGNode*> DataFlow::getPredecessorNodes(CFGNode* node)
 {
-    std::vector<CFGNode*> predecessors;
-    for (const auto& pair : node->getPredecessors()) predecessors.push_back(pair.second);
-    return predecessors;
+    return node->getPredecessorVector();
 }
 
 //AssignmentPropogationDataFlow

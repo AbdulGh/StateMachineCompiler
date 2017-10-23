@@ -9,7 +9,7 @@ set(SOURCE_FILES source/main.cpp source/compile/SymbolTable.cpp source/compile/S
         source/compile/ExpressionTreeNodes.cpp source/Command.h source/CFGOpt/Optimiser.cpp source/CFGOpt/Optimiser.h source/CFGOpt/CFG.cpp source/CFGOpt/CFG.h source/symbolic/SymbolicVariable.cpp source/symbolic/SymbolicVariables.h
         source/symbolic/SymbolicVarSet.cpp source/symbolic/SymbolicVarSet.h source/symbolic/SymbolicExecution.cpp source/symbolic/SymbolicExecution.h source/compile/Reporter.cpp source/compile/Reporter.h source/symbolic/SymbolicStack.cpp
         source/symbolic/SymbolicStack.h source/symbolic/CommandAcceptSymbolicExecution.cpp source/compile/Compiler.cpp source/symbolic/SymbolicDouble.cpp source/symbolic/SymbolicString.cpp source/CFGOpt/CFGNodes.cpp source/compile/FunctionTable.cpp
-        source/CFGOpt/DataFlow.cpp source/CFGOpt/DataFlow.h)
+        source/CFGOpt/DataFlow.cpp source/CFGOpt/DataFlow.h source/CFGOpt/LengTarj.cpp source/CFGOpt/LengTarj.h)
 add_executable(Project ${SOURCE_FILES})
 
 include (CTest)

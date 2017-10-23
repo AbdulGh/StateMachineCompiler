@@ -46,7 +46,7 @@ namespace DataFlow
     std::set<T> intersectPredecessors(CFGNode *node, std::unordered_map<std::string, std::set<T>>& outSets)
     {
         std::vector < std::set<T>* > predSets; //by reference!
-        for (const auto& pair : node->getPredecessors())
+        for (const auto& pair : node->getPredecessorMap())
         {
             std::set<T>& parentOut = outSets[pair.first];
             if (!parentOut.empty()) predSets.push_back(&parentOut);
@@ -60,7 +60,7 @@ namespace DataFlow
     std::set<T> unionPredecessors(CFGNode *node, std::unordered_map <std::string, std::set<T>>& outSets)
     {
         std::set<T> join;
-        for (const auto& pair : node->getPredecessors())
+        for (const auto& pair : node->getPredecessorMap())
         {
             for (const T& goingIn: outSets[pair.first]) join.insert(goingIn);
         }

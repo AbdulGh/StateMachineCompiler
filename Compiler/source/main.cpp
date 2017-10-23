@@ -8,7 +8,7 @@ int main()
 {
     Lexer lexer;
 
-    vector<Token> st = lexer.tokenize("../misc/loopFuncTest.f");
+    vector<Token> st = lexer.tokenize("../examples/loopFuncTest.f");
     Compiler c(st, "../warnings.txt");
     stringstream pleaseWork;
     c.compile(pleaseWork);

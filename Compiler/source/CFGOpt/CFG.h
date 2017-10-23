@@ -61,9 +61,6 @@ private:
     int jumpline;
 
 public:
-   // static std::vector<CFGNode*> getSuccessorNodes(CFGNode* node);
-   // static std::vector<CFGNode*> getPredecessorNodes(CFGNode* node);
-
     CFGNode(ControlFlowGraph& p, FunctionSymbol* pf, std::string n, bool last = false);
     bool constProp(std::unordered_map<std::string, std::string> assignments = std::unordered_map<std::string, std::string>()); //returns true if it bypassed some return
     bool addParent(CFGNode*); //returns false if parent was already in
@@ -90,7 +87,9 @@ public:
     bool swallowNode(CFGNode* other);
 
     JumpOnComparisonCommand* getComp();
-    std::unordered_map<std::string, CFGNode*>& getPredecessors();
+    std::unordered_map<std::string, CFGNode*>& getPredecessorMap();
+    std::vector<CFGNode*> getPredecessorVector();
+    std::vector<CFGNode*> getSuccessorVector();
     CFGNode* getCompSuccess();
     CFGNode* getCompFail();
     int getJumpline() const;

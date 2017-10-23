@@ -58,7 +58,7 @@ void SymbolicExecutionManager::search()
             CFGNode* lonelyNode = cfg.getNode(p.first);
             if (lonelyNode->getCompSuccess() != nullptr) lonelyNode->getCompSuccess()->removeParent(lonelyNode);
             if (lonelyNode->getCompFail() != nullptr) lonelyNode->getCompFail()->removeParent(lonelyNode);
-            for (auto& parentPair : lonelyNode->getPredecessors())
+            for (auto& parentPair : lonelyNode->getPredecessorMap())
             {
                 CFGNode* parent = parentPair.second;
                 if (parent->getCompSuccess() != nullptr &&

@@ -24,8 +24,8 @@ void ControlFlowGraph::removeNode(string name)
     unique_ptr<CFGNode>& nodePointer = it->second;
     if (nodePointer->isLastNode())
     {
-        if (nodePointer->getPredecessors().size() != 1) throw runtime_error("Can't replace last node");
-        CFGNode* newLast = last->getPredecessors().cbegin()->second;
+        if (nodePointer->getPredecessorMap().size() != 1) throw runtime_error("Can't replace last node");
+        CFGNode* newLast = last->getPredecessorMap().cbegin()->second;
         nodePointer->getParentFunction()->setLastNode(newLast);
         if (last->getName() == nodePointer->getName()) last = newLast;
     }
@@ -110,7 +110,7 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource() //todo finish this
             {
                 if (current->getCompFail() == nullptr) current->removePushes();
                 else current->replacePushes(current->getCompFail()->getName());
-                for (auto& parent : current->getPredecessors())
+                for (auto& parent : current->getPredecessorMap())
                 {
                     if (parent.second->getCompFail() == nullptr &&
                         (parent.second->getCompSuccess() == nullptr ||

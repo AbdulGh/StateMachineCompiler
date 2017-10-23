@@ -2,6 +2,7 @@
 
 #include "Optimiser.h"
 #include "DataFlow.h"
+#include "LengTarj.h"
 
 using namespace std;
 
@@ -21,6 +22,7 @@ namespace Optimise
         }
         DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();
         DataFlow::LiveVariableDataFlow(controlFlowGraph, symbolTable).worklist();
+        auto lt = LengTarj(controlFlowGraph);
     }
 
     void collapseSmallStates(ControlFlowGraph& controlFlowGraph, FunctionTable& functionTable)
@@ -35,7 +37,7 @@ namespace Optimise
             {
                 CFGNode* current = pair->second.get();
                 vector<unique_ptr<AbstractCommand>>& instructionList = current->getInstrs();
-                unordered_map<string, CFGNode*>& preds = current->getPredecessors();
+                unordered_map<string, CFGNode*>& preds = current->getPredecessorMap();
 
                 if (current->getName() == controlFlowGraph.getFirst()->getName())
                 {
@@ -69,7 +71,7 @@ namespace Optimise
                     if (current->getCompFail() != nullptr) current->replacePushes(current->getCompFail()->getName());
                     else current->removePushes();
 
-                    for (const auto& parentit : current->getPredecessors())
+                    for (const auto& parentit : current->getPredecessorMap())
                     {
                         if (!parentit.second->swallowNode(current)) throw "should swallow";
                     }

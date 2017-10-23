@@ -503,9 +503,28 @@ JumpOnComparisonCommand* CFGNode::getComp()
     return comp.get();
 }
 
-unordered_map<string, CFGNode*>& CFGNode::getPredecessors()
+unordered_map<string, CFGNode*>& CFGNode::getPredecessorMap()
 {
     return predecessors;
+}
+
+vector<CFGNode*> CFGNode::getSuccessorVector()
+{
+    std::vector<CFGNode*> successors;
+    if (getCompSuccess() != nullptr) successors.push_back(getCompSuccess());
+    if (getCompFail() != nullptr) successors.push_back(getCompFail());
+    else
+    {
+        if (!isLastNode()) throw "only last node can return";
+        for (const auto& retSucc : getParentFunction()->getReturnSuccessors()) successors.push_back(retSucc);
+    }
+    return successors;
+}
+std::vector<CFGNode*> CFGNode::getPredecessorVector()
+{
+    std::vector<CFGNode*> predecessorVec;
+    for (const auto& pair : predecessors) predecessorVec.push_back(pair.second);
+    return predecessorVec;
 }
 
 CFGNode* CFGNode::getCompSuccess()
