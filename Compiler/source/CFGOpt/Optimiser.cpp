@@ -22,7 +22,7 @@ namespace Optimise
         }
         DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();
         DataFlow::LiveVariableDataFlow(controlFlowGraph, symbolTable).worklist();
-        auto lt = LengTarj(controlFlowGraph);
+        LengTarj(controlFlowGraph).findLoops();
     }
 
     void collapseSmallStates(ControlFlowGraph& controlFlowGraph, FunctionTable& functionTable)
