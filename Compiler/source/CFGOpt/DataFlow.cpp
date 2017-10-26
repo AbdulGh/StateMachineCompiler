@@ -153,7 +153,7 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 case CommandType::EXPR:
                 {
                     EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(instr.get());
-                    killSet.insert(eec->getData());
+                    killSet.insert(eec->getData()); //todo consider x=x+1
                     insertIfNotInKillSet(eec->term1);
                     insertIfNotInKillSet(eec->term2);
                 }

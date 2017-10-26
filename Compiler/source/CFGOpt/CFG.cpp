@@ -145,15 +145,12 @@ string ControlFlowGraph::getDotGraph()
         outs << "}";
         return outs.str();
     }
-    else first->getDotNode();
-
     map<string, CFGNode*> ordered;
     for (auto& node : currentNodes) ordered[node.first] = node.second.get();
     
     string currentFunc;
     for (auto& it : ordered) //the nodes should be grouped by function due to name ordering
     {
-        if (it.first == first->getName()) continue;
         CFGNode* n = it.second;
         if (n->getParentFunction()->getIdent() != currentFunc)
         {

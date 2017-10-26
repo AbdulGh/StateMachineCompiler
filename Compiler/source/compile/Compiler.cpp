@@ -40,8 +40,9 @@ void Compiler::compile(stringstream& out)
     cfg.setFirst(mainFuncSym->getFirstNode()->getName());
     cfg.setLast(mainFuncSym->getLastNode()->getName());
     Optimise::optimise(symbolTable, functionTable, cfg);
-    //cout << cfg.getStructuredSource();
-    cout << cfg.destroyStructureAndGetFinalSource();
+    cout << cfg.getStructuredSource();
+    //cout << cfg.destroyStructureAndGetFinalSource();
+    //cout << cfg.getDotGraph();
 }
 
 Token Compiler::nextToken()

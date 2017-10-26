@@ -114,16 +114,19 @@ namespace DataFlow
 
         void worklist()
         {
-            std::stack<CFGNode*> list({startNode});
+            std::stack<CFGNode*> list;
+            for (const auto& pair : controlFlowGraph.getCurrentNodes())
+            {
+                if (pair.second->getName() != startNode->getName()) list.push(pair.second.get());
+            }
+            list.push(startNode);
 
             while (!list.empty())
             {
                 CFGNode* top = list.top();
                 list.pop();
                 std::set<T> inSet = in(top, outSets);
-
                 transfer(inSet, top);
-
                 if (outSets[top->getName()] != inSet) //inSet has been transferred to new outset
                 {
                     outSets[top->getName()] = move(inSet);

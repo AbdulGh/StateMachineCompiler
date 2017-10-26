@@ -145,11 +145,7 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
                 if (AbstractCommand::getStringType(eec->term1) == AbstractCommand::StringType::ID)
                 {
                     unordered_map<string, string>::const_iterator t1it = assignments.find(eec->term1);
-                    if (t1it != assignments.end())
-                    {
-                        auto debug = t1it->second;
-                        eec->term1 = t1it->second; //debug
-                    }
+                    if (t1it != assignments.end()) eec->term1 = t1it->second;
                 }
     
                 if (AbstractCommand::getStringType(eec->term2) == AbstractCommand::StringType::ID)
@@ -491,11 +487,7 @@ void CFGNode::removeParent(CFGNode* leaving)
 
 void CFGNode::removeParent(const string& s)
 {
-    if (predecessors.erase(s) == 0)
-    {
-        cout << parentGraph.getStructuredSource() << '\n'; //debug
-        throw runtime_error("Parent '" + s + "' not found in '" + getName() + "'");
-    }
+    if (predecessors.erase(s) == 0) throw runtime_error("Parent '" + s + "' not found in '" + getName() + "'");
 }
 
 JumpOnComparisonCommand* CFGNode::getComp()
