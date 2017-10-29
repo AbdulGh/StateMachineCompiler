@@ -4,8 +4,10 @@
 #include <iostream>
 #include <algorithm>
 
-#include "../CFGOpt/Optimiser.h"
 #include "Compiler.h"
+#include "../CFGOpt/Optimiser.h"
+#include "../CFGOpt/LengTarj.h"
+#include "../CFGOpt/Loop.h"
 
 using namespace std;
 
@@ -40,6 +42,13 @@ void Compiler::compile(stringstream& out)
     cfg.setFirst(mainFuncSym->getFirstNode()->getName());
     cfg.setLast(mainFuncSym->getLastNode()->getName());
     Optimise::optimise(symbolTable, functionTable, cfg);
+    SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter).search();
+    vector<Loop> loops = LengTarj(cfg).findLoops();
+
+    for (Loop loop : loops)
+    {
+        cout << loop.getInfo() << "\n";
+    }
     cout << cfg.getStructuredSource();
     //cout << cfg.destroyStructureAndGetFinalSource();
     //cout << cfg.getDotGraph();

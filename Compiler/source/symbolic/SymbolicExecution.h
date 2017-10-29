@@ -120,7 +120,6 @@ namespace SymbolicExecution
             for (const auto& pair : cfg.getCurrentNodes()) feasableVisits[pair.first] = 0;
         };
         void search();
-        void findJumps(); //looks for jumps via stack
     };
 }
 

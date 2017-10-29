@@ -1,0 +1,6 @@
+ERROR : OVERFLOW : 1.000000 * -1.000000 = overflow
+WARNING : OVERFLOW : _2_0_x could possibly overflow
+ERROR : OVERFLOW : 1.000000 * -1.000000 = overflow
+WARNING : OVERFLOW : _2_0_x could possibly overflow
+ERROR : OVERFLOW : 1.000000 * -1.000000 = overflow
+WARNING : OVERFLOW : _2_0_x could possibly overflow

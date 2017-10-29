@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include "SymbolicExecution.h"
 #include "../Command.h"
 
@@ -84,6 +86,7 @@ SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFringe> return
     CFGNode* failNode = n->getCompFail();
     if (failNode == nullptr) //return to top of stack
     {
+        if (!n->isLastNode()) throw "only last can return";
         if (returningSEF->currentStack->getTopType() != SymbolicStackMemberType::STATE)
         {
             returningSEF->error(Reporter::BAD_STACK_USE, "Tried to jump to a non state", n->getJumpline()); //probably my fault
@@ -95,8 +98,12 @@ SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFringe> return
             returningSEF->error(Reporter::BAD_STACK_USE, "Tried to jump to a nonexisting state", n->getJumpline());
             return nullptr;
         }
+        else //check its in successors of n
+        if (find(n->getSuccessorVector().begin(), n->getSuccessorVector().end(), failNode) == n->getSuccessorVector().end())
+        {
+            throw "should be successor";
+        }
     }
-    failNode->addParent(n);
     return failNode;
 }
 
