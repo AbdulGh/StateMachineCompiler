@@ -191,6 +191,11 @@ CFGNode* ControlFlowGraph::getLast() const
     return last;
 }
 
+Reporter& ControlFlowGraph::getReporter() const
+{
+    return reporter;
+}
+
 void ControlFlowGraph::setFirst(const string& firstName)
 {
     auto it = currentNodes.find(firstName);

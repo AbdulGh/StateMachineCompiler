@@ -22,10 +22,15 @@ namespace SymbolicExecution
         Relations::Relop c;
         std::string r;
 
-        Condition(std::string lhs, Relations::Relop comp, std::string rhs):
+        Condition(std::string& lhs, Relations::Relop comp, std::string& rhs):
                 l(lhs), c(comp), r(rhs) {}
-        Condition(std::string lhs, Relations::Relop comp, double rhs):
+        Condition(std::string& lhs, Relations::Relop comp, double rhs):
                 l(lhs), c(comp), r(std::to_string(rhs)) {}
+
+        std::string toString()
+        {
+            return l + relEnumStrs[c] + r;
+        }
     };
 
     class SymbolicExecutionFringe
@@ -33,16 +38,19 @@ namespace SymbolicExecution
     private:
         bool feasable = true;
         std::shared_ptr<SymbolicExecutionFringe> parent;
+        std::unordered_map<std::string, Condition> pathConditions;
+        std::vector<std::string> visitOrder;
 
     public:
         SymbolicExecutionFringe(Reporter& r);
         SymbolicExecutionFringe(std::shared_ptr<SymbolicExecutionFringe> p);
 
-        std::unordered_map<std::string, std::shared_ptr<Condition>> pathConditions;
         std::shared_ptr<SymbolicStack> currentStack;
         std::shared_ptr<SymbolicVarSet> symbolicVarSet;
         Reporter& reporter;
 
+        std::string printPathConditions();
+        void addPathCondition(const std::string& nodeName, JumpOnComparisonCommand* jocc, bool negate = false);
         void error(Reporter::AlertType a, std::string s, int linenum = -1);
         void warn(Reporter::AlertType a, std::string s, int linenum = -1);
         bool isFeasable();
@@ -57,8 +65,6 @@ namespace SymbolicExecution
         SymbolTable& sTable;
         Reporter& reporter;
 
-        //doesn't do anything fancy - just used to find potential jumps
-        void visitNodeSimple(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n);
         //returns if a feasable path extention goes through this node
         //a path is feasable if it visits itself or reaches the last state
         bool visitNode(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n);

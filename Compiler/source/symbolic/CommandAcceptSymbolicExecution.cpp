@@ -99,7 +99,7 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
         try
         {
             stod(RHS);
-            svp->setConstStringValue(RHS);
+            svp->setStringConstValue(RHS);
             svs->symbolicVarSet->defineVar(svp);
             return true;
         }
@@ -119,7 +119,7 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
             }
         }
     }
-    else svp->setConstStringValue(RHS);
+    else svp->setStringConstValue(RHS);
     svp->define();
     if (!svp->isFeasable())
     {
@@ -149,7 +149,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
     {
         double d = stod(term1);
         t1 = make_shared<SymbolicDouble>("LHSconst", svs->reporter); //if we get here it's a double
-        t1->setConstStringValue(term1);
+        t1->setStringConstValue(term1);
     }
     catch (invalid_argument e)
     {
@@ -173,7 +173,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
     {
         stod(term2);
         t2 = make_shared<SymbolicDouble>("RHSconst", svs->reporter);
-        t2->setConstStringValue(term2);
+        t2->setStringConstValue(term2);
     }
     catch (invalid_argument e)
     {

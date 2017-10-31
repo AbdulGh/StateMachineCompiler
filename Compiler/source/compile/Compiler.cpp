@@ -45,10 +45,7 @@ void Compiler::compile(stringstream& out)
     SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter).search();
     vector<Loop> loops = LengTarj(cfg).findLoops();
 
-    for (Loop loop : loops)
-    {
-        cout << loop.getInfo() << "\n";
-    }
+    for (Loop loop : loops) loop.validate();
     cout << cfg.getStructuredSource();
     //cout << cfg.destroyStructureAndGetFinalSource();
     //cout << cfg.getDotGraph();

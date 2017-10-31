@@ -25,7 +25,6 @@ private:
     FunctionTable& functionTable;
     SymbolTable& symbolTable;
 
-
 public:
     ControlFlowGraph(Reporter& r, FunctionTable& fc, SymbolTable& st) : reporter(r), functionTable(fc), symbolTable(st) {};
     CFGNode* createNode(const std::string& name, bool overwrite, bool last, FunctionSymbol* parentFunc);
@@ -38,6 +37,7 @@ public:
     std::string destroyStructureAndGetFinalSource();
     CFGNode* getFirst() const;
     CFGNode* getLast() const;
+    Reporter& getReporter() const;
     void setFirst(const std::string& firstname);
     void setLast(const std::string& lastName);
 

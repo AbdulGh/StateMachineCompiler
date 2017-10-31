@@ -16,11 +16,10 @@ std::vector<CFGNode*> DataFlow::getPredecessorNodes(CFGNode* node)
 
 //AssignmentPropogationDataFlow
 AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& cfg, SymbolTable& st)
-        : AbstractDataFlow(cfg, st, cfg.getFirst())
+        : AbstractDataFlow(cfg, st)
 {
-    for (const auto& pair : controlFlowGraph.getCurrentNodes()) //intra-propogation already done in Optimiser
+    for (CFGNode* node : nodes) //intra-propogation already done in Optimiser
     {
-        CFGNode* node = pair.second.get();
         set<Assignment> genSet;
         set<string> killSet;
 
@@ -90,11 +89,9 @@ void AssignmentPropogationDataFlow::transfer(set<Assignment>& in, CFGNode* node)
 
 void AssignmentPropogationDataFlow::finish()
 {
-    for (auto& pair : controlFlowGraph.getCurrentNodes())
+    for (CFGNode* node : nodes)
     {
-        unique_ptr<CFGNode>& node = pair.second;
-
-        set<Assignment> inAss = intersectPredecessors(node.get(), outSets);
+        set<Assignment> inAss = intersectPredecessors(node, outSets);
 
         unordered_map<string, string> mapToPass;
         for (const Assignment& ass : inAss) mapToPass[ass.lhs] = ass.rhs;
@@ -111,11 +108,10 @@ void AssignmentPropogationDataFlow::finish()
 
 //LiveVariableDataFlow
 LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& st)
-        : AbstractDataFlow(cfg, st, cfg.getLast())
+        : AbstractDataFlow(cfg, st)
 {
-    for (const auto& pair : controlFlowGraph.getCurrentNodes()) //intra-propogation already done in Optimiser
+    for (CFGNode* node : nodes) //intra-propogation already done in Optimiser
     {
-        CFGNode* node = pair.second.get();
         set<string> genSet;
         set<string> killSet;
         set<string>::iterator it;
@@ -178,9 +174,8 @@ void LiveVariableDataFlow::transfer(set<string>& in, CFGNode* node)
 
 void LiveVariableDataFlow::finish()
 {
-    for (auto& pair : controlFlowGraph.getCurrentNodes())
+    for (CFGNode* node : nodes)
     {
-        unique_ptr<CFGNode>& node = pair.second;
         set<string>& liveOut = outSets[node->getName()];
         vector<unique_ptr<AbstractCommand>> newInstrs;
 

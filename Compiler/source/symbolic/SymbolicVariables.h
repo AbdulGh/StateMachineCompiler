@@ -6,12 +6,6 @@
 
 #include "../compile/Reporter.h"
 #include "../compile/Token.h"
-
-enum MonotoneEnum{INCREASING, DECREASING, FRESH, NONE, UNKNOWN};
-
-//todo redo multiplication
-//todo 'start recording' - make monotonicity fresh
-
 //SymbolicVariable.cpp
 
 class SymbolicVariable
@@ -28,6 +22,7 @@ protected:
     void reportError(Reporter::AlertType type, std::string err);
 
 public:
+    enum MonotoneEnum{INCREASING, DECREASING, FRESH, NONE}; //represents what we know - 'NONE' might still be increasing etc
     enum MeetEnum {CANT, MAY, MUST};
     SymbolicVariable(std::string name, VariableType t, Reporter& r, bool initialised = false);
     const VariableType getType() const;
@@ -36,15 +31,22 @@ public:
     void setName(const std::string newName);
     bool isDefined() const;
     void define();
+    virtual MonotoneEnum getMonotonicity() const = 0;
 
     virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const = 0;
-    virtual void setConstStringValue(const std::string &) = 0;
     virtual const std::string getConstString() = 0;
     virtual void userInput() = 0;
     virtual bool isBoundedBelow() const = 0;
     virtual bool isBoundedAbove() const = 0;
+    virtual bool clipStringLowerBound(const std::string& lb, bool closed) = 0;
+    virtual bool clipStringUpperBound(const std::string& ub, bool closed) = 0;
+    virtual bool unionStringLowerBound(const std::string& lb, bool closed) = 0;
+    virtual bool unionStringUpperBound(const std::string& ub, bool closed) = 0;
+    virtual void setStringConstValue(const std::string&) = 0;
     virtual bool meetsConstComparison(Relations::Relop r, const std::string& rhs) = 0;
     virtual bool isFeasable() const;
+
+    virtual std::shared_ptr<SymbolicVariable> clone() = 0;
 };
 
 template <typename T>
@@ -65,6 +67,8 @@ public:
     virtual bool setUpperBound(const T& ub, bool closed=true) = 0;
     virtual bool clipLowerBound(const T& lb, bool closed=true) = 0;
     virtual bool clipUpperBound(const T& up, bool closed=true) = 0;
+    virtual bool unionLowerBound(const T& lb, bool closed=true) = 0;
+    virtual bool unionUpperBound(const T& up, bool closed=true) = 0;
     const T& getUpperBound() const;
     virtual void setConstValue(const T& cv);
     const T& getLowerBound() const;
@@ -73,14 +77,13 @@ public:
     bool isFeasable();
     bool isDetermined();
 };
-
+//todo check comparison strictness wrt closed bool when setting bounds
 //SymbolicDouble.cpp
 class SymbolicDouble : public SymbolicVariableTemplate<double>
 {
 private:
     double minStep;
     MonotoneEnum monotonicity;
-
     void addConstToLower(const double d);
     void addConstToUpper(const double d);
 
@@ -90,18 +93,25 @@ public:
     SymbolicDouble(std::shared_ptr<SymbolicVariable> other);
     SymbolicDouble(SymbolicDouble& other);
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
+    std::shared_ptr<SymbolicVariable> clone() override;
     
-    bool setLowerBound(const double& d, bool closed=true);
-    bool setUpperBound(const double& d, bool closed=true);
-    bool clipLowerBound(const double& d, bool closed=true);
-    bool clipUpperBound(const double& d, bool closed=true);
-    void setConstStringValue(const std::string&) override;
+    bool setLowerBound(const double& d, bool closed=true) override;
+    bool setUpperBound(const double& d, bool closed=true) override;
+    bool clipLowerBound(const double& d, bool closed=true) override;
+    bool clipUpperBound(const double& d, bool closed=true) override;
+    void setStringConstValue(const std::string&) override;
+    bool clipStringUpperBound(const std::string& ub, bool closed) override;
+    bool clipStringLowerBound(const std::string& lb, bool closed) override;
+    bool unionLowerBound(const double& lb, bool closed=true) override;
+    bool unionUpperBound(const double& up, bool closed=true) override;
+    bool unionStringUpperBound(const std::string& ub, bool closed) override;
+    bool unionStringLowerBound(const std::string& lb, bool closed) override;
 
     void userInput();
     bool isBoundedBelow() const;
     bool isBoundedAbove() const;
-    const double getMininumStep() const;
-    const MonotoneEnum getMonotinicity() const;
+    const double getMininumStep() const {return minStep;};
+    MonotoneEnum getMonotonicity() const override {return monotonicity;};
     void addConst(double);
     void multConst(double);
     void divConst(double);
@@ -127,15 +137,22 @@ public:
     SymbolicString(std::shared_ptr<SymbolicString> other);
     SymbolicString(std::shared_ptr<SymbolicVariable> other);
     SymbolicString(SymbolicString& other);
-
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
+    MonotoneEnum getMonotonicity() const override {return NONE;}
+    std::shared_ptr<SymbolicVariable> clone() override;
 
     bool setLowerBound(const std::string&, bool closed=true) override;
     bool setUpperBound(const std::string&, bool closed=true) override;
     bool clipLowerBound(const std::string&, bool closed=true) override;
     bool clipUpperBound(const std::string&, bool closed=true) override;
     void setConstValue(const std::string& s) override;
-    void setConstStringValue(const std::string& s) override;
+    void setStringConstValue(const std::string&) override;
+    bool clipStringUpperBound(const std::string& ub, bool closed) override;
+    bool clipStringLowerBound(const std::string& lb, bool closed) override;
+    bool unionLowerBound(const std::string& lb, bool closed=true) override;
+    bool unionUpperBound(const std::string& up, bool closed=true) override;
+    bool unionStringUpperBound(const std::string& ub, bool closed) override;
+    bool unionStringLowerBound(const std::string& lb, bool closed) override;
 
     void userInput();
     bool isBoundedBelow() const;

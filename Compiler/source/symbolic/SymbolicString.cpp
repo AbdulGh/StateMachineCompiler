@@ -5,7 +5,7 @@
 using namespace std;
 
 SymbolicString::SymbolicString(string name, Reporter &reporter):
-    SymbolicVariableTemplate(name, "", "", reporter, STRING),
+    SymbolicVariableTemplate(move(name), "", "", reporter, STRING),
     boundedLower(true), boundedUpper(true) {}
 
 SymbolicString::SymbolicString(SymbolicString& other):
@@ -17,6 +17,11 @@ SymbolicString::SymbolicString(shared_ptr<SymbolicString> other):
 
 SymbolicString::SymbolicString(shared_ptr<SymbolicVariable> other):
         SymbolicString(static_pointer_cast<SymbolicString>(other)) {}
+
+shared_ptr<SymbolicVariable> SymbolicString::clone()
+{
+    return make_shared<SymbolicString>(this);
+}
 
 bool SymbolicString::setUpperBound(const std::string& ub, bool closed)
 {
@@ -38,19 +43,14 @@ void SymbolicString::setConstValue(const string& cv)
     lowerBound = upperBound = cv;
     isConst = true;
 }
-
-void SymbolicString::setConstStringValue(const std::string &s)
+void SymbolicString::setStringConstValue(const std::string &s)
 {
     setConstValue(s);
 }
 
 bool SymbolicString::setLowerBound(const std::string& lb, bool closed)
 {
-    if (!closed)
-    {
-        string copy(lb);
-        upperBound = decrementString(copy);
-    }
+    if (!closed) upperBound = decrementString(lb);
     else lowerBound = lb;
     if (upperBound > lowerBound) feasable = false;
     if (upperBound == lowerBound) isConst = true;
@@ -63,11 +63,39 @@ bool SymbolicString::clipLowerBound(const std::string& lb, bool closed)
     if (!isBoundedBelow() || getLowerBound() > lb) return setLowerBound(lb, closed);
     else return isFeasable();
 }
+bool SymbolicString::clipStringLowerBound(const std::string& lb, bool closed)
+{
+    return clipLowerBound(lb, closed);
+}
 
 bool SymbolicString::clipUpperBound(const std::string& ub, bool closed)
 {
     if (!isBoundedAbove() || getUpperBound() < ub) return setLowerBound(ub, closed);
     else return isFeasable();
+}
+bool SymbolicString::clipStringUpperBound(const std::string& ub, bool closed)
+{
+    return clipUpperBound(ub, closed);
+}
+
+bool SymbolicString::unionLowerBound(const std::string& lb, bool closed)
+{
+    if (!isBoundedBelow() && lb < lowerBound) return setLowerBound(lb, closed);
+    else return isFeasable();
+}
+bool SymbolicString::unionStringLowerBound(const std::string& lb, bool closed)
+{
+    return unionLowerBound(lb);
+}
+
+bool SymbolicString::unionUpperBound(const std::string& ub, bool closed)
+{
+    if (!isBoundedAbove() && ub > lowerBound) return setUpperBound(ub, closed);
+    else return isFeasable();
+}
+bool SymbolicString::unionStringUpperBound(const std::string& ub, bool closed)
+{
+    return unionUpperBound(ub);
 }
 
 void SymbolicString::userInput()

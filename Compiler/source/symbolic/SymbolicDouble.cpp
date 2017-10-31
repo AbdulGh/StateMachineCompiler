@@ -10,16 +10,13 @@ using namespace std;
 enum ArithResult{OVER, UNDER, FINE};
 
 SymbolicDouble::SymbolicDouble(string name, Reporter& r):
-        SymbolicVariableTemplate(name, 0, 0, r, DOUBLE)
-{
-    minStep = 0;
-    monotonicity = FRESH;
-}
+        SymbolicVariableTemplate(move(name), 0, 0, r, DOUBLE), minStep(0), monotonicity(FRESH)
+{}
 
 SymbolicDouble::SymbolicDouble(SymbolicDouble& other):
         SymbolicVariableTemplate(other.getName(), other.getLowerBound(), other.getUpperBound(), other.reporter, DOUBLE, other.defined)
 {
-    monotonicity = other.getMonotinicity();
+    monotonicity = other.getMonotonicity();
     isConst = other.isConst;
     feasable = other.isFeasable();
     minStep = other.minStep;
@@ -30,13 +27,18 @@ SymbolicDouble::SymbolicDouble(shared_ptr<SymbolicDouble> other): SymbolicDouble
 SymbolicDouble::SymbolicDouble(shared_ptr<SymbolicVariable> other):
         SymbolicDouble(static_pointer_cast<SymbolicDouble>(other)) {} //look out!
 
+shared_ptr<SymbolicVariable> SymbolicDouble::clone()
+{
+    return make_shared<SymbolicDouble>(this);
+}
+
 void SymbolicDouble::userInput()
 {
     upperBound = numeric_limits<double>::max();
     lowerBound = numeric_limits<double>::lowest();
     isConst = false;
     define();
-    monotonicity = FRESH;
+    monotonicity = NONE;
 }
 
 SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, const std::string& rhstring) const
@@ -80,7 +82,6 @@ bool SymbolicDouble::setLowerBound(const double& d, bool closed)
     return isFeasable();
 }
 
-
 bool SymbolicDouble::setUpperBound(const double& d, bool closed)
 {
     if (!closed && d != numeric_limits<double>::max()) upperBound = d + numeric_limits<double>::min();
@@ -95,14 +96,43 @@ bool SymbolicDouble::clipLowerBound(const double& d, bool closed)
     if (d > getLowerBound()) return setLowerBound(d, closed);
     else return isFeasable();
 }
+bool SymbolicDouble::clipStringUpperBound(const std::string& ub, bool closed)
+{
+    return clipUpperBound(stod(ub), closed);
+}
 
 bool SymbolicDouble::clipUpperBound(const double& d, bool closed)
 {
     if (d < getUpperBound()) return setUpperBound(d, closed);
     else return isFeasable();
 }
+bool SymbolicDouble::clipStringLowerBound(const std::string& lb, bool closed)
+{
+    return clipLowerBound(stod(lb), closed);
+}
 
-void SymbolicDouble::setConstStringValue(const std::string& c)
+bool SymbolicDouble::unionLowerBound(const double& d, bool closed)
+{
+    if (d < getLowerBound()) return setLowerBound(d, closed);
+    else return isFeasable();
+}
+bool SymbolicDouble::unionStringUpperBound(const std::string& ub, bool closed)
+{
+    return unionLowerBound(stod(ub), closed);
+}
+
+bool SymbolicDouble::unionUpperBound(const double& d, bool closed)
+{
+    if (d > getUpperBound()) return setUpperBound(d, closed);
+    else return isFeasable();
+}
+bool SymbolicDouble::unionStringLowerBound(const std::string& lb, bool closed)
+{
+    return unionLowerBound(stod(lb), closed);
+}
+
+
+void SymbolicDouble::setStringConstValue(const std::string& c)
 {
     setConstValue(stod(c));
 }
@@ -115,17 +145,6 @@ bool SymbolicDouble::isBoundedAbove() const
 bool SymbolicDouble::isBoundedBelow() const
 {
     return upperBound != numeric_limits<double>::lowest();
-}
-
-const MonotoneEnum SymbolicDouble::getMonotinicity() const
-{
-    return monotonicity;
-}
-
-
-const double SymbolicDouble::getMininumStep() const
-{
-    return minStep;
 }
 
 void SymbolicDouble::addConstToLower(const double diff)
@@ -405,7 +424,7 @@ void SymbolicDouble::multConst(double mul)
             }
             else setConstValue(value * mul);
         }
-        else setConstStringValue(value * mul);
+        else setStringConstValue(value * mul);
     }
     else
     {

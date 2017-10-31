@@ -104,22 +104,22 @@ namespace DataFlow
     {
     protected:
         std::unordered_map<std::string, std::set<T>> outSets;
-        ControlFlowGraph& controlFlowGraph;
+        std::vector<CFGNode*> nodes;
         SymbolTable& symbolTable;
-        CFGNode* startNode;
+        bool checkNodes; //used if we are only doing data flow on a part of the graph
     public:
-        AbstractDataFlow(ControlFlowGraph& cfg, SymbolTable& st, CFGNode* startWith)
-                :controlFlowGraph(cfg), symbolTable(st), startNode(startWith)
-        {};
+        AbstractDataFlow(ControlFlowGraph& cfg, SymbolTable& st)
+                :symbolTable(st), checkNodes(false)
+        {
+            for (const auto& pair : cfg.getCurrentNodes()) nodes.push_back(pair.second.get());
+        };
+
+        AbstractDataFlow(std::vector<CFGNode*> nodeList, SymbolTable& st)
+                :symbolTable(st), checkNodes(true), nodes(move(nodeList)) {};
 
         void worklist()
         {
-            std::stack<CFGNode*> list;
-            for (const auto& pair : controlFlowGraph.getCurrentNodes())
-            {
-                if (pair.second->getName() != startNode->getName()) list.push(pair.second.get());
-            }
-            list.push(startNode);
+            std::stack<CFGNode*, std::vector<CFGNode*>> list(nodes);
 
             while (!list.empty())
             {

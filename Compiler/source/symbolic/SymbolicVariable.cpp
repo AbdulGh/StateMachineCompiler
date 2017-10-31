@@ -10,7 +10,7 @@ using namespace std;
 //SymbolicVariable
 
 SymbolicVariable::SymbolicVariable(std::string name, VariableType t, Reporter &r, bool initialised):
-        varN(name), type(t), reporter(r), defined(initialised) {}
+        varN(move(name)), type(t), reporter(r), defined(initialised) {}
 
 const string SymbolicVariable::getName() const
 {
