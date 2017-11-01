@@ -38,10 +38,12 @@ public:
     virtual void userInput() = 0;
     virtual bool isBoundedBelow() const = 0;
     virtual bool isBoundedAbove() const = 0;
-    virtual bool clipStringLowerBound(const std::string& lb, bool closed) = 0;
-    virtual bool clipStringUpperBound(const std::string& ub, bool closed) = 0;
-    virtual bool unionStringLowerBound(const std::string& lb, bool closed) = 0;
-    virtual bool unionStringUpperBound(const std::string& ub, bool closed) = 0;
+    virtual bool clipStringLowerBound(const std::string& lb, bool closed=true) = 0;
+    virtual bool clipStringUpperBound(const std::string& ub, bool closed=true) = 0;
+    virtual bool unionStringLowerBound(const std::string& lb, bool closed=true) = 0;
+    virtual bool unionStringUpperBound(const std::string& ub, bool closed=true) = 0;
+    virtual bool setStringUpperBound(const std::string& ub, bool closed=true) = 0;
+    virtual bool setStringLowerBound(const std::string& ub, bool closed=true) = 0;
     virtual void setStringConstValue(const std::string&) = 0;
     virtual bool meetsConstComparison(Relations::Relop r, const std::string& rhs) = 0;
     virtual bool isFeasable() const;
@@ -63,6 +65,7 @@ public:
     bool isDisjointFrom(std::shared_ptr<SymbolicVariableTemplate<T>> other);
     bool meetsConstComparison(Relations::Relop r, const std::string& rhs) override;
     //set/clip bounds returns true if var is feasable after
+    //todo reconsider the need for the next 6
     virtual bool setLowerBound(const T& lb, bool closed=true) = 0;
     virtual bool setUpperBound(const T& ub, bool closed=true) = 0;
     virtual bool clipLowerBound(const T& lb, bool closed=true) = 0;
@@ -73,7 +76,7 @@ public:
     virtual void setConstValue(const T& cv);
     const T& getLowerBound() const;
     const T& getConstValue();
-    const std::string getConstString();
+    const std::string getConstString() override;
     bool isFeasable();
     bool isDetermined();
 };
@@ -95,21 +98,23 @@ public:
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
     std::shared_ptr<SymbolicVariable> clone() override;
     
-    bool setLowerBound(const double& d, bool closed=true) override;
-    bool setUpperBound(const double& d, bool closed=true) override;
-    bool clipLowerBound(const double& d, bool closed=true) override;
-    bool clipUpperBound(const double& d, bool closed=true) override;
+    bool setLowerBound(const double& d, bool closed) override;
+    bool setUpperBound(const double& d, bool closed) override;
+    bool clipLowerBound(const double& d, bool closed) override;
+    bool clipUpperBound(const double& d, bool closed) override;
     void setStringConstValue(const std::string&) override;
     bool clipStringUpperBound(const std::string& ub, bool closed) override;
     bool clipStringLowerBound(const std::string& lb, bool closed) override;
-    bool unionLowerBound(const double& lb, bool closed=true) override;
-    bool unionUpperBound(const double& up, bool closed=true) override;
+    bool unionLowerBound(const double& lb, bool closed) override;
+    bool unionUpperBound(const double& up, bool closed) override;
     bool unionStringUpperBound(const std::string& ub, bool closed) override;
     bool unionStringLowerBound(const std::string& lb, bool closed) override;
+    bool setStringUpperBound(const std::string& ub, bool closed) override;
+    bool setStringLowerBound(const std::string& lb, bool closed) override;
 
-    void userInput();
-    bool isBoundedBelow() const;
-    bool isBoundedAbove() const;
+    void userInput() override ;
+    bool isBoundedBelow() const override ;
+    bool isBoundedAbove() const override ;
     const double getMininumStep() const {return minStep;};
     MonotoneEnum getMonotonicity() const override {return monotonicity;};
     void addConst(double);
@@ -141,22 +146,24 @@ public:
     MonotoneEnum getMonotonicity() const override {return NONE;}
     std::shared_ptr<SymbolicVariable> clone() override;
 
-    bool setLowerBound(const std::string&, bool closed=true) override;
-    bool setUpperBound(const std::string&, bool closed=true) override;
-    bool clipLowerBound(const std::string&, bool closed=true) override;
-    bool clipUpperBound(const std::string&, bool closed=true) override;
+    bool setLowerBound(const std::string&, bool closed) override;
+    bool setUpperBound(const std::string&, bool closed) override;
+    bool clipLowerBound(const std::string&, bool closed) override;
+    bool clipUpperBound(const std::string&, bool closed) override;
     void setConstValue(const std::string& s) override;
     void setStringConstValue(const std::string&) override;
     bool clipStringUpperBound(const std::string& ub, bool closed) override;
     bool clipStringLowerBound(const std::string& lb, bool closed) override;
-    bool unionLowerBound(const std::string& lb, bool closed=true) override;
-    bool unionUpperBound(const std::string& up, bool closed=true) override;
+    bool unionLowerBound(const std::string& lb, bool closed) override;
+    bool unionUpperBound(const std::string& up, bool closed) override;
     bool unionStringUpperBound(const std::string& ub, bool closed) override;
     bool unionStringLowerBound(const std::string& lb, bool closed) override;
+    bool setStringUpperBound(const std::string& ub, bool closed) override;
+    bool setStringLowerBound(const std::string& lb, bool closed) override;
 
-    void userInput();
-    bool isBoundedBelow() const;
-    bool isBoundedAbove() const;
+    void userInput() override;
+    bool isBoundedBelow() const override;
+    bool isBoundedAbove() const override;
 };
 
 

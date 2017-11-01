@@ -23,20 +23,6 @@ shared_ptr<SymbolicVariable> SymbolicString::clone()
     return make_shared<SymbolicString>(this);
 }
 
-bool SymbolicString::setUpperBound(const std::string& ub, bool closed)
-{
-    if (!closed)
-    {
-        string copy(ub);
-        upperBound = incrementString(copy);
-    }
-    else upperBound = ub;
-    if (upperBound > lowerBound) feasable = false;
-    if (upperBound == lowerBound) isConst = true;
-    boundedUpper = true;
-    return isFeasable();
-}
-
 void SymbolicString::setConstValue(const string& cv)
 {
     boundedUpper = boundedLower = true;
@@ -56,6 +42,28 @@ bool SymbolicString::setLowerBound(const std::string& lb, bool closed)
     if (upperBound == lowerBound) isConst = true;
     boundedLower = true;
     return isFeasable();
+}
+bool SymbolicString::setStringLowerBound(const std::string& lb, bool closed)
+{
+    return setLowerBound(lb, closed);
+}
+
+bool SymbolicString::setUpperBound(const std::string& ub, bool closed)
+{
+    if (!closed)
+    {
+        string copy(ub);
+        upperBound = incrementString(copy);
+    }
+    else upperBound = ub;
+    if (upperBound > lowerBound) feasable = false;
+    if (upperBound == lowerBound) isConst = true;
+    boundedUpper = true;
+    return isFeasable();
+}
+bool SymbolicString::setStringUpperBound(const std::string& ub, bool closed)
+{
+    return setUpperBound(ub, closed);
 }
 
 bool SymbolicString::clipLowerBound(const std::string& lb, bool closed)

@@ -81,14 +81,23 @@ bool SymbolicDouble::setLowerBound(const double& d, bool closed)
     else if (lowerBound == upperBound) isConst = true;
     return isFeasable();
 }
+bool SymbolicDouble::setStringLowerBound(const std::string& lb, bool closed)
+{
+    setLowerBound(stod(lb), closed);
+}
 
 bool SymbolicDouble::setUpperBound(const double& d, bool closed)
 {
     if (!closed && d != numeric_limits<double>::max()) upperBound = d + numeric_limits<double>::min();
     else upperBound = d;
+
     if (lowerBound > upperBound) feasable = false;
     else if (lowerBound == upperBound) isConst = true;
     return isFeasable();
+}
+bool SymbolicDouble::setStringUpperBound(const std::string& ub, bool closed)
+{
+    return setUpperBound(stod(ub), closed);
 }
 
 bool SymbolicDouble::clipLowerBound(const double& d, bool closed)
