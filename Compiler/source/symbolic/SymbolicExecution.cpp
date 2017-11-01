@@ -5,8 +5,6 @@
 #include "SymbolicExecution.h"
 #include "../Command.h"
 
-#define visitWithFeasable(sef, n) if (visitNode(sef, n)) feasable = true;
-
 using namespace std;
 using namespace SymbolicExecution;
 
@@ -313,6 +311,8 @@ bool SymbolicExecutionManager::branch(shared_ptr<SymbolicExecutionFringe> sef, C
     }
 }
 
+
+#define visitWithFeasable(sef, n) if (visitNode(sef, n)) feasable = true;
 template <typename T>
 bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                         string lhsvar, const T& rhsconst, bool reverse)
@@ -667,7 +667,6 @@ bool SymbolicExecutionManager::varBranchNE(shared_ptr<SymbolicExecutionFringe> s
         if (!lhsvar->clipUpperBound(lub) || !rhsvar->clipUpperBound(lub)) return false;
     }
     visitWithFeasable(sefeq, failNode);
-    
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
     if (!sefgt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipLowerBound(rhsvar->getUpperBound(), false)) return false;
@@ -708,7 +707,6 @@ bool SymbolicExecutionManager::varBranchEQ(shared_ptr<SymbolicExecutionFringe> s
         if (!lhsvar->clipUpperBound(lub) || !rhsvar->clipUpperBound(lub)) return false;
     }
     visitWithFeasable(sefeq, n->getCompSuccess());
-    
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
     CFGNode* failNode = getFailNode(sefgt, n);
@@ -716,7 +714,6 @@ bool SymbolicExecutionManager::varBranchEQ(shared_ptr<SymbolicExecutionFringe> s
     if (!sefgt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipLowerBound(rhsvar->getUpperBound(), false)) return false;
     visitWithFeasable(sefgt, n->getCompSuccess());
     sefgt.reset();
-    
 
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
     if (!seflt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipUpperBound(rhsvar->getLowerBound(), true)) return false;
