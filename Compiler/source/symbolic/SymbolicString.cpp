@@ -23,18 +23,18 @@ shared_ptr<SymbolicVariable> SymbolicString::clone()
     return make_shared<SymbolicString>(this);
 }
 
-void SymbolicString::setConstValue(const string& cv)
+void SymbolicString::setTConstValue(const string& cv)
 {
     boundedUpper = boundedLower = true;
     lowerBound = upperBound = cv;
     isConst = true;
 }
-void SymbolicString::setStringConstValue(const std::string &s)
+void SymbolicString::setConstValue(const std::string &s)
 {
-    setConstValue(s);
+    setTConstValue(s);
 }
 
-bool SymbolicString::setLowerBound(const std::string& lb, bool closed)
+bool SymbolicString::setTLowerBound(const std::string& lb, bool closed)
 {
     if (!closed) upperBound = decrementString(lb);
     else lowerBound = lb;
@@ -43,12 +43,12 @@ bool SymbolicString::setLowerBound(const std::string& lb, bool closed)
     boundedLower = true;
     return isFeasable();
 }
-bool SymbolicString::setStringLowerBound(const std::string& lb, bool closed)
+bool SymbolicString::setLowerBound(const std::string& lb, bool closed)
 {
-    return setLowerBound(lb, closed);
+    return setTLowerBound(lb, closed);
 }
 
-bool SymbolicString::setUpperBound(const std::string& ub, bool closed)
+bool SymbolicString::setTUpperBound(const std::string& ub, bool closed)
 {
     if (!closed)
     {
@@ -61,49 +61,49 @@ bool SymbolicString::setUpperBound(const std::string& ub, bool closed)
     boundedUpper = true;
     return isFeasable();
 }
-bool SymbolicString::setStringUpperBound(const std::string& ub, bool closed)
+bool SymbolicString::setUpperBound(const std::string& ub, bool closed)
 {
-    return setUpperBound(ub, closed);
+    return setTUpperBound(ub, closed);
 }
 
-bool SymbolicString::clipLowerBound(const std::string& lb, bool closed)
+bool SymbolicString::clipTLowerBound(const std::string& lb, bool closed)
 {
     if (!isBoundedBelow() || getLowerBound() > lb) return setLowerBound(lb, closed);
     else return isFeasable();
 }
-bool SymbolicString::clipStringLowerBound(const std::string& lb, bool closed)
+bool SymbolicString::clipLowerBound(const std::string& lb, bool closed)
 {
-    return clipLowerBound(lb, closed);
+    return clipTLowerBound(lb, closed);
 }
 
-bool SymbolicString::clipUpperBound(const std::string& ub, bool closed)
+bool SymbolicString::clipTUpperBound(const std::string& ub, bool closed)
 {
     if (!isBoundedAbove() || getUpperBound() < ub) return setLowerBound(ub, closed);
     else return isFeasable();
 }
-bool SymbolicString::clipStringUpperBound(const std::string& ub, bool closed)
+bool SymbolicString::clipUpperBound(const std::string& ub, bool closed)
 {
-    return clipUpperBound(ub, closed);
+    return clipTUpperBound(ub, closed);
 }
 
-bool SymbolicString::unionLowerBound(const std::string& lb, bool closed)
+bool SymbolicString::unionTLowerBound(const std::string& lb, bool closed)
 {
     if (!isBoundedBelow() && lb < lowerBound) return setLowerBound(lb, closed);
     else return isFeasable();
 }
-bool SymbolicString::unionStringLowerBound(const std::string& lb, bool closed)
+bool SymbolicString::unionLowerBound(const std::string& lb, bool closed)
 {
-    return unionLowerBound(lb);
+    return unionTLowerBound(lb);
 }
 
-bool SymbolicString::unionUpperBound(const std::string& ub, bool closed)
+bool SymbolicString::unionTUpperBound(const std::string& ub, bool closed)
 {
     if (!isBoundedAbove() && ub > lowerBound) return setUpperBound(ub, closed);
     else return isFeasable();
 }
-bool SymbolicString::unionStringUpperBound(const std::string& ub, bool closed)
+bool SymbolicString::unionUpperBound(const std::string& ub, bool closed)
 {
-    return unionUpperBound(ub);
+    return unionTUpperBound(ub);
 }
 
 void SymbolicString::userInput()

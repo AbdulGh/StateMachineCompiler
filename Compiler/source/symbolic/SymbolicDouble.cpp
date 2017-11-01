@@ -72,7 +72,7 @@ SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, const s
     }
 }
 
-bool SymbolicDouble::setLowerBound(const double& d, bool closed)
+bool SymbolicDouble::setTLowerBound(const double& d, bool closed)
 {
     if (!closed && d != numeric_limits<double>::lowest()) lowerBound = d - numeric_limits<double>::min();
     else lowerBound = d;
@@ -81,12 +81,12 @@ bool SymbolicDouble::setLowerBound(const double& d, bool closed)
     else if (lowerBound == upperBound) isConst = true;
     return isFeasable();
 }
-bool SymbolicDouble::setStringLowerBound(const std::string& lb, bool closed)
+bool SymbolicDouble::setLowerBound(const std::string& lb, bool closed)
 {
-    setLowerBound(stod(lb), closed);
+    setTLowerBound(stod(lb), closed);
 }
 
-bool SymbolicDouble::setUpperBound(const double& d, bool closed)
+bool SymbolicDouble::setTUpperBound(const double& d, bool closed)
 {
     if (!closed && d != numeric_limits<double>::max()) upperBound = d + numeric_limits<double>::min();
     else upperBound = d;
@@ -95,55 +95,54 @@ bool SymbolicDouble::setUpperBound(const double& d, bool closed)
     else if (lowerBound == upperBound) isConst = true;
     return isFeasable();
 }
-bool SymbolicDouble::setStringUpperBound(const std::string& ub, bool closed)
+bool SymbolicDouble::setUpperBound(const std::string& ub, bool closed)
 {
-    return setUpperBound(stod(ub), closed);
+    return setTUpperBound(stod(ub), closed);
 }
 
-bool SymbolicDouble::clipLowerBound(const double& d, bool closed)
+bool SymbolicDouble::clipTLowerBound(const double& d, bool closed)
 {
     if (d > getLowerBound()) return setLowerBound(d, closed);
     else return isFeasable();
 }
-bool SymbolicDouble::clipStringUpperBound(const std::string& ub, bool closed)
+bool SymbolicDouble::clipUpperBound(const std::string& ub, bool closed)
 {
-    return clipUpperBound(stod(ub), closed);
+    return clipTUpperBound(stod(ub), closed);
 }
 
-bool SymbolicDouble::clipUpperBound(const double& d, bool closed)
+bool SymbolicDouble::clipTUpperBound(const double& d, bool closed)
 {
     if (d < getUpperBound()) return setUpperBound(d, closed);
     else return isFeasable();
 }
-bool SymbolicDouble::clipStringLowerBound(const std::string& lb, bool closed)
+bool SymbolicDouble::clipLowerBound(const std::string& lb, bool closed)
 {
-    return clipLowerBound(stod(lb), closed);
+    return clipTLowerBound(stod(lb), closed);
 }
 
-bool SymbolicDouble::unionLowerBound(const double& d, bool closed)
+bool SymbolicDouble::unionTLowerBound(const double& d, bool closed)
 {
     if (d < getLowerBound()) return setLowerBound(d, closed);
     else return isFeasable();
 }
-bool SymbolicDouble::unionStringUpperBound(const std::string& ub, bool closed)
+bool SymbolicDouble::unionUpperBound(const std::string& ub, bool closed)
 {
-    return unionLowerBound(stod(ub), closed);
+    return unionTLowerBound(stod(ub), closed);
 }
 
-bool SymbolicDouble::unionUpperBound(const double& d, bool closed)
+bool SymbolicDouble::unionTUpperBound(const double& d, bool closed)
 {
     if (d > getUpperBound()) return setUpperBound(d, closed);
     else return isFeasable();
 }
-bool SymbolicDouble::unionStringLowerBound(const std::string& lb, bool closed)
+bool SymbolicDouble::unionLowerBound(const std::string& lb, bool closed)
 {
-    return unionLowerBound(stod(lb), closed);
+    return unionTLowerBound(stod(lb), closed);
 }
 
-
-void SymbolicDouble::setStringConstValue(const std::string& c)
+void SymbolicDouble::setConstValue(const std::string& c)
 {
-    setConstValue(stod(c));
+    setTConstValue(stod(c));
 }
 
 bool SymbolicDouble::isBoundedAbove() const
@@ -370,13 +369,13 @@ void SymbolicDouble::multConst(double mul)
 
         if (lowerResult <= upperResult)
         {
-            setLowerBound(lowerResult);
-            setUpperBound(upperResult);
+            setTLowerBound(lowerResult);
+            setTUpperBound(upperResult);
         }
         else
         {
-            setLowerBound(upperResult);
-            setUpperBound(lowerResult);
+            setTLowerBound(upperResult);
+            setTUpperBound(lowerResult);
         }
 
         if (upperBound > oldupper && lowerBound > oldlower)
@@ -396,7 +395,7 @@ void SymbolicDouble::multConst(double mul)
     {
         double temp = lowerBound;
         setLowerBound(-upperBound);
-        setUpperBound(-temp);
+        setTUpperBound(-temp);
         mul *= -1;
         monotonicity = NONE;
     }
@@ -433,7 +432,7 @@ void SymbolicDouble::multConst(double mul)
             }
             else setConstValue(value * mul);
         }
-        else setStringConstValue(value * mul);
+        else setConstValue(value * mul);
     }
     else
     {
@@ -540,8 +539,8 @@ void SymbolicDouble::multSymbolicDouble(SymbolicDouble &other)
     else if (bad) reporter.warn(Reporter::AlertType::RANGE, varN + " might overflow when multiplied by " + other.varN);
 
 
-    setLowerBound(min(lowerlower, min(lowerupper, min(upperlower, upperupper))));
-    setUpperBound(max(lowerlower, max(lowerupper, max(upperlower, upperupper))));
+    setTLowerBound(min(lowerlower, min(lowerupper, min(upperlower, upperupper))));
+    setTUpperBound(max(lowerlower, max(lowerupper, max(upperlower, upperupper))));
 
     if (upperBound > oldupper && lowerBound > oldlower)
     {
@@ -562,7 +561,7 @@ void SymbolicDouble::multSymbolicDouble(SymbolicDouble &other)
     {
         double temp = -lowerBound;
         setLowerBound(-upperBound);
-        setUpperBound(temp);
+        setTUpperBound(temp);
 
         temp = -otherLowerBound;
         otherLowerBound = -otherUpperBound;
@@ -617,15 +616,15 @@ void SymbolicDouble::modConst(double modulus)
     }
     if (isDetermined())
     {
-        setConstValue(fmod(getConstValue(),modulus));
+        setTConstValue(fmod(getConstValue(),modulus));
         return;
     }
     else
     {
-        setLowerBound(0);
+        setTLowerBound(0);
         modulus = abs(modulus);
-        if (upperBound >= 0) setUpperBound(min(upperBound, modulus));
-        else setUpperBound(modulus);
+        if (upperBound >= 0) setTUpperBound(min(upperBound, modulus));
+        else setTUpperBound(modulus);
     }
 }
 
@@ -644,12 +643,12 @@ void SymbolicDouble::modSymbolicDouble(SymbolicDouble &other)
 
     else
     {
-        setLowerBound(0);
+        setTLowerBound(0);
         if (other.lowerBound <= 0 && other.upperBound >= 0)
         {
             reporter.warn(Reporter::ZERODIVISION,  varN + " divided by " + other.varN + " which could possibly be zero");
         }
-        setUpperBound(max(upperBound, max(abs(other.lowerBound), abs(other.upperBound))));
+        setTUpperBound(max(upperBound, max(abs(other.lowerBound), abs(other.upperBound))));
     }
 }
 
@@ -695,7 +694,7 @@ void SymbolicDouble::divConst(double denom)
                 else monotonicity = NONE;
             }
             else if (monotonicity == INCREASING && oldconst > temp || monotonicity == DECREASING && oldconst < temp) monotonicity = NONE;
-            setConstValue(temp);
+            setTConstValue(temp);
         }
     }
     else
@@ -731,13 +730,13 @@ void SymbolicDouble::divConst(double denom)
 
         if (lowerResult <= upperResult)
         {
-            setLowerBound(lowerResult);
-            setUpperBound(upperResult);
+            setTLowerBound(lowerResult);
+            setTUpperBound(upperResult);
         }
         else
         {
-            setLowerBound(upperResult);
-            setUpperBound(lowerResult);
+            setTLowerBound(upperResult);
+            setTUpperBound(lowerResult);
         }
 
         if (upperBound > oldupper && lowerBound > oldlower)
@@ -816,8 +815,8 @@ void SymbolicDouble::divSymbolicDouble(SymbolicDouble &other)
     else if (bad) reporter.warn(Reporter::AlertType::RANGE, varN + " might overflow when divided by " + other.varN);
 
 
-    setLowerBound(min(lowerlower, min(lowerupper, min(upperlower, upperupper))));
-    setUpperBound(max(lowerlower, max(lowerupper, max(upperlower, upperupper))));
+    setTLowerBound(min(lowerlower, min(lowerupper, min(upperlower, upperupper))));
+    setTUpperBound(max(lowerlower, max(lowerupper, max(upperlower, upperupper))));
 
     if (upperBound > oldupper && lowerBound > oldlower)
     {
