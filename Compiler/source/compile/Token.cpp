@@ -109,7 +109,7 @@ namespace Relations
     }
 }
 
-void Token::setLine(unsigned int line)
+void Token::setLine(int line)
 {
     this->line = line;
 }

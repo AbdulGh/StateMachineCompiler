@@ -102,7 +102,7 @@ public:
             type{},
             auxType{} {}
 
-    void setLine(unsigned int);
+    void setLine(int);
 
     friend std::ostream& operator<< (std::ostream& stream, const Token& token);
 };

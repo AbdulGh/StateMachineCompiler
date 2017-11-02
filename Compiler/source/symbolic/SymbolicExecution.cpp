@@ -1,7 +1,5 @@
 #include <algorithm>
 
-//todo refactor (lmoa)
-
 #include "SymbolicExecution.h"
 #include "../Command.h"
 
@@ -37,7 +35,8 @@ void SymbolicExecutionFringe::warn(Reporter::AlertType a, string s, int linenum)
 
 bool SymbolicExecutionFringe::hasSeen(string state)
 {
-    return pathConditions.find(state) != pathConditions.end();
+    if (pathConditions.find(state) != pathConditions.end()) return true;
+    else return (parent == nullptr) ? false : parent->hasSeen(state);
 }
 
 bool SymbolicExecutionFringe::isFeasable()
@@ -148,22 +147,15 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     if (!sef->isFeasable()) return false;
     else if (sef->hasSeen(n->getName())) return true;
 
+    sef->pathConditions.insert({n->getName(), Condition()}); //don't track conditions till later - this just tracks which nodes we've seen
+
     for (const auto& command : n->getInstrs())
     {
+         (command->get)
         if (!command->acceptSymbolicExecution(sef)) return false;
     }
 
     feasableVisits[n->getName()]++;
-
-    //no templated lambdas yet
-    auto branchOnType =
-    [&n, this] (shared_ptr<SymbolicExecutionFringe> sef, string lhs, Relations::Relop op, string rhs, VariableType t,
-          bool rev = false)
-    {
-        if (t == STRING) return branch<string>(sef, n, lhs, op, rhs, rev);
-        else if (t == DOUBLE) return branch<double>(sef, n, lhs, op, stod(rhs), rev);
-        else throw runtime_error("bad vtype");
-    };
 
     JumpOnComparisonCommand* jocc = n->getComp();
     if (jocc != nullptr) //is a conditional jump
@@ -206,14 +198,11 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                 }
                 case SymbolicVariable::MAY:
                 {
-                    return branchOnType(sef, LHS->getName(), jocc->op,
-                                                       jocc->term2, LHS->getType(), false);
+                    return branch(sef, n, LHS->getName(), jocc->op, rhs);
                 }
                 case SymbolicVariable::MUST:
                 {
-                    CFGNode* nextNode = getFailNode(sef, n);
-                    if (nextNode == nullptr) return false;
-                    return visitNode(sef, nextNode);
+                    return visitNode(sef, n->getCompSuccess());
                 }
                 default:
                     throw runtime_error("very weird enum");
@@ -253,28 +242,16 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                 else //rhs undetermined, lhs determined
                 {
                     Relations::Relop mirroredOp = Relations::mirrorRelop(jocc->op);
-                    return branchOnType(sef, RHS->getName(), mirroredOp,
-                                                       LHS->getConstString(), RHS->getType(), true);
+                    return branch(sef, n, RHS->getName(), mirroredOp, LHS->getConstString(), true);
                 }
             }
             else if (RHS->isDetermined())
             {
-                return branchOnType(sef, LHS->getName(), jocc->op, RHS->getConstString(), LHS->getType(), false);
+                return branch(sef, n, LHS->getName(), jocc->op, RHS->getConstString(), false);
             }
 
             //neither are determined here
-            if (LHS->getType() == STRING)
-            {
-                VarTemplatePointer<string> LHS = static_pointer_cast<SymbolicVariableTemplate<string>>(LHS);
-                VarTemplatePointer<string> RHS = static_pointer_cast<SymbolicVariableTemplate<string>>(RHS);
-                return varBranch<string>(sef, n, LHS, jocc->op, RHS);
-            }
-            else if (LHS->getType() == DOUBLE)
-            {
-                VarTemplatePointer<double> LHS = static_pointer_cast<SymbolicVariableTemplate<double>>(LHS);
-                VarTemplatePointer<double> RHS = static_pointer_cast<SymbolicVariableTemplate<double>>(RHS);
-                return varBranch<double>(sef, n, LHS, jocc->op, RHS);
-            }
+            return varBranch(sef, n, LHS, jocc->op, RHS);
         }
     }
     else //unconditional jump
@@ -288,40 +265,38 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
 
 //these things below will usually be called when we already have
 //a ptr to the vars but we want to copy that var into the 'new scope'
-template <typename T>
+
 bool SymbolicExecutionManager::branch(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n, string lhsvar,
-                                      Relations::Relop op, const T& rhsconst, bool reverse)
+                                      Relations::Relop op, const std::string& rhsconst, bool reverse)
 {
     switch(op)
     {
         case Relations::EQ:
-            return branchEQ<T>(sef, n, lhsvar, rhsconst, reverse);
+            return branchEQ(sef, n, lhsvar, rhsconst, reverse);
         case Relations::NE:
-            return branchNE<T>(sef, n, lhsvar, rhsconst, reverse);
+            return branchNE(sef, n, lhsvar, rhsconst, reverse);
         case Relations::LT:
-            return branchLT<T>(sef, n, lhsvar, rhsconst, reverse);
+            return branchLT(sef, n, lhsvar, rhsconst, reverse);
         case Relations::LE:
-            return branchLE<T>(sef, n, lhsvar, rhsconst, reverse);
+            return branchLE(sef, n, lhsvar, rhsconst, reverse);
         case Relations::GT:
-            return branchGT<T>(sef, n, lhsvar, rhsconst, reverse);
+            return branchGT(sef, n, lhsvar, rhsconst, reverse);
         case Relations::GE:
-            return branchGE<T>(sef, n, lhsvar, rhsconst, reverse);
+            return branchGE(sef, n, lhsvar, rhsconst, reverse);
         default:
             throw runtime_error("bad relop");
     }
 }
 
-
 #define visitWithFeasable(sef, n) if (visitNode(sef, n)) feasable = true;
-template <typename T>
+
 bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                        string lhsvar, const T& rhsconst, bool reverse)
+                                        string lhsvar, const std::string& rhsconst, bool reverse)
 {
     bool feasable = false;
 
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVarOfType<T>(lhsvar)->setTUpperBound(rhsconst, false);
-
+    seflt->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst, false);
     if (reverse) {visitWithFeasable(seflt, n->getCompSuccess());}
     else
     {
@@ -335,7 +310,7 @@ bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
     seflt.reset();
 
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
-    sefeq->symbolicVarSet->findVarOfType<T>(lhsvar)->setConstValue(rhsconst);
+    sefeq->symbolicVarSet->findVar(lhsvar)->setConstValue(rhsconst);
     if (reverse)
     {
         CFGNode* failNode = getFailNode(sefeq, n);
@@ -347,7 +322,7 @@ bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
     sefeq.reset();
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    sefgt->symbolicVarSet->findVarOfType<T>(lhsvar)->setTLowerBound(rhsconst, true);
+    sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, true);
 
     if (reverse) {visitWithFeasable(sefgt, n->getCompSuccess());}
     else
@@ -361,14 +336,14 @@ bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
     return feasable;
 }
 
-template <typename T>
+
 bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                        string lhsvar, const T& rhsconst, bool reverse)
+                                        string lhsvar, const std::string& rhsconst, bool reverse)
 {
     bool feasable = false;
     
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVarOfType<T>(lhsvar)->setTUpperBound(rhsconst, false);
+    seflt->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst, false);
     if (reverse)
     {
         CFGNode* failNode = getFailNode(seflt, n);
@@ -379,7 +354,7 @@ bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
     seflt.reset();
     
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
-    sefeq->symbolicVarSet->findVarOfType<T>(lhsvar)->setConstValue(rhsconst);
+    sefeq->symbolicVarSet->findVar(lhsvar)->setConstValue(rhsconst);
     if (reverse) {visitWithFeasable(seflt, n->getCompSuccess());}
     else
     {
@@ -391,7 +366,7 @@ bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
     
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    sefgt->symbolicVarSet->findVarOfType<T>(lhsvar)->setTLowerBound(rhsconst, true);
+    sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, true);
     if (reverse)
     {
         CFGNode* failNode = getFailNode(seflt, n);
@@ -403,14 +378,14 @@ bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
     return feasable;
 }
 
-template <typename T>
+
 bool SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                        string lhsvar, const T& rhsconst, bool reverse)
+                                        string lhsvar, const std::string& rhsconst, bool reverse)
 {
     bool feasable = false;
     
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVarOfType<T>(lhsvar)->setTUpperBound(rhsconst, false);
+    seflt->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst, false);
 
     if (reverse)
     {
@@ -422,7 +397,7 @@ bool SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef,
     seflt.reset();
     
     shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
-    sefge->symbolicVarSet->findVarOfType<T>(lhsvar)->setTLowerBound(rhsconst);
+    sefge->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst);
     if (reverse) {visitWithFeasable(sefge, n->getCompSuccess());}
     else
     {
@@ -434,14 +409,14 @@ bool SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef,
     return feasable;
 }
 
-template <typename T>
+
 bool SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                        string lhsvar, const T& rhsconst, bool reverse)
+                                        string lhsvar, const std::string& rhsconst, bool reverse)
 {
     bool feasable = false;
 
     shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
-    sefle->symbolicVarSet->findVarOfType<T>(lhsvar)->setTUpperBound(rhsconst);
+    sefle->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst);
 
     if (reverse)
     {
@@ -454,7 +429,7 @@ bool SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef,
     
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    sefgt->symbolicVarSet->findVarOfType<T>(lhsvar)->setTLowerBound(rhsconst, true);
+    sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, true);
     if (reverse) {visitWithFeasable(sefgt, n->getCompSuccess());}
     else
     {
@@ -466,14 +441,14 @@ bool SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef,
     return feasable;
 }
 
-template <typename T>
+
 bool SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                        string lhsvar, const T& rhsconst, bool reverse)
+                                        string lhsvar, const std::string& rhsconst, bool reverse)
 {
     bool feasable = false;
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    sefgt->symbolicVarSet->findVarOfType<T>(lhsvar)->setTLowerBound(rhsconst, false);
+    sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, false);
 
     if (reverse)
     {
@@ -486,7 +461,7 @@ bool SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef,
     
 
     shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
-    sefle->symbolicVarSet->findVarOfType<T>(lhsvar)->setTUpperBound(rhsconst);
+    sefle->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst);
 
     if (reverse) {visitWithFeasable(sefle, n->getCompSuccess());}
     else
@@ -499,14 +474,14 @@ bool SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef,
     return feasable;
 }
 
-template <typename T>
+
 bool SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                        string lhsvar, const T& rhsconst, bool reverse)
+                                        string lhsvar, const std::string& rhsconst, bool reverse)
 {
     bool feasable = false;
 
     shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
-    sefge->symbolicVarSet->findVarOfType<T>(lhsvar)->setTLowerBound(rhsconst);
+    sefge->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst);
 
     if (reverse)
     {
@@ -519,7 +494,7 @@ bool SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
     
 
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVarOfType<T>(lhsvar)->setTUpperBound(rhsconst, true);
+    seflt->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst, true);
     if (reverse) {visitWithFeasable(seflt, n->getCompSuccess());}
     else
     {
@@ -532,191 +507,197 @@ bool SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
 }
 
 //branching on var comparison
-template <typename T>
 bool SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                         VarTemplatePointer<T> LHS, Relations::Relop op,
-                                         VarTemplatePointer<T> RHS)
+                                         VarPointer LHS, Relations::Relop op,
+                                         VarPointer RHS)
 {
     switch(op)
     {
         case Relations::EQ:
-            return varBranchEQ<T>(sef, n, LHS, RHS);
+            return varBranchEQ(sef, n, LHS, RHS);
         case Relations::NE:
-            return varBranchNE<T>(sef, n, LHS, RHS);
+            return varBranchNE(sef, n, LHS, RHS);
         case Relations::LT:
-            return varBranchLT<T>(sef, n, LHS, RHS);
+            return varBranchLT(sef, n, LHS, RHS);
         case Relations::LE:
-            return varBranchLE<T>(sef, n, LHS, RHS);
+            return varBranchLE(sef, n, LHS, RHS);
         case Relations::GT:
-            return varBranchGT<T>(sef, n, LHS, RHS);
+            return varBranchGT(sef, n, LHS, RHS);
         case Relations::GE:
-            return varBranchGE<T>(sef, n, LHS, RHS);
+            return varBranchGE(sef, n, LHS, RHS);
         default:
             throw runtime_error("bad relop");
     }
 }
 
-template <typename T>
+
 bool SymbolicExecutionManager::varBranchGE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                           VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
+                                           VarPointer lhsvar, VarPointer rhsvar)
 {
     bool feasable = false;
     
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
     CFGNode* failNode = getFailNode(seflt, n);
     if (failNode == nullptr) return false;
-    if (seflt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipTUpperBound(rhsvar->getUpperBound(), false)) return false;
+    if (rhsvar->isBoundedAbove() &&
+            !seflt->symbolicVarSet->findVar(lhsvar->getName())->clipUpperBound(rhsvar->getUpperBound(), false)) return false;
     visitWithFeasable(seflt, failNode);
     seflt.reset();
 
     shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
-    if (!sefge->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipTLowerBound(rhsvar->getLowerBound())) return false;
+    if (rhsvar->isBoundedBelow() &&
+            !sefge->symbolicVarSet->findVar(lhsvar->getName())->clipLowerBound(rhsvar->getLowerBound())) return false;
     visitWithFeasable(sefge, n->getCompSuccess());
     sefge.reset();
     return feasable;
 }
 
-template <typename T>
+
 bool SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                              VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
+                                              VarPointer lhsvar, VarPointer rhsvar)
 {
     bool feasable = false;
     shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
     CFGNode* failNode = getFailNode(sefle, n);
     if (failNode == nullptr) return false;
-    if (!sefle->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipTUpperBound(rhsvar->getUpperBound())) return false;
+    if (rhsvar->isBoundedAbove() &&
+            !sefle->symbolicVarSet->findVar(lhsvar->getName())->clipUpperBound(rhsvar->getUpperBound())) return false;
     visitWithFeasable(sefle, failNode);
     sefle.reset();
     
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    if (!sefgt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipTLowerBound(rhsvar->getLowerBound(), false)) return false;
+    if (rhsvar->isBoundedBelow() &&
+            !sefgt->symbolicVarSet->findVar(lhsvar->getName())->clipLowerBound(rhsvar->getLowerBound(), false)) return false;
     visitWithFeasable(sefgt, n->getCompSuccess());
     sefgt.reset();
     return feasable;
 }
 
-template <typename T>
 bool SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                              VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
+                                              VarPointer lhsvar, VarPointer rhsvar)
 {
 
     bool feasable = false;
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
     CFGNode* failNode = getFailNode(seflt, n);
     if (failNode == nullptr) return false;
-    if (!seflt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipTUpperBound(rhsvar->getUpperBound(), false)) return false;
+    if (rhsvar->isBoundedAbove() &&
+            !seflt->symbolicVarSet->findVar(lhsvar->getName())->clipUpperBound(rhsvar->getUpperBound(), false)) return false;
     visitWithFeasable(seflt, n->getCompSuccess());
     seflt.reset();
     
 
     shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
-    if (!sefge->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipTLowerBound(rhsvar->getLowerBound())) return false;
+    if (rhsvar->isBoundedBelow() &&
+            !sefge->symbolicVarSet->findVar(lhsvar->getName())->clipLowerBound(rhsvar->getLowerBound())) return false;
     visitWithFeasable(sefge, failNode);
     sefge.reset();
     return feasable;
 }
 
-template <typename T>
+
 bool SymbolicExecutionManager::varBranchLE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                              VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
+                                              VarPointer lhsvar, VarPointer rhsvar)
 {
     bool feasable = false;
 
     shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
     CFGNode* failNode = getFailNode(sefle, n);
     if (failNode == nullptr) return false;
-    if (!sefle->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipTUpperBound(rhsvar->getUpperBound())) return false;
+    if (rhsvar->isBoundedAbove() &&
+            !sefle->symbolicVarSet->findVar(lhsvar->getName())->clipUpperBound(rhsvar->getUpperBound())) return false;
     visitWithFeasable(sefle, n->getCompSuccess());
     sefle.reset();
     
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    if (!sefgt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipTLowerBound(rhsvar->getLowerBound())) return false;
+    if (rhsvar->isBoundedBelow() &&
+            !sefgt->symbolicVarSet->findVar(lhsvar->getName())->clipLowerBound(rhsvar->getLowerBound())) return false;
     visitWithFeasable(sefgt, n->getCompSuccess());
     sefgt.reset();
     return feasable;
 }
 
-template <typename T>
+
 bool SymbolicExecutionManager::varBranchNE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                           VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
+                                           VarPointer lhsvar, VarPointer rhsvar)
 {
     bool feasable = false;
 
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
     CFGNode* failNode = getFailNode(sefeq, n);
     if (failNode == nullptr) return false;
-    VarTemplatePointer<T>& glbvar = getGreatestLowerBound(lhsvar, rhsvar);
+    VarPointer& glbvar = getGreatestLowerBound(lhsvar, rhsvar);
     if (glbvar->isBoundedBelow())
     {
         //pull the variables into sefeq
-        VarTemplatePointer<T> lhsvar = sefeq->symbolicVarSet->findVarOfType<T>(lhsvar->getName());
-        VarTemplatePointer<T> rhsvar = sefeq->symbolicVarSet->findVarOfType<T>(rhsvar->getName());
+        VarPointer lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
+        VarPointer rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
 
-        const T& glb = glbvar->getLowerBound();
-        if (!lhsvar->clipTLowerBound(glb) || !rhsvar->clipTLowerBound(glb)) return false;
+        const string& glb = glbvar->getLowerBound();
+        if (!lhsvar->clipLowerBound(glb) || !rhsvar->clipLowerBound(glb)) return false;
     }
-    VarTemplatePointer<T>& lubvar = getLeastUpperBound(lhsvar, rhsvar);
+    VarPointer& lubvar = getLeastUpperBound(lhsvar, rhsvar);
     if (lubvar->isBoundedAbove())
     {
-        VarTemplatePointer<T> lhsvar = sefeq->symbolicVarSet->findVarOfType<T>(lhsvar->getName());
-        VarTemplatePointer<T> rhsvar = sefeq->symbolicVarSet->findVarOfType<T>(rhsvar->getName());
+        VarPointer lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
+        VarPointer rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
 
-        const T& lub = lubvar->getUpperBound();
-        if (!lhsvar->clipTUpperBound(lub) || !rhsvar->clipTUpperBound(lub)) return false;
+        const string& lub = lubvar->getUpperBound();
+        if (!lhsvar->clipUpperBound(lub) || !rhsvar->clipUpperBound(lub)) return false;
     }
     visitWithFeasable(sefeq, failNode);
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    if (!sefgt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipTLowerBound(rhsvar->getUpperBound(), false)) return false;
+    if (!sefgt->symbolicVarSet->findVar(lhsvar->getName())->clipLowerBound(rhsvar->getUpperBound(), false)) return false;
     visitWithFeasable(sefgt, n->getCompSuccess());
     sefgt.reset();
 
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    if (!seflt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipTUpperBound(rhsvar->getLowerBound(), true)) return false;
+    if (!seflt->symbolicVarSet->findVar(lhsvar->getName())->clipUpperBound(rhsvar->getLowerBound(), true)) return false;
     visitWithFeasable(seflt, n->getCompSuccess());
     seflt.reset();
     return feasable;
 }
 
-template <typename T>
+
 bool SymbolicExecutionManager::varBranchEQ(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                           VarTemplatePointer<T> lhsvar, VarTemplatePointer<T> rhsvar)
+                                           VarPointer lhsvar, VarPointer rhsvar)
 {
     bool feasable = false;
 
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
-    VarTemplatePointer<T>& glbvar = getGreatestLowerBound(lhsvar, rhsvar);
+    VarPointer& glbvar = getGreatestLowerBound(lhsvar, rhsvar);
     if (glbvar->isBoundedBelow())
     {
         //pull the variables into sefeq
-        VarTemplatePointer<T> lhsvar = sefeq->symbolicVarSet->findVarOfType<T>(lhsvar->getName());
-        VarTemplatePointer<T> rhsvar = sefeq->symbolicVarSet->findVarOfType<T>(rhsvar->getName());
+        VarPointer lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
+        VarPointer rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
 
-        const T& glb = glbvar->getLowerBound();
-        if (!lhsvar->clipTLowerBound(glb) || !rhsvar->clipTLowerBound(glb)) return false;
+        const string& glb = glbvar->getLowerBound();
+        if (!lhsvar->clipLowerBound(glb) || !rhsvar->clipLowerBound(glb)) return false;
     }
-    VarTemplatePointer<T>& lubvar = getLeastUpperBound(lhsvar, rhsvar);
+    VarPointer& lubvar = getLeastUpperBound(lhsvar, rhsvar);
     if (lubvar->isBoundedAbove())
     {
-        VarTemplatePointer<T> lhsvar = sefeq->symbolicVarSet->findVarOfType<T>(lhsvar->getName());
-        VarTemplatePointer<T> rhsvar = sefeq->symbolicVarSet->findVarOfType<T>(rhsvar->getName());
+        VarPointer lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
+        VarPointer rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
 
-        const T& lub = lubvar->getUpperBound();
-        if (!lhsvar->clipTUpperBound(lub) || !rhsvar->clipTUpperBound(lub)) return false;
+        const string& lub = lubvar->getUpperBound();
+        if (!lhsvar->clipUpperBound(lub) || !rhsvar->clipUpperBound(lub)) return false;
     }
     visitWithFeasable(sefeq, n->getCompSuccess());
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
     CFGNode* failNode = getFailNode(sefgt, n);
     if (failNode == nullptr) return false;
-    if (!sefgt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipTLowerBound(rhsvar->getUpperBound(), false)) return false;
+    if (!sefgt->symbolicVarSet->findVar(lhsvar->getName())->clipLowerBound(rhsvar->getUpperBound(), false)) return false;
     visitWithFeasable(sefgt, n->getCompSuccess());
     sefgt.reset();
 
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    if (!seflt->symbolicVarSet->findVarOfType<T>(lhsvar->getName())->clipTUpperBound(rhsvar->getLowerBound(), true)) return false;
+    if (!seflt->symbolicVarSet->findVar(lhsvar->getName())->clipUpperBound(rhsvar->getLowerBound(), true)) return false;
     failNode = getFailNode(sef, n);
     if (failNode == nullptr) return false;
     visitWithFeasable(seflt, failNode);
@@ -724,16 +705,16 @@ bool SymbolicExecutionManager::varBranchEQ(shared_ptr<SymbolicExecutionFringe> s
     return feasable;
 }
 
-template <typename T>
-VarTemplatePointer<T>& SymbolicExecutionManager::getGreatestLowerBound(VarTemplatePointer<T>& lhsvar, VarTemplatePointer<T>& rhsvar)
+
+VarPointer& SymbolicExecutionManager::getGreatestLowerBound(VarPointer& lhsvar, VarPointer& rhsvar)
 {
     if (!lhsvar->isBoundedBelow()) return rhsvar;
     else if (!rhsvar->isBoundedBelow()) return lhsvar;
     else return (lhsvar->getLowerBound() > rhsvar->getLowerBound()) ? lhsvar : rhsvar;
 }
 
-template <typename T>
-VarTemplatePointer<T>& SymbolicExecutionManager::getLeastUpperBound(VarTemplatePointer<T>& lhsvar, VarTemplatePointer<T>& rhsvar)
+
+VarPointer& SymbolicExecutionManager::getLeastUpperBound(VarPointer& lhsvar, VarPointer& rhsvar)
 {
     if (!lhsvar->isBoundedAbove()) return rhsvar;
     else if (!rhsvar->isBoundedAbove()) return lhsvar;

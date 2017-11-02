@@ -62,12 +62,6 @@ SymbolicVariableTemplate<T>::SymbolicVariableTemplate(string name, const T lower
     upperBound = upper;
 }
 
-template <typename T>
-const T& SymbolicVariableTemplate<T>::getUpperBound() const
-{
-    return upperBound;
-}
-
 template<typename T>
 bool SymbolicVariableTemplate<T>::isDisjointFrom(shared_ptr<SymbolicVariableTemplate<T>> other)
 {
@@ -81,14 +75,15 @@ bool SymbolicVariableTemplate<T>::isDisjointFrom(shared_ptr<SymbolicVariableTemp
 template<>
 bool SymbolicVariableTemplate<string>::meetsConstComparison(Relations::Relop r, const std::string& rhs)
 {
-    return Relations::evaluateRelop<string>(getConstValue(), r, rhs);
+    return Relations::evaluateRelop<string>(getTConstValue(), r, rhs);
 }
 
 template<>
-bool SymbolicVariableTemplate<double>::meetsConstComparison(Relations::Relop r, const std::string& rhs)
+bool SymbolicVariableTemplate<double>::meetsConstComparison(Relations::Relop r, const string& rhs)
 {
-    return Relations::evaluateRelop<double>(getConstValue(), r, stod(rhs));
+    return Relations::evaluateRelop<double>(getTConstValue(), r, stod(rhs));
 }
+
 
 template <typename T>
 bool SymbolicVariableTemplate<T>::isFeasable()
@@ -101,7 +96,7 @@ bool SymbolicVariableTemplate<T>::isFeasable()
 }
 
 template <typename T>
-void SymbolicVariableTemplate<T>::setConstValue(const T &cv)
+void SymbolicVariableTemplate<T>::setTConstValue(const T &cv)
 {
     define();
     upperBound = lowerBound = cv;
@@ -109,25 +104,53 @@ void SymbolicVariableTemplate<T>::setConstValue(const T &cv)
 }
 
 template <typename T>
-const T& SymbolicVariableTemplate<T>::getLowerBound() const
+const T& SymbolicVariableTemplate<T>::getTLowerBound() const
 {
     return lowerBound;
+}
+
+template <typename T>
+const T& SymbolicVariableTemplate<T>::getTUpperBound() const
+{
+    return upperBound;
+}
+
+template <>
+string SymbolicVariableTemplate<string>::getLowerBound() const
+{
+    return lowerBound;
+}
+template <>
+string SymbolicVariableTemplate<string>::getUpperBound() const
+{
+    return upperBound;
+}
+
+template <typename T>
+string SymbolicVariableTemplate<T>::getLowerBound() const
+{
+    return to_string(lowerBound);
+}
+template <typename T>
+string SymbolicVariableTemplate<T>::getUpperBound() const
+{
+    return to_string(upperBound);
 }
 
 template <>
 const string SymbolicVariableTemplate<string>::getConstString()
 {
-    return getConstValue();
+    return getTConstValue();
 }
 
 template <typename T>
 const string SymbolicVariableTemplate<T>::getConstString()
 {
-    return to_string(getConstValue());
+    return to_string(getTConstValue());
 }
 
 template <typename T>
-const T& SymbolicVariableTemplate<T>::getConstValue()
+const T& SymbolicVariableTemplate<T>::getTConstValue()
 {
     if (!isDetermined()) throw "Not constant";
     return lowerBound; //could be upper

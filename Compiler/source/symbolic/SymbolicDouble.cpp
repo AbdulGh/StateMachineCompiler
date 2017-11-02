@@ -2,7 +2,7 @@
 // Created by abdul on 14/08/17.
 //
 #include <limits>
-#include <math.h>
+#include <cmath>
 #include "SymbolicVariables.h"
 
 using namespace std;
@@ -14,7 +14,7 @@ SymbolicDouble::SymbolicDouble(string name, Reporter& r):
 {}
 
 SymbolicDouble::SymbolicDouble(SymbolicDouble& other):
-        SymbolicVariableTemplate(other.getName(), other.getLowerBound(), other.getUpperBound(), other.reporter, DOUBLE, other.defined)
+        SymbolicVariableTemplate(other.getName(), other.getTLowerBound(), other.getTUpperBound(), other.reporter, DOUBLE, other.defined)
 {
     monotonicity = other.getMonotonicity();
     isConst = other.isConst;
@@ -29,7 +29,7 @@ SymbolicDouble::SymbolicDouble(shared_ptr<SymbolicVariable> other):
 
 shared_ptr<SymbolicVariable> SymbolicDouble::clone()
 {
-    return make_shared<SymbolicDouble>(this);
+    return make_shared<SymbolicDouble>(*this);
 }
 
 void SymbolicDouble::userInput()
@@ -47,27 +47,27 @@ SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, const s
     switch(rel)
     {
         case Relations::EQ:
-            if (isConst && getLowerBound() == rhs) return MUST;
-            else if (rhs >= getLowerBound() && rhs <= getLowerBound()) return MAY;
+            if (isConst && getTLowerBound() == rhs) return MUST;
+            else if (rhs >= getTLowerBound() && rhs <= getTLowerBound()) return MAY;
             else return CANT;
         case Relations::NE:
-            if (isConst) return (getLowerBound() != rhs) ? MUST : CANT;
+            if (isConst) return (getTLowerBound() != rhs) ? MUST : CANT;
             else return MAY;
         case Relations::LE:
-            if (getUpperBound() <= rhs) return MUST;
-            else if (getLowerBound() > rhs) return CANT;
+            if (getTUpperBound() <= rhs) return MUST;
+            else if (getTLowerBound() > rhs) return CANT;
             return MAY;
         case Relations::LT:
-            if (getUpperBound() < rhs) return MUST;
-            else if (getLowerBound() >= rhs) return CANT;
+            if (getTUpperBound() < rhs) return MUST;
+            else if (getTLowerBound() >= rhs) return CANT;
             return MAY;
         case Relations::GE:
-            if (getLowerBound() >= rhs) return MUST;
-            else if (getUpperBound() < rhs) return CANT;
+            if (getTLowerBound() >= rhs) return MUST;
+            else if (getTUpperBound() < rhs) return CANT;
             return MAY;
         case Relations::GT:
-            if (getLowerBound() > rhs) return MUST;
-            else if (getUpperBound() <= rhs) return CANT;
+            if (getTLowerBound() > rhs) return MUST;
+            else if (getTUpperBound() <= rhs) return CANT;
             return MAY;
     }
 }
@@ -102,7 +102,7 @@ bool SymbolicDouble::setUpperBound(const std::string& ub, bool closed)
 
 bool SymbolicDouble::clipTLowerBound(const double& d, bool closed)
 {
-    if (d > getLowerBound()) return setLowerBound(d, closed);
+    if (d > getTLowerBound()) return setTLowerBound(d, closed);
     else return isFeasable();
 }
 bool SymbolicDouble::clipUpperBound(const std::string& ub, bool closed)
@@ -112,7 +112,7 @@ bool SymbolicDouble::clipUpperBound(const std::string& ub, bool closed)
 
 bool SymbolicDouble::clipTUpperBound(const double& d, bool closed)
 {
-    if (d < getUpperBound()) return setUpperBound(d, closed);
+    if (d < getTUpperBound()) return setTUpperBound(d, closed);
     else return isFeasable();
 }
 bool SymbolicDouble::clipLowerBound(const std::string& lb, bool closed)
@@ -122,7 +122,7 @@ bool SymbolicDouble::clipLowerBound(const std::string& lb, bool closed)
 
 bool SymbolicDouble::unionTLowerBound(const double& d, bool closed)
 {
-    if (d < getLowerBound()) return setLowerBound(d, closed);
+    if (d < getTLowerBound()) return setTLowerBound(d, closed);
     else return isFeasable();
 }
 bool SymbolicDouble::unionUpperBound(const std::string& ub, bool closed)
@@ -132,7 +132,7 @@ bool SymbolicDouble::unionUpperBound(const std::string& ub, bool closed)
 
 bool SymbolicDouble::unionTUpperBound(const double& d, bool closed)
 {
-    if (d > getUpperBound()) return setUpperBound(d, closed);
+    if (d > getTUpperBound()) return setTUpperBound(d, closed);
     else return isFeasable();
 }
 bool SymbolicDouble::unionLowerBound(const std::string& lb, bool closed)
@@ -283,14 +283,14 @@ void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other)
 
     if (other.isDetermined())
     {
-        addConst(other.getConstValue());
+        addConst(other.getTConstValue());
         return;
     }
 
     if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
-    double otherLowerBound = other.getLowerBound();
-    double otherUpperBound = other.getUpperBound();
+    double otherLowerBound = other.getTLowerBound();
+    double otherUpperBound = other.getTUpperBound();
 
     addConstToLower(otherLowerBound);
     addConstToUpper(otherUpperBound);
@@ -321,11 +321,11 @@ void SymbolicDouble::multConst(double mul)
     else if (isDetermined())
     {
         double temp;
-        ArithResult result = safeMultiply(getConstValue(), mul, temp);
-        if (result != FINE) reportError(Reporter::AlertType::RANGE, to_string(getConstValue()) + " * " + to_string(mul) + " = overflow");
+        ArithResult result = safeMultiply(getTConstValue(), mul, temp);
+        if (result != FINE) reportError(Reporter::AlertType::RANGE, to_string(getTConstValue()) + " * " + to_string(mul) + " = overflow");
         else
         {
-            double oldconst = getConstValue();
+            double oldconst = getTConstValue();
             if (monotonicity == FRESH)
             {
                 if (oldconst < temp) monotonicity = INCREASING;
@@ -333,7 +333,7 @@ void SymbolicDouble::multConst(double mul)
                 else monotonicity = NONE;
             }
             else if (monotonicity == INCREASING && oldconst > temp || monotonicity == DECREASING && oldconst < temp) monotonicity = NONE;
-            setConstValue(temp);
+            setTConstValue(temp);
         }
     }
     else
@@ -466,13 +466,13 @@ void SymbolicDouble::multSymbolicDouble(SymbolicDouble &other)
     if (!other.defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
     if (other.isDetermined())
     {
-        multConst(other.getConstValue());
+        multConst(other.getTConstValue());
         return;
     }
     if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
-    double otherLowerBound = other.getLowerBound();
-    double otherUpperBound = other.getUpperBound();
+    double otherLowerBound = other.getTLowerBound();
+    double otherUpperBound = other.getTUpperBound();
 
     double oldupper = upperBound;
     double oldlower = lowerBound;
@@ -616,7 +616,7 @@ void SymbolicDouble::modConst(double modulus)
     }
     if (isDetermined())
     {
-        setTConstValue(fmod(getConstValue(),modulus));
+        setTConstValue(fmod(getTConstValue(),modulus));
         return;
     }
     else
@@ -632,7 +632,7 @@ void SymbolicDouble::modSymbolicDouble(SymbolicDouble &other)
 {
     if (other.isDetermined())
     {
-        double otherVal = other.getConstValue();
+        double otherVal = other.getTConstValue();
         if (otherVal == 0)
         {
             reportError(Reporter::ZERODIVISION, varN + " divided by " + other.varN + " ( = 0)");
@@ -682,11 +682,11 @@ void SymbolicDouble::divConst(double denom)
     else if (isDetermined())
     {
         double temp;
-        ArithResult result = safeDivide(getConstValue(), denom, temp);
-        if (result != FINE) reportError(Reporter::AlertType::RANGE, to_string(getConstValue()) + " / " + to_string(denom) + " = overflow");
+        ArithResult result = safeDivide(getTConstValue(), denom, temp);
+        if (result != FINE) reportError(Reporter::AlertType::RANGE, to_string(getTConstValue()) + " / " + to_string(denom) + " = overflow");
         else
         {
-            double oldconst = getConstValue();
+            double oldconst = getTConstValue();
             if (monotonicity == FRESH)
             {
                 if (oldconst < temp) monotonicity = INCREASING;
@@ -758,13 +758,13 @@ void SymbolicDouble::divSymbolicDouble(SymbolicDouble &other)
     if (!other.defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
     if (other.isDetermined())
     {
-        divConst(other.getConstValue());
+        divConst(other.getTConstValue());
         return;
     }
     if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
-    double otherLowerBound = other.getLowerBound();
-    double otherUpperBound = other.getUpperBound();
+    double otherLowerBound = other.getTLowerBound();
+    double otherUpperBound = other.getTUpperBound();
 
     double oldupper = upperBound;
     double oldlower = lowerBound;

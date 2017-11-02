@@ -44,6 +44,8 @@ public:
     virtual bool unionUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setLowerBound(const std::string& ub, bool closed=true) = 0;
+    virtual std::string getUpperBound() const = 0;
+    virtual std::string getLowerBound() const = 0;
     virtual void setConstValue(const std::string&) = 0;
     virtual bool meetsConstComparison(Relations::Relop r, const std::string& rhs) = 0;
     virtual bool isFeasable() const;
@@ -71,10 +73,12 @@ public:
     virtual bool clipTUpperBound(const T& up, bool closed) = 0;
     virtual bool unionTLowerBound(const T& lb, bool closed) = 0;
     virtual bool unionTUpperBound(const T& up, bool closed) = 0;
-    const T& getUpperBound() const;
     virtual void setTConstValue(const T& cv);
-    const T& getLowerBound() const;
-    const T& getConstValue();
+    const T& getTConstValue();
+    const T& getTUpperBound() const;
+    const T& getTLowerBound() const;
+    std::string getUpperBound() const override;
+    std::string getLowerBound() const override;
     const std::string getConstString() override;
     bool isFeasable();
     bool isDetermined() override;
@@ -111,9 +115,9 @@ public:
     bool setUpperBound(const std::string& ub, bool closed = true) override;
     bool setLowerBound(const std::string& lb, bool closed = true) override;
 
-    void userInput() override ;
-    bool isBoundedBelow() const override ;
-    bool isBoundedAbove() const override ;
+    void userInput() override;
+    bool isBoundedBelow() const override;
+    bool isBoundedAbove() const override;
     const double getMininumStep() const {return minStep;};
     MonotoneEnum getMonotonicity() const override {return monotonicity;};
     void addConst(double);

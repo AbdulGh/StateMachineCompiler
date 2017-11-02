@@ -43,9 +43,8 @@ void Compiler::compile(stringstream& out)
     cfg.setLast(mainFuncSym->getLastNode()->getName());
     Optimise::optimise(symbolTable, functionTable, cfg);
     SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter).search();
-    vector<Loop> loops = LengTarj(cfg).findLoops();
-
-    for (Loop loop : loops) loop.validate();
+    //vector<Loop> loops = LengTarj(cfg).findLoops();
+    //for (Loop loop : loops) loop.validate();
     cout << cfg.getStructuredSource();
     //cout << cfg.destroyStructureAndGetFinalSource();
     //cout << cfg.getDotGraph();

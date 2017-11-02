@@ -20,7 +20,7 @@ SymbolicString::SymbolicString(shared_ptr<SymbolicVariable> other):
 
 shared_ptr<SymbolicVariable> SymbolicString::clone()
 {
-    return make_shared<SymbolicString>(this);
+    return make_shared<SymbolicString>(*this);
 }
 
 void SymbolicString::setTConstValue(const string& cv)
@@ -50,11 +50,7 @@ bool SymbolicString::setLowerBound(const std::string& lb, bool closed)
 
 bool SymbolicString::setTUpperBound(const std::string& ub, bool closed)
 {
-    if (!closed)
-    {
-        string copy(ub);
-        upperBound = incrementString(copy);
-    }
+    if (!closed) upperBound = incrementString(ub);
     else upperBound = ub;
     if (upperBound > lowerBound) feasable = false;
     if (upperBound == lowerBound) isConst = true;
@@ -125,16 +121,16 @@ bool SymbolicString::isBoundedAbove() const
 
 SymbolicVariable::MeetEnum SymbolicString::canMeet(Relations::Relop rel, const std::string& rhs) const
 {
-    if (isConst) return (Relations::evaluateRelop<string>(getLowerBound(), rel, rhs)) ? MUST : CANT;
+    if (isConst) return (Relations::evaluateRelop<string>(getTLowerBound(), rel, rhs)) ? MUST : CANT;
 
     else
     {
-        bool leLower = isBoundedBelow() && rhs <= getLowerBound();
-        bool geLower = !isBoundedBelow() || rhs >= getLowerBound();
-        bool leUpper = !isBoundedAbove() || rhs <= getUpperBound();
-        bool geUpper = isBoundedAbove() && rhs >= getUpperBound();
-        bool neqLower = rhs != getLowerBound();
-        bool neqUpper = rhs != getUpperBound();
+        bool leLower = isBoundedBelow() && rhs <= getTLowerBound();
+        bool geLower = !isBoundedBelow() || rhs >= getTLowerBound();
+        bool leUpper = !isBoundedAbove() || rhs <= getTUpperBound();
+        bool geUpper = isBoundedAbove() && rhs >= getTUpperBound();
+        bool neqLower = rhs != getTLowerBound();
+        bool neqUpper = rhs != getTUpperBound();
 
         switch(rel)
         {
