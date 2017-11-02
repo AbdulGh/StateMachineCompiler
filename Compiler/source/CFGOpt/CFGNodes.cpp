@@ -315,11 +315,16 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
 
                 if (isTrue)
                 {
-                    if (getCompFail() != nullptr) getCompFail()->removeParent(getName());
                     setCompFail(getCompSuccess());
+                    if (getCompFail() != nullptr) getCompFail()->removeParent(getName());
+                    else throw "shouldnt happen at the end of a function call";
                 }
+                else getCompSuccess()->removeParent(this);
                 setComp(nullptr);
                 setCompSuccess(nullptr);
+                auto debug1 = parentGraph.getNode("F0_main_fin")->getPredecessorVector();
+                int debug2;
+                debug2 = 4;
             }
         }
     }

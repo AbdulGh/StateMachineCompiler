@@ -151,8 +151,8 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
 
     for (const auto& command : n->getInstrs())
     {
-         (command->get)
-        if (!command->acceptSymbolicExecution(sef)) return false;
+        if (command->getType() == CommandType::EXPR) sef->symbolicVarSet->findVar(command->getData())->userInput(); //might be in a loop
+        else if (!command->acceptSymbolicExecution(sef)) return false;
     }
 
     feasableVisits[n->getName()]++;
