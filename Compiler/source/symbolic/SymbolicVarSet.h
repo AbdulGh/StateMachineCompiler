@@ -20,11 +20,6 @@ public:
     SymbolicVarSet(std::shared_ptr<SymbolicVarSet> p = nullptr): parent(move(p)){}
     SymbolicVariablePointer findVar(std::string name);
     const std::unordered_map<std::string, SymbolicVariablePointer>& getVars() const {return variables;}
-    template <typename T>
-    std::shared_ptr<SymbolicVariableTemplate<T>> findVarOfType(std::string& name)
-    {
-        return std::static_pointer_cast<SymbolicVariableTemplate<T>>(findVar(name));
-    }
     void defineVar(SymbolicVariablePointer newvar);
     void unionSVS(std::shared_ptr<SymbolicVarSet> other);
     bool isFeasable();

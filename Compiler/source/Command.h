@@ -5,7 +5,7 @@
 
 #include "compile/Token.h"
 
-enum class CommandType{NONE, JUMP, CONDJUMP, DECLAREVAR, PUSH, POP, ASSIGNVAR, CHANGEVAR, EXPR, PRINT};
+enum class CommandType{JUMP, CONDJUMP, DECLAREVAR, PUSH, POP, ASSIGNVAR, CHANGEVAR, EXPR, PRINT};
 
 namespace SymbolicExecution {class SymbolicExecutionFringe;}; //symbolic/SymbolicExecution.cpp
 class AbstractCommand

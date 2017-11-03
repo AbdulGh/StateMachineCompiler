@@ -124,7 +124,7 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource() //todo finish this
                     {
                         first = *(current->getParentFunction()->getReturnSuccessors().cbegin());
                     }
-                    else throw "should have been one of those";
+                    else if (nodes.size() != 1) throw "should have been one of those";
                 }
 
                 it = nodes.erase(it);

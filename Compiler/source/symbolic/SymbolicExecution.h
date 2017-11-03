@@ -26,7 +26,7 @@ namespace SymbolicExecution
                 l(lhs), c(comp), r(rhs) {}
         Condition(std::string& lhs, Relations::Relop comp, double rhs):
                 l(lhs), c(comp), r(std::to_string(rhs)) {}
-        Condition(){};
+        Condition() = default;
 
         std::string toString()
         {
@@ -60,6 +60,8 @@ namespace SymbolicExecution
     {
     private:
         std::unordered_map<std::string, int> feasableVisits;
+        std::unordered_map<std::string, std::shared_ptr<SymbolicVarSet>> tags;
+
         ControlFlowGraph& cfg;
         SymbolTable& sTable;
         Reporter& reporter;
@@ -120,7 +122,7 @@ namespace SymbolicExecution
         {
             for (const auto& pair : cfg.getCurrentNodes()) feasableVisits[pair.first] = 0;
         };
-        void search();
+        std::unordered_map<std::string, std::shared_ptr<SymbolicVarSet>>& search();
     };
 }
 

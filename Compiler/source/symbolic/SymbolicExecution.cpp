@@ -82,9 +82,11 @@ void SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
 }
 
 /*SymbolicExecutionManager*/
-void SymbolicExecutionManager::search()
+unordered_map<string, shared_ptr<SymbolicVarSet>>& SymbolicExecutionManager::search()
 {
     feasableVisits.clear();
+    tags.clear();
+    for (auto& pair : cfg.getCurrentNodes()) tags[pair.first] = make_shared<SymbolicVarSet>();
     shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(reporter);
     visitNode(sef, cfg.getFirst());
     for (auto& p : feasableVisits)
@@ -113,6 +115,7 @@ void SymbolicExecutionManager::search()
             cfg.removeNode(p.first);
         }
     }
+    return tags;
 }
 
 CFGNode*
@@ -148,10 +151,11 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     else if (sef->hasSeen(n->getName())) return true;
 
     sef->pathConditions.insert({n->getName(), Condition()}); //don't track conditions till later - this just tracks which nodes we've seen
-
+    tags[n->getName()]->unionSVS(sef->symbolicVarSet);
     for (const auto& command : n->getInstrs())
     {
-        if (command->getType() == CommandType::EXPR) sef->symbolicVarSet->findVar(command->getData())->userInput(); //might be in a loop
+        //might be in a loop
+        if (command->getType() == CommandType::EXPR) sef->symbolicVarSet->findVar(command->getData())->userInput();
         else if (!command->acceptSymbolicExecution(sef)) return false;
     }
 

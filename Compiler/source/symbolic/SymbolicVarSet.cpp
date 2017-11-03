@@ -34,15 +34,9 @@ bool SymbolicVarSet::isFeasable()
 {
     for (auto i : variables)
     {
-        if (!i.second->isFeasable())
-        {
-            return false;
-        }
+        if (!i.second->isFeasable()) return false;
     }
-    if (parent != nullptr && !parent->isFeasable())
-    {
-        return false; //should never happen
-    }
+    if (parent != nullptr && !parent->isFeasable()) throw "shouldnt happen";
     return true;
 }
 
@@ -53,13 +47,17 @@ void SymbolicVarSet::defineVar(SymbolicVariablePointer newvar)
 
 void SymbolicVarSet::unionSVS(std::shared_ptr<SymbolicVarSet> other)
 {
+    if (other == nullptr) throw "cant union with nullptr";
+
     for (auto pair : other->variables)
     {
         SymbolicVariablePointer svp = findVar(pair.first);
-        if (svp == nullptr) variables[pair.first] = svp->clone();
+        if (svp == nullptr) variables[pair.first] = pair.second->clone();
         else
         {
-            //HERE
+            svp->unionUpperBound(pair.second->getUpperBound());
+            svp->unionLowerBound(pair.second->getLowerBound());
         }
     }
+    if (other->parent != nullptr) unionSVS(other->parent);
 }

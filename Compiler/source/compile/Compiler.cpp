@@ -42,12 +42,14 @@ void Compiler::compile(stringstream& out)
     cfg.setFirst(mainFuncSym->getFirstNode()->getName());
     cfg.setLast(mainFuncSym->getLastNode()->getName());
     Optimise::optimise(symbolTable, functionTable, cfg);
-    SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter).search();
+    SymbolicExecution::SymbolicExecutionManager symbolicExecutionManager
+            = SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter);
+    unordered_map<string, shared_ptr<SymbolicVarSet>>& tags = symbolicExecutionManager.search();
+    vector<Loop> loops = LengTarj(cfg).findLoops();
+    for (Loop loop : loops) loop.validate(tags);
     Optimise::optimise(symbolTable, functionTable, cfg);
-    //vector<Loop> loops = LengTarj(cfg).findLoops();
-    //for (Loop loop : loops) loop.validate();
-    cout << cfg.getStructuredSource();
-    //cout << cfg.destroyStructureAndGetFinalSource();
+    //cout << cfg.getStructuredSource();
+    cout << cfg.destroyStructureAndGetFinalSource();
     //cout << cfg.getDotGraph();
 }
 
