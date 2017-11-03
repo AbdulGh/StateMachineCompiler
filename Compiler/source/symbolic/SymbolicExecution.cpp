@@ -58,6 +58,7 @@ string SymbolicExecutionFringe::printPathConditions()
 
 void SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, JumpOnComparisonCommand* jocc, bool negate)
 {
+    if (jocc->term2Type == AbstractCommand::StringType::ID) throw "todo";
     if (hasSeen(nodeName)) throw "can't visit twice";
     visitOrder.push_back(nodeName);
     pathConditions.insert({nodeName, Condition(jocc->term1, negate ? Relations::negateRelop(jocc->op) : jocc->op, jocc->term2)});
@@ -76,6 +77,8 @@ void SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
         case Relations::GE:
             symvar->clipLowerBound(jocc->term2, closed);
             break;
+        case Relations::EQ:
+            symvar->setConstValue(jocc->term2);
         default:
             throw "todo";
     }

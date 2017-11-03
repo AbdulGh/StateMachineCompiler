@@ -53,6 +53,63 @@ bool SymbolicVariable::isFeasable() const
     return feasable;
 }
 
+//todo 'bubble' relationships closer
+bool SymbolicVariable::guaranteedLT(const string& searchName, const string& initName) const
+{
+    if (getName() == initName || getName() == searchName)  return false;
+    for (shared_ptr<SymbolicVariable>& optr : lt)
+    {
+        if (optr->getName() == searchName || optr->guaranteedLE(searchName, initName)) return true;
+    }
+    for (shared_ptr<SymbolicVariable>& optr : le) if (optr->guaranteedLT(searchName, initName)) return true;
+    for (shared_ptr<SymbolicVariable>& optr : eq) if (optr->guaranteedLT(searchName, initName)) return true;
+    return false;
+}
+bool SymbolicVariable::guaranteedLE(const string& searchName, const string& initName) const
+{
+    if (getName() == initName || getName() == searchName) return true;
+    for (shared_ptr<SymbolicVariable>& optr : lt) if (optr->guaranteedLE(searchName, initName)) return true;
+    for (shared_ptr<SymbolicVariable>& optr : le) if (optr->guaranteedLE(searchName, initName)) return true;
+    for (shared_ptr<SymbolicVariable>& optr : eq) if (optr->guaranteedLE(searchName, initName)) return true;
+    return false;
+}
+bool SymbolicVariable::guaranteedGT(const string& searchName, const string& initName) const
+{
+    if (getName() == initName || getName() == searchName)  return false;
+    for (shared_ptr<SymbolicVariable>& optr : gt)
+    {
+        if (optr->getName() == searchName || optr->guaranteedGE(searchName, initName)) return true;
+    }
+    for (shared_ptr<SymbolicVariable>& optr : ge) if (optr->guaranteedGT(searchName, initName)) return true;
+    for (shared_ptr<SymbolicVariable>& optr : eq) if (optr->guaranteedGT(searchName, initName)) return true;
+    return false;
+}
+bool SymbolicVariable::guaranteedGE(const string& searchName, const string& initName) const
+{
+    if (getName() == initName || getName() == searchName) return true;
+    for (shared_ptr<SymbolicVariable>& optr : gt) if (optr->guaranteedGE(searchName, initName)) return true;
+    for (shared_ptr<SymbolicVariable>& optr : ge) if (optr->guaranteedGE(searchName, initName)) return true;
+    for (shared_ptr<SymbolicVariable>& optr : eq) if (optr->guaranteedGE(searchName, initName)) return true;
+    return false;
+}
+bool SymbolicVariable::guaranteedEQ(const string& searchName, const string& initName) const
+{
+    if (getName() == initName || getName() == searchName) return true;
+    for (shared_ptr<SymbolicVariable>& optr : eq) if (optr->guaranteedEQ(searchName, initName)) return true;
+    return false;
+}
+
+bool SymbolicVariable::guaranteedNEQ(const string& searchName, const string& initName) const
+{
+    if (getName() == initName || getName() == searchName) return false;
+    for (shared_ptr<SymbolicVariable>& optr : neq) if (optr->guaranteedEQ(searchName, initName)) return true;
+    for (shared_ptr<SymbolicVariable>& optr : gt) if (optr->guaranteedGE(searchName, initName)) return true;
+    for (shared_ptr<SymbolicVariable>& optr : ge) if (optr->guaranteedGT(searchName, initName)) return true;
+    for (shared_ptr<SymbolicVariable>& optr : lt) if (optr->guaranteedLE(searchName, initName)) return true;
+    for (shared_ptr<SymbolicVariable>& optr : le) if (optr->guaranteedLE(searchName, initName)) return true;
+    return false;
+}
+
 //SymbolicVariableTemplate
 template <typename T>
 SymbolicVariableTemplate<T>::SymbolicVariableTemplate(string name, const T lower, const T upper,

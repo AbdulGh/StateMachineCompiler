@@ -17,7 +17,13 @@ protected:
     std::string varN;
     Reporter& reporter;
     VariableType type;
-    //std::set<std::shared_ptr<SymbolicVariable>> lessThan; todo maintain lists of relations to other variables
+    //most of the time we will scan through all of these - hence vectors
+    std::vector<std::shared_ptr<SymbolicVariable>> lt;
+    std::vector<std::shared_ptr<SymbolicVariable>> le;
+    std::vector<std::shared_ptr<SymbolicVariable>> ge;
+    std::vector<std::shared_ptr<SymbolicVariable>> gt;
+    std::vector<std::shared_ptr<SymbolicVariable>> eq;
+    std::vector<std::shared_ptr<SymbolicVariable>> neq;
 
     void reportError(Reporter::AlertType type, std::string err);
 
@@ -32,6 +38,13 @@ public:
     bool isDefined() const;
     void define();
     virtual MonotoneEnum getMonotonicity() const = 0;
+
+    virtual bool guaranteedLT(const std::string& searchName, const std::string& initName) const;
+    virtual bool guaranteedLE(const std::string& searchName, const std::string& initName) const;
+    virtual bool guaranteedGT(const std::string& searchName, const std::string& initName) const;
+    virtual bool guaranteedGE(const std::string& searchName, const std::string& initName) const;
+    virtual bool guaranteedEQ(const std::string& searchName, const std::string& initName) const;
+    virtual bool guaranteedNEQ(const std::string& searchName, const std::string& initName) const;
 
     virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const = 0;
     virtual const std::string getConstString() = 0;
