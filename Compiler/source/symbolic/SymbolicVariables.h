@@ -3,12 +3,13 @@
 
 #include <memory>
 #include <set>
+#include <vector>
 
 #include "../compile/Reporter.h"
 #include "../compile/Token.h"
 //SymbolicVariable.cpp
 
-class SymbolicVariable
+class SymbolicVariable : public std::enable_shared_from_this<SymbolicVariable>
 {
 protected:
     bool isConst;
@@ -39,12 +40,19 @@ public:
     void define();
     virtual MonotoneEnum getMonotonicity() const = 0;
 
-    virtual bool guaranteedLT(const std::string& searchName, const std::string& initName) const;
-    virtual bool guaranteedLE(const std::string& searchName, const std::string& initName) const;
-    virtual bool guaranteedGT(const std::string& searchName, const std::string& initName) const;
-    virtual bool guaranteedGE(const std::string& searchName, const std::string& initName) const;
-    virtual bool guaranteedEQ(const std::string& searchName, const std::string& initName) const;
-    virtual bool guaranteedNEQ(const std::string& searchName, const std::string& initName) const;
+    virtual bool guaranteedLT(const std::shared_ptr<SymbolicVariable>& searchFor, const std::string& initName);
+    virtual bool guaranteedLE(const std::shared_ptr<SymbolicVariable>& searchFor, const std::string& initName);
+    virtual bool guaranteedGT(const std::shared_ptr<SymbolicVariable>& searchFor, const std::string& initName);
+    virtual bool guaranteedGE(const std::shared_ptr<SymbolicVariable>& searchFor, const std::string& initName);
+    virtual bool guaranteedEQ(const std::shared_ptr<SymbolicVariable>& searchFor, const std::string& initName);
+    virtual bool guaranteedNEQ(const std::shared_ptr<SymbolicVariable>& searchFor, const std::string& initName);
+
+    virtual void addLT(const std::shared_ptr<SymbolicVariable>& other);
+    virtual void addLE(const std::shared_ptr<SymbolicVariable>& other);
+    virtual void addGT(const std::shared_ptr<SymbolicVariable>& other);
+    virtual void addGE(const std::shared_ptr<SymbolicVariable>& other);
+    virtual void addEQ(const std::shared_ptr<SymbolicVariable>& other);
+    virtual void addNEQ(const std::shared_ptr<SymbolicVariable>& other);
 
     virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const = 0;
     virtual const std::string getConstString() = 0;
@@ -79,6 +87,9 @@ public:
 
     bool isDisjointFrom(std::shared_ptr<SymbolicVariableTemplate<T>> other);
     bool meetsConstComparison(Relations::Relop r, const std::string& rhs) override;
+
+    virtual void addEQ(const std::shared_ptr<SymbolicVariable>& other) override;
+    
     //set/clip bounds returns true if var is feasable after
     virtual bool setTLowerBound(const T& lb, bool closed) = 0;
     virtual bool setTUpperBound(const T& ub, bool closed) = 0;

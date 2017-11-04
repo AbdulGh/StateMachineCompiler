@@ -58,29 +58,54 @@ string SymbolicExecutionFringe::printPathConditions()
 
 void SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, JumpOnComparisonCommand* jocc, bool negate)
 {
-    if (jocc->term2Type == AbstractCommand::StringType::ID) throw "todo";
     if (hasSeen(nodeName)) throw "can't visit twice";
     visitOrder.push_back(nodeName);
-    pathConditions.insert({nodeName, Condition(jocc->term1, negate ? Relations::negateRelop(jocc->op) : jocc->op, jocc->term2)});
-    auto symvar = symbolicVarSet->findVar(jocc->term1);
-    if (symvar == nullptr) throw "comparing unknown var";
-    bool closed = false;
-    switch(jocc->op)
+    Relations::Relop op = negate ? Relations::negateRelop(jocc->op) : jocc->op;
+    pathConditions.insert({nodeName, Condition(jocc->term1, op, jocc->term2)});
+    auto t1var = symbolicVarSet->findVar(jocc->term1);
+    if (t1var == nullptr) throw "comparing unknown var or constants";
+    if (jocc->term2Type == AbstractCommand::StringType::ID)
     {
-        case Relations::LT:
-            closed = true;
-        case Relations::LE:
-            symvar->clipUpperBound(jocc->term2, closed);
-            break;
-        case Relations::GT:
-            closed = true;
-        case Relations::GE:
-            symvar->clipLowerBound(jocc->term2, closed);
-            break;
-        case Relations::EQ:
-            symvar->setConstValue(jocc->term2);
-        default:
-            throw "todo";
+        auto t2var = symbolicVarSet->findVar(jocc->term2);
+        if (t2var == nullptr) throw "comparing unknown var";
+        switch(op)
+        {
+            case Relations::LT:
+                t1var->addLT(t2var); break;
+            case Relations::LE:
+                t1var->addLE(t2var); break;
+            case Relations::GT:
+                t1var->addGT(t2var); break;
+            case Relations::GE:
+                t1var->addGE(t2var); break;
+            case Relations::EQ:
+                t1var->addEQ(t2var); break;
+            case Relations::NE:
+                t1var->addNEQ(t2var); break;
+            default:
+                throw "unknown op";
+        }
+    }
+    else
+    {
+        bool closed = false;
+        switch(op)
+        {
+            case Relations::LT:
+                closed = true;
+            case Relations::LE:
+                t1var->clipUpperBound(jocc->term2, closed);
+                break;
+            case Relations::GT:
+                closed = true;
+            case Relations::GE:
+                t1var->clipLowerBound(jocc->term2, closed);
+                break;
+            case Relations::EQ:
+                t1var->setConstValue(jocc->term2);
+            default:
+                throw "todo";
+        }
     }
 }
 
