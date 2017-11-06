@@ -181,7 +181,7 @@ void SymbolicDouble::addConstToLower(const double diff)
         {
             if (lowerBound < numeric_limits<double>::lowest() - diff)
             {
-                reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly overflow");
+                reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits");
             }
             else lowerBound += diff;
         }
@@ -196,7 +196,7 @@ void SymbolicDouble::addConstToUpper(const double diff)
     {
         if (diff > 0)
         {
-            reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly overflow");
+            reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits");
         }
         else upperBound = numeric_limits<double>::max() + diff;
     }
@@ -206,7 +206,7 @@ void SymbolicDouble::addConstToUpper(const double diff)
         {
             if (upperBound > numeric_limits<double>::max() - diff)
             {
-                reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly overflow");
+                reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits");
                 upperBound = numeric_limits<double>::max();
                 //monotonicity = CONST;
             }
@@ -298,7 +298,7 @@ void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other)
 
 ArithResult safeMultiply(double a, double b, double& result)
 {
-    if (a > numeric_limits<double>::max() / b)
+    if (signbit(a) == signbit(b) && a > numeric_limits<double>::max() / b)
     {
         result = numeric_limits<double>::max();
         return ArithResult::OVER;
@@ -322,7 +322,13 @@ void SymbolicDouble::multConst(double mul)
     {
         double temp;
         ArithResult result = safeMultiply(getTConstValue(), mul, temp);
-        if (result != FINE) reportError(Reporter::AlertType::RANGE, to_string(getTConstValue()) + " * " + to_string(mul) + " = overflow");
+        if (result != FINE)
+        {
+            double d = getTConstValue();
+            int debug;
+            debug = 2;
+            reportError(Reporter::AlertType::RANGE, to_string(getTConstValue()) + " * " + to_string(mul) + " = overflow");
+        }
         else
         {
             double oldconst = getTConstValue();
@@ -440,14 +446,14 @@ void SymbolicDouble::multConst(double mul)
         {
             if (!isBoundedAbove() || upperBound > numeric_limits<double>::max() / mul)
             {
-                reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly overflow");
+                reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits");
                 upperBound = numeric_limits<double>::max();
             }
             else upperBound *= mul;
 
             if (!isBoundedBelow() || lowerBound < numeric_limits<double>::lowest() / mul)
             {
-                reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly overflow");
+                reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits");
                 lowerBound = numeric_limits<double>::lowest();
             }
             else lowerBound *= mul;
@@ -652,6 +658,7 @@ void SymbolicDouble::modSymbolicDouble(SymbolicDouble &other)
     }
 }
 
+//todo positive/negative
 ArithResult safeDivide(double a, double b, double& result)
 {
     if (b >= 1)

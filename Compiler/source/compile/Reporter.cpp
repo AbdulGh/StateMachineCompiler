@@ -1,4 +1,6 @@
 #include "Reporter.h"
+#include "../CFGOpt/Loop.h"
+
 const std::string Reporter::enumNames[NUM_ALERTS] =
         {"", "OVERFLOW", "UNINITIALISED USE", "UNDECLARED USE",
          "TYPE", "ZERO DIVISION", "USELESS OP", "STACK USE", "COMPILER", "DEAD CODE"};
@@ -52,4 +54,9 @@ void Reporter::info(const std::string& details, int linenum)
     output << details;
     if (linenum != -1) output << " (line " << linenum << ")";
     output << '\n';
+}
+
+void Reporter::addText(const std::string& text)
+{
+    output << text;
 }

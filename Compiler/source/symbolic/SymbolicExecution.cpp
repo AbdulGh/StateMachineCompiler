@@ -103,8 +103,12 @@ void SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
                 break;
             case Relations::EQ:
                 t1var->setConstValue(jocc->term2);
+                break;
+            case Relations::NE:
+                t1var->addNEQConst(jocc->term2);
+                break;
             default:
-                throw "todo";
+                throw "unknown relop";
         }
     }
 }

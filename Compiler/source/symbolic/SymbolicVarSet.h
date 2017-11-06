@@ -9,20 +9,45 @@
 
 
 typedef std::shared_ptr<SymbolicVariable> SymbolicVariablePointer;
+typedef std::unordered_map<std::string, SymbolicVariablePointer> VarMap;
+
+class SymbolicVarSet;
+
+class SVSIterator
+{
+private:
+    const SymbolicVarSet* currentSVS;
+    VarMap::const_iterator currentIt;
+
+public:
+    SVSIterator(const SymbolicVarSet* start, VarMap::const_iterator cit)
+            : currentSVS(start), currentIt(cit) {}
+
+    bool operator!=(const SVSIterator& other);
+    const std::pair<const std::string, SymbolicVariablePointer>& operator*();
+    SVSIterator& operator++();
+};
 
 class SymbolicVarSet
 {
 private:
     std::shared_ptr<SymbolicVarSet> parent;
-    std::unordered_map<std::string, SymbolicVariablePointer> variables;
+    VarMap::const_iterator endIterator;
+    VarMap variables;
 
 public:
-    SymbolicVarSet(std::shared_ptr<SymbolicVarSet> p = nullptr): parent(move(p)){}
+    SymbolicVarSet(std::shared_ptr<SymbolicVarSet> p = nullptr):
+            parent(move(p)), endIterator(parent == nullptr ? variables.cend() : parent->endIterator) {}
     SymbolicVariablePointer findVar(std::string name);
-    const std::unordered_map<std::string, SymbolicVariablePointer>& getVars() const {return variables;}
+    //const std::unordered_map<std::string, SymbolicVariablePointer>& getVars() const {return variables;}
     void defineVar(SymbolicVariablePointer newvar);
     void unionSVS(std::shared_ptr<SymbolicVarSet> other);
     bool isFeasable();
+
+    SVSIterator begin() const {return SVSIterator(this, variables.cbegin());}
+    SVSIterator end() const {return parent == nullptr ? SVSIterator(this, variables.cend()) : parent->end();} //end only called once when iterating
+
+    friend class SVSIterator;
 };
 
 

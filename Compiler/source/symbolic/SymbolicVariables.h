@@ -31,7 +31,10 @@ protected:
 public:
     enum MonotoneEnum{INCREASING, DECREASING, FRESH, NONE}; //represents what we know - 'NONE' might still be increasing etc
     enum MeetEnum {CANT, MAY, MUST};
+
     SymbolicVariable(std::string name, VariableType t, Reporter& r, bool initialised = false);
+    ~SymbolicVariable();
+
     const VariableType getType() const;
     virtual bool isDetermined();
     const std::string getName() const;
@@ -53,6 +56,10 @@ public:
     virtual void addGE(const std::shared_ptr<SymbolicVariable>& other);
     virtual void addEQ(const std::shared_ptr<SymbolicVariable>& other);
     virtual void addNEQ(const std::shared_ptr<SymbolicVariable>& other);
+    virtual void addNEQConst(const std::string& c) = 0;
+    virtual void clearLess(); //todo these
+    virtual void clearGreater();
+    virtual void clearEQ();
 
     virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const = 0;
     virtual const std::string getConstString() = 0;
@@ -80,6 +87,7 @@ class SymbolicVariableTemplate : public SymbolicVariable
 protected:
     T upperBound;
     T lowerBound;
+    std::vector<T> neqConsts;
 
 public:
     SymbolicVariableTemplate(std::string name, const T lower, const T upper,
@@ -89,6 +97,8 @@ public:
     bool meetsConstComparison(Relations::Relop r, const std::string& rhs) override;
 
     virtual void addEQ(const std::shared_ptr<SymbolicVariable>& other) override;
+    void addNEQConst(const std::string& c) override;
+    void clearEQ() override;
     
     //set/clip bounds returns true if var is feasable after
     virtual bool setTLowerBound(const T& lb, bool closed) = 0;

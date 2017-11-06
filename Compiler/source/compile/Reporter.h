@@ -5,6 +5,8 @@
 
 #define NUM_ALERTS 10
 
+
+class Loop;
 class Reporter
 {
 private:
@@ -24,6 +26,7 @@ public:
     void error(AlertType type, const std::string& details, int linenum = -1);
     void optimising(AlertType type, const std::string& details, int linenum = -1);
     void info(const std::string& details, int linenum = -1);
+    void addText(const std::string& text);
 };
 
 

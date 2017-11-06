@@ -9,15 +9,20 @@ using namespace std;
 
 //SymbolicVariable
 
-SymbolicVariable::SymbolicVariable(std::string name, VariableType t, Reporter &r, bool initialised):
+SymbolicVariable::SymbolicVariable(string name, VariableType t, Reporter &r, bool initialised):
         varN(move(name)), type(t), reporter(r), defined(initialised) {}
+
+SymbolicVariable::~SymbolicVariable()
+{
+    clearEQ(); clearGreater(); clearLess();
+}
 
 const string SymbolicVariable::getName() const
 {
     return varN;
 }
 
-void SymbolicVariable::setName(const std::string newName)
+void SymbolicVariable::setName(const string newName)
 {
     varN = newName;
 }
@@ -53,7 +58,7 @@ bool SymbolicVariable::isFeasable() const
     return feasable;
 }
 
-void SymbolicVariable::addGT(const std::shared_ptr<SymbolicVariable>& other)
+void SymbolicVariable::addGT(const shared_ptr<SymbolicVariable>& other)
 {
     if (find_if(gt.begin(), gt.end(),
                 [&, other] (const shared_ptr<SymbolicVariable>& t)
@@ -64,7 +69,7 @@ void SymbolicVariable::addGT(const std::shared_ptr<SymbolicVariable>& other)
     if (isBoundedAbove()) other->clipUpperBound(getUpperBound());
 }
 
-void SymbolicVariable::addGE(const std::shared_ptr<SymbolicVariable>& other)
+void SymbolicVariable::addGE(const shared_ptr<SymbolicVariable>& other)
 {
     if (find_if(ge.begin(), ge.end(),
                 [&, other] (const shared_ptr<SymbolicVariable> t)
@@ -76,12 +81,12 @@ void SymbolicVariable::addGE(const std::shared_ptr<SymbolicVariable>& other)
     if (isBoundedAbove()) other->clipUpperBound(getUpperBound());
 }
 
-void SymbolicVariable::addLT(const std::shared_ptr<SymbolicVariable>& other)
+void SymbolicVariable::addLT(const shared_ptr<SymbolicVariable>& other)
 {
     other->addGT(shared_from_this());
 }
 
-void SymbolicVariable::addLE(const std::shared_ptr<SymbolicVariable>& other)
+void SymbolicVariable::addLE(const shared_ptr<SymbolicVariable>& other)
 {
     other->addGE(shared_from_this());
 }
@@ -95,7 +100,7 @@ void SymbolicVariable::addEQ(const shared_ptr<SymbolicVariable>& other)
     other->eq.push_back(shared_from_this());
 }
 
-void SymbolicVariable::addNEQ(const std::shared_ptr<SymbolicVariable>& other)
+void SymbolicVariable::addNEQ(const shared_ptr<SymbolicVariable>& other)
 {
     if (find_if(neq.begin(), neq.end(),
                 [&, other] (const shared_ptr<SymbolicVariable> t)
@@ -104,7 +109,6 @@ void SymbolicVariable::addNEQ(const std::shared_ptr<SymbolicVariable>& other)
     other->neq.push_back(shared_from_this());
 }
 
-//todo 'bubble' relationships closer
 bool SymbolicVariable::guaranteedLT(const shared_ptr<SymbolicVariable>& searchFor, const string& initName)
 {
     if (getName() == initName || getName() == searchFor->getName())  return false;
@@ -215,7 +219,63 @@ bool SymbolicVariable::guaranteedNEQ(const shared_ptr<SymbolicVariable>& searchF
         {addNEQ(searchFor); return true;}
     for (const shared_ptr<SymbolicVariable>& optr : le) if (optr->guaranteedLE(searchFor, initName))
         {addNEQ(searchFor); return true;}
+    for (const shared_ptr<SymbolicVariable>& optr : eq) if (optr->guaranteedNEQ(searchFor, initName))
+        {addNEQ(searchFor); return true;}
     return false;
+}
+
+void SymbolicVariable::clearEQ()
+{
+    auto isMe = [&, this](const shared_ptr<SymbolicVariable>& poss) -> bool
+    {return poss->getName() == getName();};
+    for (auto& ptr : eq)
+    {
+        auto& vector = ptr->eq;
+        vector.erase(remove_if(vector.begin(), vector.end(), isMe), vector.end());
+    }
+    eq.clear();
+    for (auto& ptr : neq)
+    {
+        auto& vector = ptr->neq;
+        vector.erase(remove_if(vector.begin(), vector.end(), isMe), vector.end());
+    }
+    neq.clear();
+}
+
+void SymbolicVariable::clearLess()
+{
+    auto isMe = [&, this](const shared_ptr<SymbolicVariable>& poss) -> bool
+    {return poss->getName() == getName();};
+    for (auto& ptr : lt)
+    {
+        auto& vector = ptr->gt;
+        vector.erase(remove_if(vector.begin(), vector.end(), isMe), vector.end());
+    }
+    lt.clear();
+    for (auto& ptr : le)
+    {
+        auto& vector = ptr->ge;
+        vector.erase(remove_if(vector.begin(), vector.end(), isMe), vector.end());
+    }
+    le.clear();
+}
+
+void SymbolicVariable::clearGreater()
+{
+    auto isMe = [&, this](const shared_ptr<SymbolicVariable>& poss) -> bool
+    {return poss->getName() == getName();};
+    for (auto& ptr : gt)
+    {
+        auto& vector = ptr->lt;
+        vector.erase(remove_if(vector.begin(), vector.end(), isMe), vector.end());
+    }
+    gt.clear();
+    for (auto& ptr : ge)
+    {
+        auto& vector = ptr->le;
+        vector.erase(remove_if(vector.begin(), vector.end(), isMe), vector.end());
+    }
+    ge.clear();
 }
 
 //SymbolicVariableTemplate
@@ -230,7 +290,7 @@ SymbolicVariableTemplate<T>::SymbolicVariableTemplate(string name, const T lower
 template<typename T>
 bool SymbolicVariableTemplate<T>::isDisjointFrom(shared_ptr<SymbolicVariableTemplate<T>> other)
 {
-    if (!isFeasable() || !other->isFeasable()) return true; //empty sets disjoint from everything
+    if (!isFeasable() || !other->isFeasable()) return true; //empty set is disjoint from everything
     if (!isBoundedAbove() && !isBoundedBelow() || !other->isBoundedAbove() && !other->isBoundedBelow()) return false;
     else if (isBoundedAbove() && other->isBoundedBelow() && upperBound < other->lowerBound) return true;
     else if (isBoundedBelow() && other->isBoundedAbove() && lowerBound > other->upperBound) return true;
@@ -238,7 +298,7 @@ bool SymbolicVariableTemplate<T>::isDisjointFrom(shared_ptr<SymbolicVariableTemp
 }
 
 template<>
-bool SymbolicVariableTemplate<string>::meetsConstComparison(Relations::Relop r, const std::string& rhs)
+bool SymbolicVariableTemplate<string>::meetsConstComparison(Relations::Relop r, const string& rhs)
 {
     return Relations::evaluateRelop<string>(getTConstValue(), r, rhs);
 }
@@ -249,7 +309,6 @@ bool SymbolicVariableTemplate<double>::meetsConstComparison(Relations::Relop r, 
     return Relations::evaluateRelop<double>(getTConstValue(), r, stod(rhs));
 }
 
-
 template <typename T>
 bool SymbolicVariableTemplate<T>::isFeasable()
 {
@@ -257,8 +316,23 @@ bool SymbolicVariableTemplate<T>::isFeasable()
     return feasable;
 }
 
+template <>
+void SymbolicVariableTemplate<string>::addNEQConst(const string& c)
+{
+    if (find(neqConsts.begin(), neqConsts.end(), c) != neqConsts.end()) return;
+    neqConsts.push_back(c);
+}
+
+template <>
+void SymbolicVariableTemplate<double>::addNEQConst(const string& d)
+{
+    double c = stod(d);
+    if (find(neqConsts.begin(), neqConsts.end(), c) != neqConsts.end()) return;
+    neqConsts.push_back(c);
+}
+
 template <typename T>
-void SymbolicVariableTemplate<T>::addEQ(const std::shared_ptr<SymbolicVariable>& other)
+void SymbolicVariableTemplate<T>::addEQ(const shared_ptr<SymbolicVariable>& other)
 {
     SymbolicVariable::addEQ(other);
     shared_ptr<SymbolicVariableTemplate<T>> otherCast = static_pointer_cast<SymbolicVariableTemplate<T>>(other);
@@ -283,6 +357,13 @@ void SymbolicVariableTemplate<T>::addEQ(const std::shared_ptr<SymbolicVariable>&
         else setTUpperBound(otherCast->getTUpperBound(), true);
     }
     else if (isBoundedAbove()) otherCast->setTUpperBound(getTUpperBound(), true);
+}
+
+template <typename T>
+void SymbolicVariableTemplate<T>::clearEQ()
+{
+    SymbolicVariable::clearEQ();
+    neqConsts.clear();
 }
 
 template <typename T>
@@ -354,4 +435,4 @@ bool SymbolicVariableTemplate<T>::isDetermined()
 }
 
 template class SymbolicVariableTemplate<double>;
-template class SymbolicVariableTemplate<std::string>;
+template class SymbolicVariableTemplate<string>;

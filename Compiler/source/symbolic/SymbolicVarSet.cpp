@@ -61,3 +61,27 @@ void SymbolicVarSet::unionSVS(std::shared_ptr<SymbolicVarSet> other)
     }
     if (other->parent != nullptr) unionSVS(other->parent);
 }
+
+//iterator
+const pair<const string, SymbolicVariablePointer>& SVSIterator::operator*()
+{
+    return *currentIt;
+}
+
+SVSIterator& SVSIterator::operator++()
+{
+
+    if (currentIt == currentSVS->endIterator) throw "went too far";
+    ++currentIt;
+    if (currentIt == currentSVS->variables.cend() && currentSVS->parent != nullptr)
+    {
+        currentSVS = currentSVS->parent.get();
+        currentIt = currentSVS->variables.cbegin();
+    }
+    return *this;
+}
+
+bool SVSIterator::operator!=(const SVSIterator& other)
+{
+    return (other.currentSVS != currentSVS || other.currentIt != currentIt);
+}
