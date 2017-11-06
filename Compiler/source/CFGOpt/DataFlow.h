@@ -105,17 +105,18 @@ namespace DataFlow
     protected:
         std::unordered_map<std::string, std::set<T>> outSets;
         std::vector<CFGNode*> nodes;
+        ControlFlowGraph& cfg;
         SymbolTable& symbolTable;
         bool checkNodes; //used if we are only doing data flow on a part of the graph
     public:
-        AbstractDataFlow(ControlFlowGraph& cfg, SymbolTable& st)
-                :symbolTable(st), checkNodes(false)
+        AbstractDataFlow(ControlFlowGraph& controlFlowGraph, SymbolTable& st)
+                :symbolTable(st), cfg(controlFlowGraph), checkNodes(false)
         {
             for (const auto& pair : cfg.getCurrentNodes()) nodes.push_back(pair.second.get());
         };
 
-        AbstractDataFlow(std::vector<CFGNode*> nodeList, SymbolTable& st)
-                :symbolTable(st), checkNodes(true), nodes(move(nodeList)) {};
+        AbstractDataFlow(std::vector<CFGNode*> nodeList, ControlFlowGraph& controlFlowGraph, SymbolTable& st)
+                :symbolTable(st), checkNodes(true), nodes(move(nodeList)), cfg(controlFlowGraph) {};
 
         void worklist()
         {
@@ -178,7 +179,10 @@ namespace DataFlow
                                                          DataFlow::getPredecessorNodes>
     {
     private:
+        std::set<std::string> usedVars;
+        std::unordered_map<std::string, std::set<std::string>> UEVars;
         std::unordered_map<std::string, std::set<std::string>> genSets;
+        std::unordered_map<std::string, std::set<std::string>> killSets;
     public:
         LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& st);
 

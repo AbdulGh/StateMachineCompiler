@@ -432,6 +432,11 @@ bool CFGNode::swallowNode(CFGNode* other)
     return false;
 }
 
+void CFGNode::appendDeclatation(VariableType type, std::string varName)
+{
+    instrs.push_back(make_unique<DeclareVarCommand>(type, move(varName), -1));
+}
+
 void CFGNode::setInstructions(vector<unique_ptr<AbstractCommand>>& in)
 {
     instrs.clear();

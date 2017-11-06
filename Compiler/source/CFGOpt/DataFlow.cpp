@@ -99,11 +99,13 @@ void AssignmentPropogationDataFlow::finish()
     }
 }
 
-#define insertIfNotInKillSet(inserting) \
+#define insertAndCheckUpwardExposed(inserting) \
     if (!isdigit(inserting[0]) && inserting[0] != '"')\
     {\
         it = killSet.find(inserting);\
-        if (it == killSet.end()) genSet.insert(inserting);\
+        if (it == killSet.end()) thisUEVars.insert(inserting);\
+        genSet.insert(inserting);\
+        usedVars.insert(inserting);\
     }
 
 //LiveVariableDataFlow
@@ -112,6 +114,7 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
 {
     for (CFGNode* node : nodes) //intra-propogation already done in Optimiser
     {
+        set<string> thisUEVars;
         set<string> genSet;
         set<string> killSet;
         set<string>::iterator it;
@@ -133,25 +136,25 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 {
                     PushCommand* pvc = static_cast<PushCommand*>(instr.get());
                     const string& data = pvc->getData();
-                    if (pvc->pushType == PushCommand::PUSHSTR && isalnum(data[0])) insertIfNotInKillSet(instr->getData());
+                    if (pvc->pushType == PushCommand::PUSHSTR) insertAndCheckUpwardExposed(data);
                     break;
                 }
                 case CommandType::PRINT:
-                    insertIfNotInKillSet(instr->getData());
+                    insertAndCheckUpwardExposed(instr->getData());
                     break;
                 case CommandType::ASSIGNVAR:
                 {
                     auto avc = static_cast<AssignVarCommand*>(instr.get());
                     killSet.insert(avc->getData());
-                    insertIfNotInKillSet(avc->RHS);
+                    insertAndCheckUpwardExposed(avc->RHS);
                     break;
                 }
                 case CommandType::EXPR:
                 {
                     EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(instr.get());
                     killSet.insert(eec->getData()); //todo consider x=x+1
-                    insertIfNotInKillSet(eec->term1);
-                    insertIfNotInKillSet(eec->term2);
+                    insertAndCheckUpwardExposed(eec->term1);
+                    insertAndCheckUpwardExposed(eec->term2);
                 }
             }
         }
@@ -159,30 +162,42 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
         JumpOnComparisonCommand* jocc = node->getComp();
         if (jocc != nullptr)
         {
-            if (jocc->term1Type == AbstractCommand::StringType::ID) genSet.insert(jocc->term1);
-            if (jocc->term2Type == AbstractCommand::StringType::ID) genSet.insert(jocc->term2);
+            if (jocc->term1Type == AbstractCommand::StringType::ID)
+            {
+                usedVars.insert(jocc->term1);
+                genSet.insert(jocc->term1);
+            }
+            if (jocc->term2Type == AbstractCommand::StringType::ID)
+            {
+                usedVars.insert(jocc->term2);
+                genSet.insert(jocc->term2);
+            }
         }
-        outSets[node->getName()] = genSet;//copies
+        outSets[node->getName()] = thisUEVars;//copies
+        UEVars[node->getName()] = move(thisUEVars);
         genSets[node->getName()] = move(genSet);
+        killSets[node->getName()] = move(killSet);
     }
 }
 
 void LiveVariableDataFlow::transfer(set<string>& in, CFGNode* node)
 {
-    for (auto& live: genSets[node->getName()]) in.insert(live);
+    for (auto& exposed: UEVars[node->getName()]) in.insert(exposed);
 }
 
 void LiveVariableDataFlow::finish()
 {
+    set<pair<VariableType,string>> toDeclare;
     for (CFGNode* node : nodes)
     {
         set<string>& liveOut = outSets[node->getName()];
+        set<string>& genSet = genSets[node->getName()];
         vector<unique_ptr<AbstractCommand>> newInstrs;
 
         //we remove commands that assign stuff or declare dead vars
         auto isDead = [&, liveOut](const string& varN) -> bool
         {
-            return liveOut.find(varN) == liveOut.end();
+            return liveOut.find(varN) == liveOut.end() && genSet.find(varN) == genSet.end();
         };
         for (auto& ac : node->getInstrs())
         {
@@ -190,7 +205,15 @@ void LiveVariableDataFlow::finish()
                 || ac->getType() == CommandType::EXPR
                 || ac->getType() == CommandType::CHANGEVAR
                 || ac->getType() == CommandType::DECLAREVAR) &&
-                isDead(ac->getData())) continue;
+                isDead(ac->getData()))
+            {
+                if (ac->getType() == CommandType::DECLAREVAR && usedVars.find(ac->getData()) != usedVars.end())
+                {
+                    DeclareVarCommand* dvc = static_cast<DeclareVarCommand*>(ac.get());
+                    toDeclare.insert({dvc->vt, dvc->getData()});
+                }
+                continue;
+            }
 
             else
             {
@@ -204,4 +227,7 @@ void LiveVariableDataFlow::finish()
         }
         node->setInstructions(newInstrs);
     }
+
+    CFGNode* startNode = cfg.getFirst();
+    for (auto& var: toDeclare) startNode->appendDeclatation(var.first, var.second);
 }

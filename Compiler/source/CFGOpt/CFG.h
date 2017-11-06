@@ -67,6 +67,7 @@ public:
     void removeParent(CFGNode*);
     void removeParent(const std::string&);
 
+    void appendDeclatation(VariableType type, std::string varName);
     void setInstructions(std::vector<std::unique_ptr<AbstractCommand>>& in);
     void setCompSuccess(CFGNode* compSuccess);
     void setCompFail(CFGNode* compFail);

@@ -322,13 +322,7 @@ void SymbolicDouble::multConst(double mul)
     {
         double temp;
         ArithResult result = safeMultiply(getTConstValue(), mul, temp);
-        if (result != FINE)
-        {
-            double d = getTConstValue();
-            int debug;
-            debug = 2;
-            reportError(Reporter::AlertType::RANGE, to_string(getTConstValue()) + " * " + to_string(mul) + " = overflow");
-        }
+        if (result != FINE) reportError(Reporter::AlertType::RANGE, to_string(getTConstValue()) + " * " + to_string(mul) + " = overflow");
         else
         {
             double oldconst = getTConstValue();
