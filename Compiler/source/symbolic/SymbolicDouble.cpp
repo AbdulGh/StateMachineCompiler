@@ -38,7 +38,7 @@ void SymbolicDouble::userInput()
     lowerBound = numeric_limits<double>::lowest();
     isConst = false;
     define();
-    monotonicity = NONE;
+    if (monotonicity != FRESH) monotonicity = NONE;
 }
 
 SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, const std::string& rhstring) const
