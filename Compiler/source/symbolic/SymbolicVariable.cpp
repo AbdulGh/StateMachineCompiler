@@ -9,12 +9,14 @@ using namespace std;
 
 //SymbolicVariable
 
-SymbolicVariable::SymbolicVariable(string name, VariableType t, Reporter &r, bool initialised):
-        varN(move(name)), type(t), reporter(r), defined(initialised) {}
+SymbolicVariable::SymbolicVariable(string name, VariableType t, Reporter &r, bool initialised, bool f):
+        varN(move(name)), type(t), reporter(r), defined(initialised), feasable(f) {}
 
 SymbolicVariable::~SymbolicVariable()
 {
-    clearEQ(); clearGreater(); clearLess();
+    clearEQ();
+    clearGreater();
+    clearLess();
 }
 
 const string SymbolicVariable::getName() const
@@ -31,11 +33,6 @@ void SymbolicVariable::reportError(Reporter::AlertType type, string err)
 {
     reporter.error(type, err);
     feasable = false;
-}
-
-bool SymbolicVariable::isDetermined()
-{
-    return isConst;
 }
 
 const VariableType SymbolicVariable::getType() const
@@ -371,7 +368,6 @@ void SymbolicVariableTemplate<T>::setTConstValue(const T &cv)
 {
     define();
     upperBound = lowerBound = cv;
-    isConst = true;
 }
 
 template <typename T>
@@ -428,10 +424,9 @@ const T& SymbolicVariableTemplate<T>::getTConstValue()
 }
 
 template <typename T>
-bool SymbolicVariableTemplate<T>::isDetermined()
+bool SymbolicVariableTemplate<T>::isDetermined() const
 {
-    if (lowerBound == upperBound) isConst = true;
-    return isConst;
+    return lowerBound == upperBound;
 }
 
 template class SymbolicVariableTemplate<double>;

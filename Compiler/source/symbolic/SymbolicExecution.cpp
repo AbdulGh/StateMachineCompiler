@@ -193,6 +193,8 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
 
     feasableVisits[n->getName()]++;
 
+    if (n->getName() == n->getParentGraph().getLast()->getName()) return true;
+
     JumpOnComparisonCommand* jocc = n->getComp();
     if (jocc != nullptr) //is a conditional jump
     {

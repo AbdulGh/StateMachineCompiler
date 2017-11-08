@@ -66,7 +66,7 @@ shared_ptr<SymbolicVariable> SymbolicStack::popVar()
 
 SymbolicStackMemberType SymbolicStack::getTopType()
 {
-    while (currentStack.size() == 0)
+    while (currentStack.empty())
     {
         if (parent == nullptr) throw runtime_error("Tried to check top of empty stack");
         copyParent();
@@ -77,7 +77,7 @@ SymbolicStackMemberType SymbolicStack::getTopType()
 
 bool SymbolicStack::isEmpty()
 {
-    while (currentStack.size() == 0)
+    while (currentStack.empty())
     {
         if (parent == nullptr) return true;
         copyParent();

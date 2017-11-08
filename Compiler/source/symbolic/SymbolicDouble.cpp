@@ -10,17 +10,14 @@ using namespace std;
 enum ArithResult{OVER, UNDER, FINE};
 
 SymbolicDouble::SymbolicDouble(string name, Reporter& r):
-        SymbolicVariableTemplate(move(name), 0, 0, r, DOUBLE), minStep(0), monotonicity(FRESH)
+        SymbolicVariableTemplate(move(name), 0, 0, r, DOUBLE)
 {}
 
 SymbolicDouble::SymbolicDouble(SymbolicDouble& other):
-        SymbolicVariableTemplate(other.getName(), other.getTLowerBound(), other.getTUpperBound(), other.reporter, DOUBLE, other.defined)
-{
-    monotonicity = other.getMonotonicity();
-    isConst = other.isConst;
-    feasable = other.isFeasable();
-    minStep = other.minStep;
-}
+        SymbolicVariableTemplate
+                (other.getName(), other.getTLowerBound(), other.getTUpperBound(), other.reporter, DOUBLE, other.defined, other.isFeasable()),
+        minChange(other.minChange), maxChange(other.maxChange), uniformlyChanging(other.uniformlyChanging)
+{}
 
 SymbolicDouble::SymbolicDouble(shared_ptr<SymbolicDouble> other): SymbolicDouble(*other.get()) {}
 
@@ -36,9 +33,8 @@ void SymbolicDouble::userInput()
 {
     upperBound = numeric_limits<double>::max();
     lowerBound = numeric_limits<double>::lowest();
-    isConst = false;
     define();
-    if (monotonicity != FRESH) monotonicity = NONE;
+    uniformlyChanging = false;
 }
 
 SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, const std::string& rhstring) const
@@ -47,11 +43,11 @@ SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, const s
     switch(rel)
     {
         case Relations::EQ:
-            if (isConst && getTLowerBound() == rhs) return MUST;
+            if (isDetermined() && getTLowerBound() == rhs) return MUST;
             else if (rhs >= getTLowerBound() && rhs <= getTLowerBound()) return MAY;
             else return CANT;
         case Relations::NE:
-            if (isConst) return (getTLowerBound() != rhs) ? MUST : CANT;
+            if (isDetermined()) return (getTLowerBound() != rhs) ? MUST : CANT;
             else return MAY;
         case Relations::LE:
             if (getTUpperBound() <= rhs) return MUST;
@@ -78,7 +74,6 @@ bool SymbolicDouble::setTLowerBound(const double& d, bool closed)
     else lowerBound = d;
 
     if (lowerBound > upperBound) feasable = false;
-    else if (lowerBound == upperBound) isConst = true;
     return isFeasable();
 }
 bool SymbolicDouble::setLowerBound(const std::string& lb, bool closed)
@@ -92,7 +87,6 @@ bool SymbolicDouble::setTUpperBound(const double& d, bool closed)
     else upperBound = d;
 
     if (lowerBound > upperBound) feasable = false;
-    else if (lowerBound == upperBound) isConst = true;
     return isFeasable();
 }
 bool SymbolicDouble::setUpperBound(const std::string& ub, bool closed)
@@ -140,6 +134,12 @@ bool SymbolicDouble::unionLowerBound(const std::string& lb, bool closed)
     return unionTLowerBound(stod(lb), closed);
 }
 
+
+void SymbolicDouble::setTConstValue(const double& d)
+{
+    SymbolicVariableTemplate<double>::setTConstValue(d);
+    uniformlyChanging = false;
+}
 void SymbolicDouble::setConstValue(const std::string& c)
 {
     setTConstValue(stod(c));
@@ -155,26 +155,29 @@ bool SymbolicDouble::isBoundedBelow() const
     return upperBound != numeric_limits<double>::lowest();
 }
 
+SymbolicVariable::MonotoneEnum SymbolicDouble::getMonotonicity() const
+{
+    if (!uniformlyChanging) return NONE;
+    else if (minChange > 0) return INCREASING;
+    else if (maxChange < 0) return DECREASING;
+    else if (minChange == maxChange == 0) return FRESH;
+    else return UNKNOWN;
+}
+
 void SymbolicDouble::addConstToLower(const double diff)
 {
     if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
     if (!isBoundedBelow())
     {
-        if (diff < 0)
-        {
-            reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly drop below limit");
-        }
+        if (diff < 0) reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly drop below limit");
         else lowerBound = numeric_limits<double>::lowest() + diff; //kind of assuming diff is not too big
     }
     else
     {
         if (diff > 0)
         {
-            if (lowerBound > numeric_limits<double>::max() - diff)
-            {
-                reportError(Reporter::AlertType::RANGE, varN + " will overflow");
-            }
+            if (lowerBound > numeric_limits<double>::max() - diff) reportError(Reporter::AlertType::RANGE, varN + " will overflow");
             else lowerBound += diff;
         }
         else
@@ -194,10 +197,7 @@ void SymbolicDouble::addConstToUpper(const double diff)
 
     if (!isBoundedAbove())
     {
-        if (diff > 0)
-        {
-            reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits");
-        }
+        if (diff > 0) reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits");
         else upperBound = numeric_limits<double>::max() + diff;
     }
     else
@@ -208,16 +208,12 @@ void SymbolicDouble::addConstToUpper(const double diff)
             {
                 reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits");
                 upperBound = numeric_limits<double>::max();
-                //monotonicity = CONST;
             }
             else upperBound += diff;
         }
         else
         {
-            if (upperBound < numeric_limits<double>::lowest() - diff)
-            {
-                reportError(Reporter::AlertType::RANGE, varN + " will overflow");
-            }
+            if (upperBound < numeric_limits<double>::lowest() - diff) reportError(Reporter::AlertType::RANGE, varN + " will overflow");
             else upperBound += diff;
         }
     }
@@ -242,41 +238,15 @@ void SymbolicDouble::addConst(double diff)
     else
     {
         double oldT = lowerBound;
-        if (diff > 0 && oldT > numeric_limits<double>::max() - diff)
-        {
-            reportError(Reporter::AlertType::RANGE, varN + " will overflow");
-        }
-        else if (diff < 0 && oldT < numeric_limits<double>::lowest() - diff)
-        {
-            reportError(Reporter::AlertType::RANGE, varN + " will overflow");
-        }
+        if (diff > 0 && oldT > numeric_limits<double>::max() - diff) reportError(Reporter::AlertType::RANGE, varN + " will overflow");
+        else if (diff < 0 && oldT < numeric_limits<double>::lowest() - diff)  reportError(Reporter::AlertType::RANGE, varN + " will overflow");
         upperBound = lowerBound = oldT + diff;
     }
 
-    if (monotonicity == FRESH)
-    {
-        monotonicity = (diff > 0) ? INCREASING : DECREASING;
-        minStep = diff;
-    }
-    else if (monotonicity == INCREASING)
-    {
-        if (diff < 0)
-        {
-            monotonicity = NONE;
-            minStep = 0;
-        }
-        else if (diff < minStep)  minStep = diff;
-    }
-    else if (monotonicity == DECREASING)
-    {
-        if (diff > 0)
-        {
-            monotonicity = NONE;
-            minStep = 0;
-        }
-        else if (diff > minStep)  minStep = diff;
-    }
+    minChange += diff;
+    maxChange += diff;
 }
+
 void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other)
 {
     if (!other.defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
@@ -294,6 +264,9 @@ void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other)
 
     addConstToLower(otherLowerBound);
     addConstToUpper(otherUpperBound);
+
+    minChange += otherLowerBound;
+    maxChange += otherUpperBound;
 }
 
 ArithResult safeMultiply(double a, double b, double& result)
@@ -303,9 +276,9 @@ ArithResult safeMultiply(double a, double b, double& result)
         result = numeric_limits<double>::max();
         return ArithResult::OVER;
     }
-    else if (a < numeric_limits<double>::min() / b)
+    else if (a < numeric_limits<double>::lowest() / b)
     {
-        result = numeric_limits<double>::min();
+        result = numeric_limits<double>::lowest();
         return ArithResult::UNDER;
     }
     result = a * b;
@@ -314,156 +287,80 @@ ArithResult safeMultiply(double a, double b, double& result)
 
 void SymbolicDouble::multConst(double mul)
 {
-    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    double oldUpper = upperBound;
+    double oldLower = lowerBound;
 
+    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
     if (mul == 0) setConstValue(0);
     else if (mul == 1) reporter.warn(Reporter::AlertType::USELESS_OP, varN + "multiplied by 1");
-    else if (isDetermined())
+    else
     {
-        double temp;
-        ArithResult result = safeMultiply(getTConstValue(), mul, temp);
-        if (result != FINE) reportError(Reporter::AlertType::RANGE, to_string(getTConstValue()) + " * " + to_string(mul) + " = overflow");
+        if (isDetermined())
+        {
+            double temp;
+            ArithResult result = safeMultiply(getTConstValue(), mul, temp);
+            if (result != FINE) reportError(Reporter::AlertType::RANGE, to_string(getTConstValue()) + " * " + to_string(mul) + " = overflow");
+            else setTConstValue(temp);
+        }
         else
         {
-            double oldconst = getTConstValue();
-            if (monotonicity == FRESH)
+            double lowerResult, upperResult;
+
+            bool bad = false;
+            bool alwaysabove = true;
+            bool alwaysbelow = true;
+
+            ArithResult result = safeMultiply(oldLower, mul, lowerResult);
+            if (result == FINE) alwaysabove = alwaysbelow = false;
+            else
             {
-                if (oldconst < temp) monotonicity = INCREASING;
-                else if (oldconst > temp) monotonicity = DECREASING;
-                else monotonicity = NONE;
+                bad = true;
+                if (result == OVER) alwaysbelow = false;
+                else alwaysabove = false;
             }
-            else if (monotonicity == INCREASING && oldconst > temp || monotonicity == DECREASING && oldconst < temp) monotonicity = NONE;
-            setTConstValue(temp);
+
+            result = safeMultiply(oldUpper, mul, upperResult);
+            if (result == FINE) alwaysabove = alwaysbelow = false;
+            else
+            {
+                bad = true;
+                if (result == OVER) alwaysbelow = false;
+                else alwaysabove = false;
+            }
+
+            if (alwaysabove || alwaysbelow) reportError(Reporter::AlertType::RANGE, varN + " guaranteed to overflow when multiplied by " + to_string(mul));
+            else if (bad) reporter.warn(Reporter::AlertType::RANGE, varN + " might overflow when multiplied by " + to_string(mul));
+
+            if (lowerResult <= upperResult)
+            {
+                setTLowerBound(lowerResult);
+                setTUpperBound(upperResult);
+            }
+            else
+            {
+                setTLowerBound(upperResult);
+                setTUpperBound(lowerResult);
+            }
         }
+    }
+    if (mul >= 0)
+    {
+        minChange += lowerBound - oldLower;
+        maxChange += upperBound - oldUpper;
     }
     else
     {
-        double oldupper = upperBound;
-        double oldlower = lowerBound;
-        double lowerResult, upperResult;
-
-        bool bad = false;
-        bool alwaysabove = true;
-        bool alwaysbelow = true;
-
-        ArithResult result = safeMultiply(oldlower, mul, lowerResult);
-        if (result == FINE) alwaysabove = alwaysbelow = false;
-        else
-        {
-            bad = true;
-            if (result == OVER) alwaysbelow = false;
-            else alwaysabove = false;
-        }
-
-        result = safeMultiply(oldupper, mul, upperResult);
-        if (result == FINE) alwaysabove = alwaysbelow = false;
-        else
-        {
-            bad = true;
-            if (result == OVER) alwaysbelow = false;
-            else alwaysabove = false;
-        }
-
-        if (alwaysabove || alwaysbelow) reportError(Reporter::AlertType::RANGE, varN + " guaranteed to overflow when multiplied by " + to_string(mul));
-        else if (bad) reporter.warn(Reporter::AlertType::RANGE, varN + " might overflow when multiplied by " + to_string(mul));
-
-        if (lowerResult <= upperResult)
-        {
-            setTLowerBound(lowerResult);
-            setTUpperBound(upperResult);
-        }
-        else
-        {
-            setTLowerBound(upperResult);
-            setTUpperBound(lowerResult);
-        }
-
-        if (upperBound > oldupper && lowerBound > oldlower)
-        {
-            if (monotonicity == FRESH) monotonicity = INCREASING;
-            else if (monotonicity == DECREASING) monotonicity = NONE;
-        }
-        else if (oldupper < oldupper && lowerBound < oldlower)
-        {
-            if (monotonicity == FRESH) monotonicity = DECREASING;
-            else if (monotonicity == DECREASING) monotonicity = NONE;
-        }
-        else monotonicity = NONE;
+        minChange += lowerBound - oldUpper;
+        maxChange += upperBound - oldLower;
     }
-    /*
-    if (mul < 0) //flip upper/lower
-    {
-        double temp = lowerBound;
-        setLowerBound(-upperBound);
-        setTUpperBound(-temp);
-        mul *= -1;
-        monotonicity = NONE;
-    }
-
-    if (mul == 1)
-    {
-        return;
-    }
-    //can assume now mul is > 0 and != 1
-
-    int direction = 0; //-1 if range is shifting down, 1 if shifting up, 0 otherwise
-    if (upperBound <= 0) direction = (mul > 1) ? -1 : 1;
-    else if (lowerBound >= 0) direction = (mul > 1) ? 1 : -1;
-
-    if (direction != 0)
-    {
-        if (monotonicity == FRESH) monotonicity = (direction == 1) ? INCREASING : DECREASING;
-        else if (monotonicity == INCREASING && direction == -1 || monotonicity == DECREASING && direction == 1) monotonicity = NONE;
-    }
-
-    if (isDetermined())
-    {
-        double value = getConstValue();
-
-        if (mul > 1)
-        {
-            if (value > numeric_limits<double>::max()/mul) //will be >0 also
-            {
-                reportError(Reporter::AlertType::RANGE, varN + " will overflow");
-            }
-            else if (value < numeric_limits<double>::lowest() / mul)
-            {
-                reportError(Reporter::AlertType::RANGE, varN + " will overflow");
-            }
-            else setConstValue(value * mul);
-        }
-        else setConstValue(value * mul);
-    }
-    else
-    {
-        if (mul > 1)
-        {
-            if (!isBoundedAbove() || upperBound > numeric_limits<double>::max() / mul)
-            {
-                reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits");
-                upperBound = numeric_limits<double>::max();
-            }
-            else upperBound *= mul;
-
-            if (!isBoundedBelow() || lowerBound < numeric_limits<double>::lowest() / mul)
-            {
-                reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits");
-                lowerBound = numeric_limits<double>::lowest();
-            }
-            else lowerBound *= mul;
-        }
-
-        else
-        {
-            lowerBound *= mul;
-            upperBound *= mul;
-        }
-    }*/
 }
 
 void SymbolicDouble::multSymbolicDouble(SymbolicDouble &other)
 {
-    if (!other.defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
+    if (!other.defined)
+    {
+        reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
+    }
     if (other.isDetermined())
     {
         multConst(other.getTConstValue());
@@ -473,10 +370,6 @@ void SymbolicDouble::multSymbolicDouble(SymbolicDouble &other)
 
     double otherLowerBound = other.getTLowerBound();
     double otherUpperBound = other.getTUpperBound();
-
-    double oldupper = upperBound;
-    double oldlower = lowerBound;
-
 
     bool bad = false; //can overflow
     bool alwaysabove = true; //always overflow
@@ -535,76 +428,22 @@ void SymbolicDouble::multSymbolicDouble(SymbolicDouble &other)
         else alwaysabove = false;
     }
 
-    if (alwaysabove || alwaysbelow) reportError(Reporter::AlertType::RANGE, varN + " guaranteed to overflow when multiplied by " + other.varN);
+    if (alwaysabove || alwaysbelow)
+    {
+        reportError(Reporter::AlertType::RANGE, varN + " guaranteed to overflow when multiplied by " + other.varN);
+    }
     else if (bad) reporter.warn(Reporter::AlertType::RANGE, varN + " might overflow when multiplied by " + other.varN);
 
+
+    double oldLower = lowerBound;
+    double oldUpper = upperBound;
 
     setTLowerBound(min(lowerlower, min(lowerupper, min(upperlower, upperupper))));
     setTUpperBound(max(lowerlower, max(lowerupper, max(upperlower, upperupper))));
 
-    if (upperBound > oldupper && lowerBound > oldlower)
-    {
-        if (monotonicity == FRESH) monotonicity = INCREASING;
-        else if (monotonicity == DECREASING) monotonicity = NONE;
-    }
-
-    else if (upperlower < oldupper && lowerBound < oldlower)
-    {
-        if (monotonicity == FRESH) monotonicity = DECREASING;
-        else if (monotonicity == DECREASING) monotonicity = NONE;
-    }
-
-    else monotonicity = NONE;
-
-    /* todo make the above less brute-forcey
-    if (abs(otherLowerBound) >= abs(otherUpperBound)) //multiply by (-1)^2. Includes case when otherUpperBound < 0
-    {
-        double temp = -lowerBound;
-        setLowerBound(-upperBound);
-        setTUpperBound(temp);
-
-        temp = -otherLowerBound;
-        otherLowerBound = -otherUpperBound;
-        otherUpperBound = temp;
-    }
-
-    //can now assume otherUpperBound >= 0, otherLowerBound =< 0, and |otherUpperBound| >= |otherLowerBound|
-    if (otherUpperBound < 0 || otherLowerBound > 0 || abs(otherLowerBound) < abs(otherUpperBound))
-        throw "not true";
-
-    int myside = 0; //-1 if range is left of zero
-    if (upperBound < 0) myside = -1;
-    else if (lowerBound > 0) myside = 1;
-
-    int theirside = 0; //-1 if their range is left of *1*
-    if (otherUpperBound < 1) theirside = -1;
-    else if (otherLowerBound > 1) theirside = 1;
-
-
-
-    if (upperBound > numeric_limits<double>::max() / otherUpperBound)
-    {
-        upperBound = numeric_limits<double>::max();//warning
-    }
-    else upperBound *= otherUpperBound;
-
-    if (sameSign(lowerBound, otherLowerBound))
-    {
-        if (lowerBound < numeric_limits<double>::max() / otherLowerBound)
-        {
-            reportError(Reporter::AlertType::RANGE, varN + " will overflow");
-        }
-        else lowerBound *= otherLowerBound;
-    }
-    else
-    {
-        if (lowerBound < numeric_limits<double>::min() / otherUpperBound)
-        {
-            lowerBound = numeric_limits<double>::min();
-        }
-        else lowerBound *= otherUpperBound;
-    }
-     */
+    //todo make this more accurate
+    minChange += upperBound - oldUpper;
+    maxChange += lowerBound - oldLower;
 }
 
 void SymbolicDouble::modConst(double modulus)
@@ -614,6 +453,8 @@ void SymbolicDouble::modConst(double modulus)
         reportError(Reporter::AlertType::ZERODIVISION, varN + " divided by zero");
         return;
     }
+
+    if (lowerBound < 0 || upperBound > modulus) uniformlyChanging = false;
     if (isDetermined())
     {
         setTConstValue(fmod(getTConstValue(),modulus));
@@ -643,6 +484,7 @@ void SymbolicDouble::modSymbolicDouble(SymbolicDouble &other)
 
     else
     {
+        if (lowerBound < 0 || upperBound > other.lowerBound) uniformlyChanging = false;
         setTLowerBound(0);
         if (other.lowerBound <= 0 && other.upperBound >= 0)
         {
@@ -685,30 +527,19 @@ void SymbolicDouble::divConst(double denom)
         double temp;
         ArithResult result = safeDivide(getTConstValue(), denom, temp);
         if (result != FINE) reportError(Reporter::AlertType::RANGE, to_string(getTConstValue()) + " / " + to_string(denom) + " = overflow");
-        else
-        {
-            double oldconst = getTConstValue();
-            if (monotonicity == FRESH)
-            {
-                if (oldconst < temp) monotonicity = INCREASING;
-                else if (oldconst > temp) monotonicity = DECREASING;
-                else monotonicity = NONE;
-            }
-            else if (monotonicity == INCREASING && oldconst > temp || monotonicity == DECREASING && oldconst < temp) monotonicity = NONE;
-            setTConstValue(temp);
-        }
+        else setTConstValue(temp);
     }
     else
     {
-        double oldupper = upperBound;
-        double oldlower = lowerBound;
+        double oldUpper = upperBound;
+        double oldLower = lowerBound;
         double lowerResult, upperResult;
 
         bool bad = false;
         bool alwaysabove = true;
         bool alwaysbelow = true;
 
-        ArithResult result = safeDivide(oldlower, denom, lowerResult);
+        ArithResult result = safeDivide(oldLower, denom, lowerResult);
         if (result == FINE) alwaysabove = alwaysbelow = false;
         else
         {
@@ -717,7 +548,7 @@ void SymbolicDouble::divConst(double denom)
             else alwaysabove = false;
         }
 
-        result = safeDivide(oldupper, denom, upperResult);
+        result = safeDivide(oldUpper, denom, upperResult);
         if (result == FINE) alwaysabove = alwaysbelow = false;
         else
         {
@@ -740,17 +571,6 @@ void SymbolicDouble::divConst(double denom)
             setTUpperBound(lowerResult);
         }
 
-        if (upperBound > oldupper && lowerBound > oldlower)
-        {
-            if (monotonicity == FRESH) monotonicity = INCREASING;
-            else if (monotonicity == DECREASING) monotonicity = NONE;
-        }
-        else if (oldupper < oldupper && lowerBound < oldlower)
-        {
-            if (monotonicity == FRESH) monotonicity = DECREASING;
-            else if (monotonicity == DECREASING) monotonicity = NONE;
-        }
-        else monotonicity = NONE;
     }
 }
 
@@ -767,9 +587,8 @@ void SymbolicDouble::divSymbolicDouble(SymbolicDouble &other)
     double otherLowerBound = other.getTLowerBound();
     double otherUpperBound = other.getTUpperBound();
 
-    double oldupper = upperBound;
-    double oldlower = lowerBound;
-
+    double oldUpper = upperBound;
+    double oldLower = lowerBound;
 
     bool bad = false; //can overflow
     bool alwaysabove = true; //always overflow
@@ -819,15 +638,7 @@ void SymbolicDouble::divSymbolicDouble(SymbolicDouble &other)
     setTLowerBound(min(lowerlower, min(lowerupper, min(upperlower, upperupper))));
     setTUpperBound(max(lowerlower, max(lowerupper, max(upperlower, upperupper))));
 
-    if (upperBound > oldupper && lowerBound > oldlower)
-    {
-        if (monotonicity == FRESH) monotonicity = INCREASING;
-        else if (monotonicity == DECREASING) monotonicity = NONE;
-    }
-    else if (oldupper < oldupper && lowerBound < oldlower)
-    {
-        if (monotonicity == FRESH) monotonicity = DECREASING;
-        else if (monotonicity == DECREASING) monotonicity = NONE;
-    }
-    else monotonicity = NONE;
+    //todo make this more accurate
+    minChange += upperBound - oldUpper;
+    maxChange += lowerBound - oldLower;
 }

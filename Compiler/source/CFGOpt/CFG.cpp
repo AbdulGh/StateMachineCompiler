@@ -95,7 +95,7 @@ string ControlFlowGraph::getStructuredSource()
     return outs.str();
 }
 
-string ControlFlowGraph::destroyStructureAndGetFinalSource() //todo finish this
+string ControlFlowGraph::destroyStructureAndGetFinalSource() //todo redo this
 {
     bool changes = true;
     while (changes)
@@ -110,12 +110,23 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource() //todo finish this
             {
                 if (current->getCompFail() == nullptr) current->removePushes();
                 else current->replacePushes(current->getCompFail()->getName());
-                for (auto& parent : current->getPredecessorMap())
+
+
+                if (current->getName() == "F0_main_13")
                 {
-                    if (parent.second->getCompFail() == nullptr &&
-                        (parent.second->getCompSuccess() == nullptr ||
-                         parent.second->getCompSuccess()->getName() != current->getName())) continue;
-                    if (!parent.second->swallowNode(current)) throw "should swallow";
+                    auto debug2 = current->getPredecessorVector();
+                    int debug;
+                    debug = 2;
+                }
+
+                for (auto& parent : current->getPredecessorVector())
+                {
+                    if ((parent->getCompSuccess() == nullptr || parent->getCompSuccess()->getName() != current->getName())
+                        && parent->getCompFail() == nullptr && parent->isLastNode())
+                    {
+                        parent->getParentFunction()->removeReturnSuccessor(current->getName());
+                    }
+                    else if (!parent->swallowNode(current)) throw "should swallow";
                 }
                 if (current->getName() == first->getName())
                 {

@@ -17,12 +17,7 @@ bool AbstractCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symb
 bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
 {
     VarPointer found = svs->symbolicVarSet->findVar(getData());
-    if (found == nullptr)
-    {
-        //this should have been caught by the compiler, as well as those below
-        svs->error(Reporter::UNDECLARED_USE, "'" + getData() + "' inputted without being declared", getLineNum());
-        return false;
-    }
+    if (found == nullptr) throw "should be found";
     found->userInput();
     return true;
 }
@@ -39,11 +34,7 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
             svs->error(Reporter::UNDECLARED_USE, "'" + getData() + "' pushed without being declared", getLineNum());
             return false;
         }
-        if (!found->isFeasable())
-        {
-            //shouldn't happen
-            return false;
-        }
+        if (!found->isFeasable()) throw "should be feasable";
         else if (!found->isDefined())
         {
             svs->warn(Reporter::UNINITIALISED_USE, "'" + getData() + "' pushed without being defined", getLineNum());
@@ -78,10 +69,7 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
 
     popped->setName(found->getName());
     svs->symbolicVarSet->defineVar(popped);
-    if (!popped->isFeasable())
-    {
-        return false; //debugging purposes!
-    }
+    if (!popped->isFeasable()) throw "should be feasable";
     return true; //should catch infeasable push
 }
 
@@ -121,10 +109,7 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
     }
     else svp->setConstValue(RHS);
     svp->define();
-    if (!svp->isFeasable())
-    {
-        return false;
-    }
+    if (!svp->isFeasable()) throw "should be feasable";
     return true;
 }
 
@@ -147,7 +132,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
     SymbolicVariablePointer t1;
     try
     {
-        double d = stod(term1);
+        stod(term1);
         t1 = make_shared<SymbolicDouble>("LHSconst", svs->reporter); //if we get here it's a double
         t1->setConstValue(term1);
     }
@@ -175,7 +160,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
         t2 = make_shared<SymbolicDouble>("RHSconst", svs->reporter);
         t2->setConstValue(term2);
     }
-    catch (invalid_argument e)
+    catch (invalid_argument)
     {
         t2 = svs->symbolicVarSet->findVar(term2);
         if (t2 == nullptr)

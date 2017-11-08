@@ -12,7 +12,6 @@
 class SymbolicVariable : public std::enable_shared_from_this<SymbolicVariable>
 {
 protected:
-    bool isConst;
     bool defined;
     bool feasable = true;
     std::string varN;
@@ -29,14 +28,13 @@ protected:
     void reportError(Reporter::AlertType type, std::string err);
 
 public:
-    enum MonotoneEnum{INCREASING, DECREASING, FRESH, NONE}; //represents what we know - 'NONE' might still be increasing etc
+    enum MonotoneEnum{INCREASING, DECREASING, FRESH, NONE, UNKNOWN};
     enum MeetEnum {CANT, MAY, MUST};
 
-    SymbolicVariable(std::string name, VariableType t, Reporter& r, bool initialised = false);
+    SymbolicVariable(std::string name, VariableType t, Reporter& r, bool initialised = false, bool feasable = true);
     ~SymbolicVariable();
 
     const VariableType getType() const;
-    virtual bool isDetermined();
     const std::string getName() const;
     void setName(const std::string newName);
     bool isDefined() const;
@@ -57,7 +55,7 @@ public:
     virtual void addEQ(const std::shared_ptr<SymbolicVariable>& other);
     virtual void addNEQ(const std::shared_ptr<SymbolicVariable>& other);
     virtual void addNEQConst(const std::string& c) = 0;
-    virtual void clearLess(); //todo these
+    virtual void clearLess();
     virtual void clearGreater();
     virtual void clearEQ();
 
@@ -66,6 +64,7 @@ public:
     virtual void userInput() = 0;
     virtual bool isBoundedBelow() const = 0;
     virtual bool isBoundedAbove() const = 0;
+    virtual bool isDetermined() const = 0;
     virtual bool clipLowerBound(const std::string& lb, bool closed=true) = 0;
     virtual bool clipUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool unionLowerBound(const std::string& lb, bool closed=true) = 0;
@@ -115,15 +114,16 @@ public:
     std::string getLowerBound() const override;
     const std::string getConstString() override;
     bool isFeasable();
-    bool isDetermined() override;
+    bool isDetermined() const override;
 };
 //todo check comparison strictness wrt closed bool when setting bounds
 //SymbolicDouble.cpp
 class SymbolicDouble : public SymbolicVariableTemplate<double>
 {
 private:
-    double minStep;
-    MonotoneEnum monotonicity;
+    long double minChange = 0; //most negative possible movement since initiation
+    long double maxChange = 0; //most positive possible movement since initiation
+    bool uniformlyChanging = true;
     void addConstToLower(const double d);
     void addConstToUpper(const double d);
 
@@ -139,6 +139,7 @@ public:
     bool setTUpperBound(const double& d, bool closed = true) override;
     bool clipTLowerBound(const double& d, bool closed = true) override;
     bool clipTUpperBound(const double& d, bool closed = true) override;
+    void setTConstValue(const double& d) override;
     bool unionTLowerBound(const double& lb, bool closed = true) override;
     bool unionTUpperBound(const double& up, bool closed = true) override;
     void setConstValue(const std::string&) override;
@@ -152,8 +153,7 @@ public:
     void userInput() override;
     bool isBoundedBelow() const override;
     bool isBoundedAbove() const override;
-    const double getMininumStep() const {return minStep;};
-    MonotoneEnum getMonotonicity() const override {return monotonicity;};
+    MonotoneEnum getMonotonicity() const override;
     void addConst(double);
     void multConst(double);
     void divConst(double);

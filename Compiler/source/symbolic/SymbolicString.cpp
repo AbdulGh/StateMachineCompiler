@@ -27,7 +27,6 @@ void SymbolicString::setTConstValue(const string& cv)
 {
     boundedUpper = boundedLower = true;
     lowerBound = upperBound = cv;
-    isConst = true;
 }
 void SymbolicString::setConstValue(const std::string &s)
 {
@@ -39,7 +38,6 @@ bool SymbolicString::setTLowerBound(const std::string& lb, bool closed)
     if (!closed) upperBound = decrementString(lb);
     else lowerBound = lb;
     if (upperBound > lowerBound) feasable = false;
-    if (upperBound == lowerBound) isConst = true;
     boundedLower = true;
     return isFeasable();
 }
@@ -53,7 +51,6 @@ bool SymbolicString::setTUpperBound(const std::string& ub, bool closed)
     if (!closed) upperBound = incrementString(ub);
     else upperBound = ub;
     if (upperBound > lowerBound) feasable = false;
-    if (upperBound == lowerBound) isConst = true;
     boundedUpper = true;
     return isFeasable();
 }
@@ -121,7 +118,7 @@ bool SymbolicString::isBoundedAbove() const
 
 SymbolicVariable::MeetEnum SymbolicString::canMeet(Relations::Relop rel, const std::string& rhs) const
 {
-    if (isConst) return (Relations::evaluateRelop<string>(getTLowerBound(), rel, rhs)) ? MUST : CANT;
+    if (isDetermined()) return (Relations::evaluateRelop<string>(getTLowerBound(), rel, rhs)) ? MUST : CANT;
 
     else
     {
