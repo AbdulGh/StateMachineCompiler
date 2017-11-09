@@ -76,7 +76,7 @@ SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, const s
 
 bool SymbolicDouble::setTLowerBound(const double& d, bool closed)
 {
-    if (!closed && d != numeric_limits<double>::lowest()) lowerBound = d - numeric_limits<double>::min();
+    if (!closed && d != numeric_limits<double>::lowest()) lowerBound = nextafter(d, numeric_limits<double>::lowest());
     else lowerBound = d;
 
     if (lowerBound > upperBound) feasable = false;
@@ -89,7 +89,7 @@ bool SymbolicDouble::setLowerBound(const std::string& lb, bool closed)
 
 bool SymbolicDouble::setTUpperBound(const double& d, bool closed)
 {
-    if (!closed && d != numeric_limits<double>::max()) upperBound = d + numeric_limits<double>::min();
+    if (!closed && d != numeric_limits<double>::max()) upperBound = nextafter(d, numeric_limits<double>::max());
     else upperBound = d;
 
     if (lowerBound > upperBound) feasable = false;
@@ -140,7 +140,6 @@ bool SymbolicDouble::unionLowerBound(const std::string& lb, bool closed)
     return unionTLowerBound(stod(lb), closed);
 }
 
-
 void SymbolicDouble::setTConstValue(const double& d)
 {
     SymbolicVariableTemplate<double>::setTConstValue(d);
@@ -166,7 +165,7 @@ SymbolicVariable::MonotoneEnum SymbolicDouble::getMonotonicity() const
     if (!uniformlyChanging) return NONE;
     else if (minChange > 0) return INCREASING;
     else if (maxChange < 0) return DECREASING;
-    else if (minChange == maxChange == 0) return FRESH;
+    else if (minChange == 0 &&  maxChange == 0) return FRESH;
     else return UNKNOWN;
 }
 

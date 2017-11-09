@@ -487,7 +487,6 @@ bool SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef,
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
     sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, false);
-
     if (reverse)
     {
         CFGNode* failNode = getFailNode(sefgt, n);

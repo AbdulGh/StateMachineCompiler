@@ -111,14 +111,6 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource() //todo redo this
                 if (current->getCompFail() == nullptr) current->removePushes();
                 else current->replacePushes(current->getCompFail()->getName());
 
-
-                if (current->getName() == "F0_main_13")
-                {
-                    auto debug2 = current->getPredecessorVector();
-                    int debug;
-                    debug = 2;
-                }
-
                 for (auto& parent : current->getPredecessorVector())
                 {
                     if ((parent->getCompSuccess() == nullptr || parent->getCompSuccess()->getName() != current->getName())

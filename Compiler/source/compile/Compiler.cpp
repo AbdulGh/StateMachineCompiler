@@ -45,6 +45,7 @@ void Compiler::compile(stringstream& out)
     SymbolicExecution::SymbolicExecutionManager symbolicExecutionManager
             = SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter);
     unordered_map<string, shared_ptr<SymbolicVarSet>>& tags = symbolicExecutionManager.search();
+    auto debug = tags["F0_main_9"]->findVar("_2_0_x").get();
     vector<Loop> loops = LengTarj(cfg).findLoops();
     for (Loop loop : loops) loop.validate(tags);
     Optimise::optimise(symbolTable, functionTable, cfg);
