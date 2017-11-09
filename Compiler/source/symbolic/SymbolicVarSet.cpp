@@ -14,17 +14,15 @@ SymbolicVariablePointer SymbolicVarSet::findVar(string name)
         if (oldSym == nullptr) return nullptr;
         if (oldSym->getType() == DOUBLE)
         {
-            shared_ptr<SymbolicDouble> oldDouble = static_pointer_cast<SymbolicDouble>(oldSym);
-            shared_ptr<SymbolicVariable> newSymPointer = make_shared<SymbolicDouble>(oldDouble); //copies
-            variables[name] = newSymPointer;
-            return newSymPointer;
+            auto newPtr = make_shared<SymbolicDouble>(oldSym);
+            variables.insert({name, newPtr});
+            return newPtr;
         }
         else if (oldSym->getType() == STRING)
         {
-            shared_ptr<SymbolicString> oldString = static_pointer_cast<SymbolicString>(oldSym);
-            shared_ptr<SymbolicVariable> newSymPointer = make_shared<SymbolicString>(oldString);
-            variables[name] = newSymPointer;
-            return newSymPointer;
+            auto newPtr = make_shared<SymbolicString>(oldSym);
+            variables.insert({name, newPtr});
+            return newPtr;
         }
         else throw runtime_error("Bad type found");
     }
@@ -38,6 +36,12 @@ bool SymbolicVarSet::isFeasable()
     }
     if (parent != nullptr && !parent->isFeasable()) throw "shouldnt happen";
     return true;
+}
+
+void SymbolicVarSet::setLoopInit()
+{
+    for (auto variable : variables) variable.second->loopInit();
+    if (parent != nullptr) parent->setLoopInit();
 }
 
 void SymbolicVarSet::defineVar(SymbolicVariablePointer newvar)

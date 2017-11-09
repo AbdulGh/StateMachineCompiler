@@ -15,7 +15,7 @@ SymbolicDouble::SymbolicDouble(string name, Reporter& r):
 
 SymbolicDouble::SymbolicDouble(SymbolicDouble& other):
         SymbolicVariableTemplate
-                (other.getName(), other.getTLowerBound(), other.getTUpperBound(), other.reporter, DOUBLE, other.defined, other.isFeasable()),
+                (other.getName(), other.getTLowerBound(), other.getTUpperBound(), other.reporter, DOUBLE, other.defined),
         minChange(other.minChange), maxChange(other.maxChange), uniformlyChanging(other.uniformlyChanging)
 {}
 
@@ -35,6 +35,12 @@ void SymbolicDouble::userInput()
     lowerBound = numeric_limits<double>::lowest();
     define();
     uniformlyChanging = false;
+}
+
+void SymbolicDouble::loopInit()
+{
+    minChange = maxChange = 0;
+    uniformlyChanging = true;
 }
 
 SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, const std::string& rhstring) const
@@ -271,15 +277,26 @@ void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other)
 
 ArithResult safeMultiply(double a, double b, double& result)
 {
-    if (signbit(a) == signbit(b) && a > numeric_limits<double>::max() / b)
+    long double al = (long double) a;
+    long double bl = (long double) b;
+
+    if (signbit(a) == signbit(b))
     {
-        result = numeric_limits<double>::max();
-        return ArithResult::OVER;
+        long double ml = (long double)numeric_limits<double>::max();
+        if (ml / abs(bl) < abs(al))
+        {
+            result = numeric_limits<double>::max();
+            return ArithResult::OVER;
+        }
     }
-    else if (a < numeric_limits<double>::lowest() / b)
+    else
     {
-        result = numeric_limits<double>::lowest();
-        return ArithResult::UNDER;
+        long double ll = (long double)numeric_limits<double>::lowest();
+        if (abs(ll) / abs(bl) < abs(al))
+        {
+            result = numeric_limits<double>::lowest();
+            return ArithResult::UNDER;
+        }
     }
     result = a * b;
     return ArithResult::FINE;

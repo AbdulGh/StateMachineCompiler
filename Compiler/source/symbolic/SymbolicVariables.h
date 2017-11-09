@@ -13,7 +13,7 @@ class SymbolicVariable : public std::enable_shared_from_this<SymbolicVariable>
 {
 protected:
     bool defined;
-    bool feasable = true;
+    bool feasable = true; //todo check need for this
     std::string varN;
     Reporter& reporter;
     VariableType type;
@@ -62,6 +62,7 @@ public:
     virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const = 0;
     virtual const std::string getConstString() = 0;
     virtual void userInput() = 0;
+    virtual void loopInit() {}
     virtual bool isBoundedBelow() const = 0;
     virtual bool isBoundedAbove() const = 0;
     virtual bool isDetermined() const = 0;
@@ -151,6 +152,7 @@ public:
     bool setLowerBound(const std::string& lb, bool closed = true) override;
 
     void userInput() override;
+    void loopInit() override;
     bool isBoundedBelow() const override;
     bool isBoundedAbove() const override;
     MonotoneEnum getMonotonicity() const override;

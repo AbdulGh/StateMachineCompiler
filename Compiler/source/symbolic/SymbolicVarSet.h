@@ -44,6 +44,8 @@ public:
     void unionSVS(std::shared_ptr<SymbolicVarSet> other);
     bool isFeasable();
 
+    void setLoopInit();
+
     SVSIterator begin() const {return SVSIterator(this, variables.cbegin());}
     SVSIterator end() const {return parent == nullptr ? SVSIterator(this, variables.cend()) : parent->end();} //end only called once when iterating
 

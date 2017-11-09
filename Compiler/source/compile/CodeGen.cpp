@@ -171,13 +171,13 @@ void Compiler::genWhile(FunctionSymbol* fs)
     ors(fs, body, end);
     match(RPAREN);
 
+    fs->genNewState(body);
     bool finishedState;
     if (lookahead.type != LBRACE) finishedState = statement(fs);
     else
     {
         match(LBRACE);
         symbolTable.pushScope();
-        fs->genNewState(body);
         finishedState = statement(fs);
         while (lookahead.type != RBRACE) finishedState = statement(fs);
         match(RBRACE);
