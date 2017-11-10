@@ -183,7 +183,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     else if (sef->hasSeen(n->getName())) return true;
 
     sef->pathConditions.insert({n->getName(), Condition()}); //don't track conditions till later - this just tracks which nodes we've seen
-    tags[n->getName()]->unionSVS(sef->symbolicVarSet);
+    tags[n->getName()]->unionSVS(sef->symbolicVarSet.get());
     for (const auto& command : n->getInstrs())
     {
         //might be in a loop
@@ -200,7 +200,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     {
         //const comparisons were caught during compilation
         //note: JOCC constructor ensures that if there is a var there is a var on the LHS
-        VarPointer LHS = sef->symbolicVarSet->findVar(jocc->term1);
+        SymbolicVariable* LHS = sef->symbolicVarSet->findVar(jocc->term1);
         if (LHS == nullptr)
         {
             sef->error(Reporter::UNDECLARED_USE, "'" + jocc->term1 + "' used without being declared",
@@ -248,7 +248,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
         }
         else //comparing to another variable
         {
-            VarPointer RHS = sef->symbolicVarSet->findVar(jocc->term2);
+            SymbolicVariable* RHS = sef->symbolicVarSet->findVar(jocc->term2);
             if (RHS == nullptr)
             {
                 sef->error(Reporter::UNDECLARED_USE, "'" + jocc->term2 + "' used without being declared",
@@ -545,8 +545,8 @@ bool SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
 
 //branching on var comparison
 bool SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                         VarPointer LHS, Relations::Relop op,
-                                         VarPointer RHS)
+                                         SymbolicVariable* LHS, Relations::Relop op,
+                                         SymbolicVariable* RHS)
 {
     switch(op)
     {
@@ -569,7 +569,7 @@ bool SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe> sef
 
 
 bool SymbolicExecutionManager::varBranchGE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                           VarPointer lhsvar, VarPointer rhsvar)
+                                           SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
 {
     bool feasable = false;
     
@@ -591,7 +591,7 @@ bool SymbolicExecutionManager::varBranchGE(shared_ptr<SymbolicExecutionFringe> s
 
 
 bool SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                              VarPointer lhsvar, VarPointer rhsvar)
+                                              SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
 {
     bool feasable = false;
     shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
@@ -612,7 +612,7 @@ bool SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> s
 }
 
 bool SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                              VarPointer lhsvar, VarPointer rhsvar)
+                                              SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
 {
 
     bool feasable = false;
@@ -635,7 +635,7 @@ bool SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> s
 
 
 bool SymbolicExecutionManager::varBranchLE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                              VarPointer lhsvar, VarPointer rhsvar)
+                                              SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
 {
     bool feasable = false;
 
@@ -658,28 +658,28 @@ bool SymbolicExecutionManager::varBranchLE(shared_ptr<SymbolicExecutionFringe> s
 
 
 bool SymbolicExecutionManager::varBranchNE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                           VarPointer lhsvar, VarPointer rhsvar)
+                                           SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
 {
     bool feasable = false;
 
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
     CFGNode* failNode = getFailNode(sefeq, n);
     if (failNode == nullptr) return false;
-    VarPointer& glbvar = getGreatestLowerBound(lhsvar, rhsvar);
+    SymbolicVariable* glbvar = getGreatestLowerBound(lhsvar, rhsvar);
     if (glbvar->isBoundedBelow())
     {
         //pull the variables into sefeq
-        VarPointer lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
-        VarPointer rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
+        SymbolicVariable* lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
+        SymbolicVariable* rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
 
         const string& glb = glbvar->getLowerBound();
         if (!lhsvar->clipLowerBound(glb) || !rhsvar->clipLowerBound(glb)) return false;
     }
-    VarPointer& lubvar = getLeastUpperBound(lhsvar, rhsvar);
+    SymbolicVariable* lubvar = getLeastUpperBound(lhsvar, rhsvar);
     if (lubvar->isBoundedAbove())
     {
-        VarPointer lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
-        VarPointer rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
+        SymbolicVariable* lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
+        SymbolicVariable* rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
 
         const string& lub = lubvar->getUpperBound();
         if (!lhsvar->clipUpperBound(lub) || !rhsvar->clipUpperBound(lub)) return false;
@@ -700,26 +700,26 @@ bool SymbolicExecutionManager::varBranchNE(shared_ptr<SymbolicExecutionFringe> s
 
 
 bool SymbolicExecutionManager::varBranchEQ(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                           VarPointer lhsvar, VarPointer rhsvar)
+                                           SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
 {
     bool feasable = false;
 
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
-    VarPointer& glbvar = getGreatestLowerBound(lhsvar, rhsvar);
+    SymbolicVariable* glbvar = getGreatestLowerBound(lhsvar, rhsvar);
     if (glbvar->isBoundedBelow())
     {
         //pull the variables into sefeq
-        VarPointer lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
-        VarPointer rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
+        SymbolicVariable* lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
+        SymbolicVariable* rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
 
         const string& glb = glbvar->getLowerBound();
         if (!lhsvar->clipLowerBound(glb) || !rhsvar->clipLowerBound(glb)) return false;
     }
-    VarPointer& lubvar = getLeastUpperBound(lhsvar, rhsvar);
+    SymbolicVariable* lubvar = getLeastUpperBound(lhsvar, rhsvar);
     if (lubvar->isBoundedAbove())
     {
-        VarPointer lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
-        VarPointer rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
+        SymbolicVariable* lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
+        SymbolicVariable* rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
 
         const string& lub = lubvar->getUpperBound();
         if (!lhsvar->clipUpperBound(lub) || !rhsvar->clipUpperBound(lub)) return false;
@@ -743,7 +743,7 @@ bool SymbolicExecutionManager::varBranchEQ(shared_ptr<SymbolicExecutionFringe> s
 }
 
 
-VarPointer& SymbolicExecutionManager::getGreatestLowerBound(VarPointer& lhsvar, VarPointer& rhsvar)
+SymbolicVariable* SymbolicExecutionManager::getGreatestLowerBound(SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
 {
     if (!lhsvar->isBoundedBelow()) return rhsvar;
     else if (!rhsvar->isBoundedBelow()) return lhsvar;
@@ -751,7 +751,7 @@ VarPointer& SymbolicExecutionManager::getGreatestLowerBound(VarPointer& lhsvar, 
 }
 
 
-VarPointer& SymbolicExecutionManager::getLeastUpperBound(VarPointer& lhsvar, VarPointer& rhsvar)
+SymbolicVariable* SymbolicExecutionManager::getLeastUpperBound(SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
 {
     if (!lhsvar->isBoundedAbove()) return rhsvar;
     else if (!rhsvar->isBoundedAbove()) return lhsvar;

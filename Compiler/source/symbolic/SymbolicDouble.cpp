@@ -13,20 +13,18 @@ SymbolicDouble::SymbolicDouble(string name, Reporter& r):
         SymbolicVariableTemplate(move(name), 0, 0, r, DOUBLE)
 {}
 
-SymbolicDouble::SymbolicDouble(SymbolicDouble& other):
+SymbolicDouble::SymbolicDouble(SymbolicDouble* other):
         SymbolicVariableTemplate
-                (other.getName(), other.getTLowerBound(), other.getTUpperBound(), other.reporter, DOUBLE, other.defined),
-        minChange(other.minChange), maxChange(other.maxChange), uniformlyChanging(other.uniformlyChanging)
+                (other->getName(), other->getTLowerBound(), other->getTUpperBound(), other->reporter, DOUBLE, other->defined),
+                minChange(other->minChange), maxChange(other->maxChange), uniformlyChanging(other->uniformlyChanging)
 {}
 
-SymbolicDouble::SymbolicDouble(shared_ptr<SymbolicDouble> other): SymbolicDouble(*other.get()) {}
+SymbolicDouble::SymbolicDouble(SymbolicVariable* other):
+    SymbolicDouble(static_cast<SymbolicDouble*>(other)) {}//watch out!
 
-SymbolicDouble::SymbolicDouble(shared_ptr<SymbolicVariable> other):
-        SymbolicDouble(static_pointer_cast<SymbolicDouble>(other)) {} //look out!
-
-shared_ptr<SymbolicVariable> SymbolicDouble::clone()
+unique_ptr<SymbolicVariable> SymbolicDouble::clone()
 {
-    return make_shared<SymbolicDouble>(*this);
+    return make_unique<SymbolicDouble>(*this);
 }
 
 void SymbolicDouble::userInput()

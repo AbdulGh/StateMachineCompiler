@@ -18,12 +18,12 @@ protected:
     Reporter& reporter;
     VariableType type;
     //most of the time we will scan through all of these - hence vectors
-    std::vector<std::shared_ptr<SymbolicVariable>> lt;
-    std::vector<std::shared_ptr<SymbolicVariable>> le;
-    std::vector<std::shared_ptr<SymbolicVariable>> ge;
-    std::vector<std::shared_ptr<SymbolicVariable>> gt;
-    std::vector<std::shared_ptr<SymbolicVariable>> eq;
-    std::vector<std::shared_ptr<SymbolicVariable>> neq;
+    std::vector<SymbolicVariable*> lt;
+    std::vector<SymbolicVariable*> le;
+    std::vector<SymbolicVariable*> ge;
+    std::vector<SymbolicVariable*> gt;
+    std::vector<SymbolicVariable*> eq;
+    std::vector<SymbolicVariable*> neq;
 
     void reportError(Reporter::AlertType type, std::string err);
 
@@ -41,19 +41,19 @@ public:
     void define();
     virtual MonotoneEnum getMonotonicity() const = 0;
 
-    virtual bool guaranteedLT(const std::shared_ptr<SymbolicVariable>& searchFor, const std::string& initName);
-    virtual bool guaranteedLE(const std::shared_ptr<SymbolicVariable>& searchFor, const std::string& initName);
-    virtual bool guaranteedGT(const std::shared_ptr<SymbolicVariable>& searchFor, const std::string& initName);
-    virtual bool guaranteedGE(const std::shared_ptr<SymbolicVariable>& searchFor, const std::string& initName);
-    virtual bool guaranteedEQ(const std::shared_ptr<SymbolicVariable>& searchFor, const std::string& initName);
-    virtual bool guaranteedNEQ(const std::shared_ptr<SymbolicVariable>& searchFor, const std::string& initName);
+    virtual bool guaranteedLT(SymbolicVariable* searchFor, const std::string& initName);
+    virtual bool guaranteedLE(SymbolicVariable* searchFor, const std::string& initName);
+    virtual bool guaranteedGT(SymbolicVariable* searchFor, const std::string& initName);
+    virtual bool guaranteedGE(SymbolicVariable* searchFor, const std::string& initName);
+    virtual bool guaranteedEQ(SymbolicVariable* searchFor, const std::string& initName);
+    virtual bool guaranteedNEQ(SymbolicVariable* searchFor, const std::string& initName);
 
-    virtual void addLT(const std::shared_ptr<SymbolicVariable>& other);
-    virtual void addLE(const std::shared_ptr<SymbolicVariable>& other);
-    virtual void addGT(const std::shared_ptr<SymbolicVariable>& other);
-    virtual void addGE(const std::shared_ptr<SymbolicVariable>& other);
-    virtual void addEQ(const std::shared_ptr<SymbolicVariable>& other);
-    virtual void addNEQ(const std::shared_ptr<SymbolicVariable>& other);
+    virtual void addLT(SymbolicVariable* other);
+    virtual void addLE(SymbolicVariable* other);
+    virtual void addGT(SymbolicVariable* other);
+    virtual void addGE(SymbolicVariable* other);
+    virtual void addEQ(SymbolicVariable* other);
+    virtual void addNEQ(SymbolicVariable* other);
     virtual void addNEQConst(const std::string& c) = 0;
     virtual void clearLess();
     virtual void clearGreater();
@@ -78,7 +78,7 @@ public:
     virtual bool meetsConstComparison(Relations::Relop r, const std::string& rhs) = 0;
     virtual bool isFeasable() const;
 
-    virtual std::shared_ptr<SymbolicVariable> clone() = 0;
+    virtual std::unique_ptr<SymbolicVariable> clone() = 0;
 };
 
 template <typename T>
@@ -96,7 +96,7 @@ public:
     bool isDisjointFrom(std::shared_ptr<SymbolicVariableTemplate<T>> other);
     bool meetsConstComparison(Relations::Relop r, const std::string& rhs) override;
 
-    virtual void addEQ(const std::shared_ptr<SymbolicVariable>& other) override;
+    virtual void addEQ(SymbolicVariable* other) override;
     void addNEQConst(const std::string& c) override;
     void clearEQ() override;
     
@@ -130,11 +130,10 @@ private:
 
 public:
     SymbolicDouble(std::string name, Reporter& reporter);
-    SymbolicDouble(std::shared_ptr<SymbolicDouble> other);
-    SymbolicDouble(std::shared_ptr<SymbolicVariable> other);
-    SymbolicDouble(SymbolicDouble& other);
+    SymbolicDouble(SymbolicDouble* other);
+    SymbolicDouble(SymbolicVariable* other);
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
-    std::shared_ptr<SymbolicVariable> clone() override;
+    std::unique_ptr<SymbolicVariable> clone() override;
     
     bool setTLowerBound(const double& d, bool closed = true) override;
     bool setTUpperBound(const double& d, bool closed = true) override;
@@ -178,12 +177,11 @@ private:
 
 public:
     SymbolicString(std::string name, Reporter& reporter);
-    SymbolicString(std::shared_ptr<SymbolicString> other);
-    SymbolicString(std::shared_ptr<SymbolicVariable> other);
-    SymbolicString(SymbolicString& other);
+    SymbolicString(SymbolicVariable* other);
+    SymbolicString(SymbolicString* other);
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
     MonotoneEnum getMonotonicity() const override {return NONE;}
-    std::shared_ptr<SymbolicVariable> clone() override;
+    std::unique_ptr<SymbolicVariable> clone() override;
 
     bool setTLowerBound(const std::string&, bool closed = true) override;
     bool setTUpperBound(const std::string&, bool closed = true) override;

@@ -16,7 +16,7 @@ bool AbstractCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symb
 
 bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
 {
-    VarPointer found = svs->symbolicVarSet->findVar(getData());
+    SymbolicVariable* found = svs->symbolicVarSet->findVar(getData());
     if (found == nullptr) throw "should be found";
     found->userInput();
     return true;
@@ -28,7 +28,7 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
 
     else
     {
-        VarPointer found = svs->symbolicVarSet->findVar(getData());
+        SymbolicVariable* found = svs->symbolicVarSet->findVar(getData());
         if (found == nullptr)
         {
             svs->error(Reporter::UNDECLARED_USE, "'" + getData() + "' pushed without being declared", getLineNum());
@@ -52,14 +52,14 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
         return false;
     }
 
-    VarPointer found = svs->symbolicVarSet->findVar(getData());
+    SymbolicVariable* found = svs->symbolicVarSet->findVar(getData());
     if (found == nullptr)
     {
         svs->error(Reporter::UNDECLARED_USE, "'" + getData() + "' popped into without being declared", getLineNum());
         return false;
     }
 
-    VarPointer popped = svs->currentStack->popVar();
+    unique_ptr<SymbolicVariable> popped = svs->currentStack->popVar();
     if (popped->getType() != found->getType())
     {
         svs->error(Reporter::TYPE, "Tried to pop '" + popped->getName() + "' (type " + TypeEnumNames[popped->getType()]
@@ -68,14 +68,14 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
     }
 
     popped->setName(found->getName());
-    svs->symbolicVarSet->defineVar(popped);
     if (!popped->isFeasable()) throw "should be feasable";
-    return true; //should catch infeasable push
+    svs->symbolicVarSet->defineVar(move(popped));
+    return true;
 }
 
 bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
 {
-    SymbolicVariablePointer svp = svs->symbolicVarSet->findVar(getData());
+    SymbolicVariable* svp = svs->symbolicVarSet->findVar(getData());
     if (svp == nullptr)
     {
         svs->error(Reporter::UNDECLARED_USE, "'" + getData() + "' assigned to without being declared", getLineNum());
@@ -88,12 +88,11 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
         {
             stod(RHS);
             svp->setConstValue(RHS);
-            svs->symbolicVarSet->defineVar(svp);
             return true;
         }
         catch (invalid_argument e)
         {
-            SymbolicVariablePointer RHS = svs->symbolicVarSet->findVar(getData());
+            SymbolicVariable* RHS = svs->symbolicVarSet->findVar(getData());
             if (RHS == nullptr)
             {
                 svs->error(Reporter::UNDECLARED_USE, "'" + getData() + "' assigned to without being declared", getLineNum());
@@ -105,6 +104,7 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
                                            ") assigned to double", getLineNum());
                 return false;
             }
+            else svs->symbolicVarSet->defineVar(make_unique<SymbolicDouble>(RHS));
         }
     }
     else svp->setConstValue(RHS);
@@ -115,7 +115,7 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
 
 bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
 {
-    SymbolicVariablePointer LHS = svs->symbolicVarSet->findVar(getData());
+    SymbolicVariable* LHS = svs->symbolicVarSet->findVar(getData());
     if (LHS == nullptr)
     {
         svs->error(Reporter::UNDECLARED_USE, "'" + getData() + "' assigned to without being declared", getLineNum());
@@ -128,12 +128,13 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
         return false;
     }
 
-    //todo make it use consts directly
-    SymbolicVariablePointer t1;
+    //todo make it use consts directly instead of creating vars
+    bool deletet1 = true;
+    SymbolicVariable* t1;
     try
     {
         stod(term1);
-        t1 = make_shared<SymbolicDouble>("LHSconst", svs->reporter); //if we get here it's a double
+        t1 = new SymbolicDouble("LHSconst", svs->reporter); //if we get here it's a double
         t1->setConstValue(term1);
     }
     catch (invalid_argument e)
@@ -151,13 +152,15 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
             return false;
         }
         else if (!t1->isDefined()) svs->warn(Reporter::TYPE, "'" + term1 + "' used before definition", getLineNum());
+        deletet1 = false;
     }
 
-    SymbolicVariablePointer t2;
+    bool deletet2 = true;
+    SymbolicVariable* t2;
     try
     {
         stod(term2);
-        t2 = make_shared<SymbolicDouble>("RHSconst", svs->reporter);
+        t2 = new SymbolicDouble("RHSconst", svs->reporter);
         t2->setConstValue(term2);
     }
     catch (invalid_argument)
@@ -175,42 +178,44 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
             return false;
         }
         else if (!t2->isDefined()) svs->warn(Reporter::TYPE, "'" + term2 + "' used before definition", getLineNum());
+
+        deletet2 = false;
     }
 
-    SymbolicDouble result(t1);
+    unique_ptr<SymbolicDouble> result = make_unique<SymbolicDouble>(t1);
     SymbolicDouble t2copy(t2);
 
     switch (op)
     {
         case PLUS:
-            result.addSymbolicDouble(t2copy);
+            result->addSymbolicDouble(t2copy);
             break;
         case MULT:
-            result.multSymbolicDouble(t2copy);
+            result->multSymbolicDouble(t2copy);
             break;
         case MINUS:
             t2copy.multConst(-1);
-            result.addSymbolicDouble(t2copy);
+            result->addSymbolicDouble(t2copy);
             break;
         case DIV:
-            result.divSymbolicDouble(t2copy);
+            result->divSymbolicDouble(t2copy);
             break;
         case MOD:
-            result.modSymbolicDouble(t2copy);
+            result->modSymbolicDouble(t2copy);
             break;
         default:
             throw runtime_error("Bitwise operations not supported");
     }
-    result.setName(LHS->getName());
-    result.define();
-    svs->symbolicVarSet->defineVar(make_shared<SymbolicDouble>(result));
+    result->setName(LHS->getName());
+    result->define();
+    svs->symbolicVarSet->defineVar(move(result));
     return svs->isFeasable();
 }
 
 bool DeclareVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
 {
-    if (vt == STRING) svs->symbolicVarSet->defineVar(make_shared<SymbolicString>(getData(), svs->reporter));
-    else if (vt == DOUBLE) svs->symbolicVarSet->defineVar(make_shared<SymbolicDouble>(getData(), svs->reporter));
+    if (vt == STRING) svs->symbolicVarSet->defineVar(make_unique<SymbolicString>(getData(), svs->reporter));
+    else if (vt == DOUBLE) svs->symbolicVarSet->defineVar(make_unique<SymbolicDouble>(getData(), svs->reporter));
     else throw runtime_error("Bad type in DeclareVarCommand");
     return true;
 }

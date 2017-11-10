@@ -2,27 +2,25 @@
 
 using namespace std;
 
-SymbolicVariablePointer SymbolicVarSet::findVar(string name)
+SymbolicVariable* SymbolicVarSet::findVar(string name)
 {
     unordered_map<string, SymbolicVariablePointer>::const_iterator it = variables.find(name);
-    if (it != variables.cend()) return it->second;
+    if (it != variables.cend()) return it->second.get();
 
     else //must copy symbolic variable into this 'scope'
     {
         if (parent == nullptr) return nullptr;
-        SymbolicVariablePointer oldSym = parent->findVar(name);
+        SymbolicVariable* oldSym = parent->findVar(name);
         if (oldSym == nullptr) return nullptr;
         if (oldSym->getType() == DOUBLE)
         {
-            auto newPtr = make_shared<SymbolicDouble>(oldSym);
-            variables.insert({name, newPtr});
-            return newPtr;
+            variables[name] = make_unique<SymbolicDouble>(oldSym);
+            return variables[name].get();
         }
         else if (oldSym->getType() == STRING)
         {
-            auto newPtr = make_shared<SymbolicString>(oldSym);
-            variables.insert({name, newPtr});
-            return newPtr;
+            variables[name] = make_unique<SymbolicDouble>(oldSym);
+            return variables[name].get();
         }
         else throw runtime_error("Bad type found");
     }
@@ -30,7 +28,7 @@ SymbolicVariablePointer SymbolicVarSet::findVar(string name)
 
 bool SymbolicVarSet::isFeasable()
 {
-    for (auto i : variables)
+    for (auto& i : variables)
     {
         if (!i.second->isFeasable()) return false;
     }
@@ -40,22 +38,22 @@ bool SymbolicVarSet::isFeasable()
 
 void SymbolicVarSet::setLoopInit()
 {
-    for (auto variable : variables) variable.second->loopInit();
+    for (auto& variable : variables) variable.second->loopInit();
     if (parent != nullptr) parent->setLoopInit();
 }
 
 void SymbolicVarSet::defineVar(SymbolicVariablePointer newvar)
 {
-    variables[newvar->getName()] = newvar;
+    variables[newvar->getName()] = move(newvar);
 }
 
-void SymbolicVarSet::unionSVS(std::shared_ptr<SymbolicVarSet> other)
+void SymbolicVarSet::unionSVS(SymbolicVarSet* other)
 {
     if (other == nullptr) throw "cant union with nullptr";
 
-    for (auto pair : other->variables)
+    for (auto& pair : other->variables)
     {
-        SymbolicVariablePointer svp = findVar(pair.first);
+        SymbolicVariable* svp = findVar(pair.first);
         if (svp == nullptr) variables[pair.first] = pair.second->clone();
         else
         {
@@ -63,7 +61,7 @@ void SymbolicVarSet::unionSVS(std::shared_ptr<SymbolicVarSet> other)
             svp->unionLowerBound(pair.second->getLowerBound());
         }
     }
-    if (other->parent != nullptr) unionSVS(other->parent);
+    if (other->parent != nullptr) unionSVS(other->parent.get());
 }
 
 //iterator

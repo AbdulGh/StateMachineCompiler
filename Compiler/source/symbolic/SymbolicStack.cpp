@@ -19,9 +19,9 @@ void SymbolicStack::copyParent()
     if (currentStack.size() != 0) throw runtime_error("Cannot copy parent on a different branch");
 
     //need to duplicate SymbolicDoubles so we don't fiddle with other branches
-    for (shared_ptr<StackMember>& sm : parent->currentStack)
+    for (StackMember sm : parent->currentStack)
     {
-        currentStack.push_back(make_shared<StackMember>(sm));
+        currentStack.push_back(sm);
     }
 
     parent = parent->parent;
@@ -29,15 +29,20 @@ void SymbolicStack::copyParent()
 
 void SymbolicStack::push(string pushedState)
 {
-    currentStack.push_back(make_shared<StackMember>(pushedState));
+    currentStack.push_back(StackMember(pushedState));
 }
 
-void SymbolicStack::push(shared_ptr<SymbolicVariable> pushedVar)
+//void SymbolicStack::push(unique_ptr<SymbolicVariable> pushedVar)
+//{
+//    currentStack.push_back(StackMember(move(pushedVar)));
+//}
+
+void SymbolicStack::push(SymbolicVariable* pushedVar)
 {
-    currentStack.push_back(make_shared<StackMember>(pushedVar));
+    currentStack.push_back(StackMember(pushedVar));
 }
 
-shared_ptr<StackMember> SymbolicStack::popMember()
+StackMember SymbolicStack::popMember()
 {
     while (currentStack.size() == 0)
     {
@@ -45,23 +50,23 @@ shared_ptr<StackMember> SymbolicStack::popMember()
         copyParent();
     }
 
-    shared_ptr<StackMember> m = move(currentStack.back());
+    StackMember m = currentStack.back();
     currentStack.pop_back();
-    return m;
+    return move(m);
 }
 
 string SymbolicStack::popState()
 {
-    shared_ptr<StackMember> popped = popMember();
-    if (popped->type != SymbolicStackMemberType::STATE) throw runtime_error("Tried to jump to var");
-    return popped->statename;
+    StackMember popped = popMember();
+    if (popped.type != SymbolicStackMemberType::STATE) throw runtime_error("Tried to jump to var");
+    return popped.statename;
 }
 
-shared_ptr<SymbolicVariable> SymbolicStack::popVar()
+unique_ptr<SymbolicVariable> SymbolicStack::popVar()
 {
-    shared_ptr<StackMember> popped = popMember();
-    if (popped->type != SymbolicStackMemberType::VAR) throw runtime_error("Tried to pop state as var");
-    return popped->varptr;
+    StackMember popped = popMember();
+    if (popped.type != SymbolicStackMemberType::VAR) throw runtime_error("Tried to pop state as var");
+    return move(popped.varptr);
 }
 
 SymbolicStackMemberType SymbolicStack::getTopType()
@@ -72,7 +77,7 @@ SymbolicStackMemberType SymbolicStack::getTopType()
         copyParent();
     }
 
-    return currentStack.back()->type;
+    return currentStack.back().type;
 }
 
 bool SymbolicStack::isEmpty()

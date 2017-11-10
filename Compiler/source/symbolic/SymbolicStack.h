@@ -16,7 +16,7 @@ struct StackMember
     SymbolicStackMemberType type;
     union
     {
-        std::shared_ptr<SymbolicVariable> varptr;
+        std::unique_ptr<SymbolicVariable> varptr;
         char* statename;
     };
 
@@ -27,11 +27,12 @@ struct StackMember
         std::copy(state.begin(), state.end(), statename);
         statename[state.size()] = '\0';
     }
-    StackMember(std::shared_ptr<SymbolicVariable> toPush)
+    StackMember(SymbolicVariable* toPush)
     {
         type = VAR;
-        if (toPush->getType() == DOUBLE) varptr = std::make_shared<SymbolicDouble>(toPush);
-        else varptr = std::make_shared<SymbolicString>(toPush);
+        if (toPush->getType() == DOUBLE) varptr = std::make_unique<SymbolicDouble>(toPush);
+        else if (toPush->getType() == STRING) varptr = std::make_unique<SymbolicString>(toPush);
+        else throw "bad dtype";
     }
     StackMember(const StackMember& sm)
     {
@@ -45,11 +46,11 @@ struct StackMember
         }
         else
         {
-            if (sm.varptr->getType() == DOUBLE) varptr = std::make_shared<SymbolicDouble>(sm.varptr);
-            else varptr = std::make_shared<SymbolicString>(sm.varptr);
+            if (sm.varptr->getType() == DOUBLE) varptr = std::make_unique<SymbolicDouble>(sm.varptr.get());
+            else if (sm.varptr->getType() == STRING) varptr = std::make_unique<SymbolicString>(sm.varptr.get());
+            else throw "bad dtype";
         }
     }
-    StackMember(std::shared_ptr<StackMember> other): StackMember(*other.get()) {}
 
     ~StackMember()
     {
@@ -66,15 +67,16 @@ class SymbolicStack
 {
 private:
     std::shared_ptr<SymbolicStack> parent;
-    std::vector<std::shared_ptr<StackMember>> currentStack;
+    std::vector<StackMember> currentStack;
 
     void copyParent();
-    std::shared_ptr<StackMember> popMember();
+    StackMember popMember();
 public:
     SymbolicStack(std::shared_ptr<SymbolicStack> parent = nullptr);
-    void push(std::shared_ptr<SymbolicVariable> pushedVar);
+    //void push(std::unique_ptr<SymbolicVariable> pushedVar);
+    void push(SymbolicVariable* pushedVar);
     void push(std::string pushedState);
-    std::shared_ptr<SymbolicVariable> popVar();
+    std::unique_ptr<SymbolicVariable> popVar();
     std::string popState();
     bool isEmpty();
     SymbolicStackMemberType getTopType();

@@ -8,7 +8,7 @@
 #include "SymbolicVariables.h"
 
 
-typedef std::shared_ptr<SymbolicVariable> SymbolicVariablePointer;
+typedef std::unique_ptr<SymbolicVariable> SymbolicVariablePointer;
 typedef std::unordered_map<std::string, SymbolicVariablePointer> VarMap;
 
 class SymbolicVarSet;
@@ -38,10 +38,10 @@ private:
 public:
     SymbolicVarSet(std::shared_ptr<SymbolicVarSet> p = nullptr):
             parent(move(p)), endIterator(parent == nullptr ? variables.cend() : parent->endIterator) {}
-    SymbolicVariablePointer findVar(std::string name);
+    SymbolicVariable* findVar(std::string name);
     //const std::unordered_map<std::string, SymbolicVariablePointer>& getVars() const {return variables;}
     void defineVar(SymbolicVariablePointer newvar);
-    void unionSVS(std::shared_ptr<SymbolicVarSet> other);
+    void unionSVS(SymbolicVarSet* other);
     bool isFeasable();
 
     void setLoopInit();

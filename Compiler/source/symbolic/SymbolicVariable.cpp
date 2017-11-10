@@ -55,61 +55,61 @@ bool SymbolicVariable::isFeasable() const
     return feasable;
 }
 
-void SymbolicVariable::addGT(const shared_ptr<SymbolicVariable>& other)
+void SymbolicVariable::addGT(SymbolicVariable* other)
 {
     if (find_if(gt.begin(), gt.end(),
-                [&, other] (const shared_ptr<SymbolicVariable>& t)
+                [&, other] (SymbolicVariable* t)
                 {return t->getName() == other->getName();}) != gt.end()) return;
     gt.push_back(other);
-    other->lt.push_back(shared_from_this());
+    other->lt.push_back(this);
     if (other->isBoundedBelow()) clipLowerBound(other->getLowerBound(), false);
     if (isBoundedAbove()) other->clipUpperBound(getUpperBound());
 }
 
-void SymbolicVariable::addGE(const shared_ptr<SymbolicVariable>& other)
+void SymbolicVariable::addGE(SymbolicVariable* other)
 {
     if (find_if(ge.begin(), ge.end(),
-                [&, other] (const shared_ptr<SymbolicVariable> t)
+                [&, other] (SymbolicVariable* t)
                 {return t->getName() == other->getName();}) != ge.end()) return;
     ge.push_back(other);
-    other->le.push_back(shared_from_this());
+    other->le.push_back(this);
 
     if (other->isBoundedBelow()) clipLowerBound(other->getLowerBound());
     if (isBoundedAbove()) other->clipUpperBound(getUpperBound());
 }
 
-void SymbolicVariable::addLT(const shared_ptr<SymbolicVariable>& other)
+void SymbolicVariable::addLT(SymbolicVariable* other)
 {
-    other->addGT(shared_from_this());
+    other->addGT(this);
 }
 
-void SymbolicVariable::addLE(const shared_ptr<SymbolicVariable>& other)
+void SymbolicVariable::addLE(SymbolicVariable* other)
 {
-    other->addGE(shared_from_this());
+    other->addGE(this);
 }
 
-void SymbolicVariable::addEQ(const shared_ptr<SymbolicVariable>& other)
+void SymbolicVariable::addEQ(SymbolicVariable* other)
 {
     if (find_if(eq.begin(), eq.end(),
-        [&, other] (const shared_ptr<SymbolicVariable> t)
+        [&, other] (SymbolicVariable* t)
         {return t->getName() == other->getName();}) != eq.end()) return;
     eq.push_back(other);
-    other->eq.push_back(shared_from_this());
+    other->eq.push_back(this);
 }
 
-void SymbolicVariable::addNEQ(const shared_ptr<SymbolicVariable>& other)
+void SymbolicVariable::addNEQ(SymbolicVariable* other)
 {
     if (find_if(neq.begin(), neq.end(),
-                [&, other] (const shared_ptr<SymbolicVariable> t)
+                [&, other] (SymbolicVariable* t)
                 {return t->getName() == other->getName();}) != neq.end()) return;
     neq.push_back(other);
-    other->neq.push_back(shared_from_this());
+    other->neq.push_back(this);
 }
 
-bool SymbolicVariable::guaranteedLT(const shared_ptr<SymbolicVariable>& searchFor, const string& initName)
+bool SymbolicVariable::guaranteedLT(SymbolicVariable* searchFor, const string& initName)
 {
     if (getName() == initName || getName() == searchFor->getName())  return false;
-    for (const shared_ptr<SymbolicVariable>& optr : lt)
+    for (SymbolicVariable* optr : lt)
     {
         if (optr->getName() == searchFor->getName() || optr->guaranteedLE(searchFor, initName))
         {
@@ -117,42 +117,42 @@ bool SymbolicVariable::guaranteedLT(const shared_ptr<SymbolicVariable>& searchFo
             return true;
         }
     }
-    for (const shared_ptr<SymbolicVariable>& optr : le) if (optr->guaranteedLT(searchFor, initName))
+    for (SymbolicVariable* optr : le) if (optr->guaranteedLT(searchFor, initName))
     {
         addLT(searchFor);
         return true;
     }
-    for (const shared_ptr<SymbolicVariable>& optr : eq) if (optr->guaranteedLT(searchFor, initName))
+    for (SymbolicVariable* optr : eq) if (optr->guaranteedLT(searchFor, initName))
     {
         addLT(searchFor);
         return true;
     }
     return false;
 }
-bool SymbolicVariable::guaranteedLE(const shared_ptr<SymbolicVariable>& searchFor, const string& initName)
+bool SymbolicVariable::guaranteedLE(SymbolicVariable* searchFor, const string& initName)
 {
     if (getName() == initName || getName() == searchFor->getName()) return true;
-    for (const shared_ptr<SymbolicVariable>& optr : lt) if (optr->guaranteedLE(searchFor, initName))
+    for (SymbolicVariable* optr : lt) if (optr->guaranteedLE(searchFor, initName))
     {
         addLE(searchFor);
         return true;
     }
-    for (const shared_ptr<SymbolicVariable>& optr : le) if (optr->guaranteedLE(searchFor, initName))
+    for (SymbolicVariable* optr : le) if (optr->guaranteedLE(searchFor, initName))
     {
         addLE(searchFor);
         return true;
     }
-    for (const shared_ptr<SymbolicVariable>& optr : eq) if (optr->guaranteedLE(searchFor, initName))
+    for (SymbolicVariable* optr : eq) if (optr->guaranteedLE(searchFor, initName))
     {
         addLE(searchFor);
         return true;
     }
     return false;
 }
-bool SymbolicVariable::guaranteedGT(const shared_ptr<SymbolicVariable>& searchFor, const string& initName)
+bool SymbolicVariable::guaranteedGT(SymbolicVariable* searchFor, const string& initName)
 {
     if (getName() == initName || getName() == searchFor->getName())  return false;
-    for (const shared_ptr<SymbolicVariable>& optr : gt)
+    for (SymbolicVariable* optr : gt)
     {
         if (optr->getName() == searchFor->getName() || optr->guaranteedGE(searchFor, initName))
         {
@@ -160,42 +160,42 @@ bool SymbolicVariable::guaranteedGT(const shared_ptr<SymbolicVariable>& searchFo
             return true;
         }
     }
-    for (const shared_ptr<SymbolicVariable>& optr : ge) if (optr->guaranteedGT(searchFor, initName))
+    for (SymbolicVariable* optr : ge) if (optr->guaranteedGT(searchFor, initName))
     {
         addGT(searchFor);
         return true;
     }
-    for (const shared_ptr<SymbolicVariable>& optr : eq) if (optr->guaranteedGT(searchFor, initName))
+    for (SymbolicVariable* optr : eq) if (optr->guaranteedGT(searchFor, initName))
     {
         addGT(searchFor);
         return true;
     }
     return false;
 }
-bool SymbolicVariable::guaranteedGE(const shared_ptr<SymbolicVariable>& searchFor, const string& initName)
+bool SymbolicVariable::guaranteedGE(SymbolicVariable* searchFor, const string& initName)
 {
     if (getName() == initName || getName() == searchFor->getName()) return true;
-    for (const shared_ptr<SymbolicVariable>& optr : gt) if (optr->guaranteedGE(searchFor, initName))
+    for (SymbolicVariable* optr : gt) if (optr->guaranteedGE(searchFor, initName))
     {
         addGE(searchFor);
         return true;
     }
-    for (const shared_ptr<SymbolicVariable>& optr : ge) if (optr->guaranteedGE(searchFor, initName))
+    for (SymbolicVariable* optr : ge) if (optr->guaranteedGE(searchFor, initName))
     {
         addGE(searchFor);
         return true;
     }
-    for (const shared_ptr<SymbolicVariable>& optr : eq) if (optr->guaranteedGE(searchFor, initName))
+    for (SymbolicVariable* optr : eq) if (optr->guaranteedGE(searchFor, initName))
     {
         addGE(searchFor);
         return true;
     }
     return false;
 }
-bool SymbolicVariable::guaranteedEQ(const shared_ptr<SymbolicVariable>& searchFor, const string& initName)
+bool SymbolicVariable::guaranteedEQ(SymbolicVariable* searchFor, const string& initName)
 {
     if (getName() == initName || getName() == searchFor->getName()) return true;
-    for (const shared_ptr<SymbolicVariable>& optr : eq) if (optr->guaranteedEQ(searchFor, initName))
+    for (SymbolicVariable* optr : eq) if (optr->guaranteedEQ(searchFor, initName))
     {
         addEQ(searchFor);
         return true;
@@ -203,27 +203,27 @@ bool SymbolicVariable::guaranteedEQ(const shared_ptr<SymbolicVariable>& searchFo
     return false;
 }
 
-bool SymbolicVariable::guaranteedNEQ(const shared_ptr<SymbolicVariable>& searchFor, const string& initName)
+bool SymbolicVariable::guaranteedNEQ(SymbolicVariable* searchFor, const string& initName)
 {
     if (getName() == initName || getName() == searchFor->getName()) return false;
-    for (const shared_ptr<SymbolicVariable>& optr : neq) if (optr->guaranteedEQ(searchFor, initName))
+    for (SymbolicVariable* optr : neq) if (optr->guaranteedEQ(searchFor, initName))
         {addNEQ(searchFor); return true;}
-    for (const shared_ptr<SymbolicVariable>& optr : gt) if (optr->guaranteedGE(searchFor, initName))
+    for (SymbolicVariable* optr : gt) if (optr->guaranteedGE(searchFor, initName))
         {addNEQ(searchFor); return true;}
-    for (const shared_ptr<SymbolicVariable>& optr : ge) if (optr->guaranteedGT(searchFor, initName))
+    for (SymbolicVariable* optr : ge) if (optr->guaranteedGT(searchFor, initName))
         {addNEQ(searchFor); return true;}
-    for (const shared_ptr<SymbolicVariable>& optr : lt) if (optr->guaranteedLE(searchFor, initName))
+    for (SymbolicVariable* optr : lt) if (optr->guaranteedLE(searchFor, initName))
         {addNEQ(searchFor); return true;}
-    for (const shared_ptr<SymbolicVariable>& optr : le) if (optr->guaranteedLE(searchFor, initName))
+    for (SymbolicVariable* optr : le) if (optr->guaranteedLE(searchFor, initName))
         {addNEQ(searchFor); return true;}
-    for (const shared_ptr<SymbolicVariable>& optr : eq) if (optr->guaranteedNEQ(searchFor, initName))
+    for (SymbolicVariable* optr : eq) if (optr->guaranteedNEQ(searchFor, initName))
         {addNEQ(searchFor); return true;}
     return false;
 }
 
 void SymbolicVariable::clearEQ()
 {
-    auto isMe = [&, this](const shared_ptr<SymbolicVariable>& poss) -> bool
+    auto isMe = [&, this](SymbolicVariable* poss) -> bool
     {return poss->getName() == getName();};
     for (auto& ptr : eq)
     {
@@ -241,7 +241,7 @@ void SymbolicVariable::clearEQ()
 
 void SymbolicVariable::clearLess()
 {
-    auto isMe = [&, this](const shared_ptr<SymbolicVariable>& poss) -> bool
+    auto isMe = [&, this](SymbolicVariable* poss) -> bool
     {return poss->getName() == getName();};
     for (auto& ptr : lt)
     {
@@ -259,7 +259,7 @@ void SymbolicVariable::clearLess()
 
 void SymbolicVariable::clearGreater()
 {
-    auto isMe = [&, this](const shared_ptr<SymbolicVariable>& poss) -> bool
+    auto isMe = [&, this](SymbolicVariable* poss) -> bool
     {return poss->getName() == getName();};
     for (auto& ptr : gt)
     {
@@ -329,10 +329,10 @@ void SymbolicVariableTemplate<double>::addNEQConst(const string& d)
 }
 
 template <typename T>
-void SymbolicVariableTemplate<T>::addEQ(const shared_ptr<SymbolicVariable>& other)
+void SymbolicVariableTemplate<T>::addEQ(SymbolicVariable* other)
 {
     SymbolicVariable::addEQ(other);
-    shared_ptr<SymbolicVariableTemplate<T>> otherCast = static_pointer_cast<SymbolicVariableTemplate<T>>(other);
+    SymbolicVariableTemplate<T>* otherCast = static_cast<SymbolicVariableTemplate<T>*>(other);
     if (otherCast->isBoundedBelow())
     {
         if (isBoundedBelow())

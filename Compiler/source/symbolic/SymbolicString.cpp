@@ -8,19 +8,17 @@ SymbolicString::SymbolicString(string name, Reporter &reporter):
     SymbolicVariableTemplate(move(name), "", "", reporter, STRING),
     boundedLower(true), boundedUpper(true) {}
 
-SymbolicString::SymbolicString(SymbolicString& other):
-    SymbolicVariableTemplate(other.varN, other.lowerBound, other.upperBound, other.reporter, STRING),
-    boundedLower(other.isBoundedBelow()), boundedUpper(other.isBoundedAbove()) {}
+SymbolicString::SymbolicString(SymbolicString* other):
+        SymbolicVariableTemplate(other->varN, other->lowerBound, other->upperBound, other->reporter, STRING),
+        boundedLower(other->isBoundedBelow()), boundedUpper(other->isBoundedAbove()) {}
 
-SymbolicString::SymbolicString(shared_ptr<SymbolicString> other):
-    SymbolicString(*other.get()) {}
 
-SymbolicString::SymbolicString(shared_ptr<SymbolicVariable> other):
-        SymbolicString(static_pointer_cast<SymbolicString>(other)) {}
+SymbolicString::SymbolicString(SymbolicVariable* other):
+        SymbolicString(static_cast<SymbolicString*>(other)) {}
 
-shared_ptr<SymbolicVariable> SymbolicString::clone()
+unique_ptr<SymbolicVariable> SymbolicString::clone()
 {
-    return make_shared<SymbolicString>(*this);
+    return make_unique<SymbolicString>(*this);
 }
 
 void SymbolicString::setTConstValue(const string& cv)

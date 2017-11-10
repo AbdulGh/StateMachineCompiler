@@ -10,7 +10,7 @@
 #include "SymbolicVarSet.h"
 #include "../compile/Token.h" //relop
 
-typedef std::shared_ptr<SymbolicVariable> VarPointer;
+typedef std::unique_ptr<SymbolicVariable> VarPointer;
 template <typename T>
 using VarTemplatePointer = std::shared_ptr<SymbolicVariableTemplate<T>>;
 
@@ -92,27 +92,27 @@ namespace SymbolicExecution
                       std::string lhsvar, const std::string& rhsconst, bool reverse = false);
         
         bool varBranch(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                       VarPointer lhsvar, Relations::Relop op, VarPointer rhsvar);
+                       SymbolicVariable* lhsvar, Relations::Relop op, SymbolicVariable* rhsvar);
         
         bool varBranchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarPointer lhsvar, VarPointer rhsvar);
+                      SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
         
         bool varBranchNE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarPointer lhsvar, VarPointer rhsvar);
+                      SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
         
         bool varBranchLE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarPointer lhsvar, VarPointer rhsvar);
+                      SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
         
         bool varBranchLT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarPointer lhsvar, VarPointer rhsvar);
+                      SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
         
         bool varBranchGE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarPointer lhsvar, VarPointer rhsvar);
+                      SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
         
         bool varBranchGT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarPointer lhsvar, VarPointer rhsvar);
-        VarPointer& getGreatestLowerBound(VarPointer& lhsvar, VarPointer& rhsvar);
-        VarPointer& getLeastUpperBound(VarPointer& lhsvar, VarPointer& rhsvar);
+                      SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
+        SymbolicVariable* getGreatestLowerBound(SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
+        SymbolicVariable* getLeastUpperBound(SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
 
         static CFGNode* getFailNode(std::shared_ptr<SymbolicExecutionFringe> returningSEF, CFGNode* n);
 
