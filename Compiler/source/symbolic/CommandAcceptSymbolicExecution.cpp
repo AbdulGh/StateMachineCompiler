@@ -209,6 +209,9 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
     result->setName(LHS->getName());
     result->define();
     svs->symbolicVarSet->defineVar(move(result));
+
+    if (deletet1) delete t1;
+    if (deletet2) delete t2;
     return svs->isFeasable();
 }
 

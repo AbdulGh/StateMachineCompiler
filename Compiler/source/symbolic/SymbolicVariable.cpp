@@ -50,7 +50,7 @@ void SymbolicVariable::define()
     defined = true;
 }
 
-bool SymbolicVariable::isFeasable() const
+bool SymbolicVariable::isFeasable()
 {
     return feasable;
 }
@@ -278,11 +278,9 @@ void SymbolicVariable::clearGreater()
 //SymbolicVariableTemplate
 template <typename T>
 SymbolicVariableTemplate<T>::SymbolicVariableTemplate(string name, const T lower, const T upper,
-                                      Reporter& r, VariableType t, bool init): SymbolicVariable(name, t, r, init, lowerBound <= upperBound)
-{
-    lowerBound = lower;
-    upperBound = upper;
-}
+                                      Reporter& r, VariableType t, bool init):
+        SymbolicVariable(name, t, r, init, lower <= upper), lowerBound(lower), upperBound(upper)
+{}
 
 template<typename T>
 bool SymbolicVariableTemplate<T>::isDisjointFrom(shared_ptr<SymbolicVariableTemplate<T>> other)

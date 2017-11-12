@@ -400,10 +400,15 @@ bool CFGNode::swallowNode(CFGNode* other)
         {
             if (other->getCompFail() == nullptr)
             {
-                if (compFail == nullptr) setCompSuccess(nullptr); //always return anyway
+                if (compFail == nullptr)//always return anyway
+                {
+                    setCompSuccess(nullptr);
+                    setComp(nullptr);
+                }
                 else //swap condition
                 {
                     comp->op = Relations::negateRelop(comp->op);
+                    comp->setData(compFail->getName());
                     compSuccess = compFail;
                     compFail = nullptr;
                 }
@@ -631,8 +636,6 @@ void CFGNode::removePushes()
                 auto pc = static_cast<PushCommand*>(ac);
                 if (pc->pushType == PushCommand::PUSHSTATE)
                 {
-                    //pc->calledFunction->removeReturnSuccessor(pc->getData());
-                    //removeParent(pc->calledFunction->getLastNode());
                     pushingInstrs.erase(instructionIt);
                     found = true;
                     break;
@@ -689,9 +692,9 @@ void CFGNode::removePushingState(const string& bye)
     else throw "couldnt find pushing state";
 }
 
-void CFGNode::prepareToDie()
+void CFGNode::prepareToDie(bool checklast)
 {
-    if (isLastNode()) throw "cant delete last node";
+    if (checklast && isLastNode()) throw "cant delete last node";
     if (getCompFail() != nullptr) getCompFail()->removeParent(name);
     if (getCompSuccess() != nullptr) getCompSuccess()->removeParent(name);
     removePushes();

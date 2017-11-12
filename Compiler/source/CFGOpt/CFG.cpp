@@ -95,8 +95,9 @@ string ControlFlowGraph::getStructuredSource()
     return outs.str();
 }
 
-string ControlFlowGraph::destroyStructureAndGetFinalSource() //todo redo this
+string ControlFlowGraph::destroyStructureAndGetFinalSource() //todo finish this
 {
+    /*
     bool changes = true;
     while (changes)
     {
@@ -106,20 +107,43 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource() //todo redo this
         while (it != nodes.end())
         {
             CFGNode* current = it->second.get();
-            if (current->getInstrs().empty() && current->getCompSuccess() == nullptr)
+            if (!current->isLastNode() && current->getInstrs().empty() && current->getCompSuccess() == nullptr)
             {
-                if (current->getCompFail() == nullptr) current->removePushes();
-                else current->replacePushes(current->getCompFail()->getName());
-
                 for (auto& parent : current->getPredecessorVector())
                 {
-                    if ((parent->getCompSuccess() == nullptr || parent->getCompSuccess()->getName() != current->getName())
-                        && parent->getCompFail() == nullptr && parent->isLastNode())
+                    if (parent->getCompSuccess() != nullptr && (current->getName() == parent->getCompSuccess()->getName()))
                     {
-                        parent->getParentFunction()->removeReturnSuccessor(current->getName());
+                        if (current->getCompFail() == nullptr) //returns
+                        {
+                            if (parent->getCompFail() == nullptr)
+                            {
+                                parent->setCompSuccess(nullptr);
+                                parent->setComp(nullptr);
+                            }
+                            else
+                            {
+                                JumpOnComparisonCommand* comp = parent->getComp();
+                                comp->op = Relations::negateRelop(comp->op);
+                                comp->setData(parent->getCompFail()->getName());
+                                parent->setCompSuccess(parent->getCompFail());
+                                parent->setCompFail(nullptr);
+                            }
+                        }
                     }
-                    else if (!parent->swallowNode(current)) throw "should swallow";
+                    else
+                    {
+                        if (parent->getCompFail() == nullptr)
+                        {
+                            parent->getParentFunction()->removeReturnSuccessor(current->getName());
+                        }
+                        else
+                        {
+                            if (parent->getCompFail()->getName() != current->getName()) throw "not good";
+                            parent->setCompFail(current->getCompFail());
+                        }
+                    }
                 }
+
                 if (current->getName() == first->getName())
                 {
                     if (current->getCompFail() != nullptr) first = getNode(current->getCompFail()->getName());
@@ -130,13 +154,123 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource() //todo redo this
                     else if (nodes.size() != 1) throw "should have been one of those";
                 }
 
+                if (current->getCompFail() != nullptr) current->getCompFail()->removeParent(current);
                 it = nodes.erase(it);
                 changes=true;
             }
-            else ++it;
+            else
+            {
+                auto pit = current->getPredecessorMap().begin();
+                while (pit != current->getPredecessorMap().end())
+                {
+                    if (pit->second->swallowNode(current))
+                    {
+                        changes = true;
+                        pit = current->getPredecessorMap().erase(pit);
+                    }
+                    else ++pit;
+                }
+                if ((!current->isLastNode() || current->getPredecessorMap().empty()) && current->getPredecessorMap().empty())
+                {
+                    if (current->isLastNode())
+                    {
+                        CFGNode* onlyParent = current->getPredecessorMap().begin()->second;
+                        onlyParent->setLast(true);
+                        current->getParentFunction()->setLastNode(onlyParent);
+                        current->setLast(false);
+                    }
+                    current->prepareToDie();
+                    it = nodes.erase(it);
+                    changes = true;
+                }
+                else ++it;
+            }
+        }
+    }*/
+
+    struct SourceNode
+    {
+    private:
+        vector<AbstractCommand*> toDelete;
+    public:
+        const string& name;
+        vector<SourceNode*> predecessors;
+        vector<SourceNode*> successors;
+        vector<AbstractCommand*> commands;
+
+        SourceNode(unique_ptr<CFGNode>& toCopy): name(toCopy->getName())
+        {
+            for (auto& ptr: toCopy->getInstrs()) commands.push_back(ptr.get());
+            if (toCopy->getComp() != nullptr) commands.push_back(toCopy->getComp());
+            if (toCopy->getCompFail() != nullptr)
+            {
+                AbstractCommand* jocc = new JumpCommand(toCopy->getCompFail()->getName(), toCopy->getJumpline());
+                commands.push_back(jocc);
+                toDelete.push_back(jocc);
+            }
+            else
+            {
+                AbstractCommand* ret = new ReturnCommand(toCopy->getJumpline());
+                commands.push_back(ret);
+                toDelete.push_back(ret);
+            }
+        }
+
+        ~SourceNode()
+        {
+            for (AbstractCommand* bye: toDelete) delete bye;
+        }
+
+        void putSource(stringstream& source)
+        {
+            source << name << "\n";
+            for (auto& instr : commands) source << instr->translation();
+            source << "end\n\n";
+        }
+    };
+
+    map<string, unique_ptr<SourceNode>> outputMap;
+    for (auto& pair : currentNodes) outputMap[pair.first] = make_unique<SourceNode>(pair.second);
+    for (auto& pair : currentNodes)
+    {
+        unique_ptr<SourceNode>& sn = outputMap[pair.first];
+        for (auto& predpair : pair.second->getPredecessorMap()) sn->predecessors.push_back(outputMap[predpair.first].get());
+        for (auto& succ : pair.second->getSuccessorVector()) sn->successors.push_back(outputMap[succ->getName()].get());
+    }
+    
+    for (auto& ptrpair: outputMap)
+    {
+        unique_ptr<SourceNode>& sn = ptrpair.second;
+        for (SourceNode* parent : sn->predecessors)
+        {
+            auto it = find_if(parent->successors.begin(), parent->successors.end(),
+            [&, parent] (SourceNode* polonger) {return polonger->name == sn->name;});
+            if (it == parent->successors.end())
+            {
+                printf("%s claims to be a child of %s\n----------\n%s\n--------\n",
+                sn->name.c_str(), parent->name.c_str(), getStructuredSource().c_str());
+                auto& debug = parent->successors;
+                throw "bad";
+            }
+        }
+        for (SourceNode* succ : sn->successors)
+        {
+            auto it = find_if(succ->predecessors.begin(), succ->predecessors.end(),
+                              [&, succ] (SourceNode* polonger) {return polonger->name == sn->name;});
+            if (it == succ->successors.end()) throw "bad";
         }
     }
-    return getStructuredSource();
+
+    stringstream out;
+    for (auto& ptrpair: outputMap) ptrpair.second->putSource(out);
+
+    //clear CFG
+    first = last = nullptr;
+    currentNodes.clear();
+    outputMap.clear();
+
+    return out.str();
+
 }
 
 string ControlFlowGraph::getDotGraph()

@@ -61,7 +61,7 @@ void SymbolicVarSet::unionSVS(SymbolicVarSet* other)
             svp->unionLowerBound(pair.second->getLowerBound());
         }
     }
-    if (other->parent != nullptr) unionSVS(other->parent.get());
+    //if (other->parent != nullptr) unionSVS(other->parent.get());
 }
 
 //iterator

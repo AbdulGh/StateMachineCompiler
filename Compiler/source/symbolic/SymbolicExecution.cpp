@@ -184,6 +184,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
 
     sef->pathConditions.insert({n->getName(), Condition()}); //don't track conditions till later - this just tracks which nodes we've seen
     tags[n->getName()]->unionSVS(sef->symbolicVarSet.get());
+
     for (const auto& command : n->getInstrs())
     {
         //might be in a loop

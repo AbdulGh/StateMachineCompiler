@@ -13,7 +13,7 @@ class SymbolicVariable : public std::enable_shared_from_this<SymbolicVariable>
 {
 protected:
     bool defined;
-    bool feasable = true; //todo check need for this
+    bool feasable = true;
     std::string varN;
     Reporter& reporter;
     VariableType type;
@@ -76,7 +76,7 @@ public:
     virtual std::string getLowerBound() const = 0;
     virtual void setConstValue(const std::string&) = 0;
     virtual bool meetsConstComparison(Relations::Relop r, const std::string& rhs) = 0;
-    virtual bool isFeasable() const;
+    virtual bool isFeasable();
 
     virtual std::unique_ptr<SymbolicVariable> clone() = 0;
 };
@@ -114,7 +114,7 @@ public:
     std::string getUpperBound() const override;
     std::string getLowerBound() const override;
     const std::string getConstString() override;
-    bool isFeasable();
+    bool isFeasable() override;
     bool isDetermined() const override;
 };
 //todo check comparison strictness wrt closed bool when setting bounds
