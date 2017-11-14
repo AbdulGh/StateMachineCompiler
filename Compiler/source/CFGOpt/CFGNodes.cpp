@@ -566,6 +566,7 @@ void CFGNode::setCompFail(CFGNode* compareFail)
 
 void CFGNode::setComp(unique_ptr<JumpOnComparisonCommand> comparison)
 {
+
     if (comp != nullptr) comp.release();
     comp.swap(comparison);
 }

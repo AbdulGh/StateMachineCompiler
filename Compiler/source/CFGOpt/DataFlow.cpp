@@ -162,17 +162,10 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
         JumpOnComparisonCommand* jocc = node->getComp();
         if (jocc != nullptr)
         {
-            if (jocc->term1Type == AbstractCommand::StringType::ID)
-            {
-                usedVars.insert(jocc->term1);
-                genSet.insert(jocc->term1);
-            }
-            if (jocc->term2Type == AbstractCommand::StringType::ID)
-            {
-                usedVars.insert(jocc->term2);
-                genSet.insert(jocc->term2);
-            }
+            if (jocc->term1Type == AbstractCommand::StringType::ID) insertAndCheckUpwardExposed(jocc->term1);
+            if (jocc->term2Type == AbstractCommand::StringType::ID) insertAndCheckUpwardExposed(jocc->term2);
         }
+
         outSets[node->getName()] = thisUEVars;//copies
         UEVars[node->getName()] = move(thisUEVars);
         genSets[node->getName()] = move(genSet);
@@ -225,6 +218,7 @@ void LiveVariableDataFlow::finish()
                 newInstrs.push_back(move(ac));
             }
         }
+
         node->setInstructions(newInstrs);
     }
 

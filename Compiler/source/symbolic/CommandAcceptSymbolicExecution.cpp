@@ -90,7 +90,7 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
             svp->setConstValue(RHS);
             return true;
         }
-        catch (invalid_argument e)
+        catch (invalid_argument&)
         {
             SymbolicVariable* RHS = svs->symbolicVarSet->findVar(getData());
             if (RHS == nullptr)
@@ -104,13 +104,17 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
                                            ") assigned to double", getLineNum());
                 return false;
             }
-            else svs->symbolicVarSet->defineVar(make_unique<SymbolicDouble>(RHS));
+
+            unique_ptr<SymbolicDouble> newLHS = make_unique<SymbolicDouble>(RHS);
+            bool feasable = newLHS->isFeasable();
+            newLHS->setName(svp->getName());
+            svs->symbolicVarSet->defineVar(move(newLHS));
+            return feasable;
         }
     }
     else svp->setConstValue(RHS);
     svp->define();
-    if (!svp->isFeasable()) throw "should be feasable";
-    return true;
+    return svp->isFeasable();
 }
 
 bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)

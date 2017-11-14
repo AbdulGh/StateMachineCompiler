@@ -95,10 +95,10 @@ string ControlFlowGraph::getStructuredSource()
     return outs.str();
 }
 
-string ControlFlowGraph::destroyStructureAndGetFinalSource() //todo finish this
+string ControlFlowGraph::destroyStructureAndGetFinalSource()
 {
-    /*
     bool changes = true;
+    /*
     while (changes)
     {
         changes = false;
@@ -188,76 +188,137 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource() //todo finish this
         }
     }*/
 
-    struct SourceNode
+    class SourceNode;
+    static map<string, unique_ptr<SourceNode>> outputMap;
+    outputMap.clear();
+
+    class SourceNode //just a less structured CFGNode
     {
     private:
-        vector<AbstractCommand*> toDelete;
-    public:
-        const string& name;
+        vector<unique_ptr<AbstractCommand>> instructions;
         vector<SourceNode*> predecessors;
         vector<SourceNode*> successors;
-        vector<AbstractCommand*> commands;
+        bool first;
+    public:
+        const string name;
+
+        bool isFirst() {return first;}
+
+        const vector<unique_ptr<AbstractCommand>>& getInstructions()
+        {
+            return instructions;
+        }
+
+        const vector<SourceNode*>& getPredecessors()
+        {
+            return predecessors;
+        }
+
+        const vector<SourceNode*>& getSuccessors()
+        {
+            return successors;
+        }
+
+        void addPredecessor(SourceNode* pred)
+        {
+            predecessors.push_back(pred);
+        }
+
+        void addSuccessor(SourceNode* succ)
+        {
+            successors.push_back(succ);
+        }
 
         SourceNode(unique_ptr<CFGNode>& toCopy): name(toCopy->getName())
         {
-            for (auto& ptr: toCopy->getInstrs()) commands.push_back(ptr.get());
-            if (toCopy->getComp() != nullptr) commands.push_back(toCopy->getComp());
+            for (auto& ptr: toCopy->getInstrs()) instructions.push_back(ptr->clone());
+            if (toCopy->getComp() != nullptr) instructions.push_back(toCopy->getComp()->clone());
             if (toCopy->getCompFail() != nullptr)
             {
-                AbstractCommand* jocc = new JumpCommand(toCopy->getCompFail()->getName(), toCopy->getJumpline());
-                commands.push_back(jocc);
-                toDelete.push_back(jocc);
+                instructions.push_back
+                        (make_unique<JumpCommand>(toCopy->getCompFail()->getName(), toCopy->getJumpline()));
             }
-            else
-            {
-                AbstractCommand* ret = new ReturnCommand(toCopy->getJumpline());
-                commands.push_back(ret);
-                toDelete.push_back(ret);
-            }
+            else instructions.push_back(make_unique<ReturnCommand>(toCopy->getJumpline()));
+            first = toCopy->isFirstNode();
         }
 
-        ~SourceNode()
+        void loseParent(SourceNode* parent)
         {
-            for (AbstractCommand* bye: toDelete) delete bye;
+            auto it = find_if(predecessors.begin(), predecessors.end(),
+                [&, parent] (const SourceNode* con) {return parent->name == con->name;});
+            if (it == predecessors.end()) throw "could not find parent";
+            predecessors.erase(it);
+        }
+
+        inline void loseKids()
+        {
+            for (auto& succ: successors) succ->loseParent(this);
+        }
+
+        bool tryBypass()
+        {
+            if (!instructions.empty())
+            {
+                unique_ptr<AbstractCommand>& lastInstr = instructions.back();
+                if (lastInstr->getType() == CommandType::JUMP && lastInstr->getData() != "return")
+                {
+                    unique_ptr<SourceNode>& swallowing = outputMap[lastInstr->getData()];
+                    if (swallowing == nullptr) throw "cant find jumped to node";
+                    swallowing->loseParent(this);
+                    instructions.pop_back();
+
+                    const string& swallowingName = swallowing->name;
+                    auto swallowingIt = find_if(successors.begin(), successors.end(),
+                    [&, swallowingName] (const auto& child) {return child->name == swallowingName;});
+                    if (swallowingIt == successors.end()) throw "child should be in";
+                    successors.erase(swallowingIt);
+
+                    for (const auto& newInstruction: swallowing->instructions) instructions.push_back(newInstruction->clone());
+                    for (const auto& newSucc: swallowing->successors)
+                    {
+                        successors.push_back(newSucc);
+                        newSucc->addPredecessor(this);
+                    }
+
+                    return true;
+                }
+            }
+            return false;
         }
 
         void putSource(stringstream& source)
         {
             source << name << "\n";
-            for (auto& instr : commands) source << instr->translation();
+            for (auto& instr : instructions) source << instr->translation();
             source << "end\n\n";
         }
     };
-
-    map<string, unique_ptr<SourceNode>> outputMap;
     for (auto& pair : currentNodes) outputMap[pair.first] = make_unique<SourceNode>(pair.second);
     for (auto& pair : currentNodes)
     {
         unique_ptr<SourceNode>& sn = outputMap[pair.first];
-        for (auto& predpair : pair.second->getPredecessorMap()) sn->predecessors.push_back(outputMap[predpair.first].get());
-        for (auto& succ : pair.second->getSuccessorVector()) sn->successors.push_back(outputMap[succ->getName()].get());
+        for (auto& predpair : pair.second->getPredecessorMap()) sn->addPredecessor(outputMap[predpair.first].get());
+        for (auto& succ : pair.second->getSuccessorVector()) sn->addSuccessor(outputMap[succ->getName()].get());
     }
-    
-    for (auto& ptrpair: outputMap)
+
+    changes = true;
+    while (changes)
     {
-        unique_ptr<SourceNode>& sn = ptrpair.second;
-        for (SourceNode* parent : sn->predecessors)
+        changes = false;
+        auto it = outputMap.begin();
+        while (it != outputMap.end())
         {
-            auto it = find_if(parent->successors.begin(), parent->successors.end(),
-            [&, parent] (SourceNode* polonger) {return polonger->name == sn->name;});
-            if (it == parent->successors.end())
+            unique_ptr<SourceNode>& sn = it->second;
+            if (sn->getPredecessors().empty() && !sn->isFirst())
             {
-                printf("%s claims to be a child of %s\n----------\n%s\n--------\n",
-                sn->name.c_str(), parent->name.c_str(), getStructuredSource().c_str());
-                auto& debug = parent->successors;
-                throw "bad";
+                sn->loseKids();
+                it = outputMap.erase(it);
             }
-        }
-        for (SourceNode* succ : sn->successors)
-        {
-            auto it = find_if(succ->predecessors.begin(), succ->predecessors.end(),
-                              [&, succ] (SourceNode* polonger) {return polonger->name == sn->name;});
-            if (it == succ->successors.end()) throw "bad";
+            else
+            {
+                if (sn->tryBypass()) changes = true;
+                ++it;
+            }
         }
     }
 
