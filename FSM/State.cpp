@@ -14,7 +14,7 @@ State::State(string str, FSM& owner):
 void State::run()
 {
     mnextState = -1;
-    for (shared_ptr<AbstractCommand> &command : instructions)
+    for (unique_ptr<AbstractCommand>& command : instructions)
     {
         command->execute();
         if (command->changesState())
@@ -36,12 +36,12 @@ const std::string &State::getName() const
     return name;
 }
 
-const vector<shared_ptr<AbstractCommand>> &State::getInstructions() const
+const vector<unique_ptr<AbstractCommand>>& State::getInstructions() const
 {
     return instructions;
 }
 
-void State::setInstructions(const vector<shared_ptr<AbstractCommand>> &in)
+void State::setInstructions(vector<unique_ptr<AbstractCommand>> in)
 {
-    instructions = in;
+    instructions = move(in);
 }

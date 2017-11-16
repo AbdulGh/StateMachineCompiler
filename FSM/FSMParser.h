@@ -17,19 +17,20 @@ public:
 
 private:
     std::unordered_map<std::string, int> stateNameMap;
-    std::map<int, std::shared_ptr<State>> stateMap;
-    std::unordered_map<std::string, std::shared_ptr<Variable>> variableMap;
+    std::map<int, std::unique_ptr<State>> stateMap;
+    std::unordered_map<std::string, std::unique_ptr<Variable>> variableMap;
     std::ifstream infile;
 
     static std::set<std::string> resWords;
     bool isReserved(const std::string&);
 
-    std::shared_ptr<Variable> getVar(std::string varN);
+    Variable* getVar(std::string varN);
 
     std::string nextString();
     std::string nextCommand(bool expecting = true);
     std::string getVarName();
     std::string peelQuotes(std::string);
+    ComparisonOp readComparisonOp();
     int checkState(std::string);
     char nextRealChar(std::string);
 };

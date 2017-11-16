@@ -23,10 +23,10 @@ class FSM
     template<class T> friend class JumpOnComparisonCommand;
 private:
     int state;
-    std::vector<std::shared_ptr<State>> states;
+    std::vector<std::unique_ptr<State>> states;
     std::stack<Variable::TaggedDataUnion> sharedStack;
 public:
-    void setStates(std::vector<std::shared_ptr<State>>);
+    void setStates(std::vector<std::unique_ptr<State>>);
 
     void run();
 };

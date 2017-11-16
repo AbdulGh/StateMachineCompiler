@@ -6,7 +6,7 @@
 
 using namespace std;
 
-void FSM::setStates(vector<shared_ptr<State>> st)
+void FSM::setStates(vector<unique_ptr<State>> st)
 {
     this->states = move(st);
 }

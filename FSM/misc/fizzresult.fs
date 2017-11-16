@@ -3,6 +3,8 @@ print "Limit?\n>";
 double _2_0_limit;
 input _2_0_limit;
 double _2_0_current;
+_2_0_current = 1.000000;
+double LHS;
 jump F0_main_1;
 end
 
@@ -19,22 +21,26 @@ jump F0_main_1;
 end
 
 F0_main_13
+LHS = 1.000000;
 jump F0_main_18;
 end
 
 F0_main_16
 print "Buzz";
 print "\n";
+_2_0_current = 2.000000;
 jump F0_main_1;
 end
 
 F0_main_18
 print 1.000000;
 print "\n";
+_2_0_current = 2.000000;
 jump F0_main_1;
 end
 
 F0_main_5
+LHS = 1.000000;
 jump F0_main_7;
 end
 
@@ -46,5 +52,6 @@ jump F0_main_1;
 end
 
 F0_main_7
+LHS = 1.000000;
 jump F0_main_13;
 end

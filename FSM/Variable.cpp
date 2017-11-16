@@ -48,7 +48,7 @@ void Variable::setData(double d)
     data.contents = d;
 }
 
-void Variable::setData(shared_ptr<Variable> var)
+void Variable::setData(Variable* var)
 {
     setData(var->data);
 }

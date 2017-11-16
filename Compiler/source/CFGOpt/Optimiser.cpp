@@ -20,7 +20,11 @@ namespace Optimise
                 if (node.second->constProp()) changes = true;
             }
         }
+
+        printf("Before\n%s\n", controlFlowGraph.getStructuredSource().c_str());
         DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();
+        printf("After\n%s\n", controlFlowGraph.getStructuredSource().c_str());
+
         DataFlow::LiveVariableDataFlow(controlFlowGraph, symbolTable).worklist();
     }
 

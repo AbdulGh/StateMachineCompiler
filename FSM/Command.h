@@ -58,10 +58,10 @@ private:
 class InputVarCommand: public AbstractCommand
 {
 public:
-    InputVarCommand(std::shared_ptr<Variable> varPtr);
+    InputVarCommand(Variable* varPtr);
     void execute() override;
 private:
-    std::shared_ptr<Variable> var;
+    Variable* var;
 };
 
 template <typename T>
@@ -78,10 +78,10 @@ private:
 class PopCommand: public AbstractCommand
 {
 public:
-    PopCommand(std::shared_ptr<Variable> varPtr, FSM& stackOwner);
+    PopCommand(Variable* varPtr, FSM& stackOwner);
     void execute() override;
 private:
-    std::shared_ptr<Variable> var;
+    Variable* var;
     std::stack<Variable::TaggedDataUnion>* popFrom;
 };
 
@@ -89,10 +89,10 @@ template <typename T>
 class AssignVarCommand: public AbstractCommand
 {
 public:
-    AssignVarCommand(std::shared_ptr<Variable> varPtr, T value);
+    AssignVarCommand(Variable* varPtr, T value);
     void execute() override;
 private:
-    std::shared_ptr<Variable> var;
+    Variable* var;
     T val;
 };
 
@@ -100,13 +100,13 @@ template <typename T>
 class EvaluateExprCommand: public AbstractCommand
 {
 public:
-    EvaluateExprCommand(std::shared_ptr<Variable> varPtr, std::shared_ptr<Variable> RHSVar, T b, ExpressionType t);
+    EvaluateExprCommand(Variable* varPtr, Variable* RHSVar, T b, ExpressionType t);
     void execute() override;
 private:
     void evaluate(double one, double two);
-    std::shared_ptr<Variable> var;
+    Variable* var;
     ExpressionType type;
-    std::shared_ptr<Variable> term1;
+    Variable* term1;
     T term2;
 };
 
@@ -114,13 +114,11 @@ template <typename T>
 class JumpOnComparisonCommand: public AbstractCommand
 {
 public:
-    JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, T compareTo, int state, ComparisonOp type);
-    JumpOnComparisonCommand(std::shared_ptr<Variable> varPtr, T compareTo, FSM& stackOwner, ComparisonOp type);
+    JumpOnComparisonCommand(Variable*& varPtr, T compareTo, int state, ComparisonOp type);
+    JumpOnComparisonCommand(Variable*& varPtr, T compareTo, FSM& stackOwner, ComparisonOp type);
     void execute() override;
 private:
-    void evaluate(double RHS);
-    void evaluate(std::string RHS);
-    std::shared_ptr<Variable> var;
+    Variable* var;
     T compareTo;
     ComparisonOp cop;
     std::stack<Variable::TaggedDataUnion>* popFrom;

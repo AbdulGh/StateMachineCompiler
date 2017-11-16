@@ -58,7 +58,7 @@ public:
     const TaggedDataUnion &getTaggedDataUnion() const;
     void setData(std::string str);
     void setData(double d);
-    void setData(std::shared_ptr<Variable> var);
+    void setData(Variable* var);
     void setData(Variable::TaggedDataUnion tdu);
 
 protected:
