@@ -241,14 +241,14 @@ void EvaluateExprCommand<double>::execute()
 
 /*JumpOnComparisonCommand*/
 template <typename T>
-JumpOnComparisonCommand<T>::JumpOnComparisonCommand(Variable*& varPtr, T compare, int jstate, ComparisonOp type):
+JumpOnComparisonCommand<T>::JumpOnComparisonCommand(Variable* varPtr, T compare, int jstate, ComparisonOp type):
         compareTo(compare),
         cop(type),
         var(varPtr)
         {setState(jstate);}
 
 template <typename T>
-JumpOnComparisonCommand<T>::JumpOnComparisonCommand(Variable*& varPtr, T compare, FSM& stackOwner, ComparisonOp type):
+JumpOnComparisonCommand<T>::JumpOnComparisonCommand(Variable* varPtr, T compare, FSM& stackOwner, ComparisonOp type):
         compareTo(compare),
         cop(type),
         var(varPtr),
@@ -257,11 +257,9 @@ JumpOnComparisonCommand<T>::JumpOnComparisonCommand(Variable*& varPtr, T compare
 template <>
 void JumpOnComparisonCommand<Variable*>::execute()
 {
-    if (var->getType() == STRING) setChangeState(evaluateComparisonOp<string>(var->getData().str, cop, compareTo));
-
-    T data = (T)var->getData();
-
-
+    if (var->getType() == STRING) setChangeState(evaluateComparisonOp<string>
+                                                         (*(var->getData().str), cop, *(compareTo->getData().str)));
+    else setChangeState(evaluateComparisonOp<double>(var->getData().d, cop, compareTo->getData().d));
 
     if (changesState() && getNextState() == -1)
     {

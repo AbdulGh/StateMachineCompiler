@@ -21,6 +21,7 @@ public:
 
         operator double() const {return d;}
         operator std::string*() const {return str;}
+        operator std::string() const {return *str;}
     } DataUnion;
 
     typedef struct TaggedDataUnion

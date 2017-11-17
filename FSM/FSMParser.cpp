@@ -72,7 +72,7 @@ string FSMParser::nextString()
     char c;
     infile.get(c);
     while (isspace(c) && infile.get(c));
-    if (infile.eof()) throw runtime_error("command not finished");
+    if (!infile) throw runtime_error("command not finished");
 
     string ident;
     if (c == '"')
@@ -82,7 +82,7 @@ string FSMParser::nextString()
         {
             ident += c;
             if (c == '"') break;
-            else if (infile.eof()) throw runtime_error("identifier not finished");
+            else if (!infile) throw runtime_error("identifier not finished");
         }
     }
 
@@ -92,7 +92,7 @@ string FSMParser::nextString()
         {
             ident += c;
             infile.get(c);
-            if (infile.eof()) throw runtime_error("identifier not finished");
+            if (!infile) throw runtime_error("identifier not finished");
         }
         infile.unget();
     }
@@ -105,13 +105,13 @@ string FSMParser::nextCommand(bool expecting)
     char c = nextRealChar(expecting ? "End expected" : "");
 
     string str;
-    while (!isspace(c) && !infile.eof())
+    while (!isspace(c) && !infile)
     {
         if (c == ';') break;
         str += c;
         infile.get(c);
     }
-    if (!infile.eof()) infile.unget();
+    if (!infile) infile.unget();
     return str;
 }
 
@@ -122,9 +122,9 @@ char FSMParser::nextRealChar(string error = "")
     while (isspace(c))
     {
         infile.get(c);
-        if (infile.eof())
+        if (!infile)
         {
-            if (error != "") throw runtime_error(error);
+            if (!error.empty()) throw runtime_error(error);
             else return -1;
         }
     }
@@ -170,7 +170,7 @@ FSM FSMParser::readFSM()
     string str = nextCommand();
     stateNameMap[str] = 0;
     int nextUnusedState = 1;
-    while (!infile.eof() && !str.empty())
+    while (!infile && !str.empty())
     {
         if (str == "double")
         {
@@ -203,16 +203,16 @@ FSM FSMParser::readFSM()
     infile.clear();
     infile.seekg(0, ios::beg);
 
-    while (!infile.eof())
+    while (!infile)
     {
         //get state name
         while (infile.get(c) && isspace(c));
-        if (infile.eof()) break;
+        if (!infile) break;
 
         str = "";
         while (!isspace(c))
         {
-            if (infile.eof()) throw "Reached EOF while parsing state name";
+            if (!infile) throw "Reached EOF while parsing state name";
             str += c;
             infile.get(c);
         }
@@ -225,7 +225,7 @@ FSM FSMParser::readFSM()
         str = nextCommand();
         while(str != "end")
         {
-            if (infile.eof()) throw runtime_error("Unexpected end while parsing state '" + newState->getName() + "'");
+            if (!infile) throw runtime_error("Unexpected end while parsing state '" + newState->getName() + "'");
 
             if (str == "print")
             {
@@ -234,7 +234,7 @@ FSM FSMParser::readFSM()
                 while (isspace(c))
                 {
                     infile.get(c);
-                    if (infile.eof()) throw "Unexpected end during print command";
+                    if (!infile) throw "Unexpected end during print command";
                 }
 
                 if (c != '"')
@@ -249,7 +249,7 @@ FSM FSMParser::readFSM()
                         }
                         varN += c;
                         infile.get(c);
-                        if (infile.eof()) throw runtime_error("identifier not finished");
+                        if (!infile) throw runtime_error("identifier not finished");
                     }
                     commands.push_back(make_unique<PrintCommand<Variable*>>(getVar(varN)));
                 }
@@ -268,7 +268,7 @@ FSM FSMParser::readFSM()
                         }
                         strToPrint += c;
                         infile.get(c);
-                        if (infile.eof()) throw "Unexpected end when reading print string";
+                        if (!infile) throw "Unexpected end when reading print string";
                     }
                     commands.push_back(make_unique<PrintCommand<string>>(strToPrint));
                 }
@@ -290,12 +290,32 @@ FSM FSMParser::readFSM()
                 string stateName = nextString();
                 if (stateName == "pop") throw "depreciated";
                 int state = checkState(stateName);
-                commands.push_back(make_unique<JumpCommand>(ref));
+                commands.push_back(make_unique<JumpCommand>(state));
             }
 
             else if (str == "jumpif")
             {
                 c = nextRealChar("Unfinished jumpif command");
+
+                auto negateRelop = [] (ComparisonOp op) -> ComparisonOp
+                {
+                    switch(op)
+                    {
+                        case GT:
+                            return LE;
+                        case GE:
+                            return LT;
+                        case LT:
+                            return GE;
+                        case LE:
+                            return GT;
+                        case EQ:
+                            return NEQ;
+                        case NEQ:
+                            return EQ;
+                    }
+                };
+
                 if (isdigit(c)) ///LHS is double literal
                 {
                     auto readNumber = [&, this](char first) -> double
@@ -329,82 +349,139 @@ FSM FSMParser::readFSM()
                     if (isdigit(c)) //both numbers
                     {
                         double RHS = readNumber(c);
-                        if (evaluateComparisonOp<double>(LHS, op, RHS))
+                        int state = checkState(nextString());
+                        if (evaluateComparisonOp<double>(LHS, op, RHS)) commands.push_back(make_unique<JumpCommand>(state));
+                    }
+                    else
+                    {
+                        string varN;
+                        while (!infile && !isspace(c))
                         {
-
+                            varN += c;
+                            infile.get(c);
                         }
+                        if (varN.empty() || varN[0] =='"') throw runtime_error("invalid RHS '" + varN + "'");
+                        Variable* RHS = getVar(varN);
+                        if (RHS->getType() != DOUBLE) throw runtime_error("comparing double to non double");
+
+                        int state = checkState(nextString());
+
+                        ComparisonOp negatedRelop = negateRelop(op);
+
+                        commands.push_back(make_unique<JumpOnComparisonCommand<double>>(RHS, LHS, state, negatedRelop));
+                    }
+                }
+
+                else if (c == '"') //string
+                {
+                    string LHS;
+                    c = nextRealChar("Unfinished string");
+                    while (c != '"')
+                    {
+                        if (!infile) throw "unexpected end whilst parsing string";
+                        LHS += c;
+                        infile.get(c);
                     }
 
+                    ComparisonOp op = readComparisonOp();
+
+                    c = nextRealChar("Unfinished jump on comparison");
+                    if (!infile) throw "unexpected end whilst parsing comparison";
+                    if (c == '"') //another string
+                    {
+                        string RHS;
+                        infile.get(c);
+                        while (c != '"')
+                        {
+                            RHS += c;
+                            infile.get(c);
+                            if (!infile) throw "unexpected end whilst parsing string";
+                        }
+
+                        int state = checkState(nextString());
+                        if (evaluateComparisonOp<string>(LHS, op, RHS)) commands.push_back(make_unique<JumpCommand>(state));
+                    }
+                    else
+                    {
                         string varN;
-                    while (!infile.eof() && !isspace(c))
+                        while (isalnum(c))
+                        {
+                            varN += c;
+                            infile.get(c);
+                            if (!infile) throw "unfinished RHS";
+                        }
+                        
+                        Variable* var = getVar(varN);
+                        int state = checkState(nextString());
+                        commands.push_back(make_unique<JumpOnComparisonCommand<string>>(var, LHS, state, negateRelop(op)));
+                    }
+                }
+
+                else
+                {
+                    //read LHS variable
+                    string varN;
+                    while (!infile && !isspace(c))
                     {
                         varN += c;
                         infile.get(c);
                     }
-                }
 
-                //read LHS variable
-                string varN;
-                while (!infile.eof() && !isspace(c))
-                {
-                    varN += c;
-                    infile.get(c);
-                }
+                    Variable* LHS = getVar(varN);
 
-                Variable* LHS = getVar(varN);
+                    ComparisonOp opType = readComparisonOp();
 
-                ComparisonOp opType = readComparisonOp();
+                    //get RHS
+                    string comparitor = nextString();
 
-                //get RHS
-                string comparitor = nextString();
+                    string stateName = nextString();
 
-                string stateName = nextString();
-
-                try
-                {
-                    double d = stod(comparitor);
-                    if (stateName == "pop")
+                    try
                     {
-                        commands.push_back(make_unique<JumpOnComparisonCommand<double>>(LHS, d, fsm, opType));
-                    }
-                    else
-                    {
-                        int state = checkState(stateName);
-                        commands.push_back(make_unique<JumpOnComparisonCommand<double>>(LHS, d, state, opType));
-                    }
-
-                }
-                catch (invalid_argument&)
-                {
-                    if (stateName == "pop")
-                    {
-                        if (comparitor[0] == '"') //string
+                        double d = stod(comparitor);
+                        if (stateName == "pop")
                         {
-                            comparitor = peelQuotes(comparitor);
-                            commands.push_back(make_unique<JumpOnComparisonCommand<string>>(LHS, comparitor, fsm, opType));
-
+                            commands.push_back(make_unique<JumpOnComparisonCommand<double>>(LHS, d, fsm, opType));
+                        }
+                        else
+                        {
+                            int state = checkState(stateName);
+                            commands.push_back(make_unique<JumpOnComparisonCommand<double>>(LHS, d, state, opType));
                         }
 
-                        else //identifier
-                        {
-                            commands.push_back(make_unique<JumpOnComparisonCommand<Variable*>>
-                                                       (LHS, getVar(comparitor), fsm, opType));
-                        }
                     }
-                    else
+                    catch (invalid_argument&)
                     {
-                        int state = checkState(stateName);
-                        if (comparitor[0] == '"') //string
+                        if (stateName == "pop")
                         {
-                            comparitor = peelQuotes(comparitor);
-                            commands.push_back(make_unique<JumpOnComparisonCommand<string>>(LHS, comparitor, state, opType));
+                            if (comparitor[0] == '"') //string
+                            {
+                                comparitor = peelQuotes(comparitor);
+                                commands.push_back(make_unique<JumpOnComparisonCommand<string>>(LHS, comparitor, fsm, opType));
 
+                            }
+
+                            else //identifier
+                            {
+                                commands.push_back(make_unique<JumpOnComparisonCommand<Variable*>>
+                                                           (LHS, getVar(comparitor), fsm, opType));
+                            }
                         }
-
-                        else //identifier
+                        else
                         {
-                            commands.push_back(make_unique<JumpOnComparisonCommand<Variable*>(LHS, getVar(comparitor),
-                                                                                              state, opType);
+                            int state = checkState(stateName);
+                            if (comparitor[0] == '"') //string
+                            {
+                                comparitor = peelQuotes(comparitor);
+                                commands.push_back(make_unique<JumpOnComparisonCommand<string>>(LHS, comparitor, state, opType));
+
+                            }
+
+                            else //identifier
+                            {
+                                commands.push_back(make_unique<JumpOnComparisonCommand<Variable*>>(LHS, getVar(comparitor),
+                                                                                                  state, opType));
+                            }
                         }
                     }
                 }
@@ -553,7 +630,7 @@ FSM FSMParser::readFSM()
             infile.get(c);
             while (isspace(c))
             {
-                if (infile.eof()) throw runtime_error("State '" + newState->getName() + "' not ended");
+                if (!infile) throw runtime_error("State '" + newState->getName() + "' not ended");
                 infile.get(c);
             }
             if (c != ';') throw "Expected semicolon";
@@ -561,14 +638,14 @@ FSM FSMParser::readFSM()
             str = nextCommand();
         }
 
-        newState->setInstructions(commands);
+        newState->setInstructions(move(commands));
         stateMap[currentStateNum] = move(newState);
     }
 
     vector<unique_ptr<State>> st;
     //works in order
-    for (auto& p : stateMap) st.push_back(p.second);
+    for (auto& p : stateMap) st.push_back(move(p.second));
 
-    fsm.setStates(st);
+    fsm.setStates(move(st));
     return fsm;
 }

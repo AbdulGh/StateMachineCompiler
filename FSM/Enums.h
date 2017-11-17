@@ -22,26 +22,6 @@ bool evaluateComparisonOp(T LHS, ComparisonOp op, T RHS)
             return LHS == RHS;
     }
 }
-
-ComparisonOp negateComparisonOp(ComparisonOp op)
-{
-    switch(op)
-    {
-        case GT:
-            return LE;
-        case GE:
-            return LT;
-        case LT:
-            return GE;
-        case LE:
-            return GT;
-        case EQ:
-            return NEQ;
-        case NEQ:
-            return EQ;
-    }
-}
-
 enum ExpressionType{PLUS, MINUS, MUL, DIV, MOD, POW, AND, OR};
 enum Type {DOUBLE, STRING};
 

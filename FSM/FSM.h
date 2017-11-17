@@ -6,13 +6,8 @@
 #include <stack>
 
 #include "Variable.h"
-
-
-class State;
-template<class T> class PushCommand;
-class PopCommand;
-class ReturnCommand;
-template<class T> class JumpOnComparisonCommand;
+#include "State.h"
+#include "Command.h"
 
 class FSM
 {

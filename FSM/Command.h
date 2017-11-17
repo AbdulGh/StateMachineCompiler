@@ -114,8 +114,8 @@ template <typename T>
 class JumpOnComparisonCommand: public AbstractCommand
 {
 public:
-    JumpOnComparisonCommand(Variable*& varPtr, T compareTo, int state, ComparisonOp type);
-    JumpOnComparisonCommand(Variable*& varPtr, T compareTo, FSM& stackOwner, ComparisonOp type);
+    JumpOnComparisonCommand(Variable* varPtr, T compareTo, int state, ComparisonOp type);
+    JumpOnComparisonCommand(Variable* varPtr, T compareTo, FSM& stackOwner, ComparisonOp type);
     void execute() override;
 private:
     Variable* var;
