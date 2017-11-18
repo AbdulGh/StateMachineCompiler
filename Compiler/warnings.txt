@@ -1,3 +1,0 @@
-OPTIMISATION : USELESS OP : Constant comparison: 'jumpif 1.000000 = 0.000000 F0_main_6;' (line 10)
-OPTIMISATION : USELESS OP : Constant comparison: 'jumpif 1.000000 = 0.000000 F0_main_11;' (line 13)
-OPTIMISATION : USELESS OP : Constant comparison: 'jumpif 1.000000 = 0.000000 F0_main_16;' (line 16)

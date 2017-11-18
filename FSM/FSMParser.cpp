@@ -105,13 +105,13 @@ string FSMParser::nextCommand(bool expecting)
     char c = nextRealChar(expecting ? "End expected" : "");
 
     string str;
-    while (!isspace(c) && !infile)
+    while (!isspace(c) && infile)
     {
         if (c == ';') break;
         str += c;
         infile.get(c);
     }
-    if (!infile) infile.unget();
+    if (infile) infile.unget();
     return str;
 }
 
@@ -133,7 +133,7 @@ char FSMParser::nextRealChar(string error = "")
 
 string FSMParser::getVarName()
 {
-    string varN = "";
+    string varN;
     char c = nextRealChar("Unexpected end when reading variable");
     if (isdigit(c)) throw runtime_error("Variables cannot begin with a digit");
     while (c != ';' && !isspace(c))
@@ -170,7 +170,7 @@ FSM FSMParser::readFSM()
     string str = nextCommand();
     stateNameMap[str] = 0;
     int nextUnusedState = 1;
-    while (!infile && !str.empty())
+    while (infile && !str.empty())
     {
         if (str == "double")
         {
@@ -203,7 +203,7 @@ FSM FSMParser::readFSM()
     infile.clear();
     infile.seekg(0, ios::beg);
 
-    while (!infile)
+    while (infile)
     {
         //get state name
         while (infile.get(c) && isspace(c));
@@ -237,24 +237,7 @@ FSM FSMParser::readFSM()
                     if (!infile) throw "Unexpected end during print command";
                 }
 
-                if (c != '"')
-                {
-                    string varN;
-                    while (!isspace(c))
-                    {
-                        if (c == ';')
-                        {
-                            infile.unget();
-                            break;
-                        }
-                        varN += c;
-                        infile.get(c);
-                        if (!infile) throw runtime_error("identifier not finished");
-                    }
-                    commands.push_back(make_unique<PrintCommand<Variable*>>(getVar(varN)));
-                }
-
-                else
+                if (c == '"')
                 {
                     infile.get(c);
                     string strToPrint;
@@ -271,6 +254,34 @@ FSM FSMParser::readFSM()
                         if (!infile) throw "Unexpected end when reading print string";
                     }
                     commands.push_back(make_unique<PrintCommand<string>>(strToPrint));
+                }
+                else
+                {
+                    string printed;
+                    while (!isspace(c))
+                    {
+                        if (c == ';')
+                        {
+                            infile.unget();
+                            break;
+                        }
+                        printed += c;
+                        infile.get(c);
+                        if (!infile) throw runtime_error("print command not finished");
+                    }
+                    if (isdigit(printed[0]))
+                    {
+                        try
+                        {
+                            stod(printed);
+                            commands.push_back(make_unique<PrintCommand<string>>(printed));
+                        }
+                        catch (invalid_argument&)
+                        {
+                            throw runtime_error("Bad print statement 'print " + printed + "'");
+                        }
+                    }
+                    else commands.push_back(make_unique<PrintCommand<Variable*>>(getVar(printed)));
                 }
             }
 
@@ -355,7 +366,7 @@ FSM FSMParser::readFSM()
                     else
                     {
                         string varN;
-                        while (!infile && !isspace(c))
+                        while (infile && !isspace(c))
                         {
                             varN += c;
                             infile.get(c);
@@ -421,7 +432,7 @@ FSM FSMParser::readFSM()
                 {
                     //read LHS variable
                     string varN;
-                    while (!infile && !isspace(c))
+                    while (infile && !isspace(c))
                     {
                         varN += c;
                         infile.get(c);
@@ -505,7 +516,7 @@ FSM FSMParser::readFSM()
                         double d = stod(str);
                         commands.push_back(make_unique<PushCommand<double>>(d, fsm));
                     }
-                    catch (invalid_argument e)
+                    catch (invalid_argument&)
                     {
                         if (str[0] == '"') //string
                         {
@@ -549,7 +560,7 @@ FSM FSMParser::readFSM()
                     if (LHS->getType() != DOUBLE) throw runtime_error("Assigning double to " + LHS->getType());
                     commands.push_back(make_unique<AssignVarCommand<double>>(LHS, d)); //just a constant
                 }
-                catch (invalid_argument e)
+                catch (invalid_argument&)
                 {
                     if (RHS[0] == '"') //assigning string
                     {
