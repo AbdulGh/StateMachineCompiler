@@ -42,7 +42,7 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
                 }
                 case CommandType::ASSIGNVAR:
                 {
-                    auto avc = static_cast<AssignVarCommand *>(instr.get());
+                    auto avc = static_cast<AssignVarCommand*>(instr.get());
                     const string& lhs = avc->getData();
                     auto it = find_if(genSet.begin(), genSet.end(),
                                       [&, lhs](const Assignment& ass)
@@ -54,7 +54,7 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
                 }
                 case CommandType::DECLAREVAR:
                 {
-                    DeclareVarCommand *dvc = static_cast<DeclareVarCommand *>(instr.get());
+                    DeclareVarCommand* dvc = static_cast<DeclareVarCommand*>(instr.get());
                     const string& lhs = dvc->getData();
                     auto it = find_if(genSet.begin(), genSet.end(),
                                       [&, lhs](const Assignment& ass)
@@ -99,6 +99,7 @@ void AssignmentPropogationDataFlow::finish()
     }
 }
 
+//LiveVariableDataFlow
 #define insertAndCheckUpwardExposed(inserting) \
     if (!isdigit(inserting[0]) && inserting[0] != '"')\
     {\
@@ -108,7 +109,6 @@ void AssignmentPropogationDataFlow::finish()
         usedVars.insert(inserting);\
     }
 
-//LiveVariableDataFlow
 LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& st)
         : AbstractDataFlow(cfg, st)
 {

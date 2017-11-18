@@ -43,16 +43,17 @@ namespace DataFlow
     }
 
     template<typename T>
-    std::set<T> intersectPredecessors(CFGNode *node, std::unordered_map<std::string, std::set<T>>& outSets)
+    std::set<T> intersectPredecessors(CFGNode* node, std::unordered_map<std::string, std::set<T>>& outSets)
     {
-        std::vector < std::set<T>* > predSets; //by reference!
+        std::vector <std::set<T>*> predSets; //by reference!
         for (const auto& pair : node->getPredecessorMap())
         {
             std::set<T>& parentOut = outSets[pair.first];
             if (!parentOut.empty()) predSets.push_back(&parentOut);
+            else return std::set<T>();
         }
 
-        if (predSets.empty()) return std::set<T>(); //return set
+        if (predSets.empty()) return std::set<T>();
         else return move(intersectSets(predSets));
     }
 
