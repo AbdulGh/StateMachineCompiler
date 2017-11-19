@@ -14,7 +14,8 @@ class FunctionTable;
 
 class CFGNode;
 
-/*This class owns the nodes*/
+//This class owns the nodes
+typedef std::unordered_map<std::string, std::unique_ptr<CFGNode>>::iterator NodeMapIterator;
 class ControlFlowGraph
 {
 private:
@@ -30,7 +31,8 @@ public:
     CFGNode* createNode(const std::string& name, bool overwrite, bool last, FunctionSymbol* parentFunc);
     CFGNode* createNode(const std::string& name, bool overwrite, bool last);
     CFGNode* getNode(const std::string& name);
-    void removeNode(std::string name);
+    NodeMapIterator removeNode(std::string name);
+    NodeMapIterator removeNode(NodeMapIterator it);
     std::unordered_map<std::string, std::unique_ptr<CFGNode>>& getCurrentNodes();
     std::string getStructuredSource();
     std::string getDotGraph();

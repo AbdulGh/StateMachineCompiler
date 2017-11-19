@@ -116,17 +116,18 @@ void SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
 /*SymbolicExecutionManager*/
 unordered_map<string, shared_ptr<SymbolicVarSet>>& SymbolicExecutionManager::search()
 {
-    feasableVisits.clear();
+    visitedNodes.clear();
     tags.clear();
     for (auto& pair : cfg.getCurrentNodes()) tags[pair.first] = make_shared<SymbolicVarSet>();
     shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(reporter);
     visitNode(sef, cfg.getFirst());
-    for (auto& p : feasableVisits)
+    auto it = cfg.getCurrentNodes().begin();
+    while (it != cfg.getCurrentNodes().end())
     {
-        if (p.second == 0) // no feasable visits - remove
+        if (visitedNodes.find(it->first) == visitedNodes.end()) // no feasable visits - remove
         {
-            reporter.optimising(Reporter::DEADCODE, "State '" + p.first + "' is unreachable and will be removed");
-            CFGNode* lonelyNode = cfg.getNode(p.first);
+            reporter.optimising(Reporter::DEADCODE, "State '" + it->first + "' is unreachable and will be removed");
+            CFGNode* lonelyNode = it->second.get();
             if (lonelyNode->getCompSuccess() != nullptr) lonelyNode->getCompSuccess()->removeParent(lonelyNode);
             if (lonelyNode->getCompFail() != nullptr) lonelyNode->getCompFail()->removeParent(lonelyNode);
             for (auto& parentPair : lonelyNode->getPredecessorMap())
@@ -144,8 +145,9 @@ unordered_map<string, shared_ptr<SymbolicVarSet>>& SymbolicExecutionManager::sea
                 else throw runtime_error("bad parent");
                 parent->setComp(nullptr);
             }
-            cfg.removeNode(p.first);
+            it = cfg.removeNode(it->first);
         }
+        else ++it;
     }
     return tags;
 }
@@ -188,11 +190,27 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     for (const auto& command : n->getInstrs())
     {
         //might be in a loop
-        if (command->getType() == CommandType::EXPR) sef->symbolicVarSet->findVar(command->getData())->userInput();
+        if (command->getType() == CommandType::EXPR)
+        {
+            EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(command.get());
+            if (eec->op == MOD)
+            {
+                try
+                {
+                    stod(eec->term2);
+                    if (!command->acceptSymbolicExecution(sef)) return false;
+                }
+                catch (invalid_argument&)
+                {
+                    sef->symbolicVarSet->findVar(command->getData())->userInput();
+                }
+            }
+            else sef->symbolicVarSet->findVar(command->getData())->userInput();
+        }
         else if (!command->acceptSymbolicExecution(sef)) return false;
     }
 
-    feasableVisits[n->getName()]++;
+    visitedNodes.insert(n->getName());
 
     if (n->getName() == n->getParentGraph().getLast()->getName()) return true;
 

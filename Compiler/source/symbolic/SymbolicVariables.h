@@ -117,7 +117,7 @@ public:
     bool isFeasable() override;
     bool isDetermined() const override;
 };
-//todo check comparison strictness wrt closed bool when setting bounds
+
 //SymbolicDouble.cpp
 class SymbolicDouble : public SymbolicVariableTemplate<double>
 {

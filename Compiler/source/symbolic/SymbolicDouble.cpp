@@ -508,25 +508,24 @@ void SymbolicDouble::modSymbolicDouble(SymbolicDouble &other)
     }
 }
 
-//todo positive/negative
 ArithResult safeDivide(double a, double b, double& result)
 {
-    if (b >= 1)
+    if (abs(b) >= 1)
     {
         result = a / b;
         return ArithResult::FINE;
     }
-    if (a > numeric_limits<double>::max() * b)
+    else if (b > 0 && a > b * numeric_limits<double>::max())
     {
         result = numeric_limits<double>::max();
         return ArithResult::OVER;
     }
-    else if (a < numeric_limits<double>::min() * b)
+    else if (b < 0 && a < b * numeric_limits<double>::lowest())
     {
-        result = numeric_limits<double>::min();
+        result = numeric_limits<double>::lowest();
         return ArithResult::UNDER;
     }
-    result = a / b;
+    result = a/b;
     return ArithResult::FINE;
 }
 

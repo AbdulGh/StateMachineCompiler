@@ -59,7 +59,7 @@ namespace SymbolicExecution
     class SymbolicExecutionManager
     {
     private:
-        std::unordered_map<std::string, int> feasableVisits;
+        std::set<std::string> visitedNodes;
         std::unordered_map<std::string, std::shared_ptr<SymbolicVarSet>> tags;
 
         ControlFlowGraph& cfg;
@@ -119,9 +119,7 @@ namespace SymbolicExecution
     public:
         SymbolicExecutionManager(ControlFlowGraph& cfg, SymbolTable& sTable, Reporter& reporter):
             cfg(cfg), sTable(sTable), reporter(reporter)
-        {
-            for (const auto& pair : cfg.getCurrentNodes()) feasableVisits[pair.first] = 0;
-        };
+        {};
         std::unordered_map<std::string, std::shared_ptr<SymbolicVarSet>>& search();
     };
 }

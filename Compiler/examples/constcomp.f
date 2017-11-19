@@ -1,5 +1,7 @@
 function main() void
 {
-    if (1 < 2) print("True");
-    else print("False");
+    double x;
+    input x;
+    x = x % 5;
+    if (x > 6) print("not good");
 }

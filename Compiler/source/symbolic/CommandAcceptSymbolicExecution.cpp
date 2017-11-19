@@ -141,7 +141,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
         t1 = new SymbolicDouble("LHSconst", svs->reporter); //if we get here it's a double
         t1->setConstValue(term1);
     }
-    catch (invalid_argument e)
+    catch (invalid_argument&)
     {
         t1 = svs->symbolicVarSet->findVar(term1);
         if (t1 == nullptr)
@@ -167,7 +167,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
         t2 = new SymbolicDouble("RHSconst", svs->reporter);
         t2->setConstValue(term2);
     }
-    catch (invalid_argument)
+    catch (invalid_argument&)
     {
         t2 = svs->symbolicVarSet->findVar(term2);
         if (t2 == nullptr)

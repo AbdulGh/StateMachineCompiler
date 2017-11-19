@@ -17,9 +17,8 @@ CFGNode* ControlFlowGraph::getNode(const string& name)
     return it->second.get();
 }
 
-void ControlFlowGraph::removeNode(string name)
+NodeMapIterator ControlFlowGraph::removeNode(NodeMapIterator it)
 {
-    auto it = currentNodes.find(name);
     if (it == currentNodes.end()) throw "Check";
     unique_ptr<CFGNode>& nodePointer = it->second;
     if (nodePointer->isLastNode())
@@ -29,7 +28,13 @@ void ControlFlowGraph::removeNode(string name)
         nodePointer->getParentFunction()->setLastNode(newLast);
         if (last->getName() == nodePointer->getName()) last = newLast;
     }
-    currentNodes.erase(it);
+    return currentNodes.erase(it);
+}
+
+NodeMapIterator ControlFlowGraph::removeNode(string name)
+{
+    auto it = currentNodes.find(name);
+    return removeNode(it);
 }
 
 CFGNode* ControlFlowGraph::createNode(const string &name, bool overwrite, bool isLast, FunctionSymbol* parentFunc)
