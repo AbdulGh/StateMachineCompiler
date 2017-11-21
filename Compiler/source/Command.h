@@ -186,6 +186,14 @@ public:
                 relEnumStrs[Relations::negateRelop(op)] + term2 + " " + getData() + ";" + delim;}
     std::string condition(const std::string& delim) const {return term1 + relEnumStrs[op] + term2 + delim;}
     std::string negatedCondition(const std::string& delim) const {return term1 + relEnumStrs[Relations::negateRelop(op)] + term2 + delim;}
+    void negate()
+    {
+        StringType temp = term1Type;
+        term1Type = term2Type;
+        term2Type = temp;
+        term1.swap(term2);
+        op = Relations::negateRelop(op);
+    }
 };
 
 class InputVarCommand: public AbstractCommand

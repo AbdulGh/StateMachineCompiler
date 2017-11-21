@@ -60,6 +60,7 @@ public:
     virtual void clearEQ();
 
     virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const = 0;
+    virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, SymbolicVariable* rhs) const = 0;
     virtual const std::string getConstString() = 0;
     virtual void userInput() = 0;
     virtual void loopInit() {}
@@ -95,6 +96,7 @@ public:
 
     bool isDisjointFrom(std::shared_ptr<SymbolicVariableTemplate<T>> other);
     bool meetsConstComparison(Relations::Relop r, const std::string& rhs) override;
+    virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, SymbolicVariable* rhs) const override;
 
     virtual void addEQ(SymbolicVariable* other) override;
     void addNEQConst(const std::string& c) override;
@@ -133,6 +135,7 @@ public:
     SymbolicDouble(SymbolicDouble* other);
     SymbolicDouble(SymbolicVariable* other);
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
+    SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, SymbolicVariable* rhs) const override;
     std::unique_ptr<SymbolicVariable> clone() override;
     
     bool setTLowerBound(const double& d, bool closed = true) override;

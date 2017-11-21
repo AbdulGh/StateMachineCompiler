@@ -12,7 +12,7 @@
 #include "Reporter.h"
 #include "../symbolic/SymbolicExecution.h"
 
-/* Implemented in Compiler.cpp, Parsing.cpp, CodeGen.cpp*/
+//Implemented in Compiler.cpp, Parsing.cpp, CodeGen.cpp
 class Compiler
 {
     friend class ExpressionCodeGenerator;
@@ -37,7 +37,7 @@ private:
     std::shared_ptr<Identifier> findVariable(std::string);
     std::string quoteString(std::string& s);
 
-    /*parsing*/
+    //parsing
     void match(Type t);
     void body();
     bool statement(FunctionSymbol* fs); //returns true if the state has been ended
@@ -46,7 +46,7 @@ private:
     VariableType vtype();
     std::string ident();
 
-    /*code generation*/
+    //code generation
     VariableType genFunctionCall(FunctionSymbol*, std::shared_ptr<Identifier> toPtr = nullptr);
     void genIf(FunctionSymbol*);
     void genWhile(FunctionSymbol*);

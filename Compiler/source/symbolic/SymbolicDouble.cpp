@@ -41,6 +41,40 @@ void SymbolicDouble::loopInit()
     uniformlyChanging = true;
 }
 
+SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, SymbolicVariable* r) const
+{
+    if (r->isDetermined()) return canMeet(rel, r->getConstString());
+    SymbolicDouble* rhs = static_cast<SymbolicDouble*>(r);
+
+    switch(rel)
+    {
+        case Relations::EQ:
+            if (getTUpperBound() < rhs->getTLowerBound() || (getTLowerBound() > rhs->getTUpperBound())) return CANT;
+            return MAY;
+        case Relations::NE:
+            if (getTUpperBound() < rhs->getTLowerBound() || (getTLowerBound() > rhs->getTUpperBound())) return MUST;
+            return MAY;
+        case Relations::LE:
+            if (getTUpperBound() <= rhs->getTLowerBound()) return MUST;
+            else if (getTLowerBound() > rhs->getTUpperBound()) return CANT;
+            return MAY;
+        case Relations::LT:
+            if (getTUpperBound() < rhs->getTLowerBound()) return MUST;
+            else if (getTLowerBound() >= rhs->getTUpperBound()) return CANT;
+            return MAY;
+        case Relations::GE:
+            if (getTLowerBound() >= rhs->getTUpperBound()) return MUST;
+            else if (getTUpperBound() < rhs->getTLowerBound()) return CANT;
+            return MAY;
+        case Relations::GT:
+            if (getTLowerBound() > rhs->getTUpperBound()) return MUST;
+            else if (getTUpperBound() <= rhs->getTLowerBound()) return CANT;
+            return MAY;
+        default:
+            throw "weird enum";
+    }
+}
+
 SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, const std::string& rhstring) const
 {
     double rhs = stod(rhstring);

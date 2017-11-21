@@ -6,7 +6,7 @@
 using namespace std;
 using namespace SymbolicExecution;
 
-/*SymbolicExecutionFringe*/
+//SymbolicExecutionFringe
 SymbolicExecutionFringe::SymbolicExecutionFringe(Reporter &r) :
         reporter(r),
         parent{},
@@ -113,7 +113,7 @@ void SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
     }
 }
 
-/*SymbolicExecutionManager*/
+//SymbolicExecutionManager
 unordered_map<string, shared_ptr<SymbolicVarSet>>& SymbolicExecutionManager::search()
 {
     visitedNodes.clear();

@@ -298,6 +298,54 @@ bool SymbolicVariableTemplate<string>::meetsConstComparison(Relations::Relop r, 
     return Relations::evaluateRelop<string>(getTConstValue(), r, rhs);
 }
 
+template <typename T>
+SymbolicVariable::MeetEnum SymbolicVariableTemplate<T>::canMeet(Relations::Relop rel, SymbolicVariable *rhs) const
+{
+    throw "not yet implemented for generic vars";
+    /* todo implement this for SymbolicVariable in general
+    if (r->isDetermined()) return canMeet(rel, r->getConstString());
+    SymbolicDouble* rhs = static_cast<SymbolicDouble*>(r);
+
+    bool upperLessThanLower = !isBoundedAbove() && !rhs->isBoundedAbove()
+
+    switch(rel)
+    {
+        case Relations::EQ:
+            if ((isBoundedAbove() && rhs->isBoundedBelow() && getTUpperBound() < rhs->getTLowerBound())
+                || isBoundedBelow() && rhs->isBoundedAbove() && getTLowerBound() > rhs->getTLowerBound())
+            {
+                return CANT;
+            }
+            return MAY;
+        case Relations::NE:
+            if (isBoundedAbove() && isBoundedBelow()
+                    && (!rhs->isBoundedBelow() || rhs->getTLowerBound() <= getTLowerBound())
+                    && (!rhs->isBoundedAbove() || rhs->getTUpperBound() >= getTUpperBound()))
+            {
+                return CANT;
+            }
+            return MAY;
+        case Relations::LE:
+            if (!rhs->isBoundedBelow() && !rhs->isBoundedAbove()) return MUST;
+            if (!rhs->isBoundedBelow())
+            {
+                if (!isBoundedBelow() || (!rhs->isBoundedAbove() || rhs->getTUpperBound() > getTUpperBound()))
+            }
+        case Relations::LT:
+            if (getTUpperBound() < rhs) return MUST;
+            else if (getTLowerBound() >= rhs) return CANT;
+            return MAY;
+        case Relations::GE:
+            if (getTLowerBound() >= rhs) return MUST;
+            else if (getTUpperBound() < rhs) return CANT;
+            return MAY;
+        case Relations::GT:
+            if (getTLowerBound() > rhs) return MUST;
+            else if (getTUpperBound() <= rhs) return CANT;
+            return MAY;
+    }*/
+}
+
 template<>
 bool SymbolicVariableTemplate<double>::meetsConstComparison(Relations::Relop r, const string& rhs)
 {

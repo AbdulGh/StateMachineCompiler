@@ -142,7 +142,7 @@ void FunctionSymbol::removeReturnSuccessor(const std::string& ret)
     else returnTo.erase(it);
 }
 
-/*generation*/
+//generation
 void FunctionSymbol::genNewState(std::string n)
 {
     if (!endedState) throw "Unfinished state";
