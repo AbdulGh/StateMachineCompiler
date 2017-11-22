@@ -26,7 +26,6 @@ private:
     std::set<CFGNode*> nodes;
     JumpOnComparisonCommand* comp;
     bool goodPathFound = false;
-    //std::string badExample = "";
 
     //returns true if it was a node in the loop on a path to the loop exit
     bool searchNode(CFGNode* node, ChangeMap& map, SEFPointer sef, std::string& badExample);

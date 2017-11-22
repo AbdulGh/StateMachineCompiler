@@ -1,0 +1,2 @@
+OPTIMISATION : USELESS OP : Constant comparison: 'jumpif -1.000000 > 0.000000 F0_main_2;' (line 5)
+WARNING : OVERFLOW : _2_0_x could possibly exceed double limits

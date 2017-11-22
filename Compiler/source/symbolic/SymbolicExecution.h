@@ -49,7 +49,7 @@ namespace SymbolicExecution
         Reporter& reporter;
 
         std::string printPathConditions();
-        void addPathCondition(const std::string& nodeName, JumpOnComparisonCommand* jocc, bool negate = false);
+        bool addPathCondition(const std::string& nodeName, JumpOnComparisonCommand* jocc, bool negate = false);
         void error(Reporter::AlertType a, std::string s, int linenum = -1);
         void warn(Reporter::AlertType a, std::string s, int linenum = -1);
         bool isFeasable();

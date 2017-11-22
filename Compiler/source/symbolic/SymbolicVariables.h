@@ -48,12 +48,12 @@ public:
     virtual bool guaranteedEQ(SymbolicVariable* searchFor, const std::string& initName);
     virtual bool guaranteedNEQ(SymbolicVariable* searchFor, const std::string& initName);
 
-    virtual void addLT(SymbolicVariable* other);
-    virtual void addLE(SymbolicVariable* other);
-    virtual void addGT(SymbolicVariable* other);
-    virtual void addGE(SymbolicVariable* other);
-    virtual void addEQ(SymbolicVariable* other);
-    virtual void addNEQ(SymbolicVariable* other);
+    virtual bool addLT(SymbolicVariable* other);
+    virtual bool addLE(SymbolicVariable* other);
+    virtual bool addGT(SymbolicVariable* other);
+    virtual bool addGE(SymbolicVariable* other);
+    virtual bool addEQ(SymbolicVariable* other);
+    virtual bool addNEQ(SymbolicVariable* other);
     virtual void addNEQConst(const std::string& c) = 0;
     virtual void clearLess();
     virtual void clearGreater();
@@ -73,6 +73,7 @@ public:
     virtual bool unionUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setLowerBound(const std::string& ub, bool closed=true) = 0;
+    virtual void iterateTo(const std::string& to, bool closed=true) = 0;
     virtual std::string getUpperBound() const = 0;
     virtual std::string getLowerBound() const = 0;
     virtual void setConstValue(const std::string&) = 0;
@@ -98,7 +99,7 @@ public:
     bool meetsConstComparison(Relations::Relop r, const std::string& rhs) override;
     virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, SymbolicVariable* rhs) const override;
 
-    virtual void addEQ(SymbolicVariable* other) override;
+    virtual bool addEQ(SymbolicVariable* other) override;
     void addNEQConst(const std::string& c) override;
     void clearEQ() override;
     
@@ -152,6 +153,7 @@ public:
     bool unionLowerBound(const std::string& lb, bool closed = true) override;
     bool setUpperBound(const std::string& ub, bool closed = true) override;
     bool setLowerBound(const std::string& lb, bool closed = true) override;
+    void iterateTo(const std::string& to, bool closed=true);
 
     void userInput() override;
     void loopInit() override;
@@ -200,6 +202,7 @@ public:
     bool unionLowerBound(const std::string& lb, bool closed = true) override;
     bool setUpperBound(const std::string& ub, bool closed = true) override;
     bool setLowerBound(const std::string& lb, bool closed = true) override;
+    void iterateTo(const std::string& to, bool closed=true) {};
 
     void userInput() override;
     bool isBoundedBelow() const override;

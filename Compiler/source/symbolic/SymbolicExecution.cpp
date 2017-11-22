@@ -56,9 +56,9 @@ string SymbolicExecutionFringe::printPathConditions()
     return out;
 }
 
-void SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, JumpOnComparisonCommand* jocc, bool negate)
+bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, JumpOnComparisonCommand* jocc, bool negate)
 {
-    if (hasSeen(nodeName)) throw "can't visit twice";
+    if (hasSeen(nodeName)) throw "cant visit node twice";
     visitOrder.push_back(nodeName);
     Relations::Relop op = negate ? Relations::negateRelop(jocc->op) : jocc->op;
     pathConditions.insert({nodeName, Condition(jocc->term1, op, jocc->term2)});
@@ -71,17 +71,17 @@ void SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
         switch(op)
         {
             case Relations::LT:
-                t1var->addLT(t2var); break;
+                return t1var->addLT(t2var);
             case Relations::LE:
-                t1var->addLE(t2var); break;
+                return t1var->addLE(t2var);
             case Relations::GT:
-                t1var->addGT(t2var); break;
+                return t1var->addGT(t2var);
             case Relations::GE:
-                t1var->addGE(t2var); break;
+                return t1var->addGE(t2var);
             case Relations::EQ:
-                t1var->addEQ(t2var); break;
+                return t1var->addEQ(t2var);
             case Relations::NE:
-                t1var->addNEQ(t2var); break;
+                return t1var->addNEQ(t2var);
             default:
                 throw "unknown op";
         }
@@ -94,19 +94,17 @@ void SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
             case Relations::LT:
                 closed = true;
             case Relations::LE:
-                t1var->clipUpperBound(jocc->term2, closed);
-                break;
+                return t1var->clipUpperBound(jocc->term2, closed);
             case Relations::GT:
                 closed = true;
             case Relations::GE:
-                t1var->clipLowerBound(jocc->term2, closed);
-                break;
+                return t1var->clipLowerBound(jocc->term2, closed);
             case Relations::EQ:
                 t1var->setConstValue(jocc->term2);
-                break;
+                return true;
             case Relations::NE:
                 t1var->addNEQConst(jocc->term2);
-                break;
+                return true;
             default:
                 throw "unknown relop";
         }

@@ -182,6 +182,36 @@ void SymbolicDouble::setConstValue(const std::string& c)
     setTConstValue(stod(c));
 }
 
+void SymbolicDouble::iterateTo(const std::string& to, bool closed)
+{
+    double toD;
+    try {toD = stod(to);}
+    catch (invalid_argument&) {throw "double asked to iterate to something else";}
+
+    if (toD < lowerBound)
+    {
+        if (minChange > 0) throw "cant move downwards";
+        if (numeric_limits<double>::lowest() - minChange > toD)
+        {
+            lowerBound = numeric_limits<double>::lowest();
+        }
+        else lowerBound = toD + minChange;
+
+        //upperBound = closed ? toD : nextafter(toD, numeric_limits<double>::lowest());
+    }
+    else if (toD > upperBound)
+    {
+        if (maxChange < 0) throw "cant move downwards";
+        if (numeric_limits<double>::max() - maxChange < toD)
+        {
+            upperBound = numeric_limits<double>::max();
+        }
+        else upperBound = toD + maxChange;
+
+        //lowerBound = closed ? toD : nextafter(toD, numeric_limits<double>::max());
+    }
+}
+
 bool SymbolicDouble::isBoundedAbove() const
 {
     return upperBound != numeric_limits<double>::max();
