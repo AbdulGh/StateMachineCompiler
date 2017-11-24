@@ -20,7 +20,7 @@ extern std::string VariableTypeEnumNames[];
 
 namespace Relations
 {
-    enum Relop{EQ, NE, LT, LE, GT, GE};
+    enum Relop{EQ, NEQ, LT, LE, GT, GE};
 
     template <typename T>
     bool evaluateRelop(const T& LHS, Relop rel, const T& RHS);
@@ -76,7 +76,7 @@ public:
             case Relations::EQ:
                 lexemeString = "==";
                 break;
-            case Relations::NE:
+            case Relations::NEQ:
                 lexemeString = "!=";
                 break;
             case Relations::LT:

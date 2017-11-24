@@ -99,6 +99,7 @@ bool SymbolicString::unionUpperBound(const std::string& ub, bool closed)
 
 void SymbolicString::userInput()
 {
+    SymbolicVariable::userInput();
     boundedLower = boundedUpper = false;
     lowerBound = upperBound = "";
     define();
@@ -131,7 +132,7 @@ SymbolicVariable::MeetEnum SymbolicString::canMeet(Relations::Relop rel, const s
         {
             case Relations::EQ:
                 return (leLower && neqLower) || (geUpper && neqUpper) ? CANT : MAY;
-            case Relations::NE:
+            case Relations::NEQ:
                 return (leLower && neqLower) || (geUpper && neqUpper) ? MUST : MAY;
             case Relations::LE:
                 if (leLower) return MUST;

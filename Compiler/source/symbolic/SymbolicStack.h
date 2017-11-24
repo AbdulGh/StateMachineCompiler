@@ -14,13 +14,10 @@ enum SymbolicStackMemberType {STATE, VAR};
 struct StackMember
 {
     SymbolicStackMemberType type;
-    union
-    {
-        std::unique_ptr<SymbolicVariable> varptr;
-        char* statename;
-    };
+    std::unique_ptr<SymbolicVariable> varptr;
+    char* statename = nullptr;
 
-    StackMember(std::string state)
+    StackMember(const std::string& state)
     {
         type = STATE;
         statename = new char[state.length() + 1];
@@ -39,7 +36,7 @@ struct StackMember
         type = sm.type;
         if (type == STATE)
         {
-            std::string state = sm.statename;
+            std::string state = sm.statename; //todo quick copy directly
             statename = new char[state.length() + 1];
             std::copy(state.begin(), state.end(), statename);
             statename[state.size()] = '\0';
@@ -75,7 +72,7 @@ public:
     SymbolicStack(std::shared_ptr<SymbolicStack> parent = nullptr);
     //void push(std::unique_ptr<SymbolicVariable> pushedVar);
     void push(SymbolicVariable* pushedVar);
-    void push(std::string pushedState);
+    void push(const std::string& pushedState);
     std::unique_ptr<SymbolicVariable> popVar();
     std::string popState();
     bool isEmpty();

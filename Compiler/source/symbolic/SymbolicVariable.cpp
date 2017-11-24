@@ -10,7 +10,7 @@ using namespace std;
 //SymbolicVariable
 
 SymbolicVariable::SymbolicVariable(string name, VariableType t, Reporter &r, bool initialised, bool f):
-        varN(move(name)), type(t), reporter(r), defined(initialised), feasable(f) {}
+        varN(move(name)), type(t), reporter(r), defined(initialised), feasable(f), incrementable(type == DOUBLE) {}
 
 SymbolicVariable::~SymbolicVariable()
 {
@@ -43,6 +43,16 @@ const VariableType SymbolicVariable::getType() const
 bool SymbolicVariable::isDefined() const
 {
     return defined;
+}
+
+bool SymbolicVariable::wasUserAffected() const
+{
+    return userAffected;
+}
+
+bool SymbolicVariable::isIncrementable() const
+{
+    return incrementable;
 }
 
 void SymbolicVariable::define()
@@ -263,6 +273,11 @@ void SymbolicVariable::clearLess()
     le.clear();
 }
 
+void SymbolicVariable::userInput()
+{
+    userAffected = true;
+}
+
 void SymbolicVariable::clearGreater()
 {
     auto isMe = [&, this](SymbolicVariable* poss) -> bool
@@ -323,7 +338,7 @@ SymbolicVariable::MeetEnum SymbolicVariableTemplate<T>::canMeet(Relations::Relop
                 return CANT;
             }
             return MAY;
-        case Relations::NE:
+        case Relations::NEQ:
             if (isBoundedAbove() && isBoundedBelow()
                     && (!rhs->isBoundedBelow() || rhs->getTLowerBound() <= getTLowerBound())
                     && (!rhs->isBoundedAbove() || rhs->getTUpperBound() >= getTUpperBound()))

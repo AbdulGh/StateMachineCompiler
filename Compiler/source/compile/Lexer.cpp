@@ -117,7 +117,7 @@ Token Lexer::parseToken()
                 return Token(Relations::GT);
             }
         case '!':
-            if ((c = getChar()) && c == '=') return Token(Relations::NE);
+            if ((c = getChar()) && c == '=') return Token(Relations::NEQ);
             else
             {
                 unget();

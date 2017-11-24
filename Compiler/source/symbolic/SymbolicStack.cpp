@@ -16,43 +16,34 @@ SymbolicStack::SymbolicStack(shared_ptr<SymbolicStack> parent)
 void SymbolicStack::copyParent()
 {
     if (parent == nullptr) throw runtime_error("Tried to copy parent of first frame");
-    if (currentStack.size() != 0) throw runtime_error("Cannot copy parent on a different branch");
+    if (!currentStack.empty()) throw runtime_error("Cannot copy parent on a different branch");
 
     //need to duplicate SymbolicDoubles so we don't fiddle with other branches
-    for (StackMember sm : parent->currentStack)
-    {
-        currentStack.push_back(sm);
-    }
-
+    for (StackMember sm : parent->currentStack) currentStack.push_back(move(sm)); //copies
     parent = parent->parent;
 }
 
-void SymbolicStack::push(string pushedState)
+void SymbolicStack::push(const string& pushedState)
 {
-    currentStack.push_back(StackMember(pushedState));
+    currentStack.emplace_back(StackMember(pushedState));
 }
-
-//void SymbolicStack::push(unique_ptr<SymbolicVariable> pushedVar)
-//{
-//    currentStack.push_back(StackMember(move(pushedVar)));
-//}
 
 void SymbolicStack::push(SymbolicVariable* pushedVar)
 {
-    currentStack.push_back(StackMember(pushedVar));
+    currentStack.emplace_back(StackMember(pushedVar));
 }
 
 StackMember SymbolicStack::popMember()
 {
-    while (currentStack.size() == 0)
+    while (currentStack.empty())
     {
         if (parent == nullptr) throw runtime_error("Tried to pop empty stack");
         copyParent();
     }
 
-    StackMember m = currentStack.back();
+    StackMember m = move(currentStack.back());
     currentStack.pop_back();
-    return move(m);
+    return m;
 }
 
 string SymbolicStack::popState()
@@ -82,10 +73,10 @@ SymbolicStackMemberType SymbolicStack::getTopType()
 
 bool SymbolicStack::isEmpty()
 {
-    while (currentStack.empty())
+    if (currentStack.empty())
     {
         if (parent == nullptr) return true;
-        copyParent();
+        return parent->isEmpty();
     }
     return false;
 }

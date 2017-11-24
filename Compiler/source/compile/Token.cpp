@@ -48,7 +48,7 @@ namespace Relations
         {
             case EQ:
                 return LHS == RHS;
-            case NE:
+            case NEQ:
                 return LHS != RHS;
             case LT:
                 return LHS < RHS;
@@ -72,8 +72,8 @@ namespace Relations
         {
             case Relations::Relop::EQ:
                 return Relations::Relop::EQ;
-            case Relations::Relop::NE:
-                return Relations::Relop::NE;
+            case Relations::Relop::NEQ:
+                return Relations::Relop::NEQ;
             case Relations::Relop::LT:
                 return Relations::Relop::GT;
             case Relations::Relop::LE:
@@ -92,8 +92,8 @@ namespace Relations
         switch (rel)
         {
             case Relations::Relop::EQ:
-                return Relations::Relop::NE;
-            case Relations::Relop::NE:
+                return Relations::Relop::NEQ;
+            case Relations::Relop::NEQ:
                 return Relations::Relop::EQ;
             case Relations::Relop::LT:
                 return Relations::Relop::GE;

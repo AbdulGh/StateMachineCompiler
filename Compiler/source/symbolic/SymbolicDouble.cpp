@@ -29,6 +29,7 @@ unique_ptr<SymbolicVariable> SymbolicDouble::clone()
 
 void SymbolicDouble::userInput()
 {
+    SymbolicVariable::userInput();
     upperBound = numeric_limits<double>::max();
     lowerBound = numeric_limits<double>::lowest();
     define();
@@ -51,7 +52,7 @@ SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, Symboli
         case Relations::EQ:
             if (getTUpperBound() < rhs->getTLowerBound() || (getTLowerBound() > rhs->getTUpperBound())) return CANT;
             return MAY;
-        case Relations::NE:
+        case Relations::NEQ:
             if (getTUpperBound() < rhs->getTLowerBound() || (getTLowerBound() > rhs->getTUpperBound())) return MUST;
             return MAY;
         case Relations::LE:
@@ -84,7 +85,7 @@ SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, const s
             if (isDetermined() && getTLowerBound() == rhs) return MUST;
             else if (rhs >= getTLowerBound() && rhs <= getTLowerBound()) return MAY;
             else return CANT;
-        case Relations::NE:
+        case Relations::NEQ:
             if (isDetermined()) return (getTLowerBound() != rhs) ? MUST : CANT;
             else return MAY;
         case Relations::LE:
@@ -182,12 +183,8 @@ void SymbolicDouble::setConstValue(const std::string& c)
     setTConstValue(stod(c));
 }
 
-void SymbolicDouble::iterateTo(const std::string& to, bool closed)
+void SymbolicDouble::iterateTo(double toD, bool closed)
 {
-    double toD;
-    try {toD = stod(to);}
-    catch (invalid_argument&) {throw "double asked to iterate to something else";}
-
     if (toD < lowerBound)
     {
         if (minChange > 0) throw "cant move downwards";
@@ -196,8 +193,6 @@ void SymbolicDouble::iterateTo(const std::string& to, bool closed)
             lowerBound = numeric_limits<double>::lowest();
         }
         else lowerBound = toD + minChange;
-
-        //upperBound = closed ? toD : nextafter(toD, numeric_limits<double>::lowest());
     }
     else if (toD > upperBound)
     {
@@ -207,9 +202,20 @@ void SymbolicDouble::iterateTo(const std::string& to, bool closed)
             upperBound = numeric_limits<double>::max();
         }
         else upperBound = toD + maxChange;
-
-        //lowerBound = closed ? toD : nextafter(toD, numeric_limits<double>::max());
     }
+}
+void SymbolicDouble::iterateTo(const std::string& to, bool closed)
+{
+    double toD;
+    try {toD = stod(to);}
+    catch (invalid_argument&) {throw "double asked to iterate to something else";}
+    iterateTo(toD, closed);
+}
+void SymbolicDouble::iterateTo(SymbolicVariable* to, bool closed)
+{
+    SymbolicDouble* sd = static_cast<SymbolicDouble*>(to);
+    if (upperBound <= sd->getTLowerBound()) iterateTo(sd->getTLowerBound(), closed);
+    else if (lowerBound >= sd->getTUpperBound()) iterateTo(sd->getTUpperBound(), closed);
 }
 
 bool SymbolicDouble::isBoundedAbove() const

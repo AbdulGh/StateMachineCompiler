@@ -12,8 +12,10 @@
 class SymbolicVariable : public std::enable_shared_from_this<SymbolicVariable>
 {
 protected:
-    bool defined;
+    bool defined = false;
     bool feasable = true;
+    bool incrementable = false;
+    bool userAffected = false;
     std::string varN;
     Reporter& reporter;
     VariableType type;
@@ -38,6 +40,8 @@ public:
     const std::string getName() const;
     void setName(const std::string newName);
     bool isDefined() const;
+    bool isIncrementable() const;
+    bool wasUserAffected() const;
     void define();
     virtual MonotoneEnum getMonotonicity() const = 0;
 
@@ -74,6 +78,7 @@ public:
     virtual bool setUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setLowerBound(const std::string& ub, bool closed=true) = 0;
     virtual void iterateTo(const std::string& to, bool closed=true) = 0;
+    virtual void iterateTo(SymbolicVariable* to, bool closed=true) = 0;
     virtual std::string getUpperBound() const = 0;
     virtual std::string getLowerBound() const = 0;
     virtual void setConstValue(const std::string&) = 0;
@@ -153,7 +158,9 @@ public:
     bool unionLowerBound(const std::string& lb, bool closed = true) override;
     bool setUpperBound(const std::string& ub, bool closed = true) override;
     bool setLowerBound(const std::string& lb, bool closed = true) override;
-    void iterateTo(const std::string& to, bool closed=true);
+    virtual void iterateTo(double to, bool closed=true);
+    virtual void iterateTo(const std::string& to, bool closed=true);
+    virtual void iterateTo(SymbolicVariable* to, bool closed=true);
 
     void userInput() override;
     void loopInit() override;
@@ -202,7 +209,8 @@ public:
     bool unionLowerBound(const std::string& lb, bool closed = true) override;
     bool setUpperBound(const std::string& ub, bool closed = true) override;
     bool setLowerBound(const std::string& lb, bool closed = true) override;
-    void iterateTo(const std::string& to, bool closed=true) {};
+    void iterateTo(const std::string& to, bool closed) {throw "not changing";};
+    void iterateTo(SymbolicVariable* sv, bool closed) {throw "not changing";}
 
     void userInput() override;
     bool isBoundedBelow() const override;

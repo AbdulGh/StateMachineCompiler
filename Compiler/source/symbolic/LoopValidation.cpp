@@ -50,7 +50,6 @@ inline void unionMaps(ChangeMap& cmap, CFGNode* into, CFGNode* from)
 
 //todo deal w/ equality conditions
 //todo test this with pushes/shoves
-//todo deal w/ infeasable paths
 bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, SEFPointer sef, string& badExample)
 {
     if (nodes.find(node) == nodes.end()) return false;
@@ -60,22 +59,22 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, SEFPointer sef, stri
     if (node->getName() == exitNode->getName())
     {
         SymbolicVariable* varInQuestion = sef->symbolicVarSet->findVar(comp->term1);
-        SymbolicVariable* rhVar;
-        if (comp->term2Type == AbstractCommand::StringType::ID
-            && !(rhVar = sef->symbolicVarSet->findVar(comp->term1)))
-        {
-            throw runtime_error("Unknown var '" + comp->term2 + "'");
-        }
         //check if this is a good path
         //first check if we must break the loop condition
-        if ((comp->term2Type != AbstractCommand::StringType::ID
-            && varInQuestion->canMeet(comp->op, comp->term2) == SymbolicVariable::MeetEnum::CANT)
-                ||
-            (comp->term2Type == AbstractCommand::StringType::ID
-            && varInQuestion->canMeet(comp->op, rhVar)) == SymbolicVariable::MeetEnum::CANT)
+
+        SymbolicVariable::MeetEnum meetStat;
+        if (comp->term2Type != AbstractCommand::StringType::ID)
         {
-            goodPathFound = true;
+            meetStat = varInQuestion->canMeet(comp->op, comp->term2);
         }
+        else
+        {
+            SymbolicVariable* rhVar = sef->symbolicVarSet->findVar(comp->term1);
+            if (!rhVar) throw runtime_error("Unknown var '" + comp->term2 + "'");
+            meetStat = varInQuestion->canMeet(comp->op, rhVar);
+        }
+
+        if (meetStat == SymbolicVariable::MeetEnum::CANT) goodPathFound = true;
         else
         {
             SymbolicVariable::MonotoneEnum change = varInQuestion->getMonotonicity();
@@ -95,7 +94,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, SEFPointer sef, stri
                         badExample = sef->printPathConditions() + "(" + comp->term1 + " increasing)\n";
                     }
                     break;
-                default:
+                case Relations::EQ: case Relations::NEQ:
                     throw "todo";
             }
         }
@@ -167,24 +166,27 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, SEFPointer sef, stri
                             varChanges[node] = varChanges.at(succNode);
 
                             //check if we can move out of must 'MUST'
-                            unsigned short int termChange = varChanges[node][jocc->term1];
-                            bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) && termChange & FDECREASING != 0 ||
-                                             (jocc->op == Relations::LT || jocc->op == Relations::LE) && termChange & FINCREASING != 0 ||
-                                             (jocc->op == Relations::EQ && termChange & FFRESH != 0);
-                            if (goingAway)
+                            if (jumpVar->isIncrementable())
                             {
-                                shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFailure
-                                        = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                                if (sefFailure->addPathCondition(node->getName(), jocc, true))
+                                unsigned short int termChange = varChanges[node][jocc->term1];
+                                bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) && termChange & FDECREASING != 0 ||
+                                                 (jocc->op == Relations::LT || jocc->op == Relations::LE) && termChange & FINCREASING != 0 ||
+                                                 (jocc->op == Relations::EQ && termChange & FFRESH != 0);
+                                if (goingAway)
                                 {
-                                    if (jocc->term2Type == AbstractCommand::StringType::ID) throw "todo";
-                                    sefFailure->symbolicVarSet->findVar(jocc->term1)->iterateTo(jocc->term2);
-                                    if (searchNode(failNode, varChanges, sef, badExample)) unionMaps(varChanges, node, failNode);
+                                    shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFailure
+                                            = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                                    if (sefFailure->addPathCondition(node->getName(), jocc, true))
+                                    {
+                                        if (jocc->term2Type == AbstractCommand::StringType::ID) throw "todo";
+                                        sefFailure->symbolicVarSet->findVar(jocc->term1)->iterateTo(jocc->term2);
+                                        if (searchNode(failNode, varChanges, sef, badExample)) unionMaps(varChanges, node, failNode);
+                                    }
+                                    else if (badExample.empty()) badExample = newBadExample;
                                 }
                                 else if (badExample.empty()) badExample = newBadExample;
+                                break;
                             }
-                            else if (badExample.empty()) badExample = newBadExample;
-                            break;
                         }
                     }
                     case SymbolicVariable::MeetEnum::CANT:
@@ -197,23 +199,26 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, SEFPointer sef, stri
                         {
                             varChanges[node] = varChanges.at(failNode);
 
-                            unsigned short int termChange = varChanges[node][jocc->term1];
-                            bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) && termChange & FINCREASING != 0 ||
-                                             (jocc->op == Relations::LT || jocc->op == Relations::LE) && termChange & FDECREASING != 0 ||
-                                             (jocc->op == Relations::EQ && termChange & FFRESH != 0);
-                            if (goingAway)
+                            if (jumpVar->isIncrementable())
                             {
-                                shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
-                                        = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                                if (sefSucc->addPathCondition(node->getName(), jocc))
+                                unsigned short int termChange = varChanges[node][jocc->term1];
+                                bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) && termChange & FINCREASING != 0 ||
+                                                 (jocc->op == Relations::LT || jocc->op == Relations::LE) && termChange & FDECREASING != 0 ||
+                                                 (jocc->op == Relations::EQ && termChange & FFRESH != 0);
+                                if (goingAway)
                                 {
-                                    if (jocc->term2Type == AbstractCommand::StringType::ID) throw "todo";
-                                    sefFailure->symbolicVarSet->findVar(jocc->term1)->iterateTo(jocc->term2);
-                                    if (searchNode(succNode, varChanges, sefSucc, badExample)) unionMaps(varChanges, node, succNode);
+                                    shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
+                                            = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                                    if (sefSucc->addPathCondition(node->getName(), jocc))
+                                    {
+                                        if (jocc->term2Type == AbstractCommand::StringType::ID) throw "todo";
+                                        sefFailure->symbolicVarSet->findVar(jocc->term1)->iterateTo(jocc->term2);
+                                        if (searchNode(succNode, varChanges, sefSucc, badExample)) unionMaps(varChanges, node, succNode);
+                                    }
+                                    else if (badExample.empty()) badExample = newBadExample;
                                 }
                                 else if (badExample.empty()) badExample = newBadExample;
                             }
-                            else if (badExample.empty()) badExample = newBadExample;
                         }
                         break;
                     }
@@ -242,7 +247,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, SEFPointer sef, stri
                         throw "weird enum";
                 }
             }
-            else //equal to indeterminate var
+            else //RHS is indeterminate var
             {
                 SymbolicVariable* RHS = sef->symbolicVarSet->findVar(jocc->term2);
                 if (!RHS) throw runtime_error("Unknown var '" + jocc->term2 + "'");

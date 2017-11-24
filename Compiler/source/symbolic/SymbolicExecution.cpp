@@ -80,7 +80,7 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
                 return t1var->addGE(t2var);
             case Relations::EQ:
                 return t1var->addEQ(t2var);
-            case Relations::NE:
+            case Relations::NEQ:
                 return t1var->addNEQ(t2var);
             default:
                 throw "unknown op";
@@ -102,7 +102,7 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
             case Relations::EQ:
                 t1var->setConstValue(jocc->term2);
                 return true;
-            case Relations::NE:
+            case Relations::NEQ:
                 t1var->addNEQConst(jocc->term2);
                 return true;
             default:
@@ -328,7 +328,7 @@ bool SymbolicExecutionManager::branch(shared_ptr<SymbolicExecutionFringe> sef, C
     {
         case Relations::EQ:
             return branchEQ(sef, n, lhsvar, rhsconst, reverse);
-        case Relations::NE:
+        case Relations::NEQ:
             return branchNE(sef, n, lhsvar, rhsconst, reverse);
         case Relations::LT:
             return branchLT(sef, n, lhsvar, rhsconst, reverse);
@@ -569,7 +569,7 @@ bool SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe> sef
     {
         case Relations::EQ:
             return varBranchEQ(sef, n, LHS, RHS);
-        case Relations::NE:
+        case Relations::NEQ:
             return varBranchNE(sef, n, LHS, RHS);
         case Relations::LT:
             return varBranchLT(sef, n, LHS, RHS);
