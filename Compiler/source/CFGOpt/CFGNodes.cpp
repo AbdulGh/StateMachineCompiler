@@ -369,6 +369,7 @@ bool CFGNode::swallowNode(CFGNode* other)
                         CFGNode* node = parentGraph.getNode(pc->getData());
                         if (node == nullptr) throw "pushing nonexistant node";
                         node->addPushingState(this);
+                        parentFunction->addReturnSuccessor(node);
                     }
                 }
             }
@@ -394,7 +395,7 @@ bool CFGNode::swallowNode(CFGNode* other)
             return true;
         }
     }
-    if (other->getInstrs().empty() && other->getCompSuccess() == nullptr)
+    if (other->getInstrs().empty() && other->getCompSuccess() == nullptr) //empty node that just jumps
     {
         if (compSuccess != nullptr && other->getName() == compSuccess->getName())
         {
@@ -418,7 +419,7 @@ bool CFGNode::swallowNode(CFGNode* other)
 
         else if (compFail != nullptr)
         {
-            if (compFail->getName() != other->getName()) throw "should be compfail";
+            if (compFail->getName() != other->getName())  throw "should be compfail";
             setCompFail(other->getCompFail());
         }
 
@@ -558,8 +559,19 @@ void CFGNode::setCompSuccess(CFGNode* compsucc)
     else comp = nullptr;
 }
 
+bool CFGNode::noPreds()
+{
+    return (predecessors.empty() ||
+            (predecessors.size() == 1 && predecessors.begin()->first == name));
+}
+
 void CFGNode::setCompFail(CFGNode* compareFail)
 {
+    if (name == "F2_isOdd_0")
+    {
+        int debug;
+        debug = 2;
+    }
     compFail = compareFail;
     if (compFail != nullptr) compFail->addParent(this);
 }

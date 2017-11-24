@@ -83,6 +83,7 @@ public:
     void removePushingState(const std::string& name);
     void replacePushes(const std::string& rep);
     unsigned int getNumPushingStates();
+    bool noPreds(); //accounts for self loops
     void prepareToDie(bool checkLast = true);
 
     //tries to merge with other (if it can fix the jumps so that it can do so)

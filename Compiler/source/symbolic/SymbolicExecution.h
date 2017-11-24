@@ -9,6 +9,7 @@
 #include "SymbolicStack.h"
 #include "SymbolicVarSet.h"
 #include "../compile/Token.h" //relop
+#include "../compile/Functions.h"
 
 typedef std::unique_ptr<SymbolicVariable> VarPointer;
 template <typename T>

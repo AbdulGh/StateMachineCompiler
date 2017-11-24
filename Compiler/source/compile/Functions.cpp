@@ -138,7 +138,12 @@ const std::set<CFGNode*>& FunctionSymbol::getReturnSuccessors()
 void FunctionSymbol::removeReturnSuccessor(const std::string& ret)
 {
     auto it = find_if(returnTo.begin(), returnTo.end(), [&, ret](CFGNode* other){return other->getName() == ret;});
-    if (it == returnTo.end()) throw "couldnt find ret successor";
+    if (it == returnTo.end())
+    {
+        //debug
+        printf("%s\n", cfg.getStructuredSource().c_str());
+        throw "couldnt find ret successor";
+    }
     else returnTo.erase(it);
 }
 

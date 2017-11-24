@@ -94,7 +94,8 @@ namespace Optimise
                     {
                         CFGNode* swallowing = parentit->second;
 
-                        if (!swallowing->swallowNode(current)) ++parentit;
+                        if (swallowing->getName() == current->getName()
+                            || !swallowing->swallowNode(current)) ++parentit;
                         else
                         {
                             changes = true;
@@ -102,7 +103,7 @@ namespace Optimise
                         }
                     }
                 }
-                if (preds.empty())
+                if (current->noPreds())
                 {
                     current->prepareToDie();
                     pair = nodes.erase(pair);
