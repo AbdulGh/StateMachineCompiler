@@ -37,7 +37,7 @@ public:
     bool isOfType(VariableType c);
     VariableType getReturnType() const;
     CFGNode* getLastNode();
-    void setLastNode(CFGNode* lastNode);
+    void setLastNode(CFGNode* lastNode); //deals w/ parent/pred stuff
     CFGNode* getFirstNode();
     void setFirstNode(CFGNode* firstNode);
     void giveNodesTo(FunctionSymbol* to);

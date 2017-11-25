@@ -347,6 +347,8 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
 
 bool CFGNode::swallowNode(CFGNode* other)
 {
+    if (other->getName() == name) throw "cant swallow self";
+
     const set<CFGNode*>& returnTo = parentFunction->getReturnSuccessors();
     bool otherIsOnlyRetSuccessor = isLast && returnTo.size() == 1 && (*returnTo.cbegin())->getName() == other->getName();
 
@@ -705,9 +707,9 @@ void CFGNode::removePushingState(const string& bye)
     else throw "couldnt find pushing state";
 }
 
-void CFGNode::prepareToDie(bool checklast)
+void CFGNode::prepareToDie()
 {
-    if (checklast && isLastNode()) throw "cant delete last node";
+    if (isLastNode()) throw "cant delete last node";
     if (getCompFail() != nullptr) getCompFail()->removeParent(name);
     if (getCompSuccess() != nullptr) getCompSuccess()->removeParent(name);
     removePushes();

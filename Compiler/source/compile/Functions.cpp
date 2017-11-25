@@ -10,19 +10,27 @@ FunctionSymbol::FunctionSymbol(VariableType rt, std::vector<VariableType> types,
     currentStates(1), endedState(false), cfg(c), lastNode{nullptr}
     {currentNode = cfg.createNode(prefix + "0", false, false, this); firstNode = currentNode;}
 
-
-//assumes the entire function is reachable from the first node (most unreachable parts will be removed by symbolic execution)
 void FunctionSymbol::giveNodesTo(FunctionSymbol* to)
 {
     if (to->getPrefix() == getPrefix()) return;
+
+    if (lastNode != nullptr)
+    {
+        for (auto cfgnode : returnTo)
+        {
+            cfgnode->removeParent(lastNode);
+            to->addReturnSuccessor(lastNode);
+        }
+
+        lastNode->setLast(false);
+    }
+    else if (!returnTo.empty()) throw "should be empty";
+
     for (auto& pair : cfg.getCurrentNodes())
     {
-        if (pair.second->getParentFunction()->getPrefix() == getPrefix())
-        {
-            pair.second->setParentFunction(to);
-        }
+        if (pair.second->getParentFunction()->getPrefix() == getPrefix()) pair.second->setParentFunction(to);
     }
-    to->setLastNode(getLastNode());
+
 }
 
 CFGNode* FunctionSymbol::getLastNode()
@@ -37,6 +45,7 @@ void FunctionSymbol::setLastNode(CFGNode* ln)
 
     if (lastNode != nullptr)
     {
+        if (ln->getName() == lastNode->getName()) return;
         if (lastNode->getName() == lastNode->getParentGraph().getLast()->getName())
         {
             lastNode->getParentGraph().setLast(ln->getName());

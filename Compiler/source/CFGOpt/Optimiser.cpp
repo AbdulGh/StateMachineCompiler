@@ -50,13 +50,13 @@ namespace Optimise
                     if (preds.size() != 1) ++pair;
                     else
                     {
-                        CFGNode* pred = preds.cbegin()->second;
+                        CFGNode* pred = preds.cbegin()->second; //debug pred has been erased
                         if (!pred->swallowNode(current)) ++pair;
                         else
                         {
                             current->removePushes();
                             current->getParentFunction()->giveNodesTo(pred->getParentFunction()); //does nothing if they're the same
-                            pred->getParentFunction()->setLastNode(pred);
+                            pred->getParentFunction()->setLastNode(pred); //ditto
                             current->prepareToDie();
                             pair = nodes.erase(pair);
                             changes = true;
