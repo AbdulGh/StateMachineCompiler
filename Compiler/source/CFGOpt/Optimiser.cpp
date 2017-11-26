@@ -20,7 +20,6 @@ namespace Optimise
                 if (node.second->constProp()) changes = true;
             }
         }
-
         DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();
         DataFlow::LiveVariableDataFlow(controlFlowGraph, symbolTable).worklist();
     }
@@ -50,7 +49,7 @@ namespace Optimise
                     if (preds.size() != 1) ++pair;
                     else
                     {
-                        CFGNode* pred = preds.cbegin()->second; //debug pred has been erased
+                        CFGNode* pred = preds.cbegin()->second;
                         if (!pred->swallowNode(current)) ++pair;
                         else
                         {
@@ -87,22 +86,31 @@ namespace Optimise
                         changes = true;
                     }
                 }
-                else if (preds.size() > 1)
-                {
-                    auto parentit = preds.begin();
-                    while (parentit != preds.end())
-                    {
-                        CFGNode* swallowing = parentit->second;
-
-                        if (swallowing->getName() == current->getName()
-                            || !swallowing->swallowNode(current)) ++parentit;
-                        else
-                        {
-                            changes = true;
-                            parentit = preds.erase(parentit);
-                        }
-                    }
-                }
+//                else if (preds.size() > 1)
+//                {
+//                    //todo make sure no states push themselves onto the stack and return
+//                    bool currentSelfSucc = current->getCompSuccess() != nullptr
+//                                           && current->getCompSuccess()->getName() == current->getName();
+//                    bool currentSelfFail = current->getCompFail() != nullptr
+//                                           && current->getCompFail()->getName() == current->getName();
+//
+//                    if (!currentSelfFail && !currentSelfSucc)
+//                    {
+//                        auto parentit = preds.begin();
+//                        while (parentit != preds.end())
+//                        {
+//                            CFGNode* swallowing = parentit->second;
+//
+//                            if (swallowing->getName() == current->getName()
+//                                || !swallowing->swallowNode(current)) ++parentit;
+//                            else
+//                            {
+//                                changes = true;
+//                                parentit = preds.erase(parentit);
+//                            }
+//                        }
+//                    }
+//                }
                 if (current->noPreds())
                 {
                     current->prepareToDie();

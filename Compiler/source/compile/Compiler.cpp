@@ -38,10 +38,13 @@ void Compiler::compile(stringstream& out)
     tp = stream.cbegin();
     lookahead = nextToken();
     while (lookahead.type != END) body();
+
     FunctionSymbol* mainFuncSym = functionTable.getFunction("main");
     cfg.setFirst(mainFuncSym->getFirstNode()->getName());
     cfg.setLast(mainFuncSym->getLastNode()->getName());
+
     Optimise::optimise(symbolTable, functionTable, cfg);
+
     SymbolicExecution::SymbolicExecutionManager symbolicExecutionManager
             = SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter);
     unordered_map<string, shared_ptr<SymbolicVarSet>>& tags = symbolicExecutionManager.search();

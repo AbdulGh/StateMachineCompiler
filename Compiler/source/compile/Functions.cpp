@@ -117,7 +117,11 @@ VariableType FunctionSymbol::getReturnType() const
 //each node should only be returned to once
 void FunctionSymbol::addReturnSuccessor(CFGNode* returningTo)
 {
-    if (!returnTo.insert(returningTo).second) throw "return successor already in";
+    if (!returnTo.insert(returningTo).second)
+    {
+        printf("%s\n", cfg.getStructuredSource().c_str());
+        throw "return successor already in";
+    }
     returningTo->addParent(getLastNode());
 }
 
@@ -147,12 +151,7 @@ const std::set<CFGNode*>& FunctionSymbol::getReturnSuccessors()
 void FunctionSymbol::removeReturnSuccessor(const std::string& ret)
 {
     auto it = find_if(returnTo.begin(), returnTo.end(), [&, ret](CFGNode* other){return other->getName() == ret;});
-    if (it == returnTo.end())
-    {
-        //debug
-        printf("%s\n", cfg.getStructuredSource().c_str());
-        throw "couldnt find ret successor";
-    }
+    if (it == returnTo.end())  throw "couldnt find ret successor";
     else returnTo.erase(it);
 }
 

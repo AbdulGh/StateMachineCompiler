@@ -55,24 +55,6 @@ string CFGNode::getSource(bool makeState, std::string delim, bool escape)
     return outs.str();
 }
 
-/*string CFGNode::getInstructions()
-{
-    stringstream outs;
-
-    if (makeState)
-    {
-        outs << name << delim;
-        for (auto& ac: instrs)
-        {
-            outs << ac->translation(delim);
-        }
-        if (compSuccess != nullptr) outs << comp->translation(delim);
-        if (compFail != nullptr) outs << JumpCommand(compFail->getName(), jumpline).translation(delim);
-        else outs << ReturnCommand(jumpline).translation(delim);
-        outs << "end" + delim;
-    }
-}*/
-
 string CFGNode::getDotNode()
 {
     stringstream outs;
@@ -394,10 +376,11 @@ bool CFGNode::swallowNode(CFGNode* other)
                 setCompSuccess(nullptr);
             }
             if (otherIsOnlyRetSuccessor) parentFunction->removeReturnSuccessor(other->getName());
+
             return true;
         }
     }
-    if (other->getInstrs().empty() && other->getCompSuccess() == nullptr) //empty node that just jumps
+    else if (other->getInstrs().empty() && other->getCompSuccess() == nullptr) //empty node that just jumps
     {
         if (compSuccess != nullptr && other->getName() == compSuccess->getName())
         {
@@ -450,11 +433,24 @@ void CFGNode::setInstructions(vector<unique_ptr<AbstractCommand>>& in)
     instrs.clear();
     auto it = in.begin();
 
+    stack<AbstractCommand*> intraNodeStack;
     while (it != in.end()
            && (*it)->getType() != CommandType::JUMP
            && (*it)->getType() != CommandType::CONDJUMP)
     {
-        instrs.push_back(move(*it));
+        if ((*it)->getType() == CommandType::PUSH)
+        {
+            intraNodeStack.push(it->get());
+            instrs.push_back(move(*it));
+        }
+        else if ((*it)->getType() == CommandType::POP && !intraNodeStack.empty())
+        {
+            PopCommand* pc = static_cast<PopCommand*>(it->get());
+            if (!pc->isEmpty()) instrs.emplace_back(make_unique<AssignVarCommand>
+                                                            (pc->getData(), intraNodeStack.top()->getData(), intraNodeStack.top()->getLineNum()));
+            intraNodeStack.pop();
+        }
+        else instrs.push_back(move(*it));
         ++it;
     }
 
@@ -569,11 +565,6 @@ bool CFGNode::noPreds()
 
 void CFGNode::setCompFail(CFGNode* compareFail)
 {
-    if (name == "F2_isOdd_0")
-    {
-        int debug;
-        debug = 2;
-    }
     compFail = compareFail;
     if (compFail != nullptr) compFail->addParent(this);
 }
