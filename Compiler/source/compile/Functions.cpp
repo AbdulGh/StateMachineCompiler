@@ -5,9 +5,11 @@
 
 using namespace std;
 
+typedef std::pair<CFGNode*, CFGNode*> CallPair;
+
 FunctionSymbol::FunctionSymbol(VariableType rt, std::vector<VariableType> types, std::string id, std::string p, ControlFlowGraph& c):
     returnType(rt), paramTypes(move(types)), ident(move(id)), prefix(move(p)),
-    currentStates(1), endedState(false), cfg(c), lastNode{nullptr}
+    currentStateNum(1), endedState(false), cfg(c), lastNode{nullptr}
     {currentNode = cfg.createNode(prefix + "0", false, false, this); firstNode = currentNode;}
 
 void FunctionSymbol::giveNodesTo(FunctionSymbol* to)
@@ -16,15 +18,15 @@ void FunctionSymbol::giveNodesTo(FunctionSymbol* to)
 
     if (lastNode != nullptr)
     {
-        for (auto cfgnode : returnTo)
+        for (auto cp : calls)
         {
-            cfgnode->removeParent(lastNode);
-            to->addReturnSuccessor(lastNode);
+            cp.second->removeParent(lastNode);
+            to->addFunctionCall(cp.first, cp.second);
         }
 
         lastNode->setLast(false);
     }
-    else if (!returnTo.empty()) throw "should be empty";
+    else if (!calls.empty()) throw "should be empty";
 
     for (auto& pair : cfg.getCurrentNodes())
     {
@@ -51,11 +53,11 @@ void FunctionSymbol::setLastNode(CFGNode* ln)
             lastNode->getParentGraph().setLast(ln->getName());
         }
         lastNode->setLast(false);
-        for (const auto& ret : returnTo) ret->removeParent(lastNode);
+        for (auto& cp : calls) cp.second->removeParent(lastNode);
     }
     lastNode = ln;
     lastNode->setLast();
-    for (const auto& ret : returnTo) ret->addParent(lastNode);
+    for (auto& cp : calls) cp.second->addParent(lastNode);
 }
 
 CFGNode* FunctionSymbol::getFirstNode()
@@ -84,6 +86,11 @@ void FunctionSymbol::addVar(const string& s)
     vars.insert(s);
 }
 
+unsigned int FunctionSymbol::numParams()
+{
+    return paramTypes.size();
+}
+
 bool FunctionSymbol::checkTypes(std::vector<VariableType>& potential)
 {
     return ((potential.size() == paramTypes.size()) && paramTypes == potential);
@@ -91,7 +98,7 @@ bool FunctionSymbol::checkTypes(std::vector<VariableType>& potential)
 
 const string FunctionSymbol::newStateName()
 {
-    return prefix + to_string(currentStates++);
+    return prefix + to_string(currentStateNum++);
 }
 
 const string& FunctionSymbol::getPrefix() const
@@ -115,44 +122,35 @@ VariableType FunctionSymbol::getReturnType() const
 }
 
 //each node should only be returned to once
-void FunctionSymbol::addReturnSuccessor(CFGNode* returningTo)
+void FunctionSymbol::addFunctionCall(CFGNode *calling, CFGNode *returnTo)
 {
-    if (!returnTo.insert(returningTo).second)
-    {
-        printf("%s\n", cfg.getStructuredSource().c_str());
-        throw "return successor already in";
-    }
-    returningTo->addParent(getLastNode());
+    if (!calls.insert(CallPair(calling, returnTo)).second) throw "already know about this call";
+    returnTo->addParent(getLastNode());
 }
 
-void FunctionSymbol::addReturnSuccessors(const set<CFGNode*>& newRetSuccessors)
-{
-    for (const auto& ret : newRetSuccessors) addReturnSuccessor(ret);
-}
-
-void FunctionSymbol::clearReturnSuccessors()
+void FunctionSymbol::clearFunctionCalls()
 {
     string lastName = getLastNode()->getName();
-    for (CFGNode* child : returnTo) child->removeParent(lastName);
-    returnTo.clear();
+    for (CallPair cp : calls) cp.second->removeParent(lastName);
+    calls.clear();
 }
 
-void FunctionSymbol::setReturnSuccessors(set<CFGNode*>& newRet)
+const std::set<CallPair>& FunctionSymbol::getFunctionCalls()
 {
-    clearReturnSuccessors();
-    for (const auto& newSucc : newRet) addReturnSuccessor(newSucc);
+    return calls;
 }
 
-const std::set<CFGNode*>& FunctionSymbol::getReturnSuccessors()
+void FunctionSymbol::removeFunctionCall(const std::string& calling, const std::string& ret)
 {
-    return returnTo;
-}
-
-void FunctionSymbol::removeReturnSuccessor(const std::string& ret)
-{
-    auto it = find_if(returnTo.begin(), returnTo.end(), [&, ret](CFGNode* other){return other->getName() == ret;});
-    if (it == returnTo.end())  throw "couldnt find ret successor";
-    else returnTo.erase(it);
+    auto it = find_if(calls.begin(), calls.end(), [&, ret](CallPair cp)
+        {return cp.first->getName() == calling && cp.second->getName() == ret;});
+    if (it == calls.end())
+    {
+        //debug
+        printf("%s\n", cfg.getStructuredSource().c_str());
+        throw "couldnt find function call";
+    }
+    else calls.erase(it);
 }
 
 //generation

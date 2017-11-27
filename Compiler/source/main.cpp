@@ -7,7 +7,7 @@ using namespace std;
 int main()
 {
     Lexer lexer;
-    vector<Token> st = lexer.tokenize("../examples/mutualtest.f");
+    vector<Token> st = lexer.tokenize("../examples/loop examples/mutualEvenOdd.f");
     Compiler c(st, "../warnings.txt");
     stringstream pleaseWork;
     c.compile(pleaseWork);

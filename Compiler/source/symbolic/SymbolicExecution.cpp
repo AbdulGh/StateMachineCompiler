@@ -140,10 +140,10 @@ unordered_map<string, shared_ptr<SymbolicVarSet>>& SymbolicExecutionManager::sea
                     parent->setComp(nullptr);
                     parent->setCompSuccess(nullptr);
                 }
-                else if (parent->isLastNode()) parent->getParentFunction()->removeReturnSuccessor(lonelyNode->getName());
-                else throw runtime_error("bad parent");
+                else if (!parent->isLastNode())throw runtime_error("bad parent");
                 parent->setComp(nullptr);
             }
+            lonelyNode->removePushes();
             it = cfg.removeNode(it->first);
         }
         else ++it;

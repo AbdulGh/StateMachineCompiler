@@ -44,6 +44,9 @@ void Compiler::compile(stringstream& out)
     cfg.setLast(mainFuncSym->getLastNode()->getName());
 
     Optimise::optimise(symbolTable, functionTable, cfg);
+    cout << cfg.getStructuredSource();
+    return;
+
 
     SymbolicExecution::SymbolicExecutionManager symbolicExecutionManager
             = SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter);

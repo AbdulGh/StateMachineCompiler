@@ -53,7 +53,7 @@ void FunctionTable::removeFunction(const std::string& ident)
 {
     //string ident = removeUnderscoreWrappers(bye);
     auto it = functionTable.find(ident);
-    (*it->second).clearReturnSuccessors();
+    (*it->second).clearFunctionCalls();
     if (it == functionTable.cend()) throw "cant find function to remove";
     functionTable.erase(it);
 }

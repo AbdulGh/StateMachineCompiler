@@ -16,7 +16,7 @@ class FunctionSymbol : public std::enable_shared_from_this<FunctionSymbol>
 private:
     VariableType returnType;
     std::vector<VariableType> paramTypes;
-    int currentStates;
+    int currentStateNum;
     std::string prefix;
     std::string ident;
     bool endedState;
@@ -26,7 +26,7 @@ private:
     std::set<std::string> vars; //used to save vars during function calls
     std::vector<std::unique_ptr<AbstractCommand>> currentInstrs;
     ControlFlowGraph& cfg;
-    std::set<CFGNode*> returnTo;
+    std::set<std::pair<CFGNode*, CFGNode*>> calls; //calling state, return state
 
 public:
     FunctionSymbol(VariableType returnType, std::vector<VariableType> types, std::string ident, std::string prefix, ControlFlowGraph& cfg);
@@ -44,14 +44,14 @@ public:
     CFGNode* getCurrentNode() const;
     const std::set<std::string>& getVars();
     void addVar(const std::string& id);
+    unsigned int numParams();
 
     //return stuff
-    void addReturnSuccessor(CFGNode* other);
-    void addReturnSuccessors(const std::set<CFGNode*>& newRet);
-    void clearReturnSuccessors();
-    void removeReturnSuccessor(const std::string& ret);
-    void setReturnSuccessors(std::set<CFGNode*>& newRet);
-    const std::set<CFGNode*>& getReturnSuccessors();
+    void addFunctionCall(CFGNode* calling, CFGNode* returnTo);
+    void clearFunctionCalls();
+    void removeFunctionCall(const std::string& calling, const std::string& ret);
+    const std::set<std::pair<CFGNode*, CFGNode*>>& getFunctionCalls();
+
     //codegen
     void genNewState(std::string);
     void genEndState();

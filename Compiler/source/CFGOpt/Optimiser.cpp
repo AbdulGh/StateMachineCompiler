@@ -50,12 +50,17 @@ namespace Optimise
                     else
                     {
                         CFGNode* pred = preds.cbegin()->second;
-                        if (!pred->swallowNode(current)) ++pair;
+                        bool currentIsPred = pred->getName() == current->getName();
+                        if (!currentIsPred && !pred->swallowNode(current)) ++pair;
                         else
                         {
                             current->removePushes();
-                            current->getParentFunction()->giveNodesTo(pred->getParentFunction()); //does nothing if they're the same
-                            pred->getParentFunction()->setLastNode(pred); //ditto
+                            if (currentIsPred) current->setLast(false);
+                            else
+                            {
+                                current->getParentFunction()->giveNodesTo(pred->getParentFunction()); //does nothing if they're the same
+                                pred->getParentFunction()->setLastNode(pred); //ditto
+                            }
                             current->prepareToDie();
                             pair = nodes.erase(pair);
                             changes = true;

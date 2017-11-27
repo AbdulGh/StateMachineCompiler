@@ -25,6 +25,7 @@ NodeMapIterator ControlFlowGraph::removeNode(NodeMapIterator it)
     {
         if (nodePointer->getPredecessorMap().size() != 1) throw runtime_error("Can't replace last node");
         CFGNode* newLast = last->getPredecessorMap().cbegin()->second;
+        nodePointer->getParentFunction()->giveNodesTo(newLast->getParentFunction());
         nodePointer->getParentFunction()->setLastNode(newLast);
         if (last->getName() == nodePointer->getName()) last = newLast;
     }
@@ -154,7 +155,7 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
                     if (current->getCompFail() != nullptr) first = getNode(current->getCompFail()->getName());
                     else if (current->getParentFunction()->getReturnSuccessors().size() == 1)
                     {
-                        first = *(current->getParentFunction()->getReturnSuccessors().cbegin());
+                        first = *(current->getParentFunction()->getFunctionCalls().cbegin());
                     }
                     else if (nodes.size() != 1) throw "should have been one of those";
                 }
@@ -362,9 +363,9 @@ string ControlFlowGraph::getDotGraph()
                 outs << "}\n";
                 FunctionSymbol* oldFS = functionTable.getFunction(currentFunc); //could be done by keeping a pointer but oh well
                 string oldLastNode = oldFS->getLastNode()->getName();
-                for (auto& nodePointer : oldFS->getReturnSuccessors())
+                for (auto& nodePointer : oldFS->getFunctionCalls())
                 {
-                    outs << oldLastNode << "->" << nodePointer->getName()
+                    outs << oldLastNode << "->" << nodePointer.second->getName()
                          << "[label=\"return\"];\n";
                 }
             }

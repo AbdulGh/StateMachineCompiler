@@ -83,6 +83,7 @@ string CFGNode::getDotNode()
 
 bool CFGNode::constProp(unordered_map<string,string> assignments)
 {
+    return false;
     stack<vector<unique_ptr<AbstractCommand>>::iterator> pushedThings;
 
     auto it = instrs.begin();
@@ -220,19 +221,8 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
                         {
                             CFGNode* node = parentGraph.getNode(pushc->getData());
                             if (node == nullptr) throw "found a bad state";
-                            node->removeParent(getName());
-                            bool found = false;
-                            for (const auto& returnSucc : pushc->calledFunction->getReturnSuccessors())
-                            {
-                                if (returnSucc->getName() == node->getName())
-                                {
-                                    pushc->calledFunction->removeReturnSuccessor(node->getName());
-                                    node->removeParent(pushc->calledFunction->getLastNode());
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if (!found) throw "could not find state in return successors";
+                            node->removeParent(pushc->calledFunction->getLastNode()->getName());
+                            pushc->calledFunction->removeFunctionCall(name, pushc->getData());
                         }
                         newInstrs.erase(pushedThings.top());
                         pushedThings.pop();
@@ -318,9 +308,8 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
         if (jumpingTo == nullptr) throw runtime_error("Tried to jump to nonexistent state");
         compFail = jumpingTo;
         newInstrs.erase(stackTop);
-        const set<CFGNode*>& returnTo = parentFunction->getReturnSuccessors();
-        if (returnTo.size() != 1) throw "check";
-        parentFunction->clearReturnSuccessors();
+        if (parentFunction->getFunctionCalls().size() != 1) throw "check";
+        parentFunction->clearFunctionCalls();
         skippedReturn = true;
     }
     instrs = move(newInstrs);
@@ -331,8 +320,8 @@ bool CFGNode::swallowNode(CFGNode* other)
 {
     if (other->getName() == name) throw "cant swallow self";
 
-    const set<CFGNode*>& returnTo = parentFunction->getReturnSuccessors();
-    bool otherIsOnlyRetSuccessor = isLast && returnTo.size() == 1 && (*returnTo.cbegin())->getName() == other->getName();
+    const set<pair<CFGNode*, CFGNode*>>& returnTo = parentFunction->getFunctionCalls();
+    bool otherIsOnlyRetSuccessor = isLast && returnTo.size() == 1 && (*returnTo.cbegin()).second->getName() == other->getName();
 
     if (compSuccess == nullptr)
     {
@@ -348,12 +337,13 @@ bool CFGNode::swallowNode(CFGNode* other)
                 if (newInst->getType() == CommandType::PUSH)
                 {
                     auto pc = static_cast<PushCommand*>(newInst.get());
+
                     if (pc->pushType == PushCommand::PUSHSTATE)
                     {
                         CFGNode* node = parentGraph.getNode(pc->getData());
                         if (node == nullptr) throw "pushing nonexistant node";
                         node->addPushingState(this);
-                        parentFunction->addReturnSuccessor(node);
+                        pc->calledFunction->addFunctionCall(this, node);
                     }
                 }
             }
@@ -375,7 +365,7 @@ bool CFGNode::swallowNode(CFGNode* other)
                 setComp(nullptr);
                 setCompSuccess(nullptr);
             }
-            if (otherIsOnlyRetSuccessor) parentFunction->removeReturnSuccessor(other->getName());
+            if (otherIsOnlyRetSuccessor) parentFunction->clearFunctionCalls();
 
             return true;
         }
@@ -411,7 +401,7 @@ bool CFGNode::swallowNode(CFGNode* other)
         else if (otherIsOnlyRetSuccessor && predecessors.size() == 1) setCompFail(other->getCompFail());
         else return false;
 
-        if (otherIsOnlyRetSuccessor) parentFunction->removeReturnSuccessor(other->getName());
+        if (otherIsOnlyRetSuccessor) parentFunction->clearFunctionCalls();
         if (compSuccess != nullptr && compFail != nullptr &&
                compSuccess->getName() == compFail->getName())
         {
@@ -519,7 +509,7 @@ vector<CFGNode*> CFGNode::getSuccessorVector()
     else
     {
         if (!isLastNode()) throw "only last node can return";
-        for (const auto& retSucc : getParentFunction()->getReturnSuccessors()) successors.push_back(retSucc);
+        for (const auto& retSucc : getParentFunction()->getFunctionCalls()) successors.push_back(retSucc.second);
     }
     return successors;
 }
@@ -642,7 +632,18 @@ void CFGNode::removePushes()
                 auto pc = static_cast<PushCommand*>(ac);
                 if (pc->pushType == PushCommand::PUSHSTATE)
                 {
-                    pushingInstrs.erase(instructionIt);
+                    unsigned int numParams = pc->calledFunction->numParams();
+                    instructionIt = pushingInstrs.erase(instructionIt);
+
+                    while (numParams > 0)
+                    {
+                        if (instructionIt == pushingInstrs.end()) throw "expected more pushed arguments";
+                        AbstractCommand* ac = (*instructionIt).get();
+                        if (ac->getType() != CommandType::PUSH) throw "expected more push commands";
+                        instructionIt = pushingInstrs.erase(instructionIt);
+                        --numParams;
+                    }
+
                     found = true;
                     break;
                 }
@@ -675,9 +676,9 @@ void CFGNode::replacePushes(const std::string& other)
                 if (pc->pushType == PushCommand::PUSHSTATE)
                 {
                     pc->setData(other);
-                    pc->calledFunction->removeReturnSuccessor(name);
+                    pc->calledFunction->removeFunctionCall(pushing->getName(), name);
                     removeParent(pc->calledFunction->getLastNode());
-                    pc->calledFunction->addReturnSuccessor(toReplaceWith);
+                    pc->calledFunction->addFunctionCall(pushing, toReplaceWith);
                     found = true;
                     toReplaceWith->addPushingState(pushing);
                     break;
@@ -714,7 +715,7 @@ void CFGNode::prepareToDie()
             if (pc->pushType == PushCommand::PUSHSTATE)
             {
                 parentGraph.getNode(pc->getData())->removePushingState(name);
-                pc->calledFunction->removeReturnSuccessor(pc->getData());
+                pc->calledFunction->removeFunctionCall(name, pc->getData());
             }
         }
     }

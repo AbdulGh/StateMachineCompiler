@@ -5,18 +5,17 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, shared_ptr<Identi
 {
     match(Type::CALL);
     string fid = ident();
-    FunctionSymbol* toFS = functionTable.getFunction(fid);
+    FunctionSymbol *toFS = functionTable.getFunction(fid);
     VariableType expectedType;
     if (toVar != nullptr)
     {
         expectedType = toVar->getType();
         if (expectedType != ANY && !toFS->isOfType(expectedType))
         {
-            error ("Function '" + fid + "' returns type " + TypeEnumNames[toFS->getReturnType()]
-                   + ", expected " + TypeEnumNames[expectedType]);
+            error("Function '" + fid + "' returns type " + TypeEnumNames[toFS->getReturnType()]
+                  + ", expected " + TypeEnumNames[expectedType]);
         }
     }
-    match(Type::LPAREN);
 
     //push all vars
     const set<string>& fromVars = fromFS->getVars(); //sets are ordered
@@ -25,40 +24,44 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, shared_ptr<Identi
     string nextState = fromFS->newStateName();
     fromFS->genPush(nextState, lookahead.line, toFS);
 
-
-    vector<VariableType> paramTypes;
-    while (lookahead.type != Type::RPAREN)
+    match(Type::LPAREN);
+    if (lookahead.type != Type::RPAREN)
     {
-        if (lookahead.type == Type::NUMBER)
+        vector<VariableType> paramTypes;
+        do
         {
-            string toPush = lookahead.lexemeString;
-            match(Type::NUMBER);
-            paramTypes.push_back(VariableType::DOUBLE);
-            fromFS->genPush(toPush, lookahead.line);
-        }
-        else if (lookahead.type == Type::STRINGLIT)
-        {
-            string toPush = lookahead.lexemeString;
-            match(Type::STRINGLIT);
-            paramTypes.push_back(VariableType::STRING);
-            fromFS->genPush(quoteString(toPush), lookahead.line);
-        }
-        else
-        {
-            string iid = ident();
-            shared_ptr<Identifier> idp = findVariable(iid);
-            paramTypes.push_back(idp->getType());
-            fromFS->genPush(idp->getUniqueID(), lookahead.line);
-        }
-        if (lookahead.type == Type::COMMA)
-        {
-            match(Type::COMMA);
-            if (lookahead.type == Type::RPAREN) warning("Unexpected comma in arguments for function '" + fid + "' - ignoring");
-        }
+            if (lookahead.type == Type::NUMBER)
+            {
+                string toPush = lookahead.lexemeString;
+                match(Type::NUMBER);
+                paramTypes.push_back(VariableType::DOUBLE);
+                fromFS->genPush(toPush, lookahead.line);
+            }
+            else if (lookahead.type == Type::STRINGLIT)
+            {
+                string toPush = lookahead.lexemeString;
+                match(Type::STRINGLIT);
+                paramTypes.push_back(VariableType::STRING);
+                fromFS->genPush(quoteString(toPush), lookahead.line);
+            }
+            else
+            {
+                string iid = ident();
+                shared_ptr<Identifier> idp = findVariable(iid);
+                paramTypes.push_back(idp->getType());
+                fromFS->genPush(idp->getUniqueID(), lookahead.line);
+            }
+            if (lookahead.type == Type::COMMA)
+            {
+                match(Type::COMMA);
+                if (lookahead.type == Type::RPAREN)
+                    warning("Unexpected comma in arguments for function '" + fid + "' - ignoring");
+            }
+        } while (lookahead.type != Type::RPAREN);
+
+        if (!toFS->checkTypes(paramTypes)) error("Type mismatch in parameters for function '" + fid + "'");
     }
     match(Type::RPAREN);
-
-    if (!toFS->checkTypes(paramTypes)) error("Type mismatch in parameters for function '" + fid + "'");
 
     fromFS->genJump(toFS->getFirstNode()->getName(), lookahead.line);
     CFGNode* finishedState = fromFS->getCurrentNode();
@@ -67,7 +70,7 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, shared_ptr<Identi
     CFGNode* created = fromFS->getCurrentNode();
     created->addPushingState(finishedState);
     created->addParent(toFS->getLastNode());
-    toFS->addReturnSuccessor(created);
+    toFS->addFunctionCall(finishedState, created);
 
     //pop all vars back
     for (auto rit = fromVars.rbegin(); rit != fromVars.rend(); ++rit)
