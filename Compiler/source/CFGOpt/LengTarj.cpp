@@ -13,12 +13,12 @@ using namespace std;
 
 LengTarj::LengTarj(ControlFlowGraph& cfg): controlFlowGraph(cfg), numNodes(cfg.getCurrentNodes().size())
 {
-    unsigned long actualNum = numNodes + 1; //we use zero for `none'
+    unsigned long actualNum = numNodes + 2; //we use zero for `none'
     verticies = new unique_ptr<NodeWrapper>[actualNum];
     domNums = new unsigned long[actualNum];
-    semiDomNums = new unsigned long[actualNum]{}; //zero initialized
+    semiDomNums = new unsigned long[actualNum](); //zero initialized
     domNums[0] = domNums[1] = 1;
-    forestAncestors = new unsigned long[actualNum]{};
+    forestAncestors = new unsigned long[actualNum]();
     forestMinimums = new unsigned long[actualNum];
 }
 
@@ -42,7 +42,7 @@ void LengTarj::labelNodes()
         labels[node] = n;
         semiDomNums[n] = n;
         forestMinimums[n] = n;
-        domNums[n] = n; //todo check this
+        domNums[n] = n; //might cause problems
         verticies[n] = make_unique<NodeWrapper>(node, parent, n);
         for (CFGNode* succ : node->getSuccessorVector()) if (labels.find(succ) == labels.end()) DFS(succ, labels[node]);
     };

@@ -36,7 +36,7 @@ namespace Optimise
             {
                 CFGNode* current = pair->second.get();
                 vector<unique_ptr<AbstractCommand>>& instructionList = current->getInstrs();
-                unordered_map<string, CFGNode*>& preds = current->getPredecessorMap();
+                const unordered_map<string, CFGNode*>& preds = current->getPredecessorMap();
 
                 if (current->getName() == controlFlowGraph.getFirst()->getName())
                 {
@@ -54,7 +54,7 @@ namespace Optimise
                         if (!currentIsPred && !pred->swallowNode(current)) ++pair;
                         else
                         {
-                            current->removePushes();
+                            current->removeCallsTo();
                             if (currentIsPred) current->setLast(false);
                             else
                             {
@@ -73,13 +73,13 @@ namespace Optimise
                 if (instructionList.empty() && current->getCompSuccess() == nullptr)
                 {
                     if (current->getCompFail() != nullptr) current->replacePushes(current->getCompFail()->getName());
-                    else current->removePushes();
+                    else current->removeCallsTo();
 
                     for (const auto& parentit : current->getPredecessorMap())
                     {
                         if (!parentit.second->swallowNode(current)) throw "should swallow";
                     }
-                    preds.clear();
+                    current->clearPredecessors();
                     changes = true;
                 }
                 if (preds.size() == 1)
@@ -87,35 +87,10 @@ namespace Optimise
                     CFGNode* parent = preds.cbegin()->second;
                     if (parent->swallowNode(current))
                     {
-                        preds.clear();
+                        current->clearPredecessors();
                         changes = true;
                     }
                 }
-//                else if (preds.size() > 1)
-//                {
-//                    //todo make sure no states push themselves onto the stack and return
-//                    bool currentSelfSucc = current->getCompSuccess() != nullptr
-//                                           && current->getCompSuccess()->getName() == current->getName();
-//                    bool currentSelfFail = current->getCompFail() != nullptr
-//                                           && current->getCompFail()->getName() == current->getName();
-//
-//                    if (!currentSelfFail && !currentSelfSucc)
-//                    {
-//                        auto parentit = preds.begin();
-//                        while (parentit != preds.end())
-//                        {
-//                            CFGNode* swallowing = parentit->second;
-//
-//                            if (swallowing->getName() == current->getName()
-//                                || !swallowing->swallowNode(current)) ++parentit;
-//                            else
-//                            {
-//                                changes = true;
-//                                parentit = preds.erase(parentit);
-//                            }
-//                        }
-//                    }
-//                }
                 if (current->noPreds())
                 {
                     current->prepareToDie();

@@ -10,7 +10,7 @@
 #include "../Command.h"
 
 class Compiler;
-
+struct FunctionCall;
 class FunctionSymbol : public std::enable_shared_from_this<FunctionSymbol>
 {
 private:
@@ -26,7 +26,7 @@ private:
     std::set<std::string> vars; //used to save vars during function calls
     std::vector<std::unique_ptr<AbstractCommand>> currentInstrs;
     ControlFlowGraph& cfg;
-    std::set<std::pair<CFGNode*, CFGNode*>> calls; //calling state, return state
+    std::set<FunctionCall> calls;
 
 public:
     FunctionSymbol(VariableType returnType, std::vector<VariableType> types, std::string ident, std::string prefix, ControlFlowGraph& cfg);
@@ -48,9 +48,11 @@ public:
 
     //return stuff
     void addFunctionCall(CFGNode* calling, CFGNode* returnTo);
+    void replaceReturnState(CFGNode* going, CFGNode* replaceWith);
     void clearFunctionCalls();
     void removeFunctionCall(const std::string& calling, const std::string& ret);
-    const std::set<std::pair<CFGNode*, CFGNode*>>& getFunctionCalls();
+    std::vector<CFGNode*> getNodesReturnedTo();
+    FunctionCall getOnlyFunctionCall();
 
     //codegen
     void genNewState(std::string);
@@ -85,5 +87,12 @@ public:
     unsigned long getSize() {return functionTable.size();}
 };
 
+struct FunctionCall
+{
+    CFGNode* caller;
+    CFGNode* returnTo;
+    FunctionSymbol* calledFunction;
+    unsigned int numPushedVars;
+};
 
 #endif

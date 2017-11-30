@@ -44,18 +44,17 @@ void Compiler::compile(stringstream& out)
     cfg.setLast(mainFuncSym->getLastNode()->getName());
 
     Optimise::optimise(symbolTable, functionTable, cfg);
-    cout << cfg.getStructuredSource();
-    return;
 
-
-    SymbolicExecution::SymbolicExecutionManager symbolicExecutionManager
+    /*SymbolicExecution::SymbolicExecutionManager symbolicExecutionManager
             = SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter);
     unordered_map<string, shared_ptr<SymbolicVarSet>>& tags = symbolicExecutionManager.search();
+
     vector<Loop> loops = LengTarj(cfg).findLoops();
     for (Loop loop : loops) loop.validate(tags);
-    Optimise::optimise(symbolTable, functionTable, cfg);
-    cout << cfg.destroyStructureAndGetFinalSource();
-    //cout << cfg.getDotGraph();
+
+    Optimise::optimise(symbolTable, functionTable, cfg);*/
+    //cout << cfg.destroyStructureAndGetFinalSource();
+    cout << cfg.getStructuredSource();
 }
 
 Token Compiler::nextToken()

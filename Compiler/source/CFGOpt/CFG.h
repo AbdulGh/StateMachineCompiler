@@ -58,7 +58,7 @@ private:
     std::vector<std::unique_ptr<AbstractCommand>> instrs; //pointers to allow downcasting (avoid object slicing)
     ControlFlowGraph& parentGraph;
     FunctionSymbol* parentFunction;
-    std::set<CFGNode*> pushingStates; //used to remove pushes if the node is being removed
+    std::set<std::pair<CFGNode*, FunctionSymbol*>> pushingStates; //used to remove pushes if the node is being removed
     bool isLast;
     int jumpline;
 
@@ -68,6 +68,7 @@ public:
     bool addParent(CFGNode*); //returns false if parent was already in
     void removeParent(CFGNode*);
     void removeParent(const std::string&);
+    void clearPredecessors(); //does not remove successor relationships
 
     void appendDeclatation(VariableType type, std::string varName);
     void setInstructions(std::vector<std::unique_ptr<AbstractCommand>>& in);
@@ -77,21 +78,21 @@ public:
     void setParentFunction(FunctionSymbol* pf);
     void setLast(bool last = true);
 
-    void addPushingState(CFGNode* cfgn);
+    void addFunctionCall(CFGNode *cfgn, FunctionSymbol *fs);
     //assumes the pop is handled elsewhere
-    void removePushes();
-    void removePushingState(const std::string& name);
+    void removeCallsTo();
+    void removeFunctionCall(const std::string& name, FunctionSymbol* fs);
     void replacePushes(const std::string& rep);
     unsigned int getNumPushingStates();
     bool noPreds(); //accounts for self loops
     void prepareToDie();
 
     //tries to merge with other (if it can fix the jumps so that it can do so)
-    //returns true if successful
+    //returns true if successful and relationship can be forgotten
     bool swallowNode(CFGNode* other);
 
     JumpOnComparisonCommand* getComp();
-    std::unordered_map<std::string, CFGNode*>& getPredecessorMap();
+    const std::unordered_map<std::string, CFGNode*>& getPredecessorMap();
     std::vector<CFGNode*> getPredecessorVector();
     std::vector<CFGNode*> getSuccessorVector();
     CFGNode* getCompSuccess();

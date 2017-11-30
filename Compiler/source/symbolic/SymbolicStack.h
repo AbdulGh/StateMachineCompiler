@@ -15,14 +15,12 @@ struct StackMember
 {
     SymbolicStackMemberType type;
     std::unique_ptr<SymbolicVariable> varptr;
-    char* statename = nullptr;
+    std::string statename;
 
     StackMember(const std::string& state)
     {
         type = STATE;
-        statename = new char[state.length() + 1];
-        std::copy(state.begin(), state.end(), statename);
-        statename[state.size()] = '\0';
+        statename = std::string(state);
     }
     StackMember(SymbolicVariable* toPush)
     {
@@ -34,28 +32,12 @@ struct StackMember
     StackMember(const StackMember& sm)
     {
         type = sm.type;
-        if (type == STATE)
-        {
-            std::string state = sm.statename; //todo quick copy directly
-            statename = new char[state.length() + 1];
-            std::copy(state.begin(), state.end(), statename);
-            statename[state.size()] = '\0';
-        }
+        if (type == STATE)  statename = std::string(sm.statename);
         else
         {
             if (sm.varptr->getType() == DOUBLE) varptr = std::make_unique<SymbolicDouble>(sm.varptr.get());
             else if (sm.varptr->getType() == STRING) varptr = std::make_unique<SymbolicString>(sm.varptr.get());
             else throw "bad dtype";
-        }
-    }
-
-    ~StackMember()
-    {
-        if (type == STATE) delete[] statename;
-        else
-        {
-            varptr.reset();
-            varptr = nullptr;
         }
     }
 };

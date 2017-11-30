@@ -122,6 +122,11 @@ unordered_map<string, shared_ptr<SymbolicVarSet>>& SymbolicExecutionManager::sea
     auto it = cfg.getCurrentNodes().begin();
     while (it != cfg.getCurrentNodes().end())
     {
+        if (it->second->isLastNode()) //debug
+        {
+            ++it;
+            continue;
+        }
         if (visitedNodes.find(it->first) == visitedNodes.end()) // no feasable visits - remove
         {
             reporter.optimising(Reporter::DEADCODE, "State '" + it->first + "' is unreachable and will be removed");
@@ -140,10 +145,10 @@ unordered_map<string, shared_ptr<SymbolicVarSet>>& SymbolicExecutionManager::sea
                     parent->setComp(nullptr);
                     parent->setCompSuccess(nullptr);
                 }
-                else if (!parent->isLastNode())throw runtime_error("bad parent");
+                else if (!parent->isLastNode()) throw runtime_error("bad parent"); //done in removeCallsTo
                 parent->setComp(nullptr);
             }
-            lonelyNode->removePushes();
+            lonelyNode->removeCallsTo();
             it = cfg.removeNode(it->first);
         }
         else ++it;
