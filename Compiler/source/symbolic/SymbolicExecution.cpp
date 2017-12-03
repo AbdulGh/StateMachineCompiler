@@ -122,7 +122,7 @@ unordered_map<string, shared_ptr<SymbolicVarSet>>& SymbolicExecutionManager::sea
     auto it = cfg.getCurrentNodes().begin();
     while (it != cfg.getCurrentNodes().end())
     {
-        if (it->second->isLastNode()) //debug
+        if (it->second->isLastNode())
         {
             ++it;
             continue;

@@ -58,7 +58,7 @@ namespace Optimise
                             if (currentIsPred) current->setLast(false);
                             else
                             {
-                                current->getParentFunction()->giveNodesTo(pred->getParentFunction()); //does nothing if they're the same
+                                current->getParentFunction()->mergeInto(pred->getParentFunction()); //does nothing if they're the same
                                 pred->getParentFunction()->setLastNode(pred); //ditto
                             }
                             current->prepareToDie();
@@ -95,6 +95,7 @@ namespace Optimise
                 {
                     current->prepareToDie();
                     pair = nodes.erase(pair);
+                    changes = true;
                 }
                 else ++pair;
             }

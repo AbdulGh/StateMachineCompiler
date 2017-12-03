@@ -221,9 +221,10 @@ public:
     enum PushType{PUSHSTR, PUSHSTATE};
     PushType pushType;
     FunctionSymbol* calledFunction;
+    unsigned int pushedVars;
 
-    PushCommand(const std::string& in, int linenum, FunctionSymbol* cf = nullptr):
-            AbstractCommand(linenum), calledFunction(cf),
+    PushCommand(const std::string& in, int linenum, FunctionSymbol* cf = nullptr, unsigned int numPushedLocalVars = 0):
+            AbstractCommand(linenum), calledFunction(cf), pushedVars(numPushedLocalVars),
             pushType(cf == nullptr ? PUSHSTR : PUSHSTATE)
     {
         setData(in);

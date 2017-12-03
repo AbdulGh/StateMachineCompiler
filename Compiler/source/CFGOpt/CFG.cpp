@@ -25,7 +25,7 @@ NodeMapIterator ControlFlowGraph::removeNode(NodeMapIterator it)
     {
         if (nodePointer->getPredecessorMap().size() != 1) throw runtime_error("Can't replace last node");
         CFGNode* newLast = last->getPredecessorMap().cbegin()->second;
-        nodePointer->getParentFunction()->giveNodesTo(newLast->getParentFunction());
+        nodePointer->getParentFunction()->mergeInto(newLast->getParentFunction());
         nodePointer->getParentFunction()->setLastNode(newLast);
         if (last->getName() == nodePointer->getName()) last = newLast;
     }

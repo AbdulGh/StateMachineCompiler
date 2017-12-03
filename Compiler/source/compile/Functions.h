@@ -40,17 +40,21 @@ public:
     void setLastNode(CFGNode* lastNode); //deals w/ parent/pred stuff
     CFGNode* getFirstNode();
     void setFirstNode(CFGNode* firstNode);
-    void giveNodesTo(FunctionSymbol* to);
     CFGNode* getCurrentNode() const;
     const std::set<std::string>& getVars();
     void addVar(const std::string& id);
     unsigned int numParams();
+    unsigned int numCalls();
+
+    //deals w/ pushes & pops
+    void mergeInto(FunctionSymbol *to);
 
     //return stuff
-    void addFunctionCall(CFGNode* calling, CFGNode* returnTo);
+    void addFunctionCall(CFGNode* calling, CFGNode* returnTo, unsigned int numPushedVars);
     void replaceReturnState(CFGNode* going, CFGNode* replaceWith);
+    const std::set<FunctionCall>& getFunctionCalls() const;
     void clearFunctionCalls();
-    void removeFunctionCall(const std::string& calling, const std::string& ret);
+    void removeFunctionCall(const std::string& calling, const std::string& ret, bool fixCalling = true);
     std::vector<CFGNode*> getNodesReturnedTo();
     FunctionCall getOnlyFunctionCall();
 
@@ -93,6 +97,14 @@ struct FunctionCall
     CFGNode* returnTo;
     FunctionSymbol* calledFunction;
     unsigned int numPushedVars;
+
+    FunctionCall(CFGNode* callerNode, CFGNode* returnToNode, unsigned int numLocalVars, FunctionSymbol* cf):
+            caller(callerNode), returnTo(returnToNode), numPushedVars(numLocalVars), calledFunction(cf) {}
+
+    bool operator< (const FunctionCall& r) const
+    {
+        return caller->getName() < r.caller->getName() || returnTo->getName() < r.returnTo->getName();
+    }
 };
 
 #endif

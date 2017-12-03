@@ -8,9 +8,10 @@
 #include "../compile/Token.h"
 #include "../Command.h"
 #include "../compile/Reporter.h"
+#include "../compile/Functions.h"
 
-class FunctionSymbol;
-class FunctionTable;
+//class FunctionSymbol;
+//class FunctionTable;
 
 class CFGNode;
 
@@ -58,6 +59,7 @@ private:
     std::vector<std::unique_ptr<AbstractCommand>> instrs; //pointers to allow downcasting (avoid object slicing)
     ControlFlowGraph& parentGraph;
     FunctionSymbol* parentFunction;
+    unique_ptr<FunctionCall> functionCall = nullptr;
     std::set<std::pair<CFGNode*, FunctionSymbol*>> pushingStates; //used to remove pushes if the node is being removed
     bool isLast;
     int jumpline;
