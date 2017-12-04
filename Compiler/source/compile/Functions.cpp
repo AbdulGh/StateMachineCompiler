@@ -2,6 +2,7 @@
 #include <algorithm>
 
 #include "Functions.h"
+#include "../CFGOpt/CFG.h"
 
 using namespace std;
 
@@ -10,14 +11,13 @@ FunctionSymbol::FunctionSymbol(VariableType rt, vector<VariableType> types, stri
     currentStateNum(1), endedState(false), cfg(c), lastNode{nullptr}
     {currentNode = cfg.createNode(prefix + "0", false, false, this); firstNode = currentNode;}
 
-void FunctionSymbol::mergeInto(FunctionSymbol *to)
+bool FunctionSymbol::mergeInto(FunctionSymbol *to)
 {
-    if (to->getPrefix() == getPrefix()) return;
+    if (to->getPrefix() == getPrefix()) return false;
 
+    /* todo do I need this?
     if (calls.size() != 1) throw "should have only one call";
     CFGNode* returningNode = calls.begin()->returnTo;
-    returningNode->removeFunctionCall(lastNode->getName(), this);
-    
     unsigned int pushedVarsRemaining = paramTypes.size();
     if (pushedVarsRemaining > 0)
     {
@@ -66,7 +66,7 @@ void FunctionSymbol::mergeInto(FunctionSymbol *to)
                 --numVarsToErase;
             }
         }
-    }
+    }*/
 
     for (auto& pair : cfg.getCurrentNodes())
     {
@@ -74,6 +74,7 @@ void FunctionSymbol::mergeInto(FunctionSymbol *to)
     }
 
     calls.clear();
+    return true;
 }
 
 CFGNode* FunctionSymbol::getLastNode()
@@ -170,7 +171,7 @@ unsigned int FunctionSymbol::numCalls()
 //each node should only be returned to once
 void FunctionSymbol::addFunctionCall(CFGNode *calling, CFGNode *returnTo, unsigned int numPushedVars)
 {
-    if (!calls.insert(FunctionCall(calling, returnTo, numPushedVars)).second) throw "already know about this call";
+    if (!calls.insert(FunctionCall(calling, returnTo, numPushedVars, this)).second) throw "already know about this call";
     returnTo->addParent(getLastNode());
 }
 
@@ -241,7 +242,6 @@ FunctionCall FunctionSymbol::getOnlyFunctionCall()
 
 void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret, bool fixCalling)
 {
-    // instructions used in a function call:
     // FIRST STATE:
     // first push the function vars used so far
     // push the return state
@@ -424,5 +424,9 @@ void FunctionSymbol::addCommands(vector<unique_ptr<AbstractCommand>>& acs)
     currentInstrs.insert(currentInstrs.end(), make_move_iterator(acs.begin()), make_move_iterator(acs.end()));
 }
 
+bool FunctionCall::operator< (const FunctionCall& r) const
+{
+    return caller->getName() < r.caller->getName() || returnTo->getName() < r.returnTo->getName();
+}
 
 

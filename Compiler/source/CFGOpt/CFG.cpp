@@ -235,6 +235,27 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
         while (it != outputMap.end())
         {
             unique_ptr<SourceNode>& sn = it->second;
+
+            /*if (sn->getInstructions().size() == 1)
+            {
+                const unique_ptr<AbstractCommand>& onlyInstr = *(sn->getInstructions().begin());
+                if (onlyInstr->getType() == CommandType::JUMP)
+                {
+                    auto& snPreds = sn->getPredecessors();
+                    auto parentIt = snPreds.begin();
+                    while (parentIt != snPreds.end())
+                    {
+                        const unique_ptr<SourceNode>& parentNode = *parentIt;
+                        if (!parentNode->getInstructions().empty())
+                        {
+                            const unique_ptr<AbstractCommand>& lastParentInstr = *(parentNode->getInstructions().rbegin());
+                            if (lastParentInstr->getType() == CommandType::JUMP && lastParentInstr->getData() == sn->ge)
+                                //todo finish this by cycling through all parent instrs
+                        }
+                        else ++parentIt;
+                    }
+                }
+            }*/
             if (sn->getPredecessors().empty() && !sn->isFirst())
             {
                 sn->loseKids();

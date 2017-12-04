@@ -11,6 +11,8 @@
 #include "../compile/Token.h" //relop
 #include "../compile/Functions.h"
 
+//todo improve expressions in first execution (ruin determination only one way)
+
 typedef std::unique_ptr<SymbolicVariable> VarPointer;
 template <typename T>
 using VarTemplatePointer = std::shared_ptr<SymbolicVariableTemplate<T>>;

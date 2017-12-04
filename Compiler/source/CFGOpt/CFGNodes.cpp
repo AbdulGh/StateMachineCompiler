@@ -328,17 +328,15 @@ bool CFGNode::swallowNode(CFGNode* other)
 
     if (compSuccess == nullptr)
     {
-        bool canSwallow = compFail != nullptr && compFail->getName() == other->getName();
-
         if (needlessFunctionCall)
         {
             auto callStruct = parentFunction->getOnlyFunctionCall();
-            other->removeFunctionCall(callStruct.caller->getName(), parentFunction);
+            other->removeFunctionCall(callStruct.caller->getName(), other->getParentFunction());
+            parentFunction->removeFunctionCall(callStruct.caller->getName(), other->getName());
             other->parentFunction->mergeInto(parentFunction);
-            canSwallow = true;
         }
 
-        if (canSwallow)
+        else if (compFail != nullptr && compFail->getName() == other->getName())
         {
             vector<unique_ptr<AbstractCommand>> newInstrs = move(instrs);
             vector<unique_ptr<AbstractCommand>>& addingInstrs = other->getInstrs();
@@ -347,10 +345,10 @@ bool CFGNode::swallowNode(CFGNode* other)
             for (auto& newInst : addingInstrs)
             {
                 newInstrs.push_back(newInst->clone());
+
                 if (newInst->getType() == CommandType::PUSH)
                 {
-                    auto pc = static_cast<PushCommand*>(newInst.get());
-
+                    PushCommand* pc = static_cast<PushCommand*>(newInst.get());
                     if (pc->pushType == PushCommand::PUSHSTATE)
                     {
                         CFGNode* node = parentGraph.getNode(pc->getData());
@@ -435,7 +433,7 @@ void CFGNode::setInstructions(vector<unique_ptr<AbstractCommand>>& in)
     instrs.clear();
     auto it = in.begin();
 
-    stack<AbstractCommand*> intraNodeStack;
+    stack<AbstractCommand*> intraNodeStack; //std::move does not invalidate the raw pointer
     while (it != in.end()
            && (*it)->getType() != CommandType::JUMP
            && (*it)->getType() != CommandType::CONDJUMP)
@@ -445,6 +443,7 @@ void CFGNode::setInstructions(vector<unique_ptr<AbstractCommand>>& in)
             intraNodeStack.push(it->get());
             instrs.push_back(move(*it));
         }
+
         else if ((*it)->getType() == CommandType::POP && !intraNodeStack.empty())
         {
             PopCommand* pc = static_cast<PopCommand*>(it->get());

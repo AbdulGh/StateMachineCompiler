@@ -4,12 +4,15 @@
 #include <vector>
 #include <sstream>
 #include <set>
+#include <unordered_map>
 
 #include "Token.h"
-#include "../CFGOpt/CFG.h"
 #include "../Command.h"
 
 class Compiler;
+class CFGNode;
+class ControlFlowGraph;
+
 struct FunctionCall;
 class FunctionSymbol : public std::enable_shared_from_this<FunctionSymbol>
 {
@@ -47,7 +50,7 @@ public:
     unsigned int numCalls();
 
     //deals w/ pushes & pops
-    void mergeInto(FunctionSymbol *to);
+    bool mergeInto(FunctionSymbol *to);
 
     //return stuff
     void addFunctionCall(CFGNode* calling, CFGNode* returnTo, unsigned int numPushedVars);
@@ -101,10 +104,7 @@ struct FunctionCall
     FunctionCall(CFGNode* callerNode, CFGNode* returnToNode, unsigned int numLocalVars, FunctionSymbol* cf):
             caller(callerNode), returnTo(returnToNode), numPushedVars(numLocalVars), calledFunction(cf) {}
 
-    bool operator< (const FunctionCall& r) const
-    {
-        return caller->getName() < r.caller->getName() || returnTo->getName() < r.returnTo->getName();
-    }
+    bool operator< (const FunctionCall& r) const;
 };
 
 #endif

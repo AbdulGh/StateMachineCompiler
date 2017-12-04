@@ -10,9 +10,6 @@
 #include "../compile/Reporter.h"
 #include "../compile/Functions.h"
 
-//class FunctionSymbol;
-//class FunctionTable;
-
 class CFGNode;
 
 //This class owns the nodes
@@ -45,7 +42,6 @@ public:
     void setLast(const std::string& lastName);
 
     friend class CFGNode;
-
 };
 
 class CFGNode: public std::enable_shared_from_this<CFGNode>
@@ -59,7 +55,7 @@ private:
     std::vector<std::unique_ptr<AbstractCommand>> instrs; //pointers to allow downcasting (avoid object slicing)
     ControlFlowGraph& parentGraph;
     FunctionSymbol* parentFunction;
-    unique_ptr<FunctionCall> functionCall = nullptr;
+    std::unique_ptr<FunctionCall> functionCall = nullptr;
     std::set<std::pair<CFGNode*, FunctionSymbol*>> pushingStates; //used to remove pushes if the node is being removed
     bool isLast;
     int jumpline;
@@ -72,15 +68,15 @@ public:
     void removeParent(const std::string&);
     void clearPredecessors(); //does not remove successor relationships
 
-    void appendDeclatation(VariableType type, std::string varName);
     void setInstructions(std::vector<std::unique_ptr<AbstractCommand>>& in);
+    void appendDeclatation(VariableType type, std::string varName);
     void setCompSuccess(CFGNode* compSuccess);
     void setCompFail(CFGNode* compFail);
     void setComp(std::unique_ptr<JumpOnComparisonCommand> comp);
     void setParentFunction(FunctionSymbol* pf);
     void setLast(bool last = true);
 
-    void addFunctionCall(CFGNode *cfgn, FunctionSymbol *fs);
+    void addFunctionCall(CFGNode* cfgn, FunctionSymbol* fs);
     //assumes the pop is handled elsewhere
     void removeCallsTo();
     void removeFunctionCall(const std::string& name, FunctionSymbol* fs);
