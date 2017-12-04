@@ -69,57 +69,57 @@ bool SymbolicVariable::addGT(SymbolicVariable* other)
 {
     if (find_if(gt.begin(), gt.end(),
                 [&, other] (SymbolicVariable* t)
-                {return t->getName() == other->getName();}) != gt.end()) return isFeasable();
+                {return t->getName() == other->getName();}) != gt.end()) return feasable && other->isFeasable();
     gt.push_back(other);
     other->lt.push_back(this);
     if (other->isBoundedBelow()) clipLowerBound(other->getLowerBound(), false);
     if (isBoundedAbove()) other->clipUpperBound(getUpperBound());
-    return isFeasable();
+    return feasable && other->isFeasable();
 }
 
 bool SymbolicVariable::addGE(SymbolicVariable* other)
 {
     if (find_if(ge.begin(), ge.end(),
                 [&, other] (SymbolicVariable* t)
-                {return t->getName() == other->getName();}) != ge.end()) return isFeasable();
+                {return t->getName() == other->getName();}) != ge.end()) return feasable && other->isFeasable();
     ge.push_back(other);
     other->le.push_back(this);
 
     if (other->isBoundedBelow()) clipLowerBound(other->getLowerBound());
     if (isBoundedAbove()) other->clipUpperBound(getUpperBound());
-    return isFeasable();
+    return feasable && other->isFeasable();
 }
 
 bool SymbolicVariable::addLT(SymbolicVariable* other)
 {
     other->addGT(this);
-    return isFeasable();
+    return feasable && other->isFeasable();
 }
 
 bool SymbolicVariable::addLE(SymbolicVariable* other)
 {
     other->addGE(this);
-    return isFeasable();
+    return feasable && other->isFeasable();
 }
 
 bool SymbolicVariable::addEQ(SymbolicVariable* other)
 {
     if (find_if(eq.begin(), eq.end(),
         [&, other] (SymbolicVariable* t)
-        {return t->getName() == other->getName();}) != eq.end()) return isFeasable();
+        {return t->getName() == other->getName();}) != eq.end()) return feasable && other->isFeasable();
     eq.push_back(other);
     other->eq.push_back(this);
-    return isFeasable();
+    return feasable && other->isFeasable();
 }
 
 bool SymbolicVariable::addNEQ(SymbolicVariable* other)
 {
     if (find_if(neq.begin(), neq.end(),
                 [&, other] (SymbolicVariable* t)
-                {return t->getName() == other->getName();}) != neq.end()) return isFeasable();
+                {return t->getName() == other->getName();}) != neq.end()) return feasable && other->isFeasable();
     neq.push_back(other);
     other->neq.push_back(this);
-    return isFeasable();
+    return feasable && other->isFeasable();
 }
 
 bool SymbolicVariable::guaranteedLT(SymbolicVariable* searchFor, const string& initName)

@@ -216,7 +216,24 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
 
     visitedNodes.insert(n->getName());
 
-    if (n->getName() == n->getParentGraph().getLast()->getName()) return true;
+    if (n->isLastNode() && sef->currentStack->isEmpty())
+    {
+        if (n->getCompSuccess() != nullptr)
+        {
+            JumpOnComparisonCommand* jocc = n->getComp();
+            SymbolicVariable* LHS = sef->symbolicVarSet->findVar(jocc->term1);
+            if (LHS == nullptr)
+            {
+                sef->error(Reporter::UNDECLARED_USE, "'" + jocc->term1 + "' used without being declared",
+                           jocc->getLineNum());
+                return false;
+            }
+            if (!LHS->isDefined()) sef->warn(Reporter::UNINITIALISED_USE,
+                                             "'" + LHS->getName() + "' used before being defined", jocc->getLineNum());
+        }
+
+        return true;
+    }
 
     JumpOnComparisonCommand* jocc = n->getComp();
     if (jocc != nullptr) //is a conditional jump
@@ -361,12 +378,13 @@ bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(seflt, n->getCompSuccess());}
     else
     {
-        CFGNode* failNode = getFailNode(seflt, n);
-        if (failNode == nullptr)
+        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        else
         {
-            return false;
+            CFGNode* failNode = getFailNode(seflt, n);
+            if (failNode == nullptr) return false;
+            visitWithFeasable(seflt, failNode);
         }
-        visitWithFeasable(seflt, failNode);
     }
     seflt.reset();
 
@@ -374,11 +392,15 @@ bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
     sefeq->symbolicVarSet->findVar(lhsvar)->setConstValue(rhsconst);
     if (reverse)
     {
-        CFGNode* failNode = getFailNode(sefeq, n);
-        if (failNode == nullptr) return false;
-        visitWithFeasable(sefeq, failNode);
+        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        else
+        {
+            CFGNode *failNode = getFailNode(sefeq, n);
+            if (failNode == nullptr) return false;
+            visitWithFeasable(sefeq, failNode);
+        }
     }
-    else  visitWithFeasable(sefeq, n->getCompSuccess());
+    else visitWithFeasable(sefeq, n->getCompSuccess());
 
     sefeq.reset();
 
@@ -388,9 +410,13 @@ bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(sefgt, n->getCompSuccess());}
     else
     {
-        CFGNode* failNode = getFailNode(sefgt, n);
-        if (failNode == nullptr) return false;
-        visitWithFeasable(sefgt, failNode);
+        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        else
+        {
+            CFGNode *failNode = getFailNode(sefgt, n);
+            if (failNode == nullptr) return false;
+            visitWithFeasable(sefgt, failNode);
+        }
     }
 
     sefgt.reset();
@@ -407,9 +433,13 @@ bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
     seflt->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst, false);
     if (reverse)
     {
-        CFGNode* failNode = getFailNode(seflt, n);
-        if (failNode == nullptr) return false;
-        visitWithFeasable(seflt, failNode);
+        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        else
+        {
+            CFGNode *failNode = getFailNode(seflt, n);
+            if (failNode == nullptr) return false;
+            visitWithFeasable(seflt, failNode);
+        }
     }
     else visitWithFeasable(seflt, n->getCompSuccess());
     seflt.reset();
@@ -419,9 +449,13 @@ bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(seflt, n->getCompSuccess());}
     else
     {
-        CFGNode* failNode = getFailNode(sefeq, n);
-        if (failNode == nullptr) return false;
-        visitWithFeasable(sefeq, failNode);
+        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        else
+        {
+            CFGNode *failNode = getFailNode(sefeq, n);
+            if (failNode == nullptr) return false;
+            visitWithFeasable(sefeq, failNode);
+        }
     }
     sefeq.reset();
     
@@ -430,9 +464,13 @@ bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
     sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, true);
     if (reverse)
     {
-        CFGNode* failNode = getFailNode(seflt, n);
-        if (failNode == nullptr) return false;
-        visitWithFeasable(seflt, failNode);
+        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        else
+        {
+            CFGNode *failNode = getFailNode(seflt, n);
+            if (failNode == nullptr) return false;
+            visitWithFeasable(seflt, failNode);
+        }
     }
     else visitWithFeasable(seflt, n->getCompSuccess());
     sefgt.reset();
@@ -450,9 +488,13 @@ bool SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef,
 
     if (reverse)
     {
-        CFGNode* failNode = getFailNode(seflt, n);
-        if (failNode == nullptr) return false;
-        visitWithFeasable(seflt, failNode);
+        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        else
+        {
+            CFGNode *failNode = getFailNode(seflt, n);
+            if (failNode == nullptr) return false;
+            visitWithFeasable(seflt, failNode);
+        }
     }
     else visitWithFeasable(seflt, n->getCompSuccess());
     seflt.reset();
@@ -462,9 +504,13 @@ bool SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(sefge, n->getCompSuccess());}
     else
     {
-        CFGNode* failNode = getFailNode(sefge, n);
-        if (failNode == nullptr) return false;
-        visitWithFeasable(sefge, failNode);
+        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        else
+        {
+            CFGNode *failNode = getFailNode(sefge, n);
+            if (failNode == nullptr) return false;
+            visitWithFeasable(sefge, failNode);
+        }
     }
     sefge.reset();
     return feasable;
@@ -481,22 +527,29 @@ bool SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef,
 
     if (reverse)
     {
-        CFGNode* failNode = getFailNode(sefle, n);
-        if (failNode == nullptr) return false;
-        visitWithFeasable(sefle, failNode);
+        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        else
+        {
+            CFGNode *failNode = getFailNode(sefle, n);
+            if (failNode == nullptr) return false;
+            visitWithFeasable(sefle, failNode);
+        }
     }
     else visitWithFeasable(sefle, n->getCompSuccess());
     sefle.reset();
-    
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
     sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, true);
     if (reverse) {visitWithFeasable(sefgt, n->getCompSuccess());}
     else
     {
-        CFGNode* failNode = getFailNode(sefgt, n);
-        if (failNode == nullptr) return false;
-        visitWithFeasable(sefgt, failNode);
+        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        else
+        {
+            CFGNode *failNode = getFailNode(sefgt, n);
+            if (failNode == nullptr) return false;
+            visitWithFeasable(sefgt, failNode);
+        }
     }
     sefgt.reset();
     return feasable;
@@ -512,13 +565,16 @@ bool SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef,
     sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, false);
     if (reverse)
     {
-        CFGNode* failNode = getFailNode(sefgt, n);
-        if (failNode == nullptr) return false;
-        visitWithFeasable(sefgt, failNode);
+        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        else
+        {
+            CFGNode *failNode = getFailNode(sefgt, n);
+            if (failNode == nullptr) return false;
+            visitWithFeasable(sefgt, failNode);
+        }
     }
     else visitWithFeasable(sefgt, n->getCompSuccess());
     sefgt.reset();
-    
 
     shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
     sefle->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst);
@@ -526,9 +582,13 @@ bool SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(sefle, n->getCompSuccess());}
     else
     {
-        CFGNode* failNode = getFailNode(sefle, n);
-        if (failNode == nullptr) return false;
-        visitWithFeasable(sefle, failNode);
+        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        else
+        {
+            CFGNode *failNode = getFailNode(sefle, n);
+            if (failNode == nullptr) return false;
+            visitWithFeasable(sefle, failNode);
+        }
     }
     sefle.reset();
     return feasable;
@@ -545,9 +605,13 @@ bool SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
 
     if (reverse)
     {
-        CFGNode* failNode = getFailNode(sefge, n);
-        if (failNode == nullptr) return false;
-        visitWithFeasable(sefge, failNode);
+        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        else
+        {
+            CFGNode *failNode = getFailNode(sefge, n);
+            if (failNode == nullptr) return false;
+            visitWithFeasable(sefge, failNode);
+        }
     }
     else visitWithFeasable(sefge, n->getCompSuccess());
     sefge.reset();
@@ -558,9 +622,13 @@ bool SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(seflt, n->getCompSuccess());}
     else
     {
-        CFGNode* failNode = getFailNode(seflt, n);
-        if (failNode == nullptr) return false;
-        visitWithFeasable(seflt, failNode);
+        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        else
+        {
+            CFGNode *failNode = getFailNode(seflt, n);
+            if (failNode == nullptr) return false;
+            visitWithFeasable(seflt, failNode);
+        }
     }
     seflt.reset();
     return feasable;
@@ -595,20 +663,25 @@ bool SymbolicExecutionManager::varBranchGE(shared_ptr<SymbolicExecutionFringe> s
                                            SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
 {
     bool feasable = false;
-    
-    shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    CFGNode* failNode = getFailNode(seflt, n);
-    if (failNode == nullptr) return false;
-    if (rhsvar->isBoundedAbove() &&
-            !seflt->symbolicVarSet->findVar(lhsvar->getName())->clipUpperBound(rhsvar->getUpperBound(), false)) return false;
-    visitWithFeasable(seflt, failNode);
-    seflt.reset();
+
+    if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+    else
+    {
+        shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
+        CFGNode *failNode = getFailNode(seflt, n);
+        if (failNode == nullptr) return false;
+        else
+        {
+            SymbolicVariable* newLHSVar = seflt->symbolicVarSet->findVar(lhsvar->getName());
+            SymbolicVariable* newRHSVar = seflt->symbolicVarSet->findVar(rhsvar->getName());
+            if (newLHSVar->addLT(newRHSVar)) visitWithFeasable(seflt, failNode);
+        }
+    }
 
     shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
-    if (rhsvar->isBoundedBelow() &&
-            !sefge->symbolicVarSet->findVar(lhsvar->getName())->clipLowerBound(rhsvar->getLowerBound())) return false;
-    visitWithFeasable(sefge, n->getCompSuccess());
-    sefge.reset();
+    SymbolicVariable* newLHSVar = sefge->symbolicVarSet->findVar(lhsvar->getName());
+    SymbolicVariable* newRHSVar = sefge->symbolicVarSet->findVar(rhsvar->getName());
+    if (newLHSVar->addGE(newRHSVar)) visitWithFeasable(sefge, n->getCompSuccess());
     return feasable;
 }
 
@@ -617,42 +690,42 @@ bool SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> s
                                               SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
 {
     bool feasable = false;
-    shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
-    CFGNode* failNode = getFailNode(sefle, n);
-    if (failNode == nullptr) return false;
-    if (rhsvar->isBoundedAbove() &&
-            !sefle->symbolicVarSet->findVar(lhsvar->getName())->clipUpperBound(rhsvar->getUpperBound())) return false;
-    visitWithFeasable(sefle, failNode);
-    sefle.reset();
-    
+    if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+    else
+    {
+        shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
+        CFGNode *failNode = getFailNode(sefle, n);
+        SymbolicVariable* newLHSVar = sefle->symbolicVarSet->findVar(lhsvar->getName());
+        SymbolicVariable* newRHSVar = sefle->symbolicVarSet->findVar(rhsvar->getName());
+        if (newLHSVar->addLE(newRHSVar)) visitWithFeasable(sefle, failNode);
+    }
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    if (rhsvar->isBoundedBelow() &&
-            !sefgt->symbolicVarSet->findVar(lhsvar->getName())->clipLowerBound(rhsvar->getLowerBound(), false)) return false;
-    visitWithFeasable(sefgt, n->getCompSuccess());
-    sefgt.reset();
+    SymbolicVariable* newLHSVar = sefgt->symbolicVarSet->findVar(lhsvar->getName());
+    SymbolicVariable* newRHSVar = sefgt->symbolicVarSet->findVar(rhsvar->getName());
+    if (newLHSVar->addGT(newRHSVar)) visitWithFeasable(sefgt, n->getCompSuccess());
     return feasable;
 }
 
 bool SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                               SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
 {
-
     bool feasable = false;
-    shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    CFGNode* failNode = getFailNode(seflt, n);
-    if (failNode == nullptr) return false;
-    if (rhsvar->isBoundedAbove() &&
-            !seflt->symbolicVarSet->findVar(lhsvar->getName())->clipUpperBound(rhsvar->getUpperBound(), false)) return false;
-    visitWithFeasable(seflt, n->getCompSuccess());
-    seflt.reset();
-    
 
-    shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
-    if (rhsvar->isBoundedBelow() &&
-            !sefge->symbolicVarSet->findVar(lhsvar->getName())->clipLowerBound(rhsvar->getLowerBound())) return false;
-    visitWithFeasable(sefge, failNode);
-    sefge.reset();
+    if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+    else
+    {
+        shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
+        CFGNode *failNode = getFailNode(sefge, n);
+        SymbolicVariable* newLHSVar = sefge->symbolicVarSet->findVar(lhsvar->getName());
+        SymbolicVariable* newRHSVar = sefge->symbolicVarSet->findVar(rhsvar->getName());
+        if (newLHSVar->addGE(newRHSVar)) visitWithFeasable(sefge, failNode);
+    }
+
+    shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
+    SymbolicVariable* newLHSVar = seflt->symbolicVarSet->findVar(lhsvar->getName());
+    SymbolicVariable* newRHSVar = seflt->symbolicVarSet->findVar(rhsvar->getName());
+    if (newLHSVar->addLT(newRHSVar)) visitWithFeasable(seflt, n->getCompSuccess());
     return feasable;
 }
 
@@ -662,20 +735,20 @@ bool SymbolicExecutionManager::varBranchLE(shared_ptr<SymbolicExecutionFringe> s
 {
     bool feasable = false;
 
-    shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
-    CFGNode* failNode = getFailNode(sefle, n);
-    if (failNode == nullptr) return false;
-    if (rhsvar->isBoundedAbove() &&
-            !sefle->symbolicVarSet->findVar(lhsvar->getName())->clipUpperBound(rhsvar->getUpperBound())) return false;
-    visitWithFeasable(sefle, n->getCompSuccess());
-    sefle.reset();
-    
+    if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+    else
+    {
+        shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
+        CFGNode *failNode = getFailNode(sefgt, n);
+        SymbolicVariable *newLHSVar = sefgt->symbolicVarSet->findVar(lhsvar->getName());
+        SymbolicVariable *newRHSVar = sefgt->symbolicVarSet->findVar(rhsvar->getName());
+        if (newLHSVar->addGT(newRHSVar)) visitWithFeasable(sefgt, failNode);
+    }
 
-    shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    if (rhsvar->isBoundedBelow() &&
-            !sefgt->symbolicVarSet->findVar(lhsvar->getName())->clipLowerBound(rhsvar->getLowerBound())) return false;
-    visitWithFeasable(sefgt, n->getCompSuccess());
-    sefgt.reset();
+    shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
+    SymbolicVariable* newLHSVar = sefle->symbolicVarSet->findVar(lhsvar->getName());
+    SymbolicVariable* newRHSVar = sefle->symbolicVarSet->findVar(rhsvar->getName());
+    if (newLHSVar->addLE(newRHSVar)) visitWithFeasable(sefle, n->getCompSuccess());
     return feasable;
 }
 
@@ -772,7 +845,6 @@ SymbolicVariable* SymbolicExecutionManager::getGreatestLowerBound(SymbolicVariab
     else if (!rhsvar->isBoundedBelow()) return lhsvar;
     else return (lhsvar->getLowerBound() > rhsvar->getLowerBound()) ? lhsvar : rhsvar;
 }
-
 
 SymbolicVariable* SymbolicExecutionManager::getLeastUpperBound(SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
 {
