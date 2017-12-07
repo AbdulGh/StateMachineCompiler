@@ -216,25 +216,6 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
 
     visitedNodes.insert(n->getName());
 
-    if (n->isLastNode() && sef->currentStack->isEmpty())
-    {
-        if (n->getCompSuccess() != nullptr)
-        {
-            JumpOnComparisonCommand* jocc = n->getComp();
-            SymbolicVariable* LHS = sef->symbolicVarSet->findVar(jocc->term1);
-            if (LHS == nullptr)
-            {
-                sef->error(Reporter::UNDECLARED_USE, "'" + jocc->term1 + "' used without being declared",
-                           jocc->getLineNum());
-                return false;
-            }
-            if (!LHS->isDefined()) sef->warn(Reporter::UNINITIALISED_USE,
-                                             "'" + LHS->getName() + "' used before being defined", jocc->getLineNum());
-        }
-
-        return true;
-    }
-
     JumpOnComparisonCommand* jocc = n->getComp();
     if (jocc != nullptr) //is a conditional jump
     {
@@ -334,16 +315,14 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     }
     else //unconditional jump
     {
-        if (n->getName() == cfg.getLast()->getName()) return true;
         CFGNode* retNode = getFailNode(sef, n);
-        if (retNode == nullptr) return false;
-        return visitNode(sef, retNode);
+        if (retNode == nullptr) return retNode->isLastNode(); //return on an empty stack means we exit
+        else return visitNode(sef, retNode);
     }
 }
 
 //these things below will usually be called when we already have
 //a ptr to the vars but we want to copy that var into the 'new scope'
-
 bool SymbolicExecutionManager::branch(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n, string lhsvar,
                                       Relations::Relop op, const std::string& rhsconst, bool reverse)
 {
@@ -758,39 +737,28 @@ bool SymbolicExecutionManager::varBranchNE(shared_ptr<SymbolicExecutionFringe> s
 {
     bool feasable = false;
 
-    shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
-    CFGNode* failNode = getFailNode(sefeq, n);
-    if (failNode == nullptr) return false;
-    SymbolicVariable* glbvar = getGreatestLowerBound(lhsvar, rhsvar);
-    if (glbvar->isBoundedBelow())
+    if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+    else
     {
-        //pull the variables into sefeq
-        SymbolicVariable* lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
-        SymbolicVariable* rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
+        shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
+        CFGNode *failNode = getFailNode(sefeq, n);
+        if (failNode == nullptr) return false;
+        SymbolicVariable *newLHSvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
+        SymbolicVariable *newRHSvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
 
-        const string& glb = glbvar->getLowerBound();
-        if (!lhsvar->clipLowerBound(glb) || !rhsvar->clipLowerBound(glb)) return false;
+        if (newLHSvar->addEQ(newRHSvar)) visitWithFeasable(sefeq, failNode);
     }
-    SymbolicVariable* lubvar = getLeastUpperBound(lhsvar, rhsvar);
-    if (lubvar->isBoundedAbove())
-    {
-        SymbolicVariable* lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
-        SymbolicVariable* rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
-
-        const string& lub = lubvar->getUpperBound();
-        if (!lhsvar->clipUpperBound(lub) || !rhsvar->clipUpperBound(lub)) return false;
-    }
-    visitWithFeasable(sefeq, failNode);
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    if (!sefgt->symbolicVarSet->findVar(lhsvar->getName())->clipLowerBound(rhsvar->getUpperBound(), false)) return false;
-    visitWithFeasable(sefgt, n->getCompSuccess());
+    SymbolicVariable *newLHSvar = sefgt->symbolicVarSet->findVar(lhsvar->getName());
+    SymbolicVariable *newRHSvar = sefgt->symbolicVarSet->findVar(rhsvar->getName());
+    if (newLHSvar->addGT(newRHSvar)) visitWithFeasable(sefgt, n->getCompSuccess());
     sefgt.reset();
 
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    if (!seflt->symbolicVarSet->findVar(lhsvar->getName())->clipUpperBound(rhsvar->getLowerBound(), true)) return false;
-    visitWithFeasable(seflt, n->getCompSuccess());
-    seflt.reset();
+    newLHSvar = seflt->symbolicVarSet->findVar(lhsvar->getName());
+    newRHSvar = seflt->symbolicVarSet->findVar(rhsvar->getName());
+    if (newLHSvar->addLT(newRHSvar)) visitWithFeasable(seflt, n->getCompSuccess());
     return feasable;
 }
 
@@ -801,54 +769,30 @@ bool SymbolicExecutionManager::varBranchEQ(shared_ptr<SymbolicExecutionFringe> s
     bool feasable = false;
 
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
-    SymbolicVariable* glbvar = getGreatestLowerBound(lhsvar, rhsvar);
-    if (glbvar->isBoundedBelow())
-    {
-        //pull the variables into sefeq
-        SymbolicVariable* lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
-        SymbolicVariable* rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
-
-        const string& glb = glbvar->getLowerBound();
-        if (!lhsvar->clipLowerBound(glb) || !rhsvar->clipLowerBound(glb)) return false;
-    }
-    SymbolicVariable* lubvar = getLeastUpperBound(lhsvar, rhsvar);
-    if (lubvar->isBoundedAbove())
-    {
-        SymbolicVariable* lhsvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
-        SymbolicVariable* rhsvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
-
-        const string& lub = lubvar->getUpperBound();
-        if (!lhsvar->clipUpperBound(lub) || !rhsvar->clipUpperBound(lub)) return false;
-    }
-    visitWithFeasable(sefeq, n->getCompSuccess());
-
-    shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    CFGNode* failNode = getFailNode(sefgt, n);
+    CFGNode *failNode = getFailNode(sefeq, n);
     if (failNode == nullptr) return false;
-    if (!sefgt->symbolicVarSet->findVar(lhsvar->getName())->clipLowerBound(rhsvar->getUpperBound(), false)) return false;
-    visitWithFeasable(sefgt, n->getCompSuccess());
-    sefgt.reset();
+    SymbolicVariable *newLHSvar = sefeq->symbolicVarSet->findVar(lhsvar->getName());
+    SymbolicVariable *newRHSvar = sefeq->symbolicVarSet->findVar(rhsvar->getName());
+    if (newLHSvar->addEQ(newRHSvar)) visitWithFeasable(sefeq, failNode);
 
-    shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    if (!seflt->symbolicVarSet->findVar(lhsvar->getName())->clipUpperBound(rhsvar->getLowerBound(), true)) return false;
-    failNode = getFailNode(sef, n);
-    if (failNode == nullptr) return false;
-    visitWithFeasable(seflt, failNode);
-    seflt.reset();
+
+    if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+    else
+    {
+        shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
+        CFGNode* failNode = getFailNode(sefgt, n);
+        if (failNode == nullptr) return false;
+        SymbolicVariable *newLHSvar = sefgt->symbolicVarSet->findVar(lhsvar->getName());
+        SymbolicVariable *newRHSvar = sefgt->symbolicVarSet->findVar(rhsvar->getName());
+        if (newLHSvar->addGT(newRHSvar)) visitWithFeasable(sefgt, failNode);
+        sefgt.reset();
+
+        shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
+        failNode = getFailNode(seflt, n);
+        if (failNode == nullptr) return false;
+        newLHSvar = seflt->symbolicVarSet->findVar(lhsvar->getName());
+        newRHSvar = seflt->symbolicVarSet->findVar(rhsvar->getName());
+        if (newLHSvar->addLT(newRHSvar)) visitWithFeasable(seflt, failNode);
+    }
     return feasable;
-}
-
-
-SymbolicVariable* SymbolicExecutionManager::getGreatestLowerBound(SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
-{
-    if (!lhsvar->isBoundedBelow()) return rhsvar;
-    else if (!rhsvar->isBoundedBelow()) return lhsvar;
-    else return (lhsvar->getLowerBound() > rhsvar->getLowerBound()) ? lhsvar : rhsvar;
-}
-
-SymbolicVariable* SymbolicExecutionManager::getLeastUpperBound(SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
-{
-    if (!lhsvar->isBoundedAbove()) return rhsvar;
-    else if (!rhsvar->isBoundedAbove()) return lhsvar;
-    else return (lhsvar->getUpperBound() < rhsvar->getUpperBound()) ? lhsvar : rhsvar;
 }

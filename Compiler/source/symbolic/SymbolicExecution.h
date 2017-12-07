@@ -114,8 +114,6 @@ namespace SymbolicExecution
         
         bool varBranchGT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                       SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
-        SymbolicVariable* getGreatestLowerBound(SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
-        SymbolicVariable* getLeastUpperBound(SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
 
         static CFGNode* getFailNode(std::shared_ptr<SymbolicExecutionFringe> returningSEF, CFGNode* n);
 

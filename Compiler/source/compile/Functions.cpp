@@ -14,66 +14,33 @@ FunctionSymbol::FunctionSymbol(VariableType rt, vector<VariableType> types, stri
 bool FunctionSymbol::mergeInto(FunctionSymbol *to)
 {
     if (to->getPrefix() == getPrefix()) return false;
+    else if (calls.size() != 1) throw "can only have one call";
 
-    /* todo do I need this?
-    if (calls.size() != 1) throw "should have only one call";
-    CFGNode* returningNode = calls.begin()->returnTo;
-    unsigned int pushedVarsRemaining = paramTypes.size();
-    if (pushedVarsRemaining > 0)
+    const FunctionCall& pair = *calls.begin();
+    removeFunctionCall(pair.caller->getName(), pair.returnTo->getName());
+
+    //remove popped variables
+    if (!paramTypes.empty())
     {
-        vector<unique_ptr<AbstractCommand>>& myInstrs = firstNode->getInstrs();
-        vector<unique_ptr<AbstractCommand>>& theirInstrs = to->lastNode->getInstrs();
-
-        if (myInstrs.size() < pushedVarsRemaining * 2
-            || theirInstrs.size() < pushedVarsRemaining + 1) throw "malformed call";
-        
-        auto myIterator = myInstrs.begin();
-        
-        while (pushedVarsRemaining > 0)
+        unsigned int numParams = paramTypes.size();
+        vector<unique_ptr<AbstractCommand>>& firstInstrs = firstNode->getInstrs();
+        if (firstNode->getInstrs().size() < numParams * 2) throw "not enough declarations and pops";
+        auto it = firstInstrs.begin();
+        while (numParams > 0)
         {
-            unique_ptr<AbstractCommand>& theirLastInstr = theirInstrs.back();
-            if ((*myIterator)->getType() != CommandType::DECLAREVAR) throw "malformed call";
-            myIterator = myInstrs.erase(myIterator);
-            if ((*myIterator)->getType() != CommandType::POP 
-             || theirLastInstr->getType() != CommandType::PUSH) throw "malformed call";
-            myIterator = myInstrs.erase(myIterator);
-            theirInstrs.pop_back();
-            --pushedVarsRemaining;
+            if ((*it)->getType() != CommandType::DECLAREVAR) throw "should declare and pop";
+            it = firstInstrs.erase(it);
+            if ((*it)->getType() != CommandType::POP) throw "should declare and pop";
+            it = firstInstrs.erase(it);
+            --numParams;
         }
-
-        unique_ptr<AbstractCommand>& theirLastInstr = theirInstrs.back();
-        if (theirLastInstr->getType() != CommandType::PUSH) throw "should push state before arguments";
-        PushCommand* pc = static_cast<PushCommand*>(theirLastInstr.get());
-        if (pc->pushType != PushCommand::PUSHSTATE) throw "should push state before arguments";
-        unsigned int numVarsToErase = pc->pushedVars;
-        theirInstrs.pop_back();
-
-        if (numVarsToErase > 0)
-        {
-            vector<unique_ptr<AbstractCommand>>& returnToInstrs = returningNode->getInstrs();
-
-            if (theirInstrs.size() < numVarsToErase || returnToInstrs.size() < numVarsToErase)
-            {
-                throw "should pop/push local variables";
-            }
-
-            auto returnToIterator = returnToInstrs.begin();
-            while (numVarsToErase > 0)
-            {
-                //just assume that these are actually the correct pushes/pops
-                returnToIterator = returnToInstrs.erase(returnToIterator);
-                myInstrs.pop_back();
-                --numVarsToErase;
-            }
-        }
-    }*/
+    }
 
     for (auto& pair : cfg.getCurrentNodes())
     {
         if (pair.second->getParentFunction()->getPrefix() == getPrefix()) pair.second->setParentFunction(to);
     }
 
-    calls.clear();
     return true;
 }
 
@@ -248,7 +215,7 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
     // push parameters
     // jump to first state of called function
 
-    // CALLED FUNCTION:
+    // CALLED FUNCTION: (dealt with in mergeInto)
     // declare and pop parameters
     // do function
     // when it's time to return, set retX to value to return
@@ -274,6 +241,7 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
             {
                 foundLeavingNode = pair.returnTo;
                 foundLeavingNode->removeParent(lastNode);
+                foundLeavingNode->removeFunctionCall(calling, this);
 
                 //if only one call returns to returnTo, erase its params
                 if (foundLeavingNode->getNumPushingStates() < 2 && numParams > 0)

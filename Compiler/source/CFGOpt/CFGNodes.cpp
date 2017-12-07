@@ -320,23 +320,25 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
 bool CFGNode::swallowNode(CFGNode* other)
 {
     if (other->getName() == name) throw "cant swallow self";
-
     const set<FunctionCall>& returnTo = parentFunction->getFunctionCalls();
-    bool needlessFunctionCall = isLast && returnTo.size() == 1
+
+    bool needlessFunctionCall = other->isFirstNode() && other->getPredecessorMap().size() == 1;
+
+    bool needlessFunctionReturn = isLast && returnTo.size() == 1
                                 && (*returnTo.cbegin()).returnTo->getName() == other->getName()
                                 && other->getParentFunction()->numCalls() == 1;
 
     if (compSuccess == nullptr)
     {
-        if (needlessFunctionCall)
+        if (needlessFunctionCall) other->parentFunction->mergeInto(parentFunction);
+        else if (needlessFunctionReturn)
         {
             auto callStruct = parentFunction->getOnlyFunctionCall();
-            other->removeFunctionCall(callStruct.caller->getName(), other->getParentFunction());
-            parentFunction->removeFunctionCall(callStruct.caller->getName(), other->getName());
-            other->parentFunction->mergeInto(parentFunction);
+            parentFunction->mergeInto(callStruct.caller->getParentFunction());
+            setCompFail(other);
         }
 
-        else if (compFail != nullptr && compFail->getName() == other->getName())
+        if (compFail != nullptr && compFail->getName() == other->getName())
         {
             vector<unique_ptr<AbstractCommand>> newInstrs = move(instrs);
             vector<unique_ptr<AbstractCommand>>& addingInstrs = other->getInstrs();
@@ -409,15 +411,16 @@ bool CFGNode::swallowNode(CFGNode* other)
             setCompFail(other->getCompFail());
         }
 
-        else if (needlessFunctionCall && predecessors.size() == 1) setCompFail(other->getCompFail());
+        else if (needlessFunctionReturn && predecessors.size() == 1) setCompFail(other->getCompFail());
         else return false;
 
-        if (needlessFunctionCall) parentFunction->clearFunctionCalls();
+        if (needlessFunctionReturn) parentFunction->clearFunctionCalls();
         if (compSuccess != nullptr && compFail != nullptr && compSuccess->getName() == compFail->getName())
         {
             setComp(nullptr);
             setCompSuccess(nullptr);
         }
+        
         return true;
     }
     return false;
@@ -702,7 +705,6 @@ void CFGNode::prepareToDie()
             auto pc = static_cast<PushCommand*>(ac.get());
             if (pc->pushType == PushCommand::PUSHSTATE)
             {
-                parentGraph.getNode(pc->getData())->removeFunctionCall(name, pc->calledFunction);
                 pc->calledFunction->removeFunctionCall(name, pc->getData(), false);
             }
         }

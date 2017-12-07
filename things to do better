@@ -1,2 +1,3 @@
 Too much casting when dealing w/ instructions
 Dataflow could be scoped better (must be a way of getting meets in the base class)
+Rather than one contiguous range, could have something to manage ranges
