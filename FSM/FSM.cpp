@@ -6,10 +6,9 @@
 
 using namespace std;
 
-void FSM::setStates(vector<unique_ptr<State>> st)
+FSM::FSM(string& filename)
 {
-    int debug = st.size();
-    this->states = move(st);
+    FSMParser(filename, *this).readFSM();
 }
 
 void FSM::run()

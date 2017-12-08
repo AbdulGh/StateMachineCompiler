@@ -12,7 +12,7 @@ Variable::Variable(string vname, string str):
 
 Variable::~Variable()
 {
-    if (getType() == STRING) delete getData();
+    if (data.type == STRING) delete data.contents.str;
 }
 
 const string &Variable::getName() const

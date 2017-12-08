@@ -80,20 +80,29 @@ namespace Optimise
                     else
                     {
                         CFGNode* pred = preds.cbegin()->second;
-                        bool currentIsPred = pred->getName() == current->getName();
-                        if (!currentIsPred && !pred->swallowNode(current)) ++pair;
+                        if (pred->getName() == current->getName()) ++pair;
                         else
                         {
                             current->removeCallsTo();
-                            if (currentIsPred) current->setLast(false);
+                            if (pred->swallowNode(current))
+                            {
+                                if (current->isLastNode())
+                                {
+                                    current->setLast(false);
+                                    if (pred->getParentFunction()->getIdent() == current->getParentFunction()->getIdent())
+                                    { //otherwise this will be dealt w/ in swallowNode
+                                        pred->getParentFunction()->setLastNode(pred);
+                                    }
+                                }
+                                current->prepareToDie();
+                                pair = nodes.erase(pair);
+                                changes = true;
+                            }
                             else
                             {
-                                current->getParentFunction()->mergeInto(pred->getParentFunction()); //does nothing if they're the same
-                                pred->getParentFunction()->setLastNode(pred); //ditto
+                                printf("%s", controlFlowGraph.getStructuredSource().c_str());
+                                throw "should swallow";
                             }
-                            current->prepareToDie();
-                            pair = nodes.erase(pair);
-                            changes = true;
                         }
                     }
                     continue;

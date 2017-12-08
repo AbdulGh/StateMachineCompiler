@@ -1,29 +1,28 @@
-#include "FSMParser.h"
-#include "Command.h"
+#include "FSM.h"
 
 using namespace std;
 
-FSMParser::FSMParser(string filename)
+FSM::FSMParser::FSMParser(string filename, FSM& pfsm): parsedFSM(pfsm)
 {
     infile.open(filename);
     if (!infile) throw runtime_error("Could not open file '" + filename + "'");
 }
 
-string FSMParser::peelQuotes(string in)
+string FSM::FSMParser::peelQuotes(string in)
 {
     if (in[0] != '"' || in[in.length() - 1] != '"') throw runtime_error("Badly quoted string");
     in.erase(0,1); in.erase(in.length()-1, 1);
     return in;
 }
 
-int FSMParser::checkState(string str)
+int FSM::FSMParser::checkState(string str)
 {
     unordered_map<string, int>::const_iterator it = stateNameMap.find(str);
     if (it == stateNameMap.cend()) throw runtime_error("State '" + str + "' not defined");
     return it->second;
 }
 
-ComparisonOp FSMParser::readComparisonOp()
+ComparisonOp FSM::FSMParser::readComparisonOp()
 {
     char c = nextRealChar("Unfinished jumpif command");
     ComparisonOp opType;
@@ -67,7 +66,7 @@ ComparisonOp FSMParser::readComparisonOp()
     return opType;
 }
 
-string FSMParser::nextString()
+string FSM::FSMParser::nextString()
 {
     char c;
     infile.get(c);
@@ -100,7 +99,7 @@ string FSMParser::nextString()
     return ident;
 }
 
-string FSMParser::nextCommand(bool expecting)
+string FSM::FSMParser::nextCommand(bool expecting)
 {
     char c = nextRealChar(expecting ? "End expected" : "");
 
@@ -115,7 +114,7 @@ string FSMParser::nextCommand(bool expecting)
     return str;
 }
 
-char FSMParser::nextRealChar(string error = "")
+char FSM::FSMParser::nextRealChar(string error = "")
 {
     char c;
     infile.get(c);
@@ -131,7 +130,7 @@ char FSMParser::nextRealChar(string error = "")
     return c;
 }
 
-string FSMParser::getVarName()
+string FSM::FSMParser::getVarName()
 {
     string varN;
     char c = nextRealChar("Unexpected end when reading variable");
@@ -148,22 +147,21 @@ string FSMParser::getVarName()
     return varN;
 }
 
-set<string> FSMParser::resWords = {"end", "double", "string", "print", "jump", "jumpif", "push", "pop", "state", "return"};
-bool FSMParser::isReserved(const string& s)
+set<string> FSM::FSMParser::resWords = {"end", "double", "string", "print", "jump", "jumpif", "push", "pop", "state", "return"};
+bool FSM::FSMParser::isReserved(const string& s)
 {
     return (resWords.find(s) != resWords.end());
 }
 
-Variable* FSMParser::getVar(string varN)
+Variable* FSM::FSMParser::getVar(string varN)
 {
-    unordered_map<string, unique_ptr<Variable>>::const_iterator it = variableMap.find(varN);
-    if (it == variableMap.cend()) throw runtime_error("Unknown variable '" + varN + "'");
+    unordered_map<string, unique_ptr<Variable>>::const_iterator it = parsedFSM.variableMap.find(varN);
+    if (it == parsedFSM.variableMap.cend()) throw runtime_error("Unknown variable '" + varN + "'");
     return it->second.get();
 }
 
-FSM FSMParser::readFSM()
+void FSM::FSMParser::readFSM()
 {
-    FSM fsm;
     char c;
 
     //first scan - get variables and states
@@ -175,14 +173,14 @@ FSM FSMParser::readFSM()
         if (str == "double")
         {
             string varN = getVarName();
-            variableMap[varN] = make_unique<Variable>(varN, 0.0);
+            parsedFSM.variableMap[varN] = make_unique<Variable>(varN, 0.0);
             c = nextRealChar("Expected semicolon after variable declaration");
             if (c != ';') throw runtime_error("Expected semicolon after variable declaration");
         }
         else if (str == "string")
         {
             string varN = getVarName();
-            variableMap[varN] = make_unique<Variable>(varN, "");
+            parsedFSM.variableMap[varN] = make_unique<Variable>(varN, "");
             c = nextRealChar("Expected semicolon after variable declaration");
             if (c != ';') throw runtime_error("Expected semicolon after variable declaration");
         }
@@ -219,7 +217,7 @@ FSM FSMParser::readFSM()
 
         int currentStateNum = checkState(str);
 
-        unique_ptr<State> newState(new State(str, fsm));
+        unique_ptr<State> newState = make_unique<State>(str, parsedFSM);
         vector<unique_ptr<AbstractCommand>> commands;
 
         str = nextCommand();
@@ -293,7 +291,7 @@ FSM FSMParser::readFSM()
 
             else if (str == "return")
             {
-                commands.push_back(make_unique<ReturnCommand>(fsm));
+                commands.push_back(make_unique<ReturnCommand>(parsedFSM));
             }
 
             else if (str == "jump")
@@ -452,7 +450,7 @@ FSM FSMParser::readFSM()
                         double d = stod(comparitor);
                         if (stateName == "pop")
                         {
-                            commands.push_back(make_unique<JumpOnComparisonCommand<double>>(LHS, d, fsm, opType));
+                            commands.push_back(make_unique<JumpOnComparisonCommand<double>>(LHS, d, parsedFSM, opType));
                         }
                         else
                         {
@@ -468,14 +466,14 @@ FSM FSMParser::readFSM()
                             if (comparitor[0] == '"') //string
                             {
                                 comparitor = peelQuotes(comparitor);
-                                commands.push_back(make_unique<JumpOnComparisonCommand<string>>(LHS, comparitor, fsm, opType));
+                                commands.push_back(make_unique<JumpOnComparisonCommand<string>>(LHS, comparitor, parsedFSM, opType));
 
                             }
 
                             else //identifier
                             {
                                 commands.push_back(make_unique<JumpOnComparisonCommand<Variable*>>
-                                                           (LHS, getVar(comparitor), fsm, opType));
+                                                           (LHS, getVar(comparitor), parsedFSM, opType));
                             }
                         }
                         else
@@ -506,7 +504,7 @@ FSM FSMParser::readFSM()
                 {
                     str = nextString();
                     int point = checkState(str);
-                    commands.push_back(make_unique<PushCommand<double>>(point, fsm));
+                    commands.push_back(make_unique<PushCommand<double>>(point, parsedFSM));
                 }
 
                 else
@@ -514,16 +512,16 @@ FSM FSMParser::readFSM()
                     try
                     {
                         double d = stod(str);
-                        commands.push_back(make_unique<PushCommand<double>>(d, fsm));
+                        commands.push_back(make_unique<PushCommand<double>>(d, parsedFSM));
                     }
                     catch (invalid_argument&)
                     {
                         if (str[0] == '"') //string
                         {
                             str = peelQuotes(str);
-                            commands.push_back(make_unique<PushCommand<string>>(str, fsm));
+                            commands.push_back(make_unique<PushCommand<string>>(str, parsedFSM));
                         }
-                        else commands.push_back(make_unique<PushCommand<Variable*>>(getVar(str), fsm));
+                        else commands.push_back(make_unique<PushCommand<Variable*>>(getVar(str), parsedFSM));
                     }
                 }
             }
@@ -535,12 +533,12 @@ FSM FSMParser::readFSM()
                 if (c == ';')
                 {
                     str = nextString();
-                    commands.push_back(make_unique<PopCommand>(nullptr, fsm));
+                    commands.push_back(make_unique<PopCommand>(nullptr, parsedFSM));
                 }
                 else
                 {
                     str = nextString();
-                    commands.push_back(make_unique<PopCommand>(getVar(str), fsm));
+                    commands.push_back(make_unique<PopCommand>(getVar(str), parsedFSM));
                 }
             }
 
@@ -653,10 +651,7 @@ FSM FSMParser::readFSM()
         stateMap[currentStateNum] = move(newState);
     }
 
-    vector<unique_ptr<State>> st;
+    parsedFSM.states.clear();
     //works in order
-    for (auto& p : stateMap) st.push_back(move(p.second));
-
-    fsm.setStates(move(st));
-    return fsm;
+    for (auto& p : stateMap) parsedFSM.states.push_back(move(p.second));
 }

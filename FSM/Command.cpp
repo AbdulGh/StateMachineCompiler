@@ -162,6 +162,7 @@ PopCommand::PopCommand(Variable* varPtr, FSM &stackOwner):
 
 void PopCommand::execute()
 {
+    if (popFrom->empty()) throw "tried to pop empty stack";
     if (var != nullptr) var->setData(popFrom->top());
     popFrom->pop();
 }

@@ -26,8 +26,8 @@ public:
 
     typedef struct TaggedDataUnion
     {
-        Type type;
         DataUnion contents;
+        Type type;
 
         TaggedDataUnion(double doub):
                 type(DOUBLE),
@@ -39,12 +39,12 @@ public:
 
         TaggedDataUnion(const TaggedDataUnion& o): contents(0.0)
         {
-            this->type = o.type;
-            if (this->type != STRING) this->contents = o.contents;
+            type = o.type;
+            if (type != STRING) contents = o.contents;
             else
             {
                 std::string* ref = o.contents;
-                this->contents = new std::string(*ref);
+                contents = new std::string(*ref);
             }
         }
     } Data;

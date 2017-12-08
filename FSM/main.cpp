@@ -1,10 +1,13 @@
 #include <iostream>
 
 #include "FSM.h"
-#include "FSMParser.h"
+
+using namespace std;
+
 int main()
 {
-    FSM test = FSMParser("../misc/mutualEvenOddResult.fs").readFSM();
+    string filename = "../misc/mutualEvenOddResult.fs";
+    FSM test(filename);
     test.run();
     return 0;
 }

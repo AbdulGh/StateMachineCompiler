@@ -320,6 +320,7 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
 bool CFGNode::swallowNode(CFGNode* other)
 {
     if (other->getName() == name) throw "cant swallow self";
+
     const set<FunctionCall>& returnTo = parentFunction->getFunctionCalls();
 
     bool needlessFunctionCall = other->isFirstNode() && other->getPredecessorMap().size() == 1;
@@ -335,7 +336,6 @@ bool CFGNode::swallowNode(CFGNode* other)
         {
             auto callStruct = parentFunction->getOnlyFunctionCall();
             parentFunction->mergeInto(callStruct.caller->getParentFunction());
-            setCompFail(other);
         }
 
         if (compFail != nullptr && compFail->getName() == other->getName())

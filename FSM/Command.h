@@ -10,9 +10,6 @@
 class AbstractCommand
 {
 public:
-    //enum SideEffect{PRINT, INPUT, JUMP, SETVAR};
-
-    //SideEffect getType() const;
     int getNextState() const;
     bool changesState() const;
 
@@ -21,7 +18,6 @@ public:
 private:
     int nextState = -1;
     bool changeState = false;
-    //SideEffect effect;
 
 protected:
     void setState(int);

@@ -16,25 +16,54 @@ bool FunctionSymbol::mergeInto(FunctionSymbol *to)
     if (to->getPrefix() == getPrefix()) return false;
     else if (calls.size() != 1) throw "can only have one call";
 
-    const FunctionCall& pair = *calls.begin();
-    removeFunctionCall(pair.caller->getName(), pair.returnTo->getName());
+    const FunctionCall& functionCall = *calls.begin();
+    vector<unique_ptr<AbstractCommand>>& callingInstrs = functionCall.caller->getInstrs();
 
-    //remove popped variables
+    //must push parameters + local vars + the state
+    unsigned int localVarPushes = functionCall.numPushedVars;
+    unsigned int totalNumPushes = localVarPushes + paramTypes.size() + 1;
+    if (callingInstrs.size() < totalNumPushes) throw "not enough pushes in calling state";
+    auto callingIt = callingInstrs.begin() + (callingInstrs.size() - totalNumPushes);
+
+    vector<unique_ptr<AbstractCommand>>& returnInstrs = functionCall.returnTo->getInstrs();
+    if (returnInstrs.size() < localVarPushes) throw "return should pop local vars";
+    auto returnIt = returnInstrs.begin();
+
+    while (localVarPushes > 0)
+    {
+        if ((*callingIt)->getType() != CommandType::PUSH || (*returnIt)->getType() != CommandType::POP) throw "not good";
+        callingIt = callingInstrs.erase(callingIt);
+        returnIt = returnInstrs.erase(returnIt);
+        --localVarPushes;
+    }
+
+    if ((*callingIt)->getData() != functionCall.returnTo->getName()) throw "should push called state";
+    callingIt = callingInstrs.erase(callingIt);
+
+    //remove pushes/pops of parameters
     if (!paramTypes.empty())
     {
         unsigned int numParams = paramTypes.size();
         vector<unique_ptr<AbstractCommand>>& firstInstrs = firstNode->getInstrs();
         if (firstNode->getInstrs().size() < numParams * 2) throw "not enough declarations and pops";
-        auto it = firstInstrs.begin();
+        auto firstIt = firstInstrs.begin();
+
         while (numParams > 0)
         {
-            if ((*it)->getType() != CommandType::DECLAREVAR) throw "should declare and pop";
-            it = firstInstrs.erase(it);
-            if ((*it)->getType() != CommandType::POP) throw "should declare and pop";
-            it = firstInstrs.erase(it);
+            if ((*firstIt)->getType() != CommandType::DECLAREVAR) throw "should declare and pop";
+            ++firstIt; //will be optimised by assignment propogation later
+            if ((*firstIt)->getType() != CommandType::POP) throw "should declare and pop";
+            else if ((*callingIt)->getType() != CommandType::PUSH) throw "pushes and pops should match";
+            (*firstIt) = make_unique<AssignVarCommand>((*firstIt)->getData(), (*callingIt)->getData(), (*firstIt)->getLineNum());
+            ++firstIt;
+            callingIt = callingInstrs.erase(callingIt);
             --numParams;
         }
     }
+
+    lastNode->setCompFail(functionCall.returnTo);
+    lastNode->setLast(false);
+    functionCall.returnTo->removeFunctionCall(functionCall.caller->getName(), this);
 
     for (auto& pair : cfg.getCurrentNodes())
     {
