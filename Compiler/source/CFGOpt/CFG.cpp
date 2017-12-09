@@ -299,17 +299,7 @@ string ControlFlowGraph::getDotGraph()
         CFGNode* n = it.second;
         if (n->getParentFunction()->getIdent() != currentFunc)
         {
-            if (!currentFunc.empty())
-            {
-                outs << "}\n";
-                FunctionSymbol* oldFS = functionTable.getFunction(currentFunc); //could be done by keeping a pointer but oh well
-                string oldLastNode = oldFS->getLastNode()->getName();
-                for (auto& nodePointer : oldFS->getNodesReturnedTo())
-                {
-                    outs << oldLastNode << "->" << nodePointer->getName()
-                         << "[label=\"return\"];\n";
-                }
-            }
+            if (!currentFunc.empty())  outs << "}\n";
             currentFunc = n->getParentFunction()->getIdent();
             outs << "subgraph cluster_" << currentFunc << "{\n";
             outs << "label=\"" << currentFunc << "\";\n";

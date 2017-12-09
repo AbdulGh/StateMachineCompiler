@@ -44,6 +44,11 @@ void Compiler::compile(stringstream& out)
     cfg.setLast(mainFuncSym->getLastNode()->getName());
 
     Optimise::optimise(symbolTable, functionTable, cfg);
+
+    //auto debug = cfg.getNode("F0_main_1");
+    //auto debug2 = functionTable.getFunction("isEven");
+    //auto debug3 = cfg.getNode("F1_isEven_5");
+
     cout << cfg.getStructuredSource() << endl;
 
     return;
@@ -77,7 +82,7 @@ void Compiler::findGlobalsAndMakeStates()
 {
     vector<unique_ptr<AbstractCommand>> initialState;
     string initialNames[NUM_INITIAL] = {"LHS", "RHS", "retD", "retS"};
-    VariableType initialTypes[NUM_INITIAL] = {DOUBLE, DOUBLE, STRING, DOUBLE};
+    VariableType initialTypes[NUM_INITIAL] = {DOUBLE, DOUBLE, DOUBLE, STRING};
 
     for (int i = 0; i < NUM_INITIAL; ++i)
     {

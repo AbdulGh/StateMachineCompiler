@@ -65,11 +65,13 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, shared_ptr<Identi
 
     fromFS->genJump(toFS->getFirstNode()->getName(), lookahead.line);
     CFGNode* finishedState = fromFS->getCurrentNode();
-    cfg.createNode(nextState, true, false, toFS); //forward create returned to state
+    cfg.createNode(nextState, true, false, fromFS); //forward create returned to state
     fromFS->genEndState();
+
     fromFS->genNewState(nextState);
     CFGNode* created = fromFS->getCurrentNode();
-    toFS->addFunctionCall(finishedState, created, fromVars.size());
+    FunctionCall* fc = toFS->addFunctionCall(finishedState, created, fromVars.size());
+    finishedState->setFunctionCall(fc);
     created->addFunctionCall(finishedState, toFS);
     created->addParent(toFS->getLastNode());
 

@@ -55,7 +55,7 @@ private:
     std::vector<std::unique_ptr<AbstractCommand>> instrs; //pointers to allow downcasting (avoid object slicing)
     ControlFlowGraph& parentGraph;
     FunctionSymbol* parentFunction;
-    std::unique_ptr<FunctionCall> functionCall = nullptr;
+    FunctionCall* functionCall = nullptr;
     std::set<std::pair<CFGNode*, FunctionSymbol*>> pushingStates; //used to remove pushes if the node is being removed
     bool isLast;
     int jumpline;
@@ -69,6 +69,7 @@ public:
     void clearPredecessors(); //does not remove successor relationships
 
     void setInstructions(std::vector<std::unique_ptr<AbstractCommand>>& in);
+    void setFunctionCall(FunctionCall* fc);
     void appendDeclatation(VariableType type, std::string varName);
     void setCompSuccess(CFGNode* compSuccess);
     void setCompFail(CFGNode* compFail);

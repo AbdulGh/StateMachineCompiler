@@ -16,16 +16,16 @@ bool FunctionSymbol::mergeInto(FunctionSymbol *to)
     if (to->getPrefix() == getPrefix()) return false;
     else if (calls.size() != 1) throw "can only have one call";
 
-    const FunctionCall& functionCall = *calls.begin();
-    vector<unique_ptr<AbstractCommand>>& callingInstrs = functionCall.caller->getInstrs();
+    const unique_ptr<FunctionCall>& functionCall = *calls.begin();
+    vector<unique_ptr<AbstractCommand>>& callingInstrs = functionCall->caller->getInstrs();
 
     //must push parameters + local vars + the state
-    unsigned int localVarPushes = functionCall.numPushedVars;
+    unsigned int localVarPushes = functionCall->numPushedVars;
     unsigned int totalNumPushes = localVarPushes + paramTypes.size() + 1;
     if (callingInstrs.size() < totalNumPushes) throw "not enough pushes in calling state";
     auto callingIt = callingInstrs.begin() + (callingInstrs.size() - totalNumPushes);
 
-    vector<unique_ptr<AbstractCommand>>& returnInstrs = functionCall.returnTo->getInstrs();
+    vector<unique_ptr<AbstractCommand>>& returnInstrs = functionCall->returnTo->getInstrs();
     if (returnInstrs.size() < localVarPushes) throw "return should pop local vars";
     auto returnIt = returnInstrs.begin();
 
@@ -37,7 +37,7 @@ bool FunctionSymbol::mergeInto(FunctionSymbol *to)
         --localVarPushes;
     }
 
-    if ((*callingIt)->getData() != functionCall.returnTo->getName()) throw "should push called state";
+    if ((*callingIt)->getData() != functionCall->returnTo->getName()) throw "should push called state";
     callingIt = callingInstrs.erase(callingIt);
 
     //remove pushes/pops of parameters
@@ -61,9 +61,10 @@ bool FunctionSymbol::mergeInto(FunctionSymbol *to)
         }
     }
 
-    lastNode->setCompFail(functionCall.returnTo);
+    lastNode->setCompFail(functionCall->returnTo);
     lastNode->setLast(false);
-    functionCall.returnTo->removeFunctionCall(functionCall.caller->getName(), this);
+    functionCall->returnTo->removeFunctionCall(functionCall->caller->getName(), this);
+    calls.clear();
 
     for (auto& pair : cfg.getCurrentNodes())
     {
@@ -91,11 +92,11 @@ void FunctionSymbol::setLastNode(CFGNode* ln)
             lastNode->getParentGraph().setLast(ln->getName());
         }
         lastNode->setLast(false);
-        for (auto& cp : calls) cp.returnTo->removeParent(lastNode);
+        for (auto& cp : calls) cp->returnTo->removeParent(lastNode);
     }
     lastNode = ln;
     lastNode->setLast();
-    for (auto& cp : calls) cp.returnTo->addParent(lastNode);
+    for (auto& cp : calls) cp->returnTo->addParent(lastNode);
 }
 
 CFGNode* FunctionSymbol::getFirstNode()
@@ -165,13 +166,16 @@ unsigned int FunctionSymbol::numCalls()
 }
 
 //each node should only be returned to once
-void FunctionSymbol::addFunctionCall(CFGNode *calling, CFGNode *returnTo, unsigned int numPushedVars)
+FunctionCall* FunctionSymbol::addFunctionCall(CFGNode *calling, CFGNode *returnTo, unsigned int numPushedVars)
 {
-    if (!calls.insert(FunctionCall(calling, returnTo, numPushedVars, this)).second) throw "already know about this call";
+    unique_ptr<FunctionCall> fc = make_unique<FunctionCall>(calling, returnTo, numPushedVars, this);
+    FunctionCall* rawPointer = fc.get();
+    if (!calls.insert(move(fc)).second) throw "already know about this call";
     returnTo->addParent(getLastNode());
+    return rawPointer;
 }
 
-const std::set<FunctionCall>& FunctionSymbol::getFunctionCalls() const
+const std::set<unique_ptr<FunctionCall>>& FunctionSymbol::getFunctionCalls() const
 {
     return calls;
 }
@@ -181,10 +185,10 @@ void FunctionSymbol::replaceReturnState(CFGNode *going, CFGNode* replaceWith)
     auto callsIt = calls.begin();
     while (callsIt != calls.end())
     {
-        if (callsIt->returnTo->getName() == going->getName())
+        if ((*callsIt)->returnTo->getName() == going->getName())
         {
             //find actual function call
-            vector<unique_ptr<AbstractCommand>>& instrs = callsIt->caller->getInstrs();
+            vector<unique_ptr<AbstractCommand>>& instrs = (*callsIt)->caller->getInstrs();
 
             bool found = false;
             auto instrIt = instrs.begin();
@@ -205,9 +209,9 @@ void FunctionSymbol::replaceReturnState(CFGNode *going, CFGNode* replaceWith)
             }
             if (!found) throw "could not find push in pushing state";
 
-            addFunctionCall(callsIt->caller, replaceWith, callsIt->numPushedVars);
-            calls.erase(callsIt);
-            replaceWith->addFunctionCall(callsIt->caller, this);
+            addFunctionCall((*callsIt)->caller, replaceWith, (*callsIt)->numPushedVars);
+            calls.erase((*callsIt));
+            replaceWith->addFunctionCall((*callsIt)->caller, this);
             return;
         }
         ++callsIt;
@@ -219,21 +223,21 @@ void FunctionSymbol::replaceReturnState(CFGNode *going, CFGNode* replaceWith)
 void FunctionSymbol::clearFunctionCalls()
 {
     string lastName = getLastNode()->getName();
-    for (FunctionCall cp : calls) cp.returnTo->removeParent(lastName);
+    for (auto& cp : calls) cp->returnTo->removeParent(lastName);
     calls.clear();
 }
 
 vector<CFGNode*> FunctionSymbol::getNodesReturnedTo()
 {
     vector<CFGNode*> toReturn;
-    for (const FunctionCall& call : calls) toReturn.push_back(call.returnTo);
+    for (auto& call : calls) toReturn.push_back(call->returnTo);
     return toReturn;
 }
 
-FunctionCall FunctionSymbol::getOnlyFunctionCall()
+FunctionCall* FunctionSymbol::getOnlyFunctionCall()
 {
     if (calls.size() != 1) throw "should have exactly one call";
-    return *calls.begin();
+    return calls.begin()->get();
 }
 
 void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret, bool fixCalling)
@@ -261,19 +265,19 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
     CFGNode* foundLeavingNode = nullptr;
     while (callsIterator != calls.end())
     {
-        auto pair = *callsIterator;
+        auto& pair = *callsIterator;
         bool iteratorIncremented = false;
-        if (pair.returnTo->getName() == ret)
+        if (pair->returnTo->getName() == ret)
         {
             ++numRet;
-            if (!foundLeavingNode && pair.caller->getName() == calling)
+            if (!foundLeavingNode && pair->caller->getName() == calling)
             {
-                foundLeavingNode = pair.returnTo;
+                foundLeavingNode = pair->returnTo;
                 foundLeavingNode->removeParent(lastNode);
                 foundLeavingNode->removeFunctionCall(calling, this);
 
                 //if only one call returns to returnTo, erase its params
-                if (foundLeavingNode->getNumPushingStates() < 2 && numParams > 0)
+                if (foundLeavingNode->getNumPushingStates() == 0 && numParams > 0)
                 {
                     vector<unique_ptr<AbstractCommand>>& returnToInstrs = foundLeavingNode->getInstrs();
                     if (returnToInstrs.size() < numParams) throw "should have popped local vars";
@@ -283,7 +287,7 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
                 if (fixCalling)
                 {
                     //remove the stuff pushed onto the stack
-                    vector<unique_ptr<AbstractCommand>>& pushingInstrs =  pair.caller->getInstrs();
+                    vector<unique_ptr<AbstractCommand>>& pushingInstrs =  pair->caller->getInstrs();
                     bool found = false;
                     unsigned int instrIndex = 0;
                     while (instrIndex < pushingInstrs.size())
@@ -297,7 +301,7 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
                                 if (pc->calledFunction->getIdent() != ident) throw "should be me";
 
                                 //firstly erase stuff in calling node
-                                unsigned int beginEraseIndex = instrIndex - callsIterator->numPushedVars;
+                                unsigned int beginEraseIndex = instrIndex - (*callsIterator)->numPushedVars;
                                 if (beginEraseIndex < 0) throw "should have pushed local vars beforehand";
                                 unsigned int stopEraseIndex = instrIndex + numParams + 1;
                                 if (instrIndex + numParams > pushingInstrs.size())

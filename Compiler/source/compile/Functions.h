@@ -29,7 +29,7 @@ private:
     std::set<std::string> vars; //used to save vars during function calls
     std::vector<std::unique_ptr<AbstractCommand>> currentInstrs;
     ControlFlowGraph& cfg;
-    std::set<FunctionCall> calls;
+    std::set<std::unique_ptr<FunctionCall>> calls;
 
 public:
     FunctionSymbol(VariableType returnType, std::vector<VariableType> types, std::string ident, std::string prefix, ControlFlowGraph& cfg);
@@ -53,13 +53,13 @@ public:
     bool mergeInto(FunctionSymbol *to);
 
     //return stuff
-    void addFunctionCall(CFGNode* calling, CFGNode* returnTo, unsigned int numPushedVars);
+    FunctionCall* addFunctionCall(CFGNode* calling, CFGNode* returnTo, unsigned int numPushedVars);
     void replaceReturnState(CFGNode* going, CFGNode* replaceWith);
-    const std::set<FunctionCall>& getFunctionCalls() const;
+    const std::set<std::unique_ptr<FunctionCall>>& getFunctionCalls() const;
     void clearFunctionCalls();
     void removeFunctionCall(const std::string& calling, const std::string& ret, bool fixCalling = true);
     std::vector<CFGNode*> getNodesReturnedTo();
-    FunctionCall getOnlyFunctionCall();
+    FunctionCall* getOnlyFunctionCall();
 
     //codegen
     void genNewState(std::string);

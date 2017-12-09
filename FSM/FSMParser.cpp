@@ -562,7 +562,7 @@ void FSM::FSMParser::readFSM()
                 {
                     if (RHS[0] == '"') //assigning string
                     {
-                        if (LHS->getType() != STRING) throw runtime_error("Assigning string to " + LHS->getType());
+                        if (LHS->getType() != STRING) throw runtime_error("Assigning string to " +  LHS->getType());
                         RHS = peelQuotes(RHS);
                         commands.push_back(make_unique<AssignVarCommand<string>>(LHS, RHS));
                     }

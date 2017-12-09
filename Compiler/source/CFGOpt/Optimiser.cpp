@@ -20,8 +20,8 @@ namespace Optimise
                 if (node.second->constProp()) changes = true;
             }
         }
-        DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();
-        DataFlow::LiveVariableDataFlow(controlFlowGraph, symbolTable).worklist();
+        //DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();
+        //DataFlow::LiveVariableDataFlow(controlFlowGraph, symbolTable).worklist();
     }
 
     void collapseSmallStates(ControlFlowGraph& controlFlowGraph, FunctionTable& functionTable)
@@ -31,37 +31,7 @@ namespace Optimise
         while (changes)
         {
             changes = false;
-
-            //firstly collapse all unconditional jump nodes
             auto pair = nodes.begin();
-            while (pair != nodes.end())
-            {
-                CFGNode* current = pair->second.get();
-
-                if (current->getName() == controlFlowGraph.getFirst()->getName() || current->isLastNode())
-                {
-                    ++pair;
-                    continue;
-                }
-
-                vector<unique_ptr<AbstractCommand>>& instructionList = current->getInstrs();
-                if (instructionList.empty() && current->getCompSuccess() == nullptr)
-                {
-                    if (current->getCompFail() != nullptr) current->replacePushes(current->getCompFail()->getName());
-                    else current->removeCallsTo();
-
-                    for (const auto& parentit : current->getPredecessorMap())
-                    {
-                        if (!parentit.second->swallowNode(current)) throw "should swallow";
-                    }
-                    current->clearPredecessors();
-                    changes = true;
-                    pair = nodes.erase(pair);
-                }
-                else ++pair;
-            }
-
-            pair = nodes.begin();
             while (pair != nodes.end())
             {
                 CFGNode* current = pair->second.get();
@@ -83,26 +53,20 @@ namespace Optimise
                         if (pred->getName() == current->getName()) ++pair;
                         else
                         {
-                            current->removeCallsTo();
                             if (pred->swallowNode(current))
                             {
-                                if (current->isLastNode())
+                                current->setLast(false);
+                                if (current->getName() == controlFlowGraph.getLast()->getName())
                                 {
-                                    current->setLast(false);
-                                    if (pred->getParentFunction()->getIdent() == current->getParentFunction()->getIdent())
-                                    { //otherwise this will be dealt w/ in swallowNode
-                                        pred->getParentFunction()->setLastNode(pred);
-                                    }
+                                    controlFlowGraph.setLast(pred->getName());
                                 }
+                                pred->getParentFunction()->setLastNode(pred);
+                                pred->setLast();
                                 current->prepareToDie();
                                 pair = nodes.erase(pair);
                                 changes = true;
                             }
-                            else
-                            {
-                                printf("%s", controlFlowGraph.getStructuredSource().c_str());
-                                throw "should swallow";
-                            }
+                            else ++pair;
                         }
                     }
                     continue;

@@ -74,10 +74,20 @@ string CFGNode::getDotNode()
             string trans = comp->negatedCondition("");
             outs << getName() << "->" << compFail->getName()
                  << "[label=\" " << trans << "\"];\n";
-        }
-        else outs << getName() << "->" << compFail->getName()
-                  << "[label=\"  jump\"];\n";
+        } else
+            outs << getName() << "->" << compFail->getName()
+                 << "[label=\"  jump\"];\n";
     }
+    else
+    {
+        if (!isLast) throw "should be last";
+        for (CFGNode* nodePointer : parentFunction->getNodesReturnedTo())
+        {
+            outs << name << "->" << nodePointer->getName()
+                 << "[label=\"return\"];\n";
+        }
+    }
+
     return outs.str();
 }
 
@@ -321,13 +331,13 @@ bool CFGNode::swallowNode(CFGNode* other)
 {
     if (other->getName() == name) throw "cant swallow self";
 
-    const set<FunctionCall>& returnTo = parentFunction->getFunctionCalls();
+    const set<unique_ptr<FunctionCall>>& returnTo = parentFunction->getFunctionCalls();
 
     bool needlessFunctionCall = other->isFirstNode() && other->getPredecessorMap().size() == 1;
 
     bool needlessFunctionReturn = isLast && returnTo.size() == 1
-                                && (*returnTo.cbegin()).returnTo->getName() == other->getName()
-                                && other->getParentFunction()->numCalls() == 1;
+                                && (*returnTo.cbegin())->returnTo->getName() == other->getName()
+                                && other->getParentFunction()->numCalls() <= 1;
 
     if (compSuccess == nullptr)
     {
@@ -335,7 +345,7 @@ bool CFGNode::swallowNode(CFGNode* other)
         else if (needlessFunctionReturn)
         {
             auto callStruct = parentFunction->getOnlyFunctionCall();
-            parentFunction->mergeInto(callStruct.caller->getParentFunction());
+            parentFunction->mergeInto(callStruct->caller->getParentFunction());
         }
 
         if (compFail != nullptr && compFail->getName() == other->getName())
@@ -355,8 +365,9 @@ bool CFGNode::swallowNode(CFGNode* other)
                     {
                         CFGNode* node = parentGraph.getNode(pc->getData());
                         if (node == nullptr) throw "pushing nonexistent node";
-                        else if (functionCall != nullptr) throw "can only call one function";
-                        functionCall = make_unique<FunctionCall>(this, node, pc->pushedVars, pc->calledFunction);
+                        else if (functionCall && !needlessFunctionCall) throw "can only call one function";
+                        if (!other->functionCall) throw "other is pushing states w/out calling";
+                        functionCall = other->functionCall;
                         node->addFunctionCall(this, pc->calledFunction);
                         pc->calledFunction->addFunctionCall(this, node, pc->pushedVars);
                     }
@@ -379,7 +390,6 @@ bool CFGNode::swallowNode(CFGNode* other)
                 setComp(nullptr);
                 setCompSuccess(nullptr);
             }
-
             return true;
         }
     }
@@ -486,6 +496,11 @@ void CFGNode::setInstructions(vector<unique_ptr<AbstractCommand>>& in)
         if (++it != in.cend()) throw "Should end here";
     }
     else throw "Can only end w/ <=2 jumps";
+}
+
+void CFGNode::setFunctionCall(FunctionCall* fc)
+{
+    functionCall = fc;
 }
 
 bool CFGNode::addParent(CFGNode* parent)
@@ -633,7 +648,15 @@ unsigned int CFGNode::getNumPushingStates()
 
 void CFGNode::addFunctionCall(CFGNode *cfgn, FunctionSymbol *fs)
 {
+    if (name == "F1_loopheader_5")
+    {
+        int debug;
+        debug = 2;
+    }
+
     if (!pushingStates.insert({cfgn, fs}).second) throw "already in";
+    else if (!cfgn->functionCall || cfgn->functionCall->returnTo->getName() != name
+             || cfgn->functionCall->calledFunction->getIdent() != fs->getIdent()) throw "bad info";
 }
 
 void CFGNode::removeCallsTo()
@@ -681,6 +704,12 @@ void CFGNode::replacePushes(const std::string& other)
 
 void CFGNode::removeFunctionCall(const string& bye, FunctionSymbol* fs)
 {
+    if (name == "F1_loopheader_5")
+    {
+        int debug;
+        debug = 2;
+    }
+
     auto it = find_if(pushingStates.begin(), pushingStates.end(),
     [&, bye](std::pair<CFGNode*, FunctionSymbol*> p)
     {
@@ -692,9 +721,16 @@ void CFGNode::removeFunctionCall(const string& bye, FunctionSymbol* fs)
 
 void CFGNode::prepareToDie()
 {
-    if (isLastNode()) throw "cant delete last node";
+    if (isLastNode() || name == parentGraph.getLast()->getName()) throw "cant delete last node";
     if (getCompFail() != nullptr) getCompFail()->removeParent(name);
     if (getCompSuccess() != nullptr) getCompSuccess()->removeParent(name);
+
+    if (name == "F1_loopheader_5")
+    {
+        int debug;
+        debug = 2;
+    }
+
     removeCallsTo();
 
     //find out if we push states
