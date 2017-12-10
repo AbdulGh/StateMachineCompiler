@@ -232,6 +232,7 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
                             if (node == nullptr) throw "found a bad state";
                             node->removeParent(pushc->calledFunction->getLastNode()->getName());
                             pushc->calledFunction->removeFunctionCall(name, pushc->getData());
+                            node->removeFunctionCall(name, pushc->calledFunction);
                         }
                         newInstrs.erase(pushedThings.top());
                         pushedThings.pop();
@@ -648,12 +649,6 @@ unsigned int CFGNode::getNumPushingStates()
 
 void CFGNode::addFunctionCall(CFGNode *cfgn, FunctionSymbol *fs)
 {
-    if (name == "F1_loopheader_5")
-    {
-        int debug;
-        debug = 2;
-    }
-
     if (!pushingStates.insert({cfgn, fs}).second) throw "already in";
     else if (!cfgn->functionCall || cfgn->functionCall->returnTo->getName() != name
              || cfgn->functionCall->calledFunction->getIdent() != fs->getIdent()) throw "bad info";
@@ -704,12 +699,6 @@ void CFGNode::replacePushes(const std::string& other)
 
 void CFGNode::removeFunctionCall(const string& bye, FunctionSymbol* fs)
 {
-    if (name == "F1_loopheader_5")
-    {
-        int debug;
-        debug = 2;
-    }
-
     auto it = find_if(pushingStates.begin(), pushingStates.end(),
     [&, bye](std::pair<CFGNode*, FunctionSymbol*> p)
     {
@@ -724,13 +713,7 @@ void CFGNode::prepareToDie()
     if (isLastNode() || name == parentGraph.getLast()->getName()) throw "cant delete last node";
     if (getCompFail() != nullptr) getCompFail()->removeParent(name);
     if (getCompSuccess() != nullptr) getCompSuccess()->removeParent(name);
-
-    if (name == "F1_loopheader_5")
-    {
-        int debug;
-        debug = 2;
-    }
-
+    
     removeCallsTo();
 
     //find out if we push states
@@ -741,7 +724,10 @@ void CFGNode::prepareToDie()
             auto pc = static_cast<PushCommand*>(ac.get());
             if (pc->pushType == PushCommand::PUSHSTATE)
             {
+                CFGNode* pushedNode = parentGraph.getNode(pc->getData());
+                if (!pushedNode) throw "could not find node";
                 pc->calledFunction->removeFunctionCall(name, pc->getData(), false);
+                pushedNode->removeFunctionCall(name, pc->calledFunction);
             }
         }
     }

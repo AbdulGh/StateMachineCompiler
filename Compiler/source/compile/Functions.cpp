@@ -274,7 +274,6 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
             {
                 foundLeavingNode = pair->returnTo;
                 foundLeavingNode->removeParent(lastNode);
-                foundLeavingNode->removeFunctionCall(calling, this);
 
                 //if only one call returns to returnTo, erase its params
                 if (foundLeavingNode->getNumPushingStates() == 0 && numParams > 0)

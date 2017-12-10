@@ -45,14 +45,6 @@ void Compiler::compile(stringstream& out)
 
     Optimise::optimise(symbolTable, functionTable, cfg);
 
-    //auto debug = cfg.getNode("F0_main_1");
-    //auto debug2 = functionTable.getFunction("isEven");
-    //auto debug3 = cfg.getNode("F1_isEven_5");
-
-    cout << cfg.getStructuredSource() << endl;
-
-    return;
-
     SymbolicExecution::SymbolicExecutionManager symbolicExecutionManager
             = SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter);
     unordered_map<string, shared_ptr<SymbolicVarSet>>& tags = symbolicExecutionManager.search();
