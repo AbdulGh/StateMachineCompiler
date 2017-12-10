@@ -1,9 +1,7 @@
 WARNING : COMPILER : Function 'isEvenNegated' has no dtype - assuming void
-OPTIMISATION : DEAD CODE : State 'F2_isEvenNegated_11' is unreachable and will be removed
-OPTIMISATION : DEAD CODE : State 'F2_isEvenNegated_10' is unreachable and will be removed
-OPTIMISATION : DEAD CODE : State 'F2_isEvenNegated_9' is unreachable and will be removed
-OPTIMISATION : DEAD CODE : State 'F2_isEvenNegated_4' is unreachable and will be removed
-OPTIMISATION : DEAD CODE : State 'F2_isEvenNegated_5' is unreachable and will be removed
-OPTIMISATION : DEAD CODE : State 'F1_isEven_10' is unreachable and will be removed
-OPTIMISATION : DEAD CODE : State 'F1_isEven_6' is unreachable and will be removed
-OPTIMISATION : DEAD CODE : State 'F1_isEven_1' is unreachable and will be removed
+WARNING : COMPILER : x may not be defined
+WARNING : COMPILER : x may not be defined
+WARNING : COMPILER : x may not be defined
+WARNING : COMPILER : x may not be defined
+WARNING : COMPILER : x may not be defined
+WARNING : COMPILER : x may not be defined

@@ -31,6 +31,7 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
             {
                 case CommandType::CHANGEVAR:
                 case CommandType::EXPR:
+                case CommandType::POP:
                 {
                     const std::string& data = instr->getData();
                     auto it = find_if(genSet.begin(), genSet.end(),
@@ -95,6 +96,7 @@ void AssignmentPropogationDataFlow::finish()
 
         unordered_map<string, string> mapToPass;
         for (const Assignment& ass : inAss) mapToPass[ass.lhs] = ass.rhs;
+
         node->constProp(move(mapToPass));
     }
 }

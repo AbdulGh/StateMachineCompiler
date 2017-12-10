@@ -18,6 +18,7 @@ void FSM::run()
     while (currentStateNum != -1)
     {
         auto& currentState = states.at(currentStateNum);
+        //printf("At state %s\n", currentState->getName().c_str());
         currentState->run();
         currentStateNum = currentState->nextState();
     }

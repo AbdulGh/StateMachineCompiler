@@ -20,8 +20,8 @@ namespace Optimise
                 if (node.second->constProp()) changes = true;
             }
         }
-        //DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();
-        //DataFlow::LiveVariableDataFlow(controlFlowGraph, symbolTable).worklist();
+        DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();
+        DataFlow::LiveVariableDataFlow(controlFlowGraph, symbolTable).worklist();
     }
 
     void collapseSmallStates(ControlFlowGraph& controlFlowGraph, FunctionTable& functionTable)
@@ -32,6 +32,36 @@ namespace Optimise
         {
             changes = false;
             auto pair = nodes.begin();
+            while (pair != nodes.end()) //just get rid of unconditional jumps first
+            {
+                CFGNode* current = pair->second.get();
+                if (current->isLastNode())
+                {
+                    ++pair;
+                    continue;
+                }
+                vector<unique_ptr<AbstractCommand>>& instructionList = current->getInstrs();
+                if (instructionList.empty() && current->getCompSuccess() == nullptr)
+                {
+                    if (current->getCompFail() != nullptr) current->replacePushes(current->getCompFail()->getName());
+                    else current->removeCallsTo();
+
+                    for (const auto& parentit : current->getPredecessorMap())
+                    {
+                        if (!parentit.second->swallowNode(current))
+                        {
+                            printf("%s", controlFlowGraph.getStructuredSource().c_str());
+                            throw "should swallow";
+                        }
+                    }
+                    current->prepareToDie();
+                    pair = nodes.erase(pair);
+                    changes = true;
+                }
+                else ++pair;
+            }
+
+            pair = nodes.begin();
             while (pair != nodes.end())
             {
                 CFGNode* current = pair->second.get();

@@ -180,7 +180,7 @@ const std::set<unique_ptr<FunctionCall>>& FunctionSymbol::getFunctionCalls() con
     return calls;
 }
 
-void FunctionSymbol::replaceReturnState(CFGNode *going, CFGNode* replaceWith)
+void FunctionSymbol::replaceReturnState(CFGNode* going, CFGNode* replaceWith)
 {
     auto callsIt = calls.begin();
     while (callsIt != calls.end())
@@ -210,8 +210,9 @@ void FunctionSymbol::replaceReturnState(CFGNode *going, CFGNode* replaceWith)
             if (!found) throw "could not find push in pushing state";
 
             addFunctionCall((*callsIt)->caller, replaceWith, (*callsIt)->numPushedVars);
-            calls.erase((*callsIt));
             replaceWith->addFunctionCall((*callsIt)->caller, this);
+            going->removeParent(lastNode);
+            calls.erase((*callsIt));
             return;
         }
         ++callsIt;

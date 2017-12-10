@@ -260,9 +260,8 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
         ++it;
     }
 
-
     bool skippedReturn = false;
-    if (comp != nullptr)
+    /*if (comp != nullptr)
     {
         if (comp->term1Type == AbstractCommand::StringType::ID &&
             assignments.find(comp->term1) != assignments.end()) comp->setTerm1(assignments[comp->term1]);
@@ -499,7 +498,7 @@ void CFGNode::setInstructions(vector<unique_ptr<AbstractCommand>>& in)
     else throw "Can only end w/ <=2 jumps";
 }
 
-void CFGNode::setFunctionCall(FunctionCall* fc)
+void CFGNode::setFunctionCall(bool fc)
 {
     functionCall = fc;
 }
@@ -650,8 +649,6 @@ unsigned int CFGNode::getNumPushingStates()
 void CFGNode::addFunctionCall(CFGNode *cfgn, FunctionSymbol *fs)
 {
     if (!pushingStates.insert({cfgn, fs}).second) throw "already in";
-    else if (!cfgn->functionCall || cfgn->functionCall->returnTo->getName() != name
-             || cfgn->functionCall->calledFunction->getIdent() != fs->getIdent()) throw "bad info";
 }
 
 void CFGNode::removeCallsTo()

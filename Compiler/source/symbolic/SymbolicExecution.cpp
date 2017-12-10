@@ -162,18 +162,14 @@ SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFringe> return
     CFGNode* failNode = n->getCompFail();
     if (failNode == nullptr) //return to top of stack
     {
-        if (!n->isLastNode()) throw "only last can return";
-        if (returningSEF->currentStack->getTopType() != SymbolicStackMemberType::STATE)
+        if (returningSEF->currentStack->isEmpty())
         {
-            returningSEF->error(Reporter::BAD_STACK_USE, "Tried to jump to a non state", n->getJumpline()); //probably my fault
+            if (!n->isLastNode()) throw "returns too early";
             return nullptr;
         }
+        if (returningSEF->currentStack->getTopType() != SymbolicStackMemberType::STATE) throw "tried to jump to non-state";
         failNode = n->getParentGraph().getNode(returningSEF->currentStack->popState());
-        if (failNode == nullptr)
-        {
-            returningSEF->error(Reporter::BAD_STACK_USE, "Tried to jump to a nonexisting state", n->getJumpline());
-            return nullptr;
-        }
+        if (failNode == nullptr) throw "tried to jump to a nonexisting state";
         else //check its in successors of n
         if (find(n->getSuccessorVector().begin(), n->getSuccessorVector().end(), failNode) == n->getSuccessorVector().end())
         {
@@ -316,7 +312,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     else //unconditional jump
     {
         CFGNode* retNode = getFailNode(sef, n);
-        if (retNode == nullptr) return retNode->isLastNode(); //return on an empty stack means we exit
+        if (retNode == nullptr) return n->isLastNode(); //return on an empty stack means we exit
         else return visitNode(sef, retNode);
     }
 }
