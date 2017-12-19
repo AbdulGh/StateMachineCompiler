@@ -47,18 +47,15 @@ void Compiler::compile(stringstream& out)
 
     cout << cfg.getStructuredSource();
 
-    /*cout << cfg.getStructuredSource();
-
     SymbolicExecution::SymbolicExecutionManager symbolicExecutionManager
             = SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter);
-    unordered_map<string, shared_ptr<SymbolicVarSet>>& tags = symbolicExecutionManager.search();
+    unordered_map<string, unique_ptr<SymbolicExecution::SymbolicExecutionManager::SearchResult>>& tags //todo quick typedef
+            = symbolicExecutionManager.search();
 
     vector<Loop> loops = LengTarj(cfg).findLoops();
-    for (Loop loop : loops) loop.validate(tags);
+    for (Loop& loop : loops) loop.validate(tags);
 
-    Optimise::optimise(symbolTable, functionTable, cfg);*/
-
-    //cout << cfg.destroyStructureAndGetFinalSource();
+    Optimise::optimise(symbolTable, functionTable, cfg);
 }
 
 Token Compiler::nextToken()

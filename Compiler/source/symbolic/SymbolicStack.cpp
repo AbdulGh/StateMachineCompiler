@@ -19,7 +19,7 @@ void SymbolicStack::copyParent()
     if (!currentStack.empty()) throw runtime_error("Cannot copy parent on a different branch");
 
     //need to duplicate SymbolicDoubles so we don't fiddle with other branches
-    for (StackMember sm : parent->currentStack) currentStack.push_back(move(sm)); //copies
+    for (StackMember& sm : parent->currentStack) currentStack.emplace_back(StackMember(sm)); //copies
     parent = parent->parent;
 }
 
@@ -53,11 +53,33 @@ string SymbolicStack::popState()
     return popped.statename;
 }
 
+void SymbolicStack::pop()
+{
+    while (currentStack.empty())
+    {
+        if (parent == nullptr) throw runtime_error("Tried to pop empty stack");
+        copyParent();
+    }
+    currentStack.pop_back();
+}
+
 unique_ptr<SymbolicVariable> SymbolicStack::popVar()
 {
     StackMember popped = popMember();
     if (popped.type != SymbolicStackMemberType::VAR) throw runtime_error("Tried to pop state as var");
     return move(popped.varptr);
+}
+
+SymbolicVariable* SymbolicStack::peekTopVar()
+{
+    while (currentStack.empty())
+    {
+        if (parent == nullptr) throw runtime_error("Tried to peek empty stack");
+        copyParent();
+    }
+    StackMember& cb = currentStack.back();
+    if (cb.type != SymbolicStackMemberType::VAR) throw runtime_error("Tried to pop state as var");
+    return cb.varptr.get();
 }
 
 SymbolicStackMemberType SymbolicStack::getTopType()

@@ -13,10 +13,6 @@
 
 //todo improve expressions in first execution (ruin determination only one way)
 
-typedef std::unique_ptr<SymbolicVariable> VarPointer;
-template <typename T>
-using VarTemplatePointer = std::shared_ptr<SymbolicVariableTemplate<T>>;
-
 namespace SymbolicExecution
 {
     struct Condition
@@ -40,6 +36,7 @@ namespace SymbolicExecution
     struct SymbolicExecutionFringe
     {
         bool feasable = true;
+        bool checkParentPC = true;
         std::shared_ptr<SymbolicExecutionFringe> parent;
         std::unordered_map<std::string, Condition> pathConditions;
         std::vector<std::string> visitOrder;
@@ -56,14 +53,37 @@ namespace SymbolicExecution
         void error(Reporter::AlertType a, std::string s, int linenum = -1);
         void warn(Reporter::AlertType a, std::string s, int linenum = -1);
         bool isFeasable();
-        bool hasSeen(std::string state);
+        bool hasSeen(const std::string& state);
     };
 
     class SymbolicExecutionManager
     {
+    public:
+        class SearchResult
+        {
+        private:
+            unsigned int currentPop = 0;
+            std::vector<SymbolicVariable*> poppedVars; //should probably be unique_ptr but it wont compile :s
+
+        public:
+            SearchResult() = default;
+            ~SearchResult() {for (SymbolicVariable* sv: poppedVars) delete sv;};
+            SymbolicVarSet svs;
+            void resetPoppedCounter() {currentPop = 0;};
+            //these next two should not be mixed w/out resetting
+            bool hasPop(){return currentPop < poppedVars.size();};
+            SymbolicVariable* nextPop();
+            void addPop(SymbolicVariable* popped);
+        };
+
+        SymbolicExecutionManager(ControlFlowGraph& cfg, SymbolTable& sTable, Reporter& reporter):
+                cfg(cfg), sTable(sTable), reporter(reporter)
+        {};
+        std::unordered_map<std::string, std::unique_ptr<SearchResult>>& search();
+
     private:
         std::set<std::string> visitedNodes;
-        std::unordered_map<std::string, std::shared_ptr<SymbolicVarSet>> tags;
+        std::unordered_map<std::string, std::unique_ptr<SearchResult>> tags;
 
         ControlFlowGraph& cfg;
         SymbolTable& sTable;
@@ -116,12 +136,6 @@ namespace SymbolicExecution
                       SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
 
         static CFGNode* getFailNode(std::shared_ptr<SymbolicExecutionFringe> returningSEF, CFGNode* n);
-
-    public:
-        SymbolicExecutionManager(ControlFlowGraph& cfg, SymbolTable& sTable, Reporter& reporter):
-            cfg(cfg), sTable(sTable), reporter(reporter)
-        {};
-        std::unordered_map<std::string, std::shared_ptr<SymbolicVarSet>>& search();
     };
 }
 

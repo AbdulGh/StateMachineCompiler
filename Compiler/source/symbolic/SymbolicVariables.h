@@ -73,7 +73,7 @@ public:
     virtual bool isDetermined() const = 0;
     virtual bool clipLowerBound(const std::string& lb, bool closed=true) = 0;
     virtual bool clipUpperBound(const std::string& ub, bool closed=true) = 0;
-    virtual bool unionLowerBound(const std::string& lb, bool closed=true) = 0;
+    virtual bool unionLowerBound(const std::string& lb, bool closed=true) = 0; //todo union, clip etc directly w/ var
     virtual bool unionUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setLowerBound(const std::string& ub, bool closed=true) = 0;

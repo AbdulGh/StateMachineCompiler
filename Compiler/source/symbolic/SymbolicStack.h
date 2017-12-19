@@ -17,18 +17,20 @@ struct StackMember
     std::unique_ptr<SymbolicVariable> varptr;
     std::string statename;
 
-    StackMember(const std::string& state)
+    explicit StackMember(const std::string& state)
     {
         type = STATE;
         statename = std::string(state);
     }
-    StackMember(SymbolicVariable* toPush)
+
+    explicit StackMember(SymbolicVariable* toPush)
     {
         type = VAR;
         if (toPush->getType() == DOUBLE) varptr = std::make_unique<SymbolicDouble>(toPush);
         else if (toPush->getType() == STRING) varptr = std::make_unique<SymbolicString>(toPush);
         else throw "bad dtype";
     }
+
     StackMember(const StackMember& sm)
     {
         type = sm.type;
@@ -52,11 +54,14 @@ private:
     StackMember popMember();
 public:
     SymbolicStack(std::shared_ptr<SymbolicStack> parent = nullptr);
+    SymbolicStack(const SymbolicStack&) = delete;
     //void push(std::unique_ptr<SymbolicVariable> pushedVar);
     void push(SymbolicVariable* pushedVar);
     void push(const std::string& pushedState);
     std::unique_ptr<SymbolicVariable> popVar();
+    SymbolicVariable* peekTopVar();
     std::string popState();
+    void pop();
     bool isEmpty();
     SymbolicStackMemberType getTopType();
 };

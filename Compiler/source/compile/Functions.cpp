@@ -11,7 +11,7 @@ FunctionSymbol::FunctionSymbol(VariableType rt, vector<VariableType> types, stri
     currentStateNum(1), endedState(false), cfg(c), lastNode{nullptr}
     {currentNode = cfg.createNode(prefix + "0", false, false, this); firstNode = currentNode;}
 
-bool FunctionSymbol::mergeInto(FunctionSymbol *to)
+bool FunctionSymbol::mergeInto(FunctionSymbol* to)
 {
     if (to->getPrefix() == getPrefix()) return false;
     else if (calls.size() != 1) throw "can only have one call";
@@ -23,22 +23,11 @@ bool FunctionSymbol::mergeInto(FunctionSymbol *to)
     unsigned int localVarPushes = functionCall->numPushedVars;
     unsigned int totalNumPushes = localVarPushes + paramTypes.size() + 1;
     if (callingInstrs.size() < totalNumPushes) throw "not enough pushes in calling state";
-    auto callingIt = callingInstrs.begin() + (callingInstrs.size() - totalNumPushes);
-
-    vector<unique_ptr<AbstractCommand>>& returnInstrs = functionCall->returnTo->getInstrs();
-    if (returnInstrs.size() < localVarPushes) throw "return should pop local vars";
-    auto returnIt = returnInstrs.begin();
-
-    while (localVarPushes > 0)
-    {
-        if ((*callingIt)->getType() != CommandType::PUSH || (*returnIt)->getType() != CommandType::POP) throw "not good";
-        callingIt = callingInstrs.erase(callingIt);
-        returnIt = returnInstrs.erase(returnIt);
-        --localVarPushes;
-    }
+    auto callingIt = callingInstrs.begin() + (callingInstrs.size() - paramTypes.size()) - 1;
 
     if ((*callingIt)->getData() != functionCall->returnTo->getName()) throw "should push called state";
     callingIt = callingInstrs.erase(callingIt);
+
 
     //remove pushes/pops of parameters
     if (!paramTypes.empty())
@@ -64,6 +53,7 @@ bool FunctionSymbol::mergeInto(FunctionSymbol *to)
     lastNode->setCompFail(functionCall->returnTo);
     lastNode->setLast(false);
     functionCall->returnTo->removeFunctionCall(functionCall->caller->getName(), this);
+    functionCall->caller->setFunctionCall(false);
     calls.clear();
 
     for (auto& pair : cfg.getCurrentNodes())

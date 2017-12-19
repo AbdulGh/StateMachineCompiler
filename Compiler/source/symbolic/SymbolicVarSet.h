@@ -38,6 +38,7 @@ private:
 public:
     SymbolicVarSet(std::shared_ptr<SymbolicVarSet> p = nullptr):
             parent(move(p)), endIterator(parent == nullptr ? variables.cend() : parent->endIterator) {}
+    SymbolicVarSet(const SymbolicVarSet&) = delete;
     SymbolicVariable* findVar(std::string name);
     //const std::unordered_map<std::string, SymbolicVariablePointer>& getVars() const {return variables;}
     void defineVar(SymbolicVariablePointer newvar);

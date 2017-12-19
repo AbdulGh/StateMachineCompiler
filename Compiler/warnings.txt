@@ -1,7 +1,0 @@
-WARNING : COMPILER : Function 'isEvenNegated' has no dtype - assuming void
-WARNING : COMPILER : x may not be defined
-WARNING : COMPILER : x may not be defined
-WARNING : COMPILER : x may not be defined
-WARNING : COMPILER : x may not be defined
-WARNING : COMPILER : x may not be defined
-WARNING : COMPILER : x may not be defined

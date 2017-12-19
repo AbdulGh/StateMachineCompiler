@@ -121,12 +121,12 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
 
         bool isFirst() {return first;}
 
-        const vector<unique_ptr<AbstractCommand>>& getInstructions()
+        vector<unique_ptr<AbstractCommand>>& getInstructions()
         {
             return instructions;
         }
 
-        const vector<SourceNode*>& getPredecessors()
+        vector<SourceNode*>& getPredecessors()
         {
             return predecessors;
         }
@@ -236,7 +236,7 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
         {
             unique_ptr<SourceNode>& sn = it->second;
 
-            /*if (sn->getInstructions().size() == 1)
+            if (sn->getInstructions().size() == 1)
             {
                 const unique_ptr<AbstractCommand>& onlyInstr = *(sn->getInstructions().begin());
                 if (onlyInstr->getType() == CommandType::JUMP)
@@ -245,17 +245,28 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
                     auto parentIt = snPreds.begin();
                     while (parentIt != snPreds.end())
                     {
-                        const unique_ptr<SourceNode>& parentNode = *parentIt;
+                        SourceNode* parentNode = *parentIt;
+                        vector<unique_ptr<AbstractCommand>>& parentInstructions = parentNode->getInstructions();
                         if (!parentNode->getInstructions().empty())
                         {
-                            const unique_ptr<AbstractCommand>& lastParentInstr = *(parentNode->getInstructions().rbegin());
-                            if (lastParentInstr->getType() == CommandType::JUMP && lastParentInstr->getData() == sn->ge)
-                                //todo finish this by cycling through all parent instrs
+                            for (unsigned int parentInstIndex = 0; parentInstIndex < parentInstructions.size(); ++parentInstIndex)
+                            {
+                                unique_ptr<AbstractCommand>& instr = parentInstructions.at(parentInstIndex);
+                                if (instr->getData() == sn->name)
+                                {
+                                    if (onlyInstr->getData() == "return")
+                                    {
+                                        parentInstructions[parentInstIndex] = make_unique<ReturnCommand>(instr->getLineNum());
+                                    }
+                                    else instr->setData(onlyInstr->getData());
+                                }
+                            }
                         }
-                        else ++parentIt;
+                        else throw "bad parent";
+                        parentIt = snPreds.erase(parentIt);
                     }
                 }
-            }*/
+            }
             if (sn->getPredecessors().empty() && !sn->isFirst())
             {
                 sn->loseKids();
@@ -297,7 +308,7 @@ string ControlFlowGraph::getDotGraph()
     for (auto& it : ordered) //the nodes should be grouped by function due to name ordering
     {
         CFGNode* n = it.second;
-        if (n->getParentFunction()->getIdent() != currentFunc)
+        if (n->getParentFunction()->getIdent() != currentFunc) //functions cant have empty identifier
         {
             if (!currentFunc.empty())  outs << "}\n";
             currentFunc = n->getParentFunction()->getIdent();
@@ -307,7 +318,14 @@ string ControlFlowGraph::getDotGraph()
         outs << n->getDotNode();
         outs << '\n';
     }
-    outs << "}}\n";
+    outs << "}\n";
+
+    //if you define edgen within subgraphs, nodes get placed in the wrong clusters
+    for (auto& it : ordered)
+    {
+        outs << it.second->getDotEdges();
+    }
+    outs << "}\n";
     return outs.str();
 }
 

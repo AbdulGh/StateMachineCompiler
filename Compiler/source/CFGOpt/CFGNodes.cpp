@@ -60,7 +60,13 @@ string CFGNode::getDotNode()
     stringstream outs;
     outs << getName() << "[label=<<B>" << getName() << "</B><br/>";
     outs << getSource(false, "<br/>", false);
-    outs << "> shape=box];\n";
+    outs << "> shape=box];";
+    return outs.str();
+}
+
+string CFGNode::getDotEdges()
+{
+    stringstream outs;
     if (compSuccess != nullptr)
     {
         string trans = comp->condition("");
@@ -261,7 +267,7 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
     }
 
     bool skippedReturn = false;
-    /*if (comp != nullptr)
+    if (comp != nullptr)
     {
         if (comp->term1Type == AbstractCommand::StringType::ID &&
             assignments.find(comp->term1) != assignments.end()) comp->setTerm1(assignments[comp->term1]);
@@ -307,22 +313,7 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
             }
         }
     }
-    /* //todo next this + stacked function arguments
-    if (compFail == nullptr && !pushedThings.empty()) //there should be a state on top
-    {
-        if (!isLastNode()) throw "should be last";
-        auto stackTop = pushedThings.top();
-        PushCommand* pushc = static_cast<PushCommand*>((*stackTop).get());
-        if (pushc->pushType != PushCommand::PUSHSTATE) throw runtime_error("tried to jump to var");
-        CFGNode* jumpingTo = parentGraph.getNode(pushc->getData());
-        jumpingTo->removeFunctionCall(name);
-        if (jumpingTo == nullptr) throw runtime_error("Tried to jump to nonexistent state");
-        compFail = jumpingTo;
-        newInstrs.erase(stackTop);
-        if (parentFunction->getFunctionCalls().size() != 1) throw "check";
-        parentFunction->clearFunctionCalls();
-        skippedReturn = true;
-    }*/
+
     instrs = move(newInstrs);
     return skippedReturn;
 }
@@ -589,6 +580,11 @@ bool CFGNode::noPreds()
             (predecessors.size() == 1 && predecessors.begin()->first == name));
 }
 
+bool CFGNode::callsFunction()
+{
+    return functionCall;
+}
+
 void CFGNode::setCompFail(CFGNode* compareFail)
 {
     compFail = compareFail;
@@ -651,7 +647,7 @@ void CFGNode::addFunctionCall(CFGNode *cfgn, FunctionSymbol *fs)
     if (!pushingStates.insert({cfgn, fs}).second) throw "already in";
 }
 
-void CFGNode::removeCallsTo()
+void CFGNode::removePushes()
 {
     auto it = pushingStates.begin();
     while (it != pushingStates.end())
@@ -710,8 +706,8 @@ void CFGNode::prepareToDie()
     if (isLastNode() || name == parentGraph.getLast()->getName()) throw "cant delete last node";
     if (getCompFail() != nullptr) getCompFail()->removeParent(name);
     if (getCompSuccess() != nullptr) getCompSuccess()->removeParent(name);
-    
-    removeCallsTo();
+
+    removePushes();
 
     //find out if we push states
     for (const auto& ac : instrs)

@@ -55,7 +55,7 @@ private:
     std::vector<std::unique_ptr<AbstractCommand>> instrs; //pointers to allow downcasting (avoid object slicing)
     ControlFlowGraph& parentGraph;
     FunctionSymbol* parentFunction;
-    bool functionCall = true;
+    bool functionCall = false;
     std::set<std::pair<CFGNode*, FunctionSymbol*>> pushingStates; //used to remove pushes if the node is being removed
     bool isLast;
     int jumpline;
@@ -78,12 +78,12 @@ public:
     void setLast(bool last = true);
 
     void addFunctionCall(CFGNode* cfgn, FunctionSymbol* fs);
-    //assumes the pop is handled elsewhere
-    void removeCallsTo();
+    void removePushes();
     void removeFunctionCall(const std::string& name, FunctionSymbol* fs);
     void replacePushes(const std::string& rep);
     unsigned int getNumPushingStates();
     bool noPreds(); //accounts for self loops
+    bool callsFunction();
     void prepareToDie();
 
     //tries to merge with other (if it can fix the jumps so that it can do so)
@@ -103,6 +103,7 @@ public:
     FunctionSymbol* getParentFunction() const;
     std::string getSource(bool makeState = true, std::string delim = "\n", bool escape = false);
     std::string getDotNode();
+    std::string getDotEdges();
     bool isLastNode() const;
     bool isFirstNode() const;
 };

@@ -6,9 +6,6 @@
 
 using namespace std;
 
-typedef shared_ptr<SymbolicVariableTemplate<string>> StringTemplatePtr;
-typedef shared_ptr<SymbolicVariableTemplate<double>> DoubleTemplatePtr;
-
 bool AbstractCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
 {
     return true;
@@ -46,6 +43,18 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
 
 bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
 {
+    if (svs->currentStack->isEmpty())
+    {
+        svs->error(Reporter::BAD_STACK_USE, "Tried to pop empty stack", getLineNum());
+        return false;
+    }
+
+    if (isEmpty())
+    {
+        svs->currentStack->pop();
+        return true;
+    }
+
     if (svs->currentStack->getTopType() != VAR)
     {
         svs->error(Reporter::BAD_STACK_USE, "Tried to pop a state into a variable", getLineNum());
@@ -70,6 +79,7 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
     popped->setName(found->getName());
     if (!popped->isFeasable()) throw "should be feasable";
     svs->symbolicVarSet->defineVar(move(popped));
+
     return true;
 }
 
@@ -92,24 +102,24 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
         }
         catch (invalid_argument&)
         {
-            SymbolicVariable* RHS = svs->symbolicVarSet->findVar(getData());
-            if (RHS == nullptr)
+            SymbolicVariable* RHSvar = svs->symbolicVarSet->findVar(RHS);
+            if (RHSvar == nullptr)
             {
-                svs->error(Reporter::UNDECLARED_USE, "'" + getData() + "' assigned to without being declared", getLineNum());
+                svs->error(Reporter::UNDECLARED_USE, "'" + RHS + "' used on RHS without being declared", getLineNum());
                 return false;
             }
-            else if (RHS->getType() != DOUBLE)
+            else if (RHSvar->getType() != DOUBLE)
             {
-                svs->error(Reporter::TYPE, "'" + getData() + "' (type " + TypeEnumNames[RHS->getType()] +
+                svs->error(Reporter::TYPE, "'" + RHS + "' (type " + TypeEnumNames[RHSvar->getType()] +
                                            ") assigned to double", getLineNum());
                 return false;
             }
 
-            unique_ptr<SymbolicDouble> newLHS = make_unique<SymbolicDouble>(RHS);
-            bool feasable = newLHS->isFeasable();
-            newLHS->setName(svp->getName());
+            unique_ptr<SymbolicDouble> newLHS = make_unique<SymbolicDouble>(RHSvar);
+            if (!newLHS->isFeasable()) return false;
+            newLHS->setName(getData());
             svs->symbolicVarSet->defineVar(move(newLHS));
-            return feasable;
+            return true;
         }
     }
     else svp->setConstValue(RHS);

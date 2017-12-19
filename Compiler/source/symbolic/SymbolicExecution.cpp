@@ -33,10 +33,10 @@ void SymbolicExecutionFringe::warn(Reporter::AlertType a, string s, int linenum)
     reporter.warn(a, s);
 }
 
-bool SymbolicExecutionFringe::hasSeen(string state)
+bool SymbolicExecutionFringe::hasSeen(const string& state)
 {
     if (pathConditions.find(state) != pathConditions.end()) return true;
-    else return (parent == nullptr) ? false : parent->hasSeen(state);
+    else return (parent != nullptr && checkParentPC && parent->hasSeen(state));
 }
 
 bool SymbolicExecutionFringe::isFeasable()
@@ -111,12 +111,31 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
     }
 }
 
+SymbolicVariable* SymbolicExecutionManager::SearchResult::nextPop()
+{
+    if (currentPop >= poppedVars.size()) throw "went too far";
+    ++currentPop;
+    return poppedVars[currentPop-1]->clone().release(); //todo less roundabout
+}
+
+void SymbolicExecutionManager::SearchResult::addPop(SymbolicVariable* popped)
+{
+    if (currentPop == poppedVars.size()) poppedVars.push_back(popped->clone().release());
+    else
+    {
+        SymbolicVariable* sv = poppedVars[currentPop];
+        sv->unionLowerBound(popped->getLowerBound());
+        sv->unionUpperBound(popped->getUpperBound());
+    }
+    ++currentPop;
+}
+
 //SymbolicExecutionManager
-unordered_map<string, shared_ptr<SymbolicVarSet>>& SymbolicExecutionManager::search()
+unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& SymbolicExecutionManager::search()
 {
     visitedNodes.clear();
     tags.clear();
-    for (auto& pair : cfg.getCurrentNodes()) tags[pair.first] = make_shared<SymbolicVarSet>();
+    for (auto& pair : cfg.getCurrentNodes()) tags[pair.first] = make_unique<SearchResult>();
     shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(reporter);
     visitNode(sef, cfg.getFirst());
     auto it = cfg.getCurrentNodes().begin();
@@ -145,10 +164,10 @@ unordered_map<string, shared_ptr<SymbolicVarSet>>& SymbolicExecutionManager::sea
                     parent->setComp(nullptr);
                     parent->setCompSuccess(nullptr);
                 }
-                else if (!parent->isLastNode()) throw runtime_error("bad parent"); //done in removeCallsTo
+                else if (!parent->isLastNode()) throw runtime_error("bad parent"); //done in removePushes
                 parent->setComp(nullptr);
             }
-            lonelyNode->removeCallsTo();
+            lonelyNode->removePushes();
             it = cfg.removeNode(it->first);
         }
         else ++it;
@@ -156,8 +175,7 @@ unordered_map<string, shared_ptr<SymbolicVarSet>>& SymbolicExecutionManager::sea
     return tags;
 }
 
-CFGNode*
-SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFringe> returningSEF, CFGNode* n)
+CFGNode* SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFringe> returningSEF, CFGNode* n)
 {
     CFGNode* failNode = n->getCompFail();
     if (failNode == nullptr) //return to top of stack
@@ -179,13 +197,14 @@ SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFringe> return
     return failNode;
 }
 
+//todo seen function calls
 bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n)
 {
     if (!sef->isFeasable()) return false;
     else if (sef->hasSeen(n->getName())) return true;
 
-    sef->pathConditions.insert({n->getName(), Condition()}); //don't track conditions till later - this just tracks which nodes we've seen
-    tags[n->getName()]->unionSVS(sef->symbolicVarSet.get());
+    unique_ptr<SearchResult>& thisNodeSR = tags[n->getName()];
+    thisNodeSR->svs.unionSVS(sef->symbolicVarSet.get());
 
     for (const auto& command : n->getInstrs())
     {
@@ -207,9 +226,31 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
             }
             else sef->symbolicVarSet->findVar(command->getData())->userInput();
         }
-        else if (!command->acceptSymbolicExecution(sef)) return false;
+        else
+        {
+            if (command->getType() == CommandType::POP)
+            {
+                if (sef->currentStack->isEmpty() || sef->currentStack->getTopType() != VAR)
+                {
+                    sef->error(Reporter::BAD_STACK_USE,
+                               "Tried to pop empty stack, or non var into var", command->getLineNum());
+
+                }
+                SymbolicVariable* poppedVar = sef->currentStack->peekTopVar();
+                thisNodeSR->addPop(poppedVar);
+            }
+            if (!command->acceptSymbolicExecution(sef)) return false;
+        }
     }
 
+    if (n->callsFunction()) //search mutual recursion
+    {
+        sef->pathConditions.clear();
+        sef->checkParentPC = false;
+    }
+
+    //don't track conditions till later - this just tracks which nodes we've seen
+    sef->pathConditions.insert({n->getName(), Condition()});
     visitedNodes.insert(n->getName());
 
     JumpOnComparisonCommand* jocc = n->getComp();
@@ -292,7 +333,6 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                         if (nextnode == nullptr) return false;
                         return visitNode(sef, nextnode);
                     }
-
                 }
                 else //rhs undetermined, lhs determined
                 {

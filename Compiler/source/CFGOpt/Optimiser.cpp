@@ -35,28 +35,27 @@ namespace Optimise
             while (pair != nodes.end()) //just get rid of unconditional jumps first
             {
                 CFGNode* current = pair->second.get();
-                if (current->isLastNode())
-                {
-                    ++pair;
-                    continue;
-                }
                 vector<unique_ptr<AbstractCommand>>& instructionList = current->getInstrs();
                 if (instructionList.empty() && current->getCompSuccess() == nullptr)
                 {
                     if (current->getCompFail() != nullptr) current->replacePushes(current->getCompFail()->getName());
-                    else current->removeCallsTo();
+                    else current->removePushes();
 
-                    for (const auto& parentit : current->getPredecessorMap())
+                    if (current->isLastNode())
                     {
-                        if (!parentit.second->swallowNode(current))
-                        {
-                            printf("%s", controlFlowGraph.getStructuredSource().c_str());
-                            throw "should swallow";
-                        }
+                        ++pair;
+                        continue;
                     }
-                    current->prepareToDie();
-                    pair = nodes.erase(pair);
-                    changes = true;
+                    else
+                    {
+                        for (const auto& parentit : current->getPredecessorMap())
+                        {
+                            if (!parentit.second->swallowNode(current)) throw "should swallow";
+                        }
+                        current->prepareToDie();
+                        pair = nodes.erase(pair);
+                        changes = true;
+                    }
                 }
                 else ++pair;
             }

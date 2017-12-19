@@ -83,7 +83,7 @@ SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, const s
     {
         case Relations::EQ:
             if (isDetermined() && getTLowerBound() == rhs) return MUST;
-            else if (rhs >= getTLowerBound() && rhs <= getTLowerBound()) return MAY;
+            else if (rhs >= getTLowerBound() && rhs <= getTUpperBound()) return MAY;
             else return CANT;
         case Relations::NEQ:
             if (isDetermined()) return (getTLowerBound() != rhs) ? MUST : CANT;

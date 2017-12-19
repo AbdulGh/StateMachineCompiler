@@ -276,6 +276,7 @@ void SymbolicVariable::clearLess()
 void SymbolicVariable::userInput()
 {
     userAffected = true;
+    defined = true;
 }
 
 void SymbolicVariable::clearGreater()

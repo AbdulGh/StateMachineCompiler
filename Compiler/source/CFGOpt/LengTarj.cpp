@@ -137,16 +137,26 @@ vector<Loop> LengTarj::findLoops()
 {
     labelNodes();
     calculateSemidominators();
-    vector<Loop> loops;
+
     //calculate dominators and find `natural loops'
+    vector<Loop> loops;
     for (unsigned long i = 2; i <= numNodes; ++i)
     {
         if (domNums[i] != semiDomNums[i]) domNums[i] = domNums[domNums[i]];
         std::vector<unsigned long>& iSuccessors = verticies[i]->successors;
-        auto succ = find(iSuccessors.begin(), iSuccessors.end(), domNums[i]); //check if successor is immediate dominator
-        if (succ != iSuccessors.end()) //natural loop found
+        std::vector<unsigned long> natLoopTails;
+
+        //climb up the dominator tree
+        unsigned long currentDom = domNums[i];
+        do
         {
-            unsigned long succNum = *succ;
+            auto succ = find(iSuccessors.begin(), iSuccessors.end(), currentDom); //check if successor is immediate dominator
+            if (succ != iSuccessors.end()) natLoopTails.push_back(currentDom);  //natural loop found
+            currentDom = domNums[currentDom];
+        } while (currentDom != domNums[currentDom]);
+
+        for (const auto& succNum : natLoopTails)
+        {
             stack<unsigned long> toProcess({i});
             std::set<CFGNode*> nodeSet({verticies[i]->node});
             while (!toProcess.empty()) //search upwards
