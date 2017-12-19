@@ -78,6 +78,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
     if (nodes.find(node) == nodes.end()) return false;
 
     unique_ptr<SearchResult>& thisNodeSR = tags[node->getName()];
+    thisNodeSR->resetPoppedCounter();
 
     for (auto& instr : node->getInstrs())
     {
@@ -340,6 +341,5 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             }
         }
     }
-    tags[headerNode->getName()]->resetPoppedCounter();
     return true;
 }

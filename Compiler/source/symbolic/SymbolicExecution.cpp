@@ -204,7 +204,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     else if (sef->hasSeen(n->getName())) return true;
 
     unique_ptr<SearchResult>& thisNodeSR = tags[n->getName()];
-    thisNodeSR->svs.unionSVS(sef->symbolicVarSet.get());
+    thisNodeSR->svs->unionSVS(sef->symbolicVarSet.get());
 
     for (const auto& command : n->getInstrs())
     {

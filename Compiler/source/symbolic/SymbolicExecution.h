@@ -66,9 +66,9 @@ namespace SymbolicExecution
             std::vector<SymbolicVariable*> poppedVars; //should probably be unique_ptr but it wont compile :s
 
         public:
-            SearchResult() = default;
+            SearchResult() {svs = std::make_shared<SymbolicVarSet>();};
             ~SearchResult() {for (SymbolicVariable* sv: poppedVars) delete sv;};
-            SymbolicVarSet svs;
+            std::shared_ptr<SymbolicVarSet> svs;
             void resetPoppedCounter() {currentPop = 0;};
             //these next two should not be mixed w/out resetting
             bool hasPop(){return currentPop < poppedVars.size();};
