@@ -111,24 +111,23 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
     }
 }
 
-SymbolicVariable* SymbolicExecutionManager::SearchResult::nextPop()
+unique_ptr<SymbolicVariable> SymbolicExecutionManager::SearchResult::nextPop()
 {
     if (currentPop >= poppedVars.size()) throw "went too far";
     ++currentPop;
-    return poppedVars[currentPop-1]->cloneRaw();
+    return poppedVars[currentPop-1]->clone();
 }
 
-void SymbolicExecutionManager::SearchResult::addPop(SymbolicVariable* popped)
+void SymbolicExecutionManager::SearchResult::addPop(unique_ptr<SymbolicVariable> popped)
 {
     if (currentPop == poppedVars.size())
     {
-        SymbolicVariable* newVar = popped->cloneRaw();
-        newVar->loopInit();
-        poppedVars.push_back(newVar);
+        popped->loopInit();
+        poppedVars.push_back(move(popped));
     }
     else
     {
-        SymbolicVariable* sv = poppedVars[currentPop];
+        unique_ptr<SymbolicVariable>& sv = poppedVars[currentPop];
         sv->unionLowerBound(popped->getLowerBound());
         sv->unionUpperBound(popped->getUpperBound());
     }
@@ -241,8 +240,8 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                                "Tried to pop empty stack, or non var into var", command->getLineNum());
 
                 }
-                SymbolicVariable* poppedVar = sef->currentStack->peekTopVar();
-                thisNodeSR->addPop(poppedVar);
+                unique_ptr<SymbolicVariable> poppedVar = sef->currentStack->peekTopVar()->clone();
+                thisNodeSR->addPop(move(poppedVar));
             }
             if (!command->acceptSymbolicExecution(sef)) return false;
         }

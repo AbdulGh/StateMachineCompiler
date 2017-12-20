@@ -11,7 +11,7 @@ function isEven(double x) void
     else if (x == 1) print("It's odd\n");
     else
     {
-        x = x - 1;
+        x = x + 1;
         call isEvenNegated(x);
     }
 }
@@ -22,7 +22,7 @@ function isEvenNegated(double x) void
     else if (x == 0) print("It's odd\n");
     else
     {
-        x = x - 1;
+        x = x - 2;
         call isEven(x);
     }
 }

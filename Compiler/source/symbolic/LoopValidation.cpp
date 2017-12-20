@@ -93,7 +93,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
         {
             if (!thisNodeSR->hasPop()) sef->error(Reporter::BAD_STACK_USE,
                                                             "Tried to pop empty stack", instr->getLineNum());
-            SymbolicVariable* RHS = tags[node->getName()]->nextPop();
+            unique_ptr<SymbolicVariable> RHS = tags[node->getName()]->nextPop();
             if (RHS->getType() != DOUBLE)
             {
                 sef->error(Reporter::TYPE, "'" + RHS->getName() + "' (type " + TypeEnumNames[RHS->getType()] +
@@ -101,10 +101,9 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                 return false;
             }
 
-            unique_ptr<SymbolicDouble> newLHS = make_unique<SymbolicDouble>(RHS);
-            if (!newLHS->isFeasable()) return false;
-            newLHS->setName(instr->getData());
-            sef->symbolicVarSet->defineVar(move(newLHS));
+            if (!RHS->isFeasable()) return false;
+            RHS->setName(instr->getData());
+            sef->symbolicVarSet->defineVar(move(RHS));
         }
         else instr->acceptSymbolicExecution(sef);
     }

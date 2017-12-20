@@ -63,17 +63,16 @@ namespace SymbolicExecution
         {
         private:
             unsigned int currentPop = 0;
-            std::vector<SymbolicVariable*> poppedVars; //should probably be unique_ptr but it wont compile :s
+            std::vector<std::unique_ptr<SymbolicVariable>> poppedVars; //should probably be unique_ptr but it wont compile :s
 
         public:
             SearchResult() {svs = std::make_shared<SymbolicVarSet>();};
-            ~SearchResult() {for (SymbolicVariable* sv: poppedVars) delete sv;};
             std::shared_ptr<SymbolicVarSet> svs;
             void resetPoppedCounter() {currentPop = 0;};
             //these next two should not be mixed w/out resetting
             bool hasPop(){return currentPop < poppedVars.size();};
-            SymbolicVariable* nextPop();
-            void addPop(SymbolicVariable* popped);
+            std::unique_ptr<SymbolicVariable> nextPop();
+            void addPop(std::unique_ptr<SymbolicVariable> popped);
         };
 
         SymbolicExecutionManager(ControlFlowGraph& cfg, SymbolTable& sTable, Reporter& reporter):
