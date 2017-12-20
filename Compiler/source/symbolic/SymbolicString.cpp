@@ -21,6 +21,11 @@ unique_ptr<SymbolicVariable> SymbolicString::clone()
     return make_unique<SymbolicString>(*this);
 }
 
+SymbolicVariable* SymbolicString::cloneRaw()
+{
+    return new SymbolicString(*this);
+}
+
 void SymbolicString::setTConstValue(const string& cv)
 {
     boundedUpper = boundedLower = true;

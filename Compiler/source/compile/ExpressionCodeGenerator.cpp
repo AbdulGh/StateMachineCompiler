@@ -86,7 +86,8 @@ AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
     if (parent.lookahead.type == IDENT)
     {
         shared_ptr<Identifier> id = parent.findVariable(parent.ident());
-        if (!id->isDefined()) parent.warning(id->getLexeme() + " may not be defined");
+        if (!id->isDefined()) parent.warning(id->getLexeme() +
+                                             " may not be defined (line " + to_string(parent.lookahead.line) + ")");
         return withNeg(new AtomNode(id->getUniqueID(), false));
     }
     else if (parent.lookahead.type == NUMBER)

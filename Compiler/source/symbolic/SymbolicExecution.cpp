@@ -115,12 +115,17 @@ SymbolicVariable* SymbolicExecutionManager::SearchResult::nextPop()
 {
     if (currentPop >= poppedVars.size()) throw "went too far";
     ++currentPop;
-    return poppedVars[currentPop-1]->clone().release(); //todo less roundabout
+    return poppedVars[currentPop-1]->cloneRaw();
 }
 
 void SymbolicExecutionManager::SearchResult::addPop(SymbolicVariable* popped)
 {
-    if (currentPop == poppedVars.size()) poppedVars.push_back(popped->clone().release());
+    if (currentPop == poppedVars.size())
+    {
+        SymbolicVariable* newVar = popped->cloneRaw();
+        newVar->loopInit();
+        poppedVars.push_back(newVar);
+    }
     else
     {
         SymbolicVariable* sv = poppedVars[currentPop];
@@ -146,7 +151,7 @@ unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& Symbo
             ++it;
             continue;
         }
-        if (visitedNodes.find(it->first) == visitedNodes.end()) // no feasable visits - remove
+        if (visitedNodes.find(it->first) == visitedNodes.end()) //no feasable visits - remove
         {
             reporter.optimising(Reporter::DEADCODE, "State '" + it->first + "' is unreachable and will be removed");
             CFGNode* lonelyNode = it->second.get();

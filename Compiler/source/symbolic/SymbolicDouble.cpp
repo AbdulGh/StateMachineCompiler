@@ -27,6 +27,11 @@ unique_ptr<SymbolicVariable> SymbolicDouble::clone()
     return make_unique<SymbolicDouble>(*this);
 }
 
+SymbolicVariable* SymbolicDouble::cloneRaw()
+{
+    return new SymbolicDouble(*this);
+}
+
 void SymbolicDouble::userInput()
 {
     SymbolicVariable::userInput();

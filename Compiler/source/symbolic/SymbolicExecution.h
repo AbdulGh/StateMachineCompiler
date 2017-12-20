@@ -139,4 +139,6 @@ namespace SymbolicExecution
     };
 }
 
+typedef std::unique_ptr<SymbolicExecution::SymbolicExecutionManager::SearchResult> SRPointer;
+
 #endif

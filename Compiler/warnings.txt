@@ -1,6 +1,0 @@
-WARNING : COMPILER : x may not be defined
-WARNING : COMPILER : x may not be defined
-WARNING : COMPILER : x may not be defined
-WARNING : COMPILER : x may not be defined
-WARNING : COMPILER : x may not be defined
-WARNING : COMPILER : x may not be defined

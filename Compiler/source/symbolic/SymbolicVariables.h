@@ -86,6 +86,7 @@ public:
     virtual bool isFeasable();
 
     virtual std::unique_ptr<SymbolicVariable> clone() = 0;
+    virtual SymbolicVariable* cloneRaw() = 0;
 };
 
 template <typename T>
@@ -143,6 +144,7 @@ public:
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
     SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, SymbolicVariable* rhs) const override;
     std::unique_ptr<SymbolicVariable> clone() override;
+    SymbolicVariable* cloneRaw() override;
     
     bool setTLowerBound(const double& d, bool closed = true) override;
     bool setTUpperBound(const double& d, bool closed = true) override;
@@ -194,6 +196,7 @@ public:
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
     MonotoneEnum getMonotonicity() const override {return NONE;}
     std::unique_ptr<SymbolicVariable> clone() override;
+    SymbolicVariable* cloneRaw() override;
 
     bool setTLowerBound(const std::string&, bool closed = true) override;
     bool setTUpperBound(const std::string&, bool closed = true) override;

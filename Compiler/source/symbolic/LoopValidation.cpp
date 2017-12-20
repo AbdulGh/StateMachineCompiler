@@ -46,21 +46,28 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
     sef->symbolicVarSet->setLoopInit();
 
     string badExample;
-    searchNode(headerNode, varChanges, tags, sef, badExample);
+    searchNode(headerNode, varChanges, tags, sef, badExample, false);
     if (!goodPathFound)
     {
         string report;
         if (badExample.empty())
         {
             report = "Could not find any good path through the following loop:\n";
-            report += getInfo();
+            report += getInfo() + "\n";
         }
         else
         {
             report += "!!!Could only find bad paths through the following loop!!!\n";
             report += getInfo();
-            report += "Example of a bad path:\n" + badExample + "exit loop\n";
+            report += "Example of a bad path:\n" + badExample + "exit loop\n\n";
         }
+        reporter.addText(report);
+    }
+    else if (!badExample.empty())
+    {
+        string report = "Potential bad path through the loop (";
+        report += headerNode->getName() + " -> " + exitNode->getName() + ")\n";
+        report += "Example:\n" + badExample + "\n\n";
         reporter.addText(report);
     }
 }
@@ -73,7 +80,7 @@ inline void unionMaps(ChangeMap& cmap, CFGNode* into, CFGNode* from)
 
 //todo test this with pushes/shoves
 bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string, unique_ptr<SearchResult>>& tags,
-                      SEFPointer sef, string& badExample)
+                      SEFPointer sef, string& badExample, bool headerSeen)
 {
     if (nodes.find(node) == nodes.end()) return false;
 
@@ -102,7 +109,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
         else instr->acceptSymbolicExecution(sef);
     }
 
-    if (node->getName() == exitNode->getName()) //todo next switch exitNode to headerNode
+    if (headerSeen && node->getName() == headerNode->getName()) //todo next switch exitNode to headerNode
     {
         SymbolicVariable* varInQuestion = sef->symbolicVarSet->findVar(comp->term1);
         //check if this is a good path
