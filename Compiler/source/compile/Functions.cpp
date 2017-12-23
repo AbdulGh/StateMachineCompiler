@@ -210,7 +210,6 @@ void FunctionSymbol::replaceReturnState(CFGNode* going, CFGNode* replaceWith)
     throw "could not find function call";
 }
 
-//todo check if I need to erase the calls themselves
 void FunctionSymbol::clearFunctionCalls()
 {
     string lastName = getLastNode()->getName();

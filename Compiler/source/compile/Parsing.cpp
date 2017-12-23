@@ -166,7 +166,12 @@ bool Compiler::statement(FunctionSymbol* fs)
                 idPtr->setDefined();
             }
         }
-        match(SEMIC);
+        if (lookahead.type == COMMA)
+        {
+            match(COMMA);
+            if (lookahead.type != DTYPE) error("Can only string together variable declatations with dtypes");
+        }
+        else match(SEMIC);
     }
     else if (lookahead.type == IDENT)
     {
@@ -205,7 +210,10 @@ bool Compiler::statement(FunctionSymbol* fs)
                 fs->genAssignment("retS", quoteString(lookahead.lexemeString), lookahead.line);
                 match(STRINGLIT);
             }
-            else if (lookahead.type == NUMBER)
+            else ExpressionCodeGenerator(*this, "retD").compileExpression(fs);
+
+
+            /*debug if (lookahead.type == NUMBER)
             {
                 if (fs->getReturnType() != DOUBLE) error("Cannot return double in function of type " + fs->getReturnType());
                 fs->genAssignment("retD", lookahead.lexemeString, lookahead.line);
@@ -226,8 +234,9 @@ bool Compiler::statement(FunctionSymbol* fs)
                     fs->genAssignment("retS", id->getUniqueID(), lookahead.line);
                     match(STRINGLIT);
                 }
-            }
+            }*/
         }
+        else if (fs->getReturnType() != VOID) error("Void function '" + fs->getIdent() + "' returns some value");
         match(SEMIC);
         fs->genReturn(lookahead.line);
         fs->genEndState();

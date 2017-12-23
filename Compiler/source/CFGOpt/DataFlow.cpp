@@ -194,6 +194,7 @@ void LiveVariableDataFlow::finish()
         {
             return liveOut.find(varN) == liveOut.end() && genSet.find(varN) == genSet.end();
         };
+
         for (auto& ac : node->getInstrs())
         {
             if ((ac->getType() == CommandType::ASSIGNVAR
@@ -207,7 +208,6 @@ void LiveVariableDataFlow::finish()
                     DeclareVarCommand* dvc = static_cast<DeclareVarCommand*>(ac.get());
                     toDeclare.insert({dvc->vt, dvc->getData()});
                 }
-                continue;
             }
 
             else

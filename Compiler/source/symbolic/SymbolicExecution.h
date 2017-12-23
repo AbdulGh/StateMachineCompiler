@@ -39,6 +39,7 @@ namespace SymbolicExecution
         bool checkParentPC = true;
         std::shared_ptr<SymbolicExecutionFringe> parent;
         std::unordered_map<std::string, Condition> pathConditions;
+        std::vector<std::string> seenFunctionCalls;
         std::vector<std::string> visitOrder;
 
         SymbolicExecutionFringe(Reporter& r);

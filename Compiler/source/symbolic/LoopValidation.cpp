@@ -78,7 +78,6 @@ inline void unionMaps(ChangeMap& cmap, CFGNode* into, CFGNode* from)
     for (const auto& pair : cmap[from]) intoMap[pair.first] |= pair.second;
 }
 
-//todo test this with pushes/shoves
 bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string, unique_ptr<SearchResult>>& tags,
                       SEFPointer sef, string& badExample, bool headerSeen)
 {
@@ -108,7 +107,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
         else instr->acceptSymbolicExecution(sef);
     }
 
-    if (headerSeen && node->getName() == headerNode->getName()) //todo next switch exitNode to headerNode
+    if (headerSeen && node->getName() == headerNode->getName())
     {
         SymbolicVariable* varInQuestion = sef->symbolicVarSet->findVar(comp->term1);
         //check if this is a good path
@@ -232,8 +231,14 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                             = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
                                     if (sefFailure->addPathCondition(node->getName(), jocc, true))
                                     {
-                                        if (jocc->term2Type == AbstractCommand::StringType::ID) throw "todo";
-                                        sefFailure->symbolicVarSet->findVar(jocc->term1)->iterateTo(jocc->term2);
+                                        if (jocc->term2Type == AbstractCommand::StringType::ID)
+                                        {
+                                            SymbolicVariable* toIterateTo
+                                                    = sefFailure->symbolicVarSet->findVar(jocc->term2);
+                                            if (toIterateTo == nullptr) throw "unknown var";
+                                            sefFailure->symbolicVarSet->findVar(jocc->term1)->iterateTo(toIterateTo);
+                                        }
+                                        else sefFailure->symbolicVarSet->findVar(jocc->term1)->iterateTo(jocc->term2);
                                         if (searchNode(failNode, varChanges, tags, sef, badExample)) unionMaps(varChanges, node, failNode);
                                     }
                                     else if (badExample.empty()) badExample = newBadExample;
@@ -265,7 +270,13 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                             = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
                                     if (sefSucc->addPathCondition(node->getName(), jocc))
                                     {
-                                        if (jocc->term2Type == AbstractCommand::StringType::ID) throw "todo";
+                                        if (jocc->term2Type == AbstractCommand::StringType::ID)
+                                        {
+                                            SymbolicVariable* toIterateTo
+                                                    = sefFailure->symbolicVarSet->findVar(jocc->term2);
+                                            if (toIterateTo == nullptr) throw "unknown var";
+                                            sefFailure->symbolicVarSet->findVar(jocc->term1)->iterateTo(toIterateTo);
+                                        }
                                         sefFailure->symbolicVarSet->findVar(jocc->term1)->iterateTo(jocc->term2);
                                         if (searchNode(succNode, varChanges, tags, sefSucc, badExample)) unionMaps(varChanges, node, succNode);
                                     }

@@ -45,18 +45,19 @@ void Compiler::compile(stringstream& out)
 
     Optimise::optimise(symbolTable, functionTable, cfg);
 
-    SymbolicExecution::SymbolicExecutionManager symbolicExecutionManager
+    /*SymbolicExecution::SymbolicExecutionManager symbolicExecutionManager
             = SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter);
     unordered_map<string, SRPointer>& tags
-            = symbolicExecutionManager.search();
+            = symbolicExecutionManager.search();*/
 
-    cout << cfg.getDotGraph();
+    cout << cfg.destroyStructureAndGetFinalSource();
+    return;
 
     vector<Loop> loops = LengTarj(cfg).findLoops();
 
     for (Loop& loop : loops) cout << "---\n" << loop.getInfo() << "---\n"; //debug
 
-    for (Loop& loop : loops) loop.validate(tags);
+    //for (Loop& loop : loops) loop.validate(tags);
 
     Optimise::optimise(symbolTable, functionTable, cfg);
 }

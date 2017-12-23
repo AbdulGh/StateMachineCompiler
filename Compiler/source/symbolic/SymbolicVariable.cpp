@@ -323,8 +323,8 @@ bool SymbolicVariableTemplate<string>::meetsConstComparison(Relations::Relop r, 
 template <typename T>
 SymbolicVariable::MeetEnum SymbolicVariableTemplate<T>::canMeet(Relations::Relop rel, SymbolicVariable *rhs) const
 {
-    throw "not yet implemented for generic vars";
-    /* todo implement this for SymbolicVariable in general
+    throw "not implemented for generic vars";
+    /*
     if (r->isDetermined()) return canMeet(rel, r->getConstString());
     SymbolicDouble* rhs = static_cast<SymbolicDouble*>(r);
 

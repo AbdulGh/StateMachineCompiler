@@ -35,7 +35,8 @@ void SymbolicExecutionFringe::warn(Reporter::AlertType a, string s, int linenum)
 
 bool SymbolicExecutionFringe::hasSeen(const string& state)
 {
-    if (pathConditions.find(state) != pathConditions.end()) return true;
+    if (pathConditions.find(state) != pathConditions.end()
+        || find(seenFunctionCalls.begin(), seenFunctionCalls.end(), state) != seenFunctionCalls.end()) return true;
     else return (parent != nullptr && checkParentPC && parent->hasSeen(state));
 }
 
@@ -201,7 +202,6 @@ CFGNode* SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFring
     return failNode;
 }
 
-//todo seen function calls
 bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n)
 {
     if (!sef->isFeasable()) return false;
@@ -251,6 +251,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     {
         sef->pathConditions.clear();
         sef->checkParentPC = false;
+        sef->seenFunctionCalls.push_back(n->getName());
     }
 
     //don't track conditions till later - this just tracks which nodes we've seen
