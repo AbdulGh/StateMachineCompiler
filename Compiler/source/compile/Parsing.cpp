@@ -211,30 +211,6 @@ bool Compiler::statement(FunctionSymbol* fs)
                 match(STRINGLIT);
             }
             else ExpressionCodeGenerator(*this, "retD").compileExpression(fs);
-
-
-            /*debug if (lookahead.type == NUMBER)
-            {
-                if (fs->getReturnType() != DOUBLE) error("Cannot return double in function of type " + fs->getReturnType());
-                fs->genAssignment("retD", lookahead.lexemeString, lookahead.line);
-                match(NUMBER);
-            }
-            else
-            {
-                shared_ptr<Identifier> id = findVariable(ident());
-
-                if (id->getType() == DOUBLE)
-                {
-                    if (fs->getReturnType() != DOUBLE) error("Cannot return double in function of type " + fs->getReturnType());
-                    fs->genAssignment("retD", id->getUniqueID(), lookahead.line);
-                }
-                else
-                {
-                    if (fs->getReturnType() != STRING) error("Cannot return string in function of type " + fs->getReturnType());
-                    fs->genAssignment("retS", id->getUniqueID(), lookahead.line);
-                    match(STRINGLIT);
-                }
-            }*/
         }
         else if (fs->getReturnType() != VOID) error("Void function '" + fs->getIdent() + "' returns some value");
         match(SEMIC);

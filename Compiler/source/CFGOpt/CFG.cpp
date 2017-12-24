@@ -119,7 +119,20 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
     public:
         const string name;
 
-        bool isFirst() {return first;}
+        SourceNode(unique_ptr<CFGNode>& toCopy): name(toCopy->getName())
+        {
+            for (auto& ptr: toCopy->getInstrs()) instructions.push_back(ptr->clone());
+            if (toCopy->getComp() != nullptr) instructions.push_back(toCopy->getComp()->clone());
+            if (toCopy->getCompFail() != nullptr)
+            {
+                instructions.push_back
+                        (make_unique<JumpCommand>(toCopy->getCompFail()->getName(), toCopy->getJumpline()));
+            }
+            else instructions.push_back(make_unique<ReturnCommand>(toCopy->getJumpline()));
+            first = toCopy->isFirstNode();
+        }
+
+        bool isFirst() const {return first;}
 
         vector<unique_ptr<AbstractCommand>>& getInstructions()
         {
@@ -131,7 +144,7 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
             return predecessors;
         }
 
-        const vector<SourceNode*>& getSuccessors()
+        vector<SourceNode*>& getSuccessors()
         {
             return successors;
         }
@@ -146,19 +159,6 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
             successors.push_back(succ);
         }
 
-        SourceNode(unique_ptr<CFGNode>& toCopy): name(toCopy->getName())
-        {
-            for (auto& ptr: toCopy->getInstrs()) instructions.push_back(ptr->clone());
-            if (toCopy->getComp() != nullptr) instructions.push_back(toCopy->getComp()->clone());
-            if (toCopy->getCompFail() != nullptr)
-            {
-                instructions.push_back
-                        (make_unique<JumpCommand>(toCopy->getCompFail()->getName(), toCopy->getJumpline()));
-            }
-            else instructions.push_back(make_unique<ReturnCommand>(toCopy->getJumpline()));
-            first = toCopy->isFirstNode();
-        }
-
         void loseParent(SourceNode* parent)
         {
             auto it = find_if(predecessors.begin(), predecessors.end(),
@@ -167,47 +167,60 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
             predecessors.erase(it);
         }
 
+        void loseKid(SourceNode* kid)
+        {
+            auto it = find_if(successors.begin(), successors.end(),
+                              [&, kid] (const SourceNode* con) {return kid->name == con->name;});
+            if (it == successors.end()) throw "could not find successor";
+            successors.erase(it);
+        }
+
+        vector<SourceNode*>::iterator eraseParent(vector<SourceNode*>::iterator it)
+        {
+            return predecessors.erase(it);
+        }
+
         inline void loseKids()
         {
             for (auto& succ: successors) succ->loseParent(this);
+            successors.clear();
         }
 
         bool tryBypass()
         {
-            if (!instructions.empty())
+            if (instructions.empty()) throw "shouldnt happen";
+
+            unique_ptr<AbstractCommand>& lastInstr = instructions.back();
+            if (lastInstr->getType() == CommandType::JUMP
+                && lastInstr->getData() != "return"
+                && lastInstr->getData() != name)
             {
-                unique_ptr<AbstractCommand>& lastInstr = instructions.back();
-                if (lastInstr->getType() == CommandType::JUMP
-                    && lastInstr->getData() != "return"
-                    && lastInstr->getData() != name)
+                unique_ptr<SourceNode>& swallowing = outputMap[lastInstr->getData()];
+                if (swallowing == nullptr) throw "cant find jumped to node";
+                else if (swallowing->predecessors.size() > 1) return false; //todo improve this by detecting cycles
+
+                vector<unique_ptr<AbstractCommand>>& swallowingInstrs = swallowing->instructions;
+                if (swallowingInstrs.empty()) throw "this shouldn't be";
+                else if(swallowingInstrs.back()->getType() == CommandType::JUMP
+                        && swallowingInstrs.back()->getData() == name) return false;
+
+                instructions.pop_back();
+
+                const string& swallowingName = swallowing->name;
+                auto swallowingIt = find_if(successors.begin(), successors.end(),
+                [&, swallowingName] (const auto& child) {return child->name == swallowingName;});
+                if (swallowingIt == successors.end()) throw "child should be in";
+                (*swallowingIt)->loseParent(this);
+                successors.erase(swallowingIt);
+
+                for (const auto& newInstruction: swallowingInstrs) instructions.push_back(newInstruction->clone());
+                for (const auto& newSucc: swallowing->successors)
                 {
-                    unique_ptr<SourceNode>& swallowing = outputMap[lastInstr->getData()];
-                    if (swallowing == nullptr) throw "cant find jumped to node";
-                    else if (swallowing->predecessors.size() > 1) return false; //todo improve this by detecting cycles
-
-                    vector<unique_ptr<AbstractCommand>>& swallowingInstrs = swallowing->instructions;
-                    if (swallowingInstrs.empty()) throw "this shouldn't be";
-                    else if(swallowingInstrs.back()->getType() == CommandType::JUMP
-                            && swallowingInstrs.back()->getData() == name) return false;
-
-                    swallowing->loseParent(this);
-                    instructions.pop_back();
-
-                    const string& swallowingName = swallowing->name;
-                    auto swallowingIt = find_if(successors.begin(), successors.end(),
-                    [&, swallowingName] (const auto& child) {return child->name == swallowingName;});
-                    if (swallowingIt == successors.end()) throw "child should be in";
-                    successors.erase(swallowingIt);
-
-                    for (const auto& newInstruction: swallowingInstrs) instructions.push_back(newInstruction->clone());
-                    for (const auto& newSucc: swallowing->successors)
-                    {
-                        successors.push_back(newSucc);
-                        newSucc->addPredecessor(this);
-                    }
-
-                    return true;
+                    successors.push_back(newSucc);
+                    newSucc->addPredecessor(this);
                 }
+
+                return true;
             }
             return false;
         }
@@ -223,8 +236,12 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
     for (auto& pair : currentNodes)
     {
         unique_ptr<SourceNode>& sn = outputMap[pair.first];
-        for (auto& predpair : pair.second->getPredecessorMap()) sn->addPredecessor(outputMap[predpair.first].get());
-        for (auto& succ : pair.second->getSuccessorVector()) sn->addSuccessor(outputMap[succ->getName()].get());
+        for (auto& predpair : pair.second->getPredecessorMap())
+        {
+            unique_ptr<SourceNode>& pred = outputMap[predpair.first];
+            sn->addPredecessor(pred.get());
+            pred->addSuccessor(sn.get());
+        }
     }
 
     changes = true;
@@ -242,28 +259,34 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
                 if (onlyInstr->getType() == CommandType::JUMP)
                 {
                     auto& snPreds = sn->getPredecessors();
-                    auto parentIt = snPreds.begin();
+                    vector<SourceNode*>::iterator parentIt = snPreds.begin();
                     while (parentIt != snPreds.end())
                     {
                         SourceNode* parentNode = *parentIt;
                         vector<unique_ptr<AbstractCommand>>& parentInstructions = parentNode->getInstructions();
-                        if (!parentNode->getInstructions().empty())
+                        bool found = false;
+                        for (unsigned int parentInstIndex = 0; parentInstIndex < parentInstructions.size(); ++parentInstIndex)
                         {
-                            for (unsigned int parentInstIndex = 0; parentInstIndex < parentInstructions.size(); ++parentInstIndex)
+                            unique_ptr<AbstractCommand>& instr = parentInstructions.at(parentInstIndex);
+                            if (instr->getData() == sn->name)
                             {
-                                unique_ptr<AbstractCommand>& instr = parentInstructions.at(parentInstIndex);
-                                if (instr->getData() == sn->name)
+                                if (onlyInstr->getData() == "return")
                                 {
-                                    if (onlyInstr->getData() == "return")
-                                    {
-                                        parentInstructions[parentInstIndex] = make_unique<ReturnCommand>(instr->getLineNum());
-                                    }
-                                    else instr->setData(onlyInstr->getData());
+                                    parentInstructions[parentInstIndex] = make_unique<ReturnCommand>(instr->getLineNum());
                                 }
+                                else instr->setData(onlyInstr->getData());
+                                found = true;
                             }
                         }
-                        else throw "bad parent";
-                        parentIt = snPreds.erase(parentIt);
+                        if (!found) throw "bad parent";
+                        parentNode->loseKid(sn.get());
+                        for (SourceNode* succ: sn->getSuccessors()) //todo quick make this one thing
+                        {
+                            parentNode->addSuccessor(succ);
+                            succ->addPredecessor(parentNode);
+                        }
+                        parentIt = sn->eraseParent(parentIt);
+                        changes = true;
                     }
                 }
             }

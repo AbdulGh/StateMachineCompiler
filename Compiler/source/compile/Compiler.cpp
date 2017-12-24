@@ -55,7 +55,7 @@ void Compiler::compile(stringstream& out)
 
     vector<Loop> loops = LengTarj(cfg).findLoops();
 
-    for (Loop& loop : loops) cout << "---\n" << loop.getInfo() << "---\n"; //debug
+    //for (Loop& loop : loops) cout << "---\n" << loop.getInfo() << "---\n"; //debug
 
     //for (Loop& loop : loops) loop.validate(tags);
 

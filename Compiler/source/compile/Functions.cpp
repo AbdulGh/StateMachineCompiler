@@ -28,7 +28,6 @@ bool FunctionSymbol::mergeInto(FunctionSymbol* to)
     if ((*callingIt)->getData() != functionCall->returnTo->getName()) throw "should push called state";
     callingIt = callingInstrs.erase(callingIt);
 
-
     //remove pushes/pops of parameters
     if (!paramTypes.empty())
     {
@@ -48,6 +47,33 @@ bool FunctionSymbol::mergeInto(FunctionSymbol* to)
             callingIt = callingInstrs.erase(callingIt);
             --numParams;
         }
+    }
+
+    //remove pushes/pops of local vars
+    if (localVarPushes > 0)
+    {
+        auto& retInstrs = functionCall->returnTo->getInstrs();
+        if (retInstrs.size() < localVarPushes) throw "should pop local vars";
+        auto returnIt = retInstrs.begin();
+
+        do
+        {
+            callingIt = callingInstrs.end() - 1;
+            unique_ptr<AbstractCommand>& cinstr = *callingIt;
+            unique_ptr<AbstractCommand>& rinstr = *returnIt;
+            if (cinstr->getType() != CommandType::PUSH || rinstr->getType() != CommandType::POP
+                || cinstr->getData() != rinstr->getData())
+            {
+                printf("%s\n", cinstr.get()->translation().c_str());
+                printf("%s\n", rinstr.get()->translation().c_str());
+                printf("%s", cfg.getStructuredSource().c_str());
+                throw "should match";
+            }
+            callingInstrs.erase(callingIt);
+            returnIt = retInstrs.erase(returnIt);
+            --localVarPushes;
+        }
+        while (localVarPushes > 0);
     }
 
     lastNode->setCompFail(functionCall->returnTo);
