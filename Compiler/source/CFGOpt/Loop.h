@@ -18,16 +18,16 @@
 typedef std::map<CFGNode*, std::map<std::string, unsigned short int>> ChangeMap;
 typedef std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> SEFPointer;
 
-struct Loop
+class Loop
 {
 private:
     typedef SymbolicExecution::SymbolicExecutionManager::SearchResult SearchResult;
-    Reporter& reporter;
+    ControlFlowGraph& cfg;
     CFGNode* headerNode;
-    CFGNode* exitNode;
+    CFGNode* comparisonNode;
     std::set<CFGNode*> nodes;
-    JumpOnComparisonCommand* comp;
-    bool reverse = false;
+    bool reverse;
+    bool stackBased = false;
     bool goodPathFound = false;
 
     //returns true if it was a node in the loop on a path to the loop exit
@@ -35,7 +35,7 @@ private:
                     SEFPointer sef, std::string& badExample, bool headerSeen = true);
 
 public:
-    Loop(CFGNode* entry, CFGNode* last, std::set<CFGNode*> nodeSet, Reporter& r);
+    Loop(CFGNode* entry, CFGNode* last, std::set<CFGNode*> nodeSet, ControlFlowGraph& cfg);
     std::string getInfo();
     std::set<CFGNode*> getNodeCopy() {return nodes;}
     void validate(std::unordered_map<std::string, std::unique_ptr<SearchResult>>& tags);

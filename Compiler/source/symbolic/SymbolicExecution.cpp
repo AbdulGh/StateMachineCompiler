@@ -10,13 +10,13 @@ using namespace SymbolicExecution;
 SymbolicExecutionFringe::SymbolicExecutionFringe(Reporter &r) :
         reporter(r),
         parent{},
-        currentStack(make_shared<SymbolicStack>()),
+        symbolicStack(make_shared<SymbolicStack>()),
         symbolicVarSet(make_shared<SymbolicVarSet>()){}
 
 SymbolicExecutionFringe::SymbolicExecutionFringe(shared_ptr<SymbolicExecutionFringe> p):
         parent(p),
         reporter(p->reporter),
-        currentStack(make_shared<SymbolicStack>(p->currentStack)),
+        symbolicStack(make_shared<SymbolicStack>(p->symbolicStack)),
         symbolicVarSet(make_shared<SymbolicVarSet>(p->symbolicVarSet)) {}
 
 
@@ -185,13 +185,13 @@ CFGNode* SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFring
     CFGNode* failNode = n->getCompFail();
     if (failNode == nullptr) //return to top of stack
     {
-        if (returningSEF->currentStack->isEmpty())
+        if (returningSEF->symbolicStack->isEmpty())
         {
             if (!n->isLastNode()) throw "returns too early";
             return nullptr;
         }
-        if (returningSEF->currentStack->getTopType() != SymbolicStackMemberType::STATE) throw "tried to jump to non-state";
-        failNode = n->getParentGraph().getNode(returningSEF->currentStack->popState());
+        if (returningSEF->symbolicStack->getTopType() != SymbolicStackMemberType::STATE) throw "tried to jump to non-state";
+        failNode = n->getParentGraph().getNode(returningSEF->symbolicStack->popState());
         if (failNode == nullptr) throw "tried to jump to a nonexisting state";
         else //check its in successors of n
         if (find(n->getSuccessorVector().begin(), n->getSuccessorVector().end(), failNode) == n->getSuccessorVector().end())
@@ -234,13 +234,13 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
         {
             if (command->getType() == CommandType::POP)
             {
-                if (sef->currentStack->isEmpty() || sef->currentStack->getTopType() != VAR)
+                if (sef->symbolicStack->isEmpty() || sef->symbolicStack->getTopType() != VAR)
                 {
                     sef->error(Reporter::BAD_STACK_USE,
                                "Tried to pop empty stack, or non var into var", command->getLineNum());
 
                 }
-                unique_ptr<SymbolicVariable> poppedVar = sef->currentStack->peekTopVar()->clone();
+                unique_ptr<SymbolicVariable> poppedVar = sef->symbolicStack->peekTopVar()->clone();
                 thisNodeSR->addPop(move(poppedVar));
             }
             if (!command->acceptSymbolicExecution(sef)) return false;
@@ -398,7 +398,7 @@ bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(seflt, n->getCompSuccess());}
     else
     {
-        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
         else
         {
             CFGNode* failNode = getFailNode(seflt, n);
@@ -412,7 +412,7 @@ bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
     sefeq->symbolicVarSet->findVar(lhsvar)->setConstValue(rhsconst);
     if (reverse)
     {
-        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
         else
         {
             CFGNode *failNode = getFailNode(sefeq, n);
@@ -430,7 +430,7 @@ bool SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(sefgt, n->getCompSuccess());}
     else
     {
-        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
         else
         {
             CFGNode *failNode = getFailNode(sefgt, n);
@@ -453,7 +453,7 @@ bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
     seflt->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst, false);
     if (reverse)
     {
-        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
         else
         {
             CFGNode *failNode = getFailNode(seflt, n);
@@ -469,7 +469,7 @@ bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(seflt, n->getCompSuccess());}
     else
     {
-        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
         else
         {
             CFGNode *failNode = getFailNode(sefeq, n);
@@ -484,7 +484,7 @@ bool SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
     sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, true);
     if (reverse)
     {
-        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
         else
         {
             CFGNode *failNode = getFailNode(seflt, n);
@@ -508,7 +508,7 @@ bool SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef,
 
     if (reverse)
     {
-        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
         else
         {
             CFGNode *failNode = getFailNode(seflt, n);
@@ -524,7 +524,7 @@ bool SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(sefge, n->getCompSuccess());}
     else
     {
-        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
         else
         {
             CFGNode *failNode = getFailNode(sefge, n);
@@ -547,7 +547,7 @@ bool SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef,
 
     if (reverse)
     {
-        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
         else
         {
             CFGNode *failNode = getFailNode(sefle, n);
@@ -563,7 +563,7 @@ bool SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(sefgt, n->getCompSuccess());}
     else
     {
-        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
         else
         {
             CFGNode *failNode = getFailNode(sefgt, n);
@@ -585,7 +585,7 @@ bool SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef,
     sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, false);
     if (reverse)
     {
-        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
         else
         {
             CFGNode *failNode = getFailNode(sefgt, n);
@@ -602,7 +602,7 @@ bool SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(sefle, n->getCompSuccess());}
     else
     {
-        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
         else
         {
             CFGNode *failNode = getFailNode(sefle, n);
@@ -625,7 +625,7 @@ bool SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
 
     if (reverse)
     {
-        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
         else
         {
             CFGNode *failNode = getFailNode(sefge, n);
@@ -642,7 +642,7 @@ bool SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
     if (reverse) {visitWithFeasable(seflt, n->getCompSuccess());}
     else
     {
-        if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+        if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
         else
         {
             CFGNode *failNode = getFailNode(seflt, n);
@@ -684,7 +684,7 @@ bool SymbolicExecutionManager::varBranchGE(shared_ptr<SymbolicExecutionFringe> s
 {
     bool feasable = false;
 
-    if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+    if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
     else
     {
         shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
@@ -710,7 +710,7 @@ bool SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> s
                                               SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
 {
     bool feasable = false;
-    if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+    if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
     else
     {
         shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
@@ -732,7 +732,7 @@ bool SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> s
 {
     bool feasable = false;
 
-    if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+    if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
     else
     {
         shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
@@ -755,7 +755,7 @@ bool SymbolicExecutionManager::varBranchLE(shared_ptr<SymbolicExecutionFringe> s
 {
     bool feasable = false;
 
-    if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+    if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
     else
     {
         shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
@@ -778,7 +778,7 @@ bool SymbolicExecutionManager::varBranchNE(shared_ptr<SymbolicExecutionFringe> s
 {
     bool feasable = false;
 
-    if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+    if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
     else
     {
         shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
@@ -817,7 +817,7 @@ bool SymbolicExecutionManager::varBranchEQ(shared_ptr<SymbolicExecutionFringe> s
     if (newLHSvar->addEQ(newRHSvar)) visitWithFeasable(sefeq, failNode);
 
 
-    if (n->isLastNode() && sef->currentStack->isEmpty()) feasable = true;
+    if (n->isLastNode() && sef->symbolicStack->isEmpty()) feasable = true;
     else
     {
         shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);

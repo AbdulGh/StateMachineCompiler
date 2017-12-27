@@ -82,6 +82,17 @@ SymbolicVariable* SymbolicStack::peekTopVar()
     return cb.varptr.get();
 }
 
+const string& SymbolicStack::peekTopName()
+{
+    while (currentStack.empty())
+    {
+        if (parent == nullptr) throw runtime_error("Tried to peek empty stack");
+        copyParent();
+    }
+    StackMember& cb = currentStack.back();
+    return (cb.type == STATE) ? cb.statename : cb.varptr->getName();
+}
+
 SymbolicStackMemberType SymbolicStack::getTopType()
 {
     while (currentStack.empty())

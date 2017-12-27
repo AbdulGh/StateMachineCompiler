@@ -60,6 +60,7 @@ public:
     void push(const std::string& pushedState);
     std::unique_ptr<SymbolicVariable> popVar();
     SymbolicVariable* peekTopVar();
+    const std::string& peekTopName();
     std::string popState();
     void pop();
     bool isEmpty();

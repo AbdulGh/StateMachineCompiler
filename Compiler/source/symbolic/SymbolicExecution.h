@@ -45,7 +45,7 @@ namespace SymbolicExecution
         SymbolicExecutionFringe(Reporter& r);
         SymbolicExecutionFringe(std::shared_ptr<SymbolicExecutionFringe> p);
 
-        std::shared_ptr<SymbolicStack> currentStack;
+        std::shared_ptr<SymbolicStack> symbolicStack;
         std::shared_ptr<SymbolicVarSet> symbolicVarSet;
         Reporter& reporter;
 
@@ -64,7 +64,7 @@ namespace SymbolicExecution
         {
         private:
             unsigned int currentPop = 0;
-            std::vector<std::unique_ptr<SymbolicVariable>> poppedVars; //should probably be unique_ptr but it wont compile :s
+            std::vector<std::unique_ptr<SymbolicVariable>> poppedVars;
 
         public:
             SearchResult() {svs = std::make_shared<SymbolicVarSet>();};

@@ -37,7 +37,7 @@ public:
     ~SymbolicVariable();
 
     const VariableType getType() const;
-    const std::string getName() const;
+    const std::string& getName() const;
     void setName(const std::string newName);
     bool isDefined() const;
     bool isIncrementable() const;

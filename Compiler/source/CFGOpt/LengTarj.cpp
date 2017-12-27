@@ -171,7 +171,7 @@ vector<Loop> LengTarj::findLoops()
                     if (nodeSet.insert(predNode->node).second) toProcess.push(pred);
                 }
             }
-            loops.emplace_back(Loop(verticies[succNum]->node, verticies[i]->node, nodeSet, controlFlowGraph.getReporter()));
+            loops.emplace_back(Loop(verticies[succNum]->node, verticies[i]->node, nodeSet, controlFlowGraph));
         }
     }
     return loops;

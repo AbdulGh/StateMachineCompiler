@@ -21,7 +21,7 @@ bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symb
 
 bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
 {
-    if (pushType == PUSHSTATE) svs->currentStack->push(getData());
+    if (pushType == PUSHSTATE) svs->symbolicStack->push(getData());
 
     else
     {
@@ -36,14 +36,14 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
         {
             svs->warn(Reporter::UNINITIALISED_USE, "'" + getData() + "' pushed without being defined", getLineNum());
         }
-        svs->currentStack->push(found);
+        svs->symbolicStack->push(found);
     }
     return true;
 }
 
 bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
 {
-    if (svs->currentStack->isEmpty())
+    if (svs->symbolicStack->isEmpty())
     {
         svs->error(Reporter::BAD_STACK_USE, "Tried to pop empty stack", getLineNum());
         return false;
@@ -51,11 +51,11 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
 
     if (isEmpty())
     {
-        svs->currentStack->pop();
+        svs->symbolicStack->pop();
         return true;
     }
 
-    if (svs->currentStack->getTopType() != VAR)
+    if (svs->symbolicStack->getTopType() != VAR)
     {
         svs->error(Reporter::BAD_STACK_USE, "Tried to pop a state into a variable", getLineNum());
         return false;
@@ -68,7 +68,7 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
         return false;
     }
 
-    unique_ptr<SymbolicVariable> popped = svs->currentStack->popVar();
+    unique_ptr<SymbolicVariable> popped = svs->symbolicStack->popVar();
     if (popped->getType() != found->getType())
     {
         svs->error(Reporter::TYPE, "Tried to pop '" + popped->getName() + "' (type " + TypeEnumNames[popped->getType()]

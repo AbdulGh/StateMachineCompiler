@@ -19,7 +19,7 @@ SymbolicVariable::~SymbolicVariable()
     clearLess();
 }
 
-const string SymbolicVariable::getName() const
+const string& SymbolicVariable::getName() const
 {
     return varN;
 }
