@@ -21,10 +21,11 @@ bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symb
 
 bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
 {
-    if (pushType == PUSHSTATE) svs->symbolicStack->push(getData());
+    if (calledFunction != nullptr) svs->symbolicStack->pushState(getData());
 
-    else
+    else switch(stringType)
     {
+    case StringType::ID:
         SymbolicVariable* found = svs->symbolicVarSet->findVar(getData());
         if (found == nullptr)
         {
@@ -36,8 +37,12 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
         {
             svs->warn(Reporter::UNINITIALISED_USE, "'" + getData() + "' pushed without being defined", getLineNum());
         }
-        svs->symbolicStack->push(found);
-    }
+            svs->symbolicStack->pushVar(found);
+        break;
+
+    case StringType::DOUBLELIT:
+        svs->symbolicStack->pu
+    };
     return true;
 }
 

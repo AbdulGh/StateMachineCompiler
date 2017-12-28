@@ -218,14 +218,12 @@ class FunctionSymbol;
 class PushCommand: public AbstractCommand
 {
 public:
-    enum PushType{PUSHSTR, PUSHSTATE};
-    PushType pushType;
+    StringType stringType;
     FunctionSymbol* calledFunction;
     unsigned int pushedVars;
 
     PushCommand(const std::string& in, int linenum, FunctionSymbol* cf = nullptr, unsigned int numPushedLocalVars = 0):
-            AbstractCommand(linenum), calledFunction(cf), pushedVars(numPushedLocalVars),
-            pushType(cf == nullptr ? PUSHSTR : PUSHSTATE)
+            AbstractCommand(linenum), calledFunction(cf), pushedVars(numPushedLocalVars), stringType(getStringType(in))
     {
         setData(in);
         setType(CommandType::PUSH);
@@ -233,7 +231,7 @@ public:
 
     std::string translation(const std::string& delim) const override
     {
-        if (pushType == PUSHSTATE) return "push state " + getData() + ";" + delim;
+        if (calledFunction != nullptr) return "push state " + getData() + ";" + delim;
         else return "push " + getData() + ";" + delim;
     }
 

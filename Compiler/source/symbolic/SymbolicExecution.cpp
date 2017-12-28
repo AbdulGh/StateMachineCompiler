@@ -153,6 +153,7 @@ unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& Symbo
         }
         if (visitedNodes.find(it->first) == visitedNodes.end()) //no feasable visits - remove
         {
+            auto debug = it->first;
             reporter.optimising(Reporter::DEADCODE, "State '" + it->first + "' is unreachable and will be removed");
             CFGNode* lonelyNode = it->second.get();
             if (lonelyNode->getCompSuccess() != nullptr) lonelyNode->getCompSuccess()->removeParent(lonelyNode);
@@ -204,6 +205,11 @@ CFGNode* SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFring
 
 bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n)
 {
+    if (n->getName() == "F1_ack_6")
+    {
+        int debug;
+        debug = 2;
+    }
     if (!sef->isFeasable()) return false;
     else if (sef->hasSeen(n->getName())) return true;
 
@@ -213,6 +219,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     for (const auto& command : n->getInstrs())
     {
         //might be in a loop
+        auto debug = command.get();
         if (command->getType() == CommandType::EXPR)
         {
             EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(command.get());
@@ -249,6 +256,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
 
     if (n->callsFunction()) //search mutual recursion
     {
+        printf("Checking call from %s\n", n->getName());
         sef->pathConditions.clear();
         sef->checkParentPC = false;
         sef->seenFunctionCalls.push_back(n->getName());

@@ -23,12 +23,12 @@ void SymbolicStack::copyParent()
     parent = parent->parent;
 }
 
-void SymbolicStack::push(const string& pushedState)
+void SymbolicStack::pushState(const string& pushedState)
 {
     currentStack.emplace_back(StackMember(pushedState));
 }
 
-void SymbolicStack::push(SymbolicVariable* pushedVar)
+void SymbolicStack::pushVar(SymbolicVariable *pushedVar)
 {
     currentStack.emplace_back(StackMember(pushedVar));
 }

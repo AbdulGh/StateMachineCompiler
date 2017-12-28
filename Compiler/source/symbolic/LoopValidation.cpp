@@ -59,7 +59,7 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
         set_intersection(retNodes.begin(), retNodes.end(),
                          nodes.begin(), nodes.end(), inserter(intersect, intersect.begin()));
         if (intersect.size() != 1) throw "should be";
-        sef->symbolicStack->push((*intersect.cbegin())->getName());
+        sef->symbolicStack->pushState((*intersect.cbegin())->getName());
     }
 
     string badExample;

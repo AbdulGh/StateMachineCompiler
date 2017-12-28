@@ -9,7 +9,7 @@
 
 #include "SymbolicVariables.h"
 
-enum SymbolicStackMemberType {STATE, VAR};
+enum class SymbolicStackMemberType {STATE, VAR, STRING, DOUBLE};
 
 struct StackMember
 {
@@ -56,8 +56,10 @@ public:
     SymbolicStack(std::shared_ptr<SymbolicStack> parent = nullptr);
     SymbolicStack(const SymbolicStack&) = delete;
     //void push(std::unique_ptr<SymbolicVariable> pushedVar);
-    void push(SymbolicVariable* pushedVar);
-    void push(const std::string& pushedState);
+    void pushVar(SymbolicVariable *pushedVar);
+    void pushState(const std::string& pushedState);
+    void pushString(std::string toPush);
+    void pushDouble(double toPush);
     std::unique_ptr<SymbolicVariable> popVar();
     SymbolicVariable* peekTopVar();
     const std::string& peekTopName();
