@@ -8,7 +8,7 @@ using namespace std;
 
 FunctionSymbol::FunctionSymbol(VariableType rt, vector<VariableType> types, string id, string p, ControlFlowGraph& c):
     returnType(rt), paramTypes(move(types)), ident(move(id)), prefix(move(p)),
-    currentStateNum(1), endedState(false), cfg(c), lastNode{nullptr}
+    currentStateNum(1), endedState(false), cfg(c), lastNode{nullptr}, currentVarScope(make_unique<FunctionVars>())
     {currentNode = cfg.createNode(prefix + "0", false, false, this); firstNode = currentNode;}
 
 bool FunctionSymbol::mergeInto(FunctionSymbol* to)
@@ -62,13 +62,7 @@ bool FunctionSymbol::mergeInto(FunctionSymbol* to)
             unique_ptr<AbstractCommand>& cinstr = *callingIt;
             unique_ptr<AbstractCommand>& rinstr = *returnIt;
             if (cinstr->getType() != CommandType::PUSH || rinstr->getType() != CommandType::POP
-                || cinstr->getData() != rinstr->getData())
-            {
-                printf("%s\n", cinstr.get()->translation().c_str());
-                printf("%s\n", rinstr.get()->translation().c_str());
-                printf("%s", cfg.getStructuredSource().c_str());
-                throw "should match";
-            }
+                || cinstr->getData() != rinstr->getData()) throw "should match";
             callingInstrs.erase(callingIt);
             returnIt = retInstrs.erase(returnIt);
             --localVarPushes;
@@ -131,14 +125,25 @@ CFGNode* FunctionSymbol::getCurrentNode() const
     return currentNode;
 }
 
-const set<string>& FunctionSymbol::getVars()
+const set<string> FunctionSymbol::getVars()
 {
-    return vars;
+    return currentVarScope->getVarSet();
+}
+
+void FunctionSymbol::pushScope()
+{
+    unique_ptr<FunctionVars> newCVS = make_unique<FunctionVars>(move(currentVarScope));
+    currentVarScope = move(newCVS);
+}
+
+void FunctionSymbol::popScope()
+{
+    currentVarScope = move(currentVarScope->moveScope());
 }
 
 void FunctionSymbol::addVar(const string& s)
 {
-    vars.insert(s);
+    currentVarScope->addVarName(s);
 }
 
 unsigned int FunctionSymbol::numParams()
@@ -214,7 +219,7 @@ void FunctionSymbol::replaceReturnState(CFGNode* going, CFGNode* replaceWith)
                 if (ac->getType() == CommandType::PUSH && ac->getData() == going->getName());
                 {
                     PushCommand* pc = static_cast<PushCommand*>(ac);
-                    if (pc->pushType == PushCommand::PUSHSTATE)
+                    if (pc->pushesState())
                     {
                         found = true;
                         pc->setData(replaceWith->getName());
@@ -311,7 +316,7 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
                         if (ac->getType() == CommandType::PUSH && ac->getData() == ret)
                         {
                             auto pc = static_cast<PushCommand*>(ac);
-                            if (pc->pushType == PushCommand::PUSHSTATE)
+                            if (pc->pushesState())
                             {
                                 if (pc->calledFunction->getIdent() != ident) throw "should be me";
 
@@ -382,7 +387,7 @@ void FunctionSymbol::genConditionalJump(string state, string lh, Relations::Relo
 void FunctionSymbol::genPop(string s, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_unique<PopCommand>(s, linenum));
+    currentInstrs.push_back(make_unique<PopCommand>(move(s), linenum));
 }
 
 void FunctionSymbol::genReturn(int linenum)
@@ -417,8 +422,7 @@ void FunctionSymbol::genVariableDecl(VariableType t, string n, int linenum)
     currentInstrs.push_back(make_unique<DeclareVarCommand>(t, n, linenum));
 
     //find wont work for whatever reason
-    for (const string& s : vars) if (s == n) return;
-    vars.insert(n);
+    currentVarScope->addVarName(n);
 }
 
 void FunctionSymbol::addCommand(unique_ptr<AbstractCommand> ac)

@@ -138,7 +138,11 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 {
                     PushCommand* pvc = static_cast<PushCommand*>(instr.get());
                     const string& data = pvc->getData();
-                    if (pvc->pushType == PushCommand::PUSHSTR) insertAndCheckUpwardExposed(data);
+                    if (!pvc->pushesState()
+                        && AbstractCommand::getStringType(pvc->getData()) == AbstractCommand::StringType::ID)
+                    {
+                        insertAndCheckUpwardExposed(data);
+                    }
                     break;
                 }
                 case CommandType::PRINT:

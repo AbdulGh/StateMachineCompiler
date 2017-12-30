@@ -116,9 +116,11 @@ void Compiler::genIf(FunctionSymbol* fs)
     {
         match(LBRACE);
         symbolTable.pushScope();
+        fs->pushScope();
         finishedState = statement(fs);
         while (lookahead.type != RBRACE) finishedState = statement(fs);
         match(RBRACE);
+        fs->popScope();
         symbolTable.popScope();
     }
 
@@ -136,9 +138,11 @@ void Compiler::genIf(FunctionSymbol* fs)
             {
                 match(LBRACE);
                 symbolTable.pushScope();
+                fs->pushScope();
                 finishedState = statement(fs);
                 while (lookahead.type != RBRACE) finishedState = statement(fs);
                 match(RBRACE);
+                fs->popScope();
                 symbolTable.popScope();
             }
 
@@ -184,9 +188,11 @@ void Compiler::genWhile(FunctionSymbol* fs)
     {
         match(LBRACE);
         symbolTable.pushScope();
+        fs->pushScope();
         finishedState = statement(fs);
         while (lookahead.type != RBRACE) finishedState = statement(fs);
         match(RBRACE);
+        fs->popScope();
         symbolTable.popScope();
     }
     if (!finishedState)

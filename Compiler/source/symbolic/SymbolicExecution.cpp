@@ -8,8 +8,8 @@ using namespace SymbolicExecution;
 
 //SymbolicExecutionFringe
 SymbolicExecutionFringe::SymbolicExecutionFringe(Reporter &r) :
-        reporter(r),
         parent{},
+        reporter(r),
         symbolicStack(make_shared<SymbolicStack>()),
         symbolicVarSet(make_shared<SymbolicVarSet>()){}
 
@@ -17,7 +17,8 @@ SymbolicExecutionFringe::SymbolicExecutionFringe(shared_ptr<SymbolicExecutionFri
         parent(p),
         reporter(p->reporter),
         symbolicStack(make_shared<SymbolicStack>(p->symbolicStack)),
-        symbolicVarSet(make_shared<SymbolicVarSet>(p->symbolicVarSet)) {}
+        symbolicVarSet(make_shared<SymbolicVarSet>(p->symbolicVarSet))
+        {seenFunctionCalls = p->seenFunctionCalls;}
 
 
 void SymbolicExecutionFringe::error(Reporter::AlertType a, string s, int linenum)
@@ -153,7 +154,6 @@ unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& Symbo
         }
         if (visitedNodes.find(it->first) == visitedNodes.end()) //no feasable visits - remove
         {
-            auto debug = it->first;
             reporter.optimising(Reporter::DEADCODE, "State '" + it->first + "' is unreachable and will be removed");
             CFGNode* lonelyNode = it->second.get();
             if (lonelyNode->getCompSuccess() != nullptr) lonelyNode->getCompSuccess()->removeParent(lonelyNode);
@@ -191,7 +191,9 @@ CFGNode* SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFring
             if (!n->isLastNode()) throw "returns too early";
             return nullptr;
         }
+
         if (returningSEF->symbolicStack->getTopType() != SymbolicStackMemberType::STATE) throw "tried to jump to non-state";
+
         failNode = n->getParentGraph().getNode(returningSEF->symbolicStack->popState());
         if (failNode == nullptr) throw "tried to jump to a nonexisting state";
         else //check its in successors of n
@@ -205,11 +207,6 @@ CFGNode* SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFring
 
 bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n)
 {
-    if (n->getName() == "F1_ack_6")
-    {
-        int debug;
-        debug = 2;
-    }
     if (!sef->isFeasable()) return false;
     else if (sef->hasSeen(n->getName())) return true;
 
@@ -219,7 +216,6 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
     for (const auto& command : n->getInstrs())
     {
         //might be in a loop
-        auto debug = command.get();
         if (command->getType() == CommandType::EXPR)
         {
             EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(command.get());
@@ -237,26 +233,57 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
             }
             else sef->symbolicVarSet->findVar(command->getData())->userInput();
         }
-        else
+        else if (command->getType() == CommandType::POP)
         {
-            if (command->getType() == CommandType::POP)
+            if (sef->symbolicStack->isEmpty())
             {
-                if (sef->symbolicStack->isEmpty() || sef->symbolicStack->getTopType() != VAR)
-                {
-                    sef->error(Reporter::BAD_STACK_USE,
-                               "Tried to pop empty stack, or non var into var", command->getLineNum());
+                sef->error(Reporter::BAD_STACK_USE,
+                           "Tried to pop empty stack", command->getLineNum());
+                return false;
 
-                }
-                unique_ptr<SymbolicVariable> poppedVar = sef->symbolicStack->peekTopVar()->clone();
-                thisNodeSR->addPop(move(poppedVar));
             }
-            if (!command->acceptSymbolicExecution(sef)) return false;
+
+            if (command->getData().empty()) sef->symbolicStack->pop();
+            else
+            {
+                SymbolicVariable* sv = sef->symbolicVarSet->findVar(command->getData());
+                if (sv == nullptr) throw "popped into undefined var";
+                sv->userInput();
+
+                switch (sef->symbolicStack->getTopType())
+                {
+                    case SymbolicStackMemberType::VAR:
+                    {
+                        unique_ptr<SymbolicVariable> poppedVar = sef->symbolicStack->popVar();
+                        thisNodeSR->addPop(move(poppedVar));
+                        break;
+                    }
+                    case SymbolicStackMemberType::DOUBLE:
+                    {
+                        unique_ptr<SymbolicDouble> sd = make_unique<SymbolicDouble>("", reporter);
+                        sd->setTConstValue(sef->symbolicStack->popDouble());
+                        thisNodeSR->addPop(move(sd));
+                        break;
+                    }
+                    case SymbolicStackMemberType::STRING:
+                    {
+                        unique_ptr<SymbolicString> ss = make_unique<SymbolicString>("", reporter);
+                        ss->setTConstValue(sef->symbolicStack->popString());
+                        thisNodeSR->addPop(move(ss));
+                        break;
+                    }
+                    default:
+                        sef->error(Reporter::BAD_STACK_USE,
+                                   "Tried to pop incompatible thing into a variable", command->getLineNum());
+                        return false;
+                }
+            }
         }
+        else if (!command->acceptSymbolicExecution(sef)) return false;
     }
 
     if (n->callsFunction()) //search mutual recursion
     {
-        printf("Checking call from %s\n", n->getName());
         sef->pathConditions.clear();
         sef->checkParentPC = false;
         sef->seenFunctionCalls.push_back(n->getName());

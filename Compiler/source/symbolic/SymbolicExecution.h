@@ -42,8 +42,8 @@ namespace SymbolicExecution
         std::vector<std::string> seenFunctionCalls;
         std::vector<std::string> visitOrder;
 
-        SymbolicExecutionFringe(Reporter& r);
-        SymbolicExecutionFringe(std::shared_ptr<SymbolicExecutionFringe> p);
+        explicit SymbolicExecutionFringe(Reporter& r);
+        explicit SymbolicExecutionFringe(std::shared_ptr<SymbolicExecutionFringe> p);
 
         std::shared_ptr<SymbolicStack> symbolicStack;
         std::shared_ptr<SymbolicVarSet> symbolicVarSet;
@@ -55,6 +55,7 @@ namespace SymbolicExecution
         void warn(Reporter::AlertType a, std::string s, int linenum = -1);
         bool isFeasable();
         bool hasSeen(const std::string& state);
+        bool hasSeenFunctionCall(const std::string& state);
     };
 
     class SymbolicExecutionManager

@@ -11,47 +11,99 @@
 
 enum class SymbolicStackMemberType {STATE, VAR, STRING, DOUBLE};
 
-struct StackMember
+class StackMember
 {
+protected:
     SymbolicStackMemberType type;
+    explicit StackMember(SymbolicStackMemberType t) : type(t) {}
+
+public:
+    virtual std::unique_ptr<StackMember> clone() = 0;
+    virtual std::string diagString() = 0;
+    virtual const std::string& getName() {throw "not implemented in this type";}
+
+    SymbolicStackMemberType getType() {return type;}
+};
+
+class SymVarStackMember : public StackMember
+{
+public:
     std::unique_ptr<SymbolicVariable> varptr;
-    std::string statename;
 
-    explicit StackMember(const std::string& state)
+    explicit SymVarStackMember(SymbolicVariable* toPush): StackMember(SymbolicStackMemberType::VAR)
     {
-        type = STATE;
-        statename = std::string(state);
-    }
-
-    explicit StackMember(SymbolicVariable* toPush)
-    {
-        type = VAR;
         if (toPush->getType() == DOUBLE) varptr = std::make_unique<SymbolicDouble>(toPush);
         else if (toPush->getType() == STRING) varptr = std::make_unique<SymbolicString>(toPush);
         else throw "bad dtype";
     }
 
-    StackMember(const StackMember& sm)
+    std::unique_ptr<StackMember> clone() override
     {
-        type = sm.type;
-        if (type == STATE)  statename = std::string(sm.statename);
-        else
-        {
-            if (sm.varptr->getType() == DOUBLE) varptr = std::make_unique<SymbolicDouble>(sm.varptr.get());
-            else if (sm.varptr->getType() == STRING) varptr = std::make_unique<SymbolicString>(sm.varptr.get());
-            else throw "bad dtype";
-        }
+        return std::make_unique<SymVarStackMember>(varptr.get());
     }
+
+    
+    std::string diagString() override {return "var " + varptr->getName();}
+    const std::string& getName() override {return varptr->getName();}
 };
+
+class DoubleStackMember : public StackMember
+{
+public:
+    double d;
+    explicit DoubleStackMember(double toPush): StackMember(SymbolicStackMemberType::DOUBLE), d(toPush)
+    {}
+
+    std::unique_ptr<StackMember> clone() override
+    {
+        return std::make_unique<DoubleStackMember>(d);
+    }
+
+    std::string diagString() override {return "double " + std::to_string(d);}
+};
+
+class StringStackMember : public StackMember
+{
+public:
+    std::string s;
+    explicit StringStackMember(std::string toPush): StackMember(SymbolicStackMemberType::STRING), s(std::move(toPush))
+    {}
+
+    std::unique_ptr<StackMember> clone() override
+    {
+        return std::make_unique<StringStackMember>(s); //copies
+    }
+
+    std::string diagString() override {return "string " + s;}
+};
+
+class StateStackMember : public StackMember //too much like the StringStackMember!
+{
+private:
+    std::string stateName;
+public:
+    explicit StateStackMember(std::string stateName): StackMember(SymbolicStackMemberType::STATE),
+                                                      stateName(std::move(stateName))
+    {}
+
+    std::unique_ptr<StackMember> clone() override
+    {
+        return std::make_unique<StateStackMember>(stateName);
+    }
+
+    const std::string& getName() override {return stateName;}
+
+    std::string diagString() override {return "state " + stateName;}
+    };
 
 class SymbolicStack
 {
 private:
     std::shared_ptr<SymbolicStack> parent;
-    std::vector<StackMember> currentStack;
+    std::vector<std::unique_ptr<StackMember>> currentStack;
 
     void copyParent();
-    StackMember popMember();
+    std::unique_ptr<StackMember> popMember();
 public:
     SymbolicStack(std::shared_ptr<SymbolicStack> parent = nullptr);
     SymbolicStack(const SymbolicStack&) = delete;
@@ -60,13 +112,16 @@ public:
     void pushState(const std::string& pushedState);
     void pushString(std::string toPush);
     void pushDouble(double toPush);
+    std::string popState();
+    std::string popString();
+    double popDouble();
     std::unique_ptr<SymbolicVariable> popVar();
     SymbolicVariable* peekTopVar();
     const std::string& peekTopName();
-    std::string popState();
     void pop();
     bool isEmpty();
     SymbolicStackMemberType getTopType();
+    std::string printStack(); //diagnostic purposes
 };
 
 

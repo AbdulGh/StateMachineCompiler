@@ -68,9 +68,11 @@ bool Compiler::statement(FunctionSymbol* fs)
     {
         match(LBRACE);
         symbolTable.pushScope();
+        fs->pushScope();
         finishedState = statement(fs);
         while(lookahead.type != RBRACE) finishedState = statement(fs);
         symbolTable.popScope();
+        fs->popScope();
         match(RBRACE);
     }
     else if (lookahead.type == PRINT)

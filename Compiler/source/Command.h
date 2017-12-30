@@ -229,9 +229,11 @@ public:
         setType(CommandType::PUSH);
     }
 
+    inline bool pushesState() const {return calledFunction != nullptr;}
+
     std::string translation(const std::string& delim) const override
     {
-        if (calledFunction != nullptr) return "push state " + getData() + ";" + delim;
+        if (pushesState()) return "push state " + getData() + ";" + delim;
         else return "push " + getData() + ";" + delim;
     }
 

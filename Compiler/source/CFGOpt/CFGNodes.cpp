@@ -214,7 +214,7 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
             case CommandType::PUSH:
             {
                 auto pushc = static_cast<PushCommand*>(current.get());
-                if (pushc->pushType == PushCommand::PUSHSTR)
+                if (!pushc->pushesState())
                 {
                     auto pushedVarIt = assignments.find(current->getData());
                     if (pushedVarIt != assignments.end()) current->setData(pushedVarIt->second);
@@ -232,7 +232,7 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
                     auto pushc = static_cast<PushCommand*>((*stackTop).get());
                     if (popc->isEmpty())
                     {
-                        if (pushc->pushType == PushCommand::PUSHSTATE)
+                        if (pushc->pushesState())
                         {
                             CFGNode* node = parentGraph.getNode(pushc->getData());
                             if (node == nullptr) throw "found a bad state";
@@ -245,7 +245,7 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
                     }
                     else
                     {
-                        if (pushc->pushType == PushCommand::PUSHSTATE) throw runtime_error("tried to pop state into var");
+                        if (pushc->pushesState()) throw runtime_error("tried to pop state into var");
                         else
                         {
                             pushedThings.pop();
@@ -352,7 +352,7 @@ bool CFGNode::swallowNode(CFGNode* other)
                 if (newInst->getType() == CommandType::PUSH)
                 {
                     PushCommand* pc = static_cast<PushCommand*>(newInst.get());
-                    if (pc->pushType == PushCommand::PUSHSTATE)
+                    if (pc->pushesState())
                     {
                         CFGNode* node = parentGraph.getNode(pc->getData());
                         if (node == nullptr) throw "pushing nonexistent node";
@@ -675,7 +675,7 @@ void CFGNode::replacePushes(const std::string& other)
             if (ac->getType() == CommandType::PUSH && ac->getData() == name)
             {
                 PushCommand* pc = static_cast<PushCommand*>(ac);
-                if (pc->pushType == PushCommand::PUSHSTATE)
+                if (pc->pushesState())
                 {
                     pc->setData(other);
                     pc->calledFunction->replaceReturnState(this, toReplaceWith);
@@ -715,7 +715,7 @@ void CFGNode::prepareToDie()
         if (ac->getType() == CommandType::PUSH)
         {
             auto pc = static_cast<PushCommand*>(ac.get());
-            if (pc->pushType == PushCommand::PUSHSTATE)
+            if (pc->pushesState())
             {
                 CFGNode* pushedNode = parentGraph.getNode(pc->getData());
                 if (!pushedNode) throw "could not find node";

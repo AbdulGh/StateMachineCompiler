@@ -17,6 +17,32 @@ struct FunctionCall;
 class FunctionSymbol : public std::enable_shared_from_this<FunctionSymbol>
 {
 private:
+    class FunctionVars //used to save vars during function calls
+    {
+    private:
+        std::unique_ptr<FunctionVars> parent;
+        std::set<std::string> vars;
+
+    public:
+        explicit FunctionVars(std::unique_ptr<FunctionVars> p = nullptr): parent(move(p)) {}
+        std::set<std::string> getVarSet()
+        {
+            if (parent == nullptr) return vars;
+            else
+            {
+                std::set<std::string> pvars = parent->getVarSet();
+                pvars.insert(vars.begin(), vars.end());
+                return pvars;
+            }
+        }
+        std::unique_ptr<FunctionVars> moveScope()
+        {
+            if (parent == nullptr) throw "moved bottom scope";
+            return move(parent);
+        }
+        void addVarName(const std::string& varN) {vars.insert(varN);}
+    };
+
     VariableType returnType;
     std::vector<VariableType> paramTypes;
     int currentStateNum;
@@ -26,8 +52,8 @@ private:
     CFGNode* lastNode;
     CFGNode* firstNode;
     CFGNode* currentNode;
-    std::set<std::string> vars; //used to save vars during function calls
     std::vector<std::unique_ptr<AbstractCommand>> currentInstrs;
+    std::unique_ptr<FunctionVars> currentVarScope;
     ControlFlowGraph& cfg;
     std::set<std::unique_ptr<FunctionCall>> calls;
 
@@ -44,10 +70,13 @@ public:
     CFGNode* getFirstNode();
     void setFirstNode(CFGNode* firstNode);
     CFGNode* getCurrentNode() const;
-    const std::set<std::string>& getVars();
+    const std::set<std::string> getVars();
     void addVar(const std::string& id);
     unsigned int numParams();
     unsigned int numCalls();
+
+    void pushScope();
+    void popScope();
 
     //deals w/ pushes & pops
     bool mergeInto(FunctionSymbol *to);

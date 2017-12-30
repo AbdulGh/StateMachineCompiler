@@ -6,7 +6,7 @@
 
 using namespace std;
 
-bool AbstractCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
+bool AbstractCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe>)
 {
     return true;
 }
@@ -25,23 +25,34 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
 
     else switch(stringType)
     {
-    case StringType::ID:
-        SymbolicVariable* found = svs->symbolicVarSet->findVar(getData());
-        if (found == nullptr)
+        case StringType::ID:
         {
-            svs->error(Reporter::UNDECLARED_USE, "'" + getData() + "' pushed without being declared", getLineNum());
-            return false;
+            SymbolicVariable* found = svs->symbolicVarSet->findVar(getData());
+            if (found == nullptr)
+            {
+                svs->error(Reporter::UNDECLARED_USE, "'" + getData() + "' pushed without being declared", getLineNum());
+                return false;
+            }
+            if (!found->isFeasable()) throw "should be feasable";
+            else if (!found->isDefined())
+            {
+                svs->warn(Reporter::UNINITIALISED_USE, "'" + getData() + "' pushed without being defined", getLineNum());
+            }
+                svs->symbolicStack->pushVar(found);
+            break;
         }
-        if (!found->isFeasable()) throw "should be feasable";
-        else if (!found->isDefined())
+        case StringType::DOUBLELIT:
         {
-            svs->warn(Reporter::UNINITIALISED_USE, "'" + getData() + "' pushed without being defined", getLineNum());
+            svs->symbolicStack->pushDouble(stod(getData()));
+            break;
         }
-            svs->symbolicStack->pushVar(found);
-        break;
-
-    case StringType::DOUBLELIT:
-        svs->symbolicStack->pu
+        case StringType::STRINGLIT:
+        {
+            svs->symbolicStack->pushString(getData());
+            break;
+        }
+        default:
+            throw "unfamiliar string type";
     };
     return true;
 }
@@ -60,7 +71,7 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
         return true;
     }
 
-    if (svs->symbolicStack->getTopType() != VAR)
+    if (svs->symbolicStack->getTopType() == SymbolicStackMemberType::STATE)
     {
         svs->error(Reporter::BAD_STACK_USE, "Tried to pop a state into a variable", getLineNum());
         return false;
@@ -73,17 +84,45 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
         return false;
     }
 
-    unique_ptr<SymbolicVariable> popped = svs->symbolicStack->popVar();
-    if (popped->getType() != found->getType())
+    if (svs->symbolicStack->getTopType() == SymbolicStackMemberType::VAR)
     {
-        svs->error(Reporter::TYPE, "Tried to pop '" + popped->getName() + "' (type " + TypeEnumNames[popped->getType()]
-                                   +") into '" + found->getName() + "' (type " + TypeEnumNames[found->getType()] + ")");
-        return false;
-    }
+        unique_ptr<SymbolicVariable> popped = svs->symbolicStack->popVar();
+        if (popped->getType() != found->getType())
+        {
+            svs->error(Reporter::TYPE, "Tried to pop '" + popped->getName() + "' (type " + TypeEnumNames[popped->getType()]
+                                       +") into '" + found->getName() + "' (type " + TypeEnumNames[found->getType()] + ")");
+            return false;
+        }
 
-    popped->setName(found->getName());
-    if (!popped->isFeasable()) throw "should be feasable";
-    svs->symbolicVarSet->defineVar(move(popped));
+        popped->setName(found->getName());
+        if (!popped->isFeasable()) throw "should be feasable";
+        svs->symbolicVarSet->defineVar(move(popped));
+    }
+    else switch (found->getType())
+    {
+        case VariableType::STRING:
+            if (svs->symbolicStack->getTopType() != SymbolicStackMemberType::STRING)
+            {
+                svs->error(Reporter::TYPE,
+                           "Tried to pop non string literal into '" + found->getName() + "'");
+                return false;
+            }
+            found->setConstValue(svs->symbolicStack->popString());
+            return true;
+
+        case VariableType::DOUBLE:
+            if (svs->symbolicStack->getTopType() != SymbolicStackMemberType::DOUBLE)
+            {
+                svs->error(Reporter::TYPE,
+                           "Tried to pop non double literal into '" + found->getName() + "'");
+                return false;
+            }
+            static_cast<SymbolicDouble*>(found)->setTConstValue(svs->symbolicStack->popDouble());
+            return true;
+
+        default:
+            throw "funky vtype";
+    }
 
     return true;
 }
