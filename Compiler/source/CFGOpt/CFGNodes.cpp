@@ -531,7 +531,11 @@ const unordered_map<string, CFGNode*>& CFGNode::getPredecessorMap()
 vector<CFGNode*> CFGNode::getSuccessorVector()
 {
     std::vector<CFGNode*> successors;
-    if (getCompSuccess() != nullptr) successors.push_back(getCompSuccess());
+    if (getCompSuccess() != nullptr)
+    {
+        auto debug = getCompSuccess();
+        successors.push_back(getCompSuccess());
+    }
     if (getCompFail() != nullptr) successors.push_back(getCompFail());
     else
     {
@@ -652,7 +656,26 @@ void CFGNode::removePushes()
     auto it = pushingStates.begin();
     while (it != pushingStates.end())
     {
-        it->second->removeFunctionCall(it->first->getName(), name);
+        auto& firstInstrs = it->first->getInstrs();
+        if (!it->first->callsFunction()) throw "not right";
+        unsigned int i = 0;
+        bool done = false;
+        while (i < firstInstrs.size())
+        {
+            if (firstInstrs[i]->getType() == CommandType::PUSH)
+            {
+                PushCommand* pc = static_cast<PushCommand*>(firstInstrs[i].get());
+                if (pc->pushesState()) //found it
+                {
+                    if (pc->pushedVars > i) throw "not enough pushes";
+                    firstInstrs.erase(firstInstrs.begin() + (i - pc->pushedVars), firstInstrs.begin() + i + 1);
+                    done = true;
+                    break;
+                }
+            }
+            ++i;
+        }
+        if (!done) throw "couldnt find state push";
         it = pushingStates.erase(it);
     }
 }

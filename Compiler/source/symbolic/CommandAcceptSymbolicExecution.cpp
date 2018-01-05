@@ -84,45 +84,17 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
         return false;
     }
 
-    if (svs->symbolicStack->getTopType() == SymbolicStackMemberType::VAR)
+    unique_ptr<SymbolicVariable> popped = svs->symbolicStack->popVar();
+    if (popped->getType() != found->getType())
     {
-        unique_ptr<SymbolicVariable> popped = svs->symbolicStack->popVar();
-        if (popped->getType() != found->getType())
-        {
-            svs->error(Reporter::TYPE, "Tried to pop '" + popped->getName() + "' (type " + TypeEnumNames[popped->getType()]
-                                       +") into '" + found->getName() + "' (type " + TypeEnumNames[found->getType()] + ")");
-            return false;
-        }
-
-        popped->setName(found->getName());
-        if (!popped->isFeasable()) throw "should be feasable";
-        svs->symbolicVarSet->defineVar(move(popped));
+        svs->error(Reporter::TYPE, "Tried to pop '" + popped->getName() + "' (type " + TypeEnumNames[popped->getType()]
+                                   +") into '" + found->getName() + "' (type " + TypeEnumNames[found->getType()] + ")");
+        return false;
     }
-    else switch (found->getType())
-    {
-        case VariableType::STRING:
-            if (svs->symbolicStack->getTopType() != SymbolicStackMemberType::STRING)
-            {
-                svs->error(Reporter::TYPE,
-                           "Tried to pop non string literal into '" + found->getName() + "'");
-                return false;
-            }
-            found->setConstValue(svs->symbolicStack->popString());
-            return true;
 
-        case VariableType::DOUBLE:
-            if (svs->symbolicStack->getTopType() != SymbolicStackMemberType::DOUBLE)
-            {
-                svs->error(Reporter::TYPE,
-                           "Tried to pop non double literal into '" + found->getName() + "'");
-                return false;
-            }
-            static_cast<SymbolicDouble*>(found)->setTConstValue(svs->symbolicStack->popDouble());
-            return true;
-
-        default:
-            throw "funky vtype";
-    }
+    popped->setName(found->getName());
+    if (!popped->isFeasable()) throw "should be feasable";
+    svs->symbolicVarSet->defineVar(move(popped));
 
     return true;
 }
@@ -192,7 +164,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
     try
     {
         stod(term1);
-        t1 = new SymbolicDouble("LHSconst", svs->reporter); //if we get here it's a double
+        t1 = new SymbolicDouble("LHSconst", nullptr); //if we get here it's a double
         t1->setConstValue(term1);
     }
     catch (invalid_argument&)
@@ -218,7 +190,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
     try
     {
         stod(term2);
-        t2 = new SymbolicDouble("RHSconst", svs->reporter);
+        t2 = new SymbolicDouble("RHSconst", nullptr);
         t2->setConstValue(term2);
     }
     catch (invalid_argument&)
@@ -275,8 +247,8 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
 
 bool DeclareVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
 {
-    if (vt == STRING) svs->symbolicVarSet->defineVar(make_unique<SymbolicString>(getData(), svs->reporter));
-    else if (vt == DOUBLE) svs->symbolicVarSet->defineVar(make_unique<SymbolicDouble>(getData(), svs->reporter));
+    if (vt == STRING) svs->symbolicVarSet->defineVar(make_unique<SymbolicString>(getData(), &svs->reporter));
+    else if (vt == DOUBLE) svs->symbolicVarSet->defineVar(make_unique<SymbolicDouble>(getData(), &svs->reporter));
     else throw runtime_error("Bad type in DeclareVarCommand");
     return true;
 }

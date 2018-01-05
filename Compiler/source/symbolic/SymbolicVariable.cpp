@@ -9,7 +9,7 @@ using namespace std;
 
 //SymbolicVariable
 
-SymbolicVariable::SymbolicVariable(string name, VariableType t, Reporter &r, bool initialised, bool f):
+SymbolicVariable::SymbolicVariable(string name, VariableType t, Reporter* r, bool initialised, bool f):
         varN(move(name)), type(t), reporter(r), defined(initialised), feasable(f), incrementable(type == DOUBLE) {}
 
 SymbolicVariable::~SymbolicVariable()
@@ -24,14 +24,14 @@ const string& SymbolicVariable::getName() const
     return varN;
 }
 
-void SymbolicVariable::setName(const string newName)
+void SymbolicVariable::setName(const string& newName)
 {
     varN = newName;
 }
 
 void SymbolicVariable::reportError(Reporter::AlertType type, string err)
 {
-    reporter.error(type, err);
+    reporter->error(type, err);
     feasable = false;
 }
 
@@ -273,6 +273,13 @@ void SymbolicVariable::clearLess()
     le.clear();
 }
 
+void SymbolicVariable::clearAll()
+{
+    clearEQ();
+    clearEQ();
+    clearLess();
+}
+
 void SymbolicVariable::userInput()
 {
     userAffected = true;
@@ -300,7 +307,7 @@ void SymbolicVariable::clearGreater()
 //SymbolicVariableTemplate
 template <typename T>
 SymbolicVariableTemplate<T>::SymbolicVariableTemplate(string name, const T lower, const T upper,
-                                      Reporter& r, VariableType t, bool init):
+                                      Reporter* r, VariableType t, bool init):
         SymbolicVariable(name, t, r, init, lower <= upper), lowerBound(lower), upperBound(upper)
 {}
 
@@ -436,6 +443,7 @@ template <typename T>
 void SymbolicVariableTemplate<T>::setTConstValue(const T &cv)
 {
     define();
+    clearAll(); //todo make forgetting more intelligent
     upperBound = lowerBound = cv;
 }
 

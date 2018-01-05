@@ -4,7 +4,7 @@
 
 using namespace std;
 
-SymbolicString::SymbolicString(string name, Reporter &reporter):
+SymbolicString::SymbolicString(string name, Reporter* reporter):
     SymbolicVariableTemplate(move(name), "", "", reporter, STRING),
     boundedLower(true), boundedUpper(true) {}
 
@@ -31,12 +31,25 @@ void SymbolicString::setTConstValue(const string& cv)
     boundedUpper = boundedLower = true;
     lowerBound = upperBound = cv;
 }
-void SymbolicString::setConstValue(const std::string &s)
+void SymbolicString::unionTConstValue(const string& cv, bool closed)
+{
+    if (closed)
+    {
+        if (boundedLower && cv < lowerBound) lowerBound = cv;
+        else if (boundedUpper && cv > upperBound) upperBound = cv;
+    }
+    else
+    {
+        if (boundedLower && cv <= lowerBound) lowerBound = decrementString(cv);
+        else if (boundedUpper && cv >= upperBound) upperBound = incrementString(cv);
+    }
+}
+void SymbolicString::setConstValue(const string &s)
 {
     setTConstValue(s);
 }
 
-bool SymbolicString::setTLowerBound(const std::string& lb, bool closed)
+bool SymbolicString::setTLowerBound(const string& lb, bool closed)
 {
     if (!closed) upperBound = decrementString(lb);
     else lowerBound = lb;
@@ -44,12 +57,12 @@ bool SymbolicString::setTLowerBound(const std::string& lb, bool closed)
     boundedLower = true;
     return isFeasable();
 }
-bool SymbolicString::setLowerBound(const std::string& lb, bool closed)
+bool SymbolicString::setLowerBound(const string& lb, bool closed)
 {
     return setTLowerBound(lb, closed);
 }
 
-bool SymbolicString::setTUpperBound(const std::string& ub, bool closed)
+bool SymbolicString::setTUpperBound(const string& ub, bool closed)
 {
     if (!closed) upperBound = incrementString(ub);
     else upperBound = ub;
@@ -57,47 +70,47 @@ bool SymbolicString::setTUpperBound(const std::string& ub, bool closed)
     boundedUpper = true;
     return isFeasable();
 }
-bool SymbolicString::setUpperBound(const std::string& ub, bool closed)
+bool SymbolicString::setUpperBound(const string& ub, bool closed)
 {
     return setTUpperBound(ub, closed);
 }
 
-bool SymbolicString::clipTLowerBound(const std::string& lb, bool closed)
+bool SymbolicString::clipTLowerBound(const string& lb, bool closed)
 {
     if (!isBoundedBelow() || getLowerBound() > lb) return setLowerBound(lb, closed);
     else return isFeasable();
 }
-bool SymbolicString::clipLowerBound(const std::string& lb, bool closed)
+bool SymbolicString::clipLowerBound(const string& lb, bool closed)
 {
     return clipTLowerBound(lb, closed);
 }
 
-bool SymbolicString::clipTUpperBound(const std::string& ub, bool closed)
+bool SymbolicString::clipTUpperBound(const string& ub, bool closed)
 {
     if (!isBoundedAbove() || getUpperBound() < ub) return setLowerBound(ub, closed);
     else return isFeasable();
 }
-bool SymbolicString::clipUpperBound(const std::string& ub, bool closed)
+bool SymbolicString::clipUpperBound(const string& ub, bool closed)
 {
     return clipTUpperBound(ub, closed);
 }
 
-bool SymbolicString::unionTLowerBound(const std::string& lb, bool closed)
+bool SymbolicString::unionTLowerBound(const string& lb, bool closed)
 {
     if (!isBoundedBelow() && lb < lowerBound) return setLowerBound(lb, closed);
     else return isFeasable();
 }
-bool SymbolicString::unionLowerBound(const std::string& lb, bool closed)
+bool SymbolicString::unionLowerBound(const string& lb, bool closed)
 {
     return unionTLowerBound(lb);
 }
 
-bool SymbolicString::unionTUpperBound(const std::string& ub, bool closed)
+bool SymbolicString::unionTUpperBound(const string& ub, bool closed)
 {
     if (!isBoundedAbove() && ub > lowerBound) return setUpperBound(ub, closed);
     else return isFeasable();
 }
-bool SymbolicString::unionUpperBound(const std::string& ub, bool closed)
+bool SymbolicString::unionUpperBound(const string& ub, bool closed)
 {
     return unionTUpperBound(ub);
 }
@@ -120,7 +133,7 @@ bool SymbolicString::isBoundedAbove() const
     return boundedUpper;
 }
 
-SymbolicVariable::MeetEnum SymbolicString::canMeet(Relations::Relop rel, const std::string& rhs) const
+SymbolicVariable::MeetEnum SymbolicString::canMeet(Relations::Relop rel, const string& rhs) const
 {
     if (isDetermined()) return (Relations::evaluateRelop<string>(getTLowerBound(), rel, rhs)) ? MUST : CANT;
 
@@ -161,7 +174,7 @@ SymbolicVariable::MeetEnum SymbolicString::canMeet(Relations::Relop rel, const s
     }
 }
 
-std::string SymbolicString::incrementString(std::string s)
+string SymbolicString::incrementString(string s)
 {
     for (unsigned long index = s.length() - 1; index != 0; --index)
     {
@@ -175,7 +188,7 @@ std::string SymbolicString::incrementString(std::string s)
     return numeric_limits<char>::max() + s;
 }
 
-std::string SymbolicString::decrementString(std::string s)
+string SymbolicString::decrementString(string s)
 {
     for (unsigned long index = s.length() - 1; index != 0; --index)
     {

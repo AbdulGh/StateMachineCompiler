@@ -61,8 +61,9 @@ bool FunctionSymbol::mergeInto(FunctionSymbol* to)
             callingIt = callingInstrs.end() - 1;
             unique_ptr<AbstractCommand>& cinstr = *callingIt;
             unique_ptr<AbstractCommand>& rinstr = *returnIt;
+
             if (cinstr->getType() != CommandType::PUSH || rinstr->getType() != CommandType::POP
-                || cinstr->getData() != rinstr->getData()) throw "should match";
+                || (!rinstr->getData().empty() && cinstr->getData() != rinstr->getData())) throw "should match";
             callingInstrs.erase(callingIt);
             returnIt = retInstrs.erase(returnIt);
             --localVarPushes;

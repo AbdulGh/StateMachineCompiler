@@ -9,20 +9,21 @@
 
 #include "SymbolicVariables.h"
 
-enum class SymbolicStackMemberType {STATE, VAR, STRING, DOUBLE};
+enum class SymbolicStackMemberType {STATE, VAR};
 
 class StackMember
 {
 protected:
     SymbolicStackMemberType type;
-    explicit StackMember(SymbolicStackMemberType t) : type(t) {}
+    void setType(SymbolicStackMemberType t) {type = t;}
 
 public:
     virtual std::unique_ptr<StackMember> clone() = 0;
     virtual std::string diagString() = 0;
+    virtual void mergeSM(std::unique_ptr<StackMember>& other) = 0;
     virtual const std::string& getName() {throw "not implemented in this type";}
 
-    SymbolicStackMemberType getType() {return type;}
+    SymbolicStackMemberType getType() const {return type;}
 };
 
 class SymVarStackMember : public StackMember
@@ -30,11 +31,30 @@ class SymVarStackMember : public StackMember
 public:
     std::unique_ptr<SymbolicVariable> varptr;
 
-    explicit SymVarStackMember(SymbolicVariable* toPush): StackMember(SymbolicStackMemberType::VAR)
+    SymVarStackMember(std::unique_ptr<SymbolicVariable> vp):
+            varptr(move(vp))
     {
-        if (toPush->getType() == DOUBLE) varptr = std::make_unique<SymbolicDouble>(toPush);
-        else if (toPush->getType() == STRING) varptr = std::make_unique<SymbolicString>(toPush);
-        else throw "bad dtype";
+        setType(SymbolicStackMemberType::VAR);
+    }
+
+    explicit SymVarStackMember(SymbolicVariable* toPush)
+    {
+        varptr = toPush->clone();
+        setType(SymbolicStackMemberType::VAR);
+    }
+
+    explicit SymVarStackMember(double toPush)
+    {
+        //execution defined vars shouldnt throw errors (so nullptr is okay)
+        std::unique_ptr<SymbolicDouble> sd = std::make_unique<SymbolicDouble>("constDouble", nullptr);
+        sd->setTConstValue(toPush);
+        varptr = std::move(sd);
+    }
+
+    explicit SymVarStackMember(const std::string& toPush)
+    {
+        varptr = std::make_unique<SymbolicString>("constString", nullptr);
+        varptr->setConstValue(toPush);
     }
 
     std::unique_ptr<StackMember> clone() override
@@ -42,49 +62,33 @@ public:
         return std::make_unique<SymVarStackMember>(varptr.get());
     }
 
+    void mergeSM(std::unique_ptr<StackMember>& other) override
+    {
+        if (other->getType() != SymbolicStackMemberType::VAR) throw "merged incompatable types";
+        SymVarStackMember* o = static_cast<SymVarStackMember*>(other.get());
+        varptr->unionUpperBound(o->varptr->getUpperBound());
+        varptr->unionLowerBound(o->varptr->getLowerBound());
+        if (!varptr->isDetermined()) setType(SymbolicStackMemberType::VAR);
+    }
+
+    void mergeVar(SymbolicVariable& ovarptr)
+    {
+        varptr->unionUpperBound(ovarptr.getUpperBound());
+        varptr->unionLowerBound(ovarptr.getLowerBound());
+        if (!varptr->isDetermined()) setType(SymbolicStackMemberType::VAR);
+    }
     
     std::string diagString() override {return "var " + varptr->getName();}
     const std::string& getName() override {return varptr->getName();}
 };
 
-class DoubleStackMember : public StackMember
-{
-public:
-    double d;
-    explicit DoubleStackMember(double toPush): StackMember(SymbolicStackMemberType::DOUBLE), d(toPush)
-    {}
-
-    std::unique_ptr<StackMember> clone() override
-    {
-        return std::make_unique<DoubleStackMember>(d);
-    }
-
-    std::string diagString() override {return "double " + std::to_string(d);}
-};
-
-class StringStackMember : public StackMember
-{
-public:
-    std::string s;
-    explicit StringStackMember(std::string toPush): StackMember(SymbolicStackMemberType::STRING), s(std::move(toPush))
-    {}
-
-    std::unique_ptr<StackMember> clone() override
-    {
-        return std::make_unique<StringStackMember>(s); //copies
-    }
-
-    std::string diagString() override {return "string " + s;}
-};
-
-class StateStackMember : public StackMember //too much like the StringStackMember!
+class StateStackMember : public StackMember
 {
 private:
     std::string stateName;
 public:
-    explicit StateStackMember(std::string stateName): StackMember(SymbolicStackMemberType::STATE),
-                                                      stateName(std::move(stateName))
-    {}
+    explicit StateStackMember(std::string stateName): stateName(std::move(stateName))
+    {setType(SymbolicStackMemberType::STATE);}
 
     std::unique_ptr<StackMember> clone() override
     {
@@ -94,18 +98,25 @@ public:
     const std::string& getName() override {return stateName;}
 
     std::string diagString() override {return "state " + stateName;}
-    };
+
+    void mergeSM(std::unique_ptr<StackMember>& other) override
+    {
+        if (other->getType() != SymbolicStackMemberType::STATE) throw "wrong types";
+        if (other->getName() != stateName) throw "todo next";
+    }
+};
 
 class SymbolicStack
 {
 private:
     std::shared_ptr<SymbolicStack> parent;
     std::vector<std::unique_ptr<StackMember>> currentStack;
-
+    Reporter& reporter;
     void copyParent();
     std::unique_ptr<StackMember> popMember();
 public:
-    SymbolicStack(std::shared_ptr<SymbolicStack> parent = nullptr);
+    SymbolicStack(Reporter& r);
+    SymbolicStack(std::shared_ptr<SymbolicStack> parent);
     SymbolicStack(const SymbolicStack&) = delete;
     //void push(std::unique_ptr<SymbolicVariable> pushedVar);
     void pushVar(SymbolicVariable *pushedVar);
@@ -115,6 +126,8 @@ public:
     std::string popState();
     std::string popString();
     double popDouble();
+    void copyStack(SymbolicStack* other);
+    void unionStack(SymbolicStack* other);
     std::unique_ptr<SymbolicVariable> popVar();
     SymbolicVariable* peekTopVar();
     const std::string& peekTopName();

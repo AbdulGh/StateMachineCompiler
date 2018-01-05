@@ -55,7 +55,6 @@ namespace SymbolicExecution
         void warn(Reporter::AlertType a, std::string s, int linenum = -1);
         bool isFeasable();
         bool hasSeen(const std::string& state);
-        bool hasSeenFunctionCall(const std::string& state);
     };
 
     class SymbolicExecutionManager
@@ -64,17 +63,73 @@ namespace SymbolicExecution
         class SearchResult
         {
         private:
-            unsigned int currentPop = 0;
-            std::vector<std::unique_ptr<SymbolicVariable>> poppedVars;
+            unsigned int poppedCounter = 0;
+            std::vector<SymVarStackMember> pseudoStack;
+            std::shared_ptr<SymbolicVarSet> svs;
 
         public:
-            SearchResult() {svs = std::make_shared<SymbolicVarSet>();};
-            std::shared_ptr<SymbolicVarSet> svs;
-            void resetPoppedCounter() {currentPop = 0;};
-            //these next two should not be mixed w/out resetting
-            bool hasPop(){return currentPop < poppedVars.size();};
-            std::unique_ptr<SymbolicVariable> nextPop();
-            void addPop(std::unique_ptr<SymbolicVariable> popped);
+            explicit SearchResult(Reporter& r)
+            {
+                svs = std::make_shared<SymbolicVarSet>();
+            };
+
+            std::shared_ptr<SymbolicVarSet> getInitSVS()
+            {return std::make_shared<SymbolicVarSet>(svs);};
+
+            void unionSVS(SymbolicVarSet* other)
+            {
+                svs->unionSVS(other);
+            }
+
+            void resetPoppedCounter() {poppedCounter = 0;}
+            void incrementPoppedCounter()
+            {
+                if (poppedCounter >= pseudoStack.size()) throw "went too far";
+                ++poppedCounter;
+            }
+
+            void addPop(double d)
+            {
+                if (poppedCounter == pseudoStack.size()) pseudoStack.emplace_back(SymVarStackMember(d));
+                else
+                {
+                    SymbolicDouble sd("constDouble", nullptr);
+                    sd.setTConstValue(d);
+                    pseudoStack[poppedCounter].mergeVar(sd);
+                }
+                ++poppedCounter;
+            }
+
+            void addPop(const std::string& s)
+            {
+                if (poppedCounter == pseudoStack.size()) pseudoStack.emplace_back(SymVarStackMember(s));
+                else
+                {
+                    SymbolicString ss("constString", nullptr);
+                    ss.unionTConstValue(s);
+                    pseudoStack[poppedCounter].mergeVar(ss);
+                }
+                ++poppedCounter;
+            }
+
+            void addPop(std::unique_ptr<SymbolicVariable> sv)
+            {
+                if (poppedCounter == pseudoStack.size()) pseudoStack.emplace_back(SymVarStackMember(move(sv)));
+                else
+                {
+                    SymbolicDouble sd("constDouble", nullptr);
+                    pseudoStack[poppedCounter].mergeVar(*sv.get());
+                }
+                ++poppedCounter;
+            }
+
+            inline bool hasPop() const {return poppedCounter < pseudoStack.size();}
+
+            std::unique_ptr<SymbolicVariable> popVar()
+            {
+                if (!hasPop()) throw "popped empty stack";
+                return pseudoStack[poppedCounter++].varptr->clone();
+            }
         };
 
         SymbolicExecutionManager(ControlFlowGraph& cfg, SymbolTable& sTable, Reporter& reporter):

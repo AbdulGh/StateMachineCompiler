@@ -17,7 +17,7 @@ protected:
     bool incrementable = false;
     bool userAffected = false;
     std::string varN;
-    Reporter& reporter;
+    Reporter* reporter;
     VariableType type;
     //most of the time we will scan through all of these - hence vectors
     std::vector<SymbolicVariable*> lt;
@@ -33,12 +33,12 @@ public:
     enum MonotoneEnum{INCREASING, DECREASING, FRESH, NONE, UNKNOWN};
     enum MeetEnum {CANT, MAY, MUST};
 
-    SymbolicVariable(std::string name, VariableType t, Reporter& r, bool initialised = false, bool feasable = true);
+    SymbolicVariable(std::string name, VariableType t, Reporter* r, bool initialised = false, bool feasable = true);
     ~SymbolicVariable();
 
     const VariableType getType() const;
     const std::string& getName() const;
-    void setName(const std::string newName);
+    void setName(const std::string& newName);
     bool isDefined() const;
     bool isIncrementable() const;
     bool wasUserAffected() const;
@@ -62,6 +62,7 @@ public:
     virtual void clearLess();
     virtual void clearGreater();
     virtual void clearEQ();
+    virtual void clearAll();
 
     virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const = 0;
     virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, SymbolicVariable* rhs) const = 0;
@@ -99,7 +100,7 @@ protected:
 
 public:
     SymbolicVariableTemplate(std::string name, const T lower, const T upper,
-                     Reporter& r, VariableType t, bool init=false);
+                     Reporter* r, VariableType t, bool init=false);
 
     bool isDisjointFrom(std::shared_ptr<SymbolicVariableTemplate<T>> other);
     bool meetsConstComparison(Relations::Relop r, const std::string& rhs) override;
@@ -108,7 +109,7 @@ public:
     virtual bool addEQ(SymbolicVariable* other) override;
     void addNEQConst(const std::string& c) override;
     void clearEQ() override;
-    
+
     //set/clip bounds returns true if var is feasable after
     virtual bool setTLowerBound(const T& lb, bool closed) = 0;
     virtual bool setTUpperBound(const T& ub, bool closed) = 0;
@@ -116,6 +117,7 @@ public:
     virtual bool clipTUpperBound(const T& up, bool closed) = 0;
     virtual bool unionTLowerBound(const T& lb, bool closed) = 0;
     virtual bool unionTUpperBound(const T& up, bool closed) = 0;
+    virtual void unionTConstValue(const T& cv, bool closed) = 0;
     virtual void setTConstValue(const T& cv);
     const T& getTConstValue();
     const T& getTUpperBound() const;
@@ -138,7 +140,7 @@ private:
     void addConstToUpper(const double d);
 
 public:
-    SymbolicDouble(std::string name, Reporter& reporter);
+    SymbolicDouble(std::string name, Reporter* reporter);
     SymbolicDouble(SymbolicDouble* other);
     SymbolicDouble(SymbolicVariable* other);
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
@@ -158,6 +160,7 @@ public:
     bool clipLowerBound(const std::string& lb, bool closed = true) override;
     bool unionUpperBound(const std::string& ub, bool closed = true) override;
     bool unionLowerBound(const std::string& lb, bool closed = true) override;
+    void unionTConstValue(const double& cv, bool closed=true) override;
     bool setUpperBound(const std::string& ub, bool closed = true) override;
     bool setLowerBound(const std::string& lb, bool closed = true) override;
     virtual void iterateTo(double to, bool closed=true);
@@ -190,7 +193,7 @@ private:
     static std::string decrementString(std::string s);
 
 public:
-    SymbolicString(std::string name, Reporter& reporter);
+    SymbolicString(std::string name, Reporter* reporter);
     SymbolicString(SymbolicVariable* other);
     SymbolicString(SymbolicString* other);
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
@@ -205,6 +208,7 @@ public:
     bool unionTLowerBound(const std::string& lb, bool closed = true) override;
     bool unionTUpperBound(const std::string& up, bool closed = true) override;
     void setTConstValue(const std::string& s) override;
+    void unionTConstValue(const std::string& s, bool closed=true) override;
     void setConstValue(const std::string&) override;
     bool clipUpperBound(const std::string& ub, bool closed = true) override;
     bool clipLowerBound(const std::string& lb, bool closed = true) override;

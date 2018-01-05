@@ -29,6 +29,7 @@ private:
     bool reverse;
     bool stackBased = false;
     bool goodPathFound = false;
+    bool debug = false;
 
     //returns true if it was a node in the loop on a path to the loop exit
     bool searchNode(CFGNode* node, ChangeMap& map, std::unordered_map<std::string, std::unique_ptr<SearchResult>>& tags,

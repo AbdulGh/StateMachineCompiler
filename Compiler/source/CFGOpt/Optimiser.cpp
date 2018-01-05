@@ -50,6 +50,10 @@ namespace Optimise
                     {
                         for (const auto& parentit : current->getPredecessorMap())
                         {
+                            if (parentit.first == current->getName())
+                            {
+                                throw runtime_error("Guaranteed crash around line " + current->getJumpline());
+                            }
                             if (!parentit.second->swallowNode(current)) throw "should swallow";
                         }
                         current->prepareToDie();
