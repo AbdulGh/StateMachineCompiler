@@ -31,7 +31,7 @@ class SymVarStackMember : public StackMember
 public:
     std::unique_ptr<SymbolicVariable> varptr;
 
-    SymVarStackMember(std::unique_ptr<SymbolicVariable> vp):
+    explicit SymVarStackMember(std::unique_ptr<SymbolicVariable> vp):
             varptr(move(vp))
     {
         setType(SymbolicStackMemberType::VAR);
@@ -40,6 +40,14 @@ public:
     explicit SymVarStackMember(SymbolicVariable* toPush)
     {
         varptr = toPush->clone();
+
+        if (toPush->getName() == "_1_1_n")
+        {
+            auto debug2 = varptr.get();
+            int debug;
+            debug = 2;
+        }
+
         setType(SymbolicStackMemberType::VAR);
     }
 

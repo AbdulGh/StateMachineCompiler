@@ -87,6 +87,7 @@ public:
     const std::set<std::unique_ptr<FunctionCall>>& getFunctionCalls() const;
     void clearFunctionCalls();
     void removeFunctionCall(const std::string& calling, const std::string& ret, bool fixCalling = true);
+    void forgetFunctionCall(const std::string& calling, const std::string& ret);
     std::vector<CFGNode*> getNodesReturnedTo();
     FunctionCall* getOnlyFunctionCall();
 

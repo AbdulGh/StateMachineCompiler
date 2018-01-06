@@ -351,6 +351,20 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
     if (numRet == 1) foundLeavingNode->removeParent(lastNode);
 }
 
+void FunctionSymbol::forgetFunctionCall(const std::string& calling, const std::string& ret)
+{
+    for (auto it = calls.begin(); it != calls.end(); ++it)
+    {
+        if ((*it)->caller->getName() == calling)
+        {
+            if ((*it)->returnTo->getName() != ret) throw "should be";
+            calls.erase(it);
+            return;
+        }
+    }
+    throw "couldnt find call";
+}
+
 //generation
 void FunctionSymbol::genNewState(string n)
 {

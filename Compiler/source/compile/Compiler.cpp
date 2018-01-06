@@ -54,9 +54,8 @@ void Compiler::compile(stringstream& out)
     for (Loop& loop : loops) cout << loop.getInfo() << endl;
     for (Loop& loop : loops) loop.validate(tags);
 
-
     Optimise::optimise(symbolTable, functionTable, cfg);
-    //cout << cfg.destroyStructureAndGetFinalSource();
+    cout << cfg.destroyStructureAndGetFinalSource();
 }
 
 Token Compiler::nextToken()

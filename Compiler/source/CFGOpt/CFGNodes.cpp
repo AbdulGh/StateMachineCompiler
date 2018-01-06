@@ -531,11 +531,7 @@ const unordered_map<string, CFGNode*>& CFGNode::getPredecessorMap()
 vector<CFGNode*> CFGNode::getSuccessorVector()
 {
     std::vector<CFGNode*> successors;
-    if (getCompSuccess() != nullptr)
-    {
-        auto debug = getCompSuccess();
-        successors.push_back(getCompSuccess());
-    }
+    if (getCompSuccess() != nullptr) successors.push_back(getCompSuccess());
     if (getCompFail() != nullptr) successors.push_back(getCompFail());
     else
     {
@@ -668,6 +664,7 @@ void CFGNode::removePushes()
                 if (pc->pushesState()) //found it
                 {
                     if (pc->pushedVars > i) throw "not enough pushes";
+                    pc->calledFunction->forgetFunctionCall(it->first->getName(), name);
                     firstInstrs.erase(firstInstrs.begin() + (i - pc->pushedVars), firstInstrs.begin() + i + 1);
                     done = true;
                     break;

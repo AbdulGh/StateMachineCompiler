@@ -90,15 +90,15 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
     }
     else
     {
-        bool closed = false;
+        bool closed = true;
         switch(op)
         {
             case Relations::LT:
-                closed = true;
+                closed = false;
             case Relations::LE:
                 return t1var->clipUpperBound(jocc->term2, closed);
             case Relations::GT:
-                closed = true;
+                closed = false;
             case Relations::GE:
                 return t1var->clipLowerBound(jocc->term2, closed);
             case Relations::EQ:

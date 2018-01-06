@@ -38,7 +38,7 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
             {
                 svs->warn(Reporter::UNINITIALISED_USE, "'" + getData() + "' pushed without being defined", getLineNum());
             }
-                svs->symbolicStack->pushVar(found);
+            svs->symbolicStack->pushVar(found);
             break;
         }
         case StringType::DOUBLELIT:

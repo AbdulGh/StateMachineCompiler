@@ -120,14 +120,6 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
 
     for (auto& instr : node->getInstrs())
     {
-     if (node->getName() == "F1_mc91_2")
-     {
-        auto debug = instr->getType();
-         unsigned long debug3 = node->getInstrs().size();
-        int debug2;
-        debug2 = 2;
-    }
-
         if (instr->getType() == CommandType::POP)
         {
             if (sef->symbolicStack->isEmpty())
@@ -144,14 +136,6 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             else instr->acceptSymbolicExecution(sef);
         }
         else instr->acceptSymbolicExecution(sef);
-    }
-
-    if (node->getName() == "F1_mc91_2")
-    {
-        unique_ptr<SymbolicVariable> debug1 = sef->symbolicStack->popVar();
-        SymbolicDouble* debug2 = static_cast<SymbolicDouble*>(debug1.get());
-        int debug3;
-        debug3 = 2;
     }
 
     auto generateNodeChanges = [&varChanges, &sef, node] () -> void
@@ -202,12 +186,6 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
         }
         else
         {
-            if (debug)
-            {
-                int debug2;
-                debug2 = 3;
-            }
-
             JumpOnComparisonCommand comp = *comparisonNode->getComp();
             if (reverse)
             {
@@ -225,6 +203,12 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                 SymbolicVariable* rhVar = sef->symbolicVarSet->findVar(comp.term2);
                 if (!rhVar) throw runtime_error("Unknown var '" + comp.term2 + "'");
                 meetStat = varInQuestion->canMeet(comp.op, rhVar);
+            }
+
+            if (debug)
+            {
+                int debug2;
+                debug2 = 3;
             }
 
             if (meetStat == SymbolicVariable::MeetEnum::CANT) goodPathFound = true;
@@ -415,8 +399,10 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                             shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFailure
                                     = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
                             bool firstSearched = false;
+                            auto debug1 = sefFailure->symbolicVarSet->findVar("_1_1_n");
                             if (sefFailure->addPathCondition(node->getName(), jocc, true))
                             {
+                                auto debug2 = sefFailure->symbolicVarSet->findVar("_1_1_n");
                                 if (nodes.find(failNode) != nodes.end())
                                 {
                                     if (firstSearched = searchNode(failNode, varChanges, tags, sefFailure, badExample))
@@ -435,6 +421,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                     = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
                             if (sefSucc->addPathCondition(node->getName(), jocc))
                             {
+                                auto debug2 = sefFailure->symbolicVarSet->findVar("_1_1_n");
                                 if (nodes.find(succNode) == nodes.end())
                                 {
                                     generateNodeChanges();
