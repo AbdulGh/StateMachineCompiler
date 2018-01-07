@@ -51,6 +51,7 @@ namespace SymbolicExecution
 
         std::string printPathConditions();
         bool addPathCondition(const std::string& nodeName, JumpOnComparisonCommand* jocc, bool negate = false);
+        void setLoopInit();
         void error(Reporter::AlertType a, std::string s, int linenum = -1);
         void warn(Reporter::AlertType a, std::string s, int linenum = -1);
         bool isFeasable();

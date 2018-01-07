@@ -55,7 +55,7 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
     SEFPointer sef = make_shared<SymbolicExecution::SymbolicExecutionFringe>(cfg.getReporter());
     unique_ptr<SearchResult>& headerSR = tags[headerNode->getName()];
     sef->symbolicVarSet = move(headerSR->getInitSVS());
-    sef->symbolicVarSet->setLoopInit();
+    sef->setLoopInit();
 
     if (stackBased)
     {
@@ -98,9 +98,9 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
     }
     else if (!badExample.empty())
     {
-        string report = "Potential bad path through the following loop:";
+        string report = "=Potential bad path through the following loop:\n";
         report += getInfo();
-        report += "\nExample:\n" + badExample + " exit loop\n\n";
+        report += "\nExample:\n" + badExample + " exit loop\n-----\n";
         cfg.getReporter().addText(report);
     }
 }
@@ -128,12 +128,15 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                 {
                     unique_ptr<SymbolicVariable> popped = thisNodeSR->popVar();
                     popped->setName(instr->getData());
-                    //todo affect popped appropriately
+                    popped->loopInit();
                     sef->symbolicVarSet->defineVar(move(popped));
                 }
-                else thisNodeSR->incrementPoppedCounter();
             }
-            else instr->acceptSymbolicExecution(sef);
+            else
+            {
+                thisNodeSR->incrementPoppedCounter();
+                instr->acceptSymbolicExecution(sef);
+            }
         }
         else instr->acceptSymbolicExecution(sef);
     }
@@ -222,8 +225,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                 }
                 else
                 {
-                    Relations::Relop op = reverse? Relations::negateRelop(comp.op) : comp.op;
-                    switch(op)
+                    switch(comp.op)
                     {
                         case Relations::LE: case Relations::LT: //needs to be increasing
                             if (change == SymbolicVariable::MonotoneEnum::INCREASING) goodPathFound = true;

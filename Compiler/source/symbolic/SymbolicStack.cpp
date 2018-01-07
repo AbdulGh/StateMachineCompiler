@@ -11,13 +11,28 @@ using namespace std;
 SymbolicStack::SymbolicStack(Reporter& r) : reporter(r) {}
 SymbolicStack::SymbolicStack(shared_ptr<SymbolicStack> p) : parent(move(p)), reporter(parent->reporter) {}
 
+void SymbolicStack::setLoopInit()
+{
+    loopInit = true;
+    for (auto& sm : currentStack) sm->setLoopInit();
+}
+
 void SymbolicStack::copyParent()
 {
     if (parent == nullptr) throw runtime_error("Tried to copy parent of first frame");
     if (!currentStack.empty()) throw runtime_error("Cannot copy parent on a different branch");
 
     //need to duplicate SymbolicDoubles so we don't fiddle with other branches
-    for (auto& sm : parent->currentStack) currentStack.emplace_back(sm->clone());
+    if (loopInit)
+    {
+        for (auto& sm : parent->currentStack)
+        {
+            auto newSM = sm->clone();
+            newSM->setLoopInit();
+            currentStack.push_back(move(newSM));
+        }
+    }
+    else for (auto& sm : parent->currentStack) currentStack.emplace_back(sm->clone());
     parent = parent->parent;
 }
 

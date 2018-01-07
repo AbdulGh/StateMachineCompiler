@@ -113,6 +113,12 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
     }
 }
 
+void SymbolicExecutionFringe::setLoopInit()
+{
+    symbolicVarSet->setLoopInit();
+    symbolicStack->setLoopInit();
+}
+
 //SymbolicExecutionManager
 unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& SymbolicExecutionManager::search()
 {
@@ -215,7 +221,6 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
         {
             if (command->getType() == CommandType::POP)
             {
-                PopCommand* pc = static_cast<PopCommand*>(command.get());
                 unique_ptr<SymbolicVariable> poppedVar = sef->symbolicStack->popVar();
 
                 if (!command->getData().empty())
@@ -225,7 +230,6 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
                     sef->symbolicVarSet->defineVar(move(poppedVarClone));
                 }
                 thisNodeSR->addPop(move(poppedVar));
-
             }
 
             else if (!command->acceptSymbolicExecution(sef)) return false;

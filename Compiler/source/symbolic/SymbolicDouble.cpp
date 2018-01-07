@@ -44,7 +44,14 @@ void SymbolicDouble::userInput()
 void SymbolicDouble::loopInit()
 {
     minChange = maxChange = 0;
+    userAffected = false;
     uniformlyChanging = true;
+
+    if (getName() == "_1_1_n")
+    {
+        int debug;
+        debug = 2;
+    }
 }
 
 SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, SymbolicVariable* r) const
@@ -184,6 +191,12 @@ void SymbolicDouble::setTConstValue(const double& d)
 {
     clearAll();
     SymbolicVariableTemplate<double>::setTConstValue(d);
+
+    if (getName() == "_1_1_n")
+    {
+        int debug;
+        debug = 2;
+    }
     uniformlyChanging = false;
 }
 void SymbolicDouble::unionTConstValue(const double& cv, bool closed)

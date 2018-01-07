@@ -38,6 +38,12 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
             {
                 svs->warn(Reporter::UNINITIALISED_USE, "'" + getData() + "' pushed without being defined", getLineNum());
             }
+
+            if (found->getName() == "_1_1_n")
+            {
+                int debug;
+                debug = 2;
+            }
             svs->symbolicStack->pushVar(found);
             break;
         }
@@ -90,6 +96,13 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
         svs->error(Reporter::TYPE, "Tried to pop '" + popped->getName() + "' (type " + TypeEnumNames[popped->getType()]
                                    +") into '" + found->getName() + "' (type " + TypeEnumNames[found->getType()] + ")");
         return false;
+    }
+
+    if (found->getName() == "_1_1_n")
+    {
+        auto debug2 = popped.get();
+        int debug;
+        debug = 2;
     }
 
     popped->setName(found->getName());

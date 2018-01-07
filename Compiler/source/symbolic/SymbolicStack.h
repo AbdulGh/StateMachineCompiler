@@ -20,6 +20,7 @@ protected:
 public:
     virtual std::unique_ptr<StackMember> clone() = 0;
     virtual std::string diagString() = 0;
+    virtual void setLoopInit() {};
     virtual void mergeSM(std::unique_ptr<StackMember>& other) = 0;
     virtual const std::string& getName() {throw "not implemented in this type";}
 
@@ -40,14 +41,6 @@ public:
     explicit SymVarStackMember(SymbolicVariable* toPush)
     {
         varptr = toPush->clone();
-
-        if (toPush->getName() == "_1_1_n")
-        {
-            auto debug2 = varptr.get();
-            int debug;
-            debug = 2;
-        }
-
         setType(SymbolicStackMemberType::VAR);
     }
 
@@ -69,6 +62,8 @@ public:
     {
         return std::make_unique<SymVarStackMember>(varptr.get());
     }
+
+    void setLoopInit() override {varptr->loopInit();}
 
     void mergeSM(std::unique_ptr<StackMember>& other) override
     {
@@ -120,12 +115,14 @@ private:
     std::shared_ptr<SymbolicStack> parent;
     std::vector<std::unique_ptr<StackMember>> currentStack;
     Reporter& reporter;
+    bool loopInit = false;
     void copyParent();
     std::unique_ptr<StackMember> popMember();
 public:
     SymbolicStack(Reporter& r);
     SymbolicStack(std::shared_ptr<SymbolicStack> parent);
     SymbolicStack(const SymbolicStack&) = delete;
+    void setLoopInit();
     //void push(std::unique_ptr<SymbolicVariable> pushedVar);
     void pushVar(SymbolicVariable *pushedVar);
     void pushState(const std::string& pushedState);
