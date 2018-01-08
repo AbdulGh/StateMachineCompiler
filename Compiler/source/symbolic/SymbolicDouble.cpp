@@ -10,12 +10,11 @@ using namespace std;
 enum ArithResult{OVER, UNDER, FINE};
 
 SymbolicDouble::SymbolicDouble(string name, Reporter* r):
-        SymbolicVariableTemplate(move(name), 0, 0, r, DOUBLE)
-{}
+        SymbolicVariableTemplate(move(name), 0, 0, r, DOUBLE, true, true) {}
 
 SymbolicDouble::SymbolicDouble(SymbolicDouble* other):
         SymbolicVariableTemplate
-                (other->getName(), other->getTLowerBound(), other->getTUpperBound(), other->reporter, DOUBLE, other->defined),
+                (other->getName(), other->getTLowerBound(), other->getTUpperBound(), other->reporter, DOUBLE, other->defined, true),
                 minChange(other->minChange), maxChange(other->maxChange), uniformlyChanging(other->uniformlyChanging)
 {}
 
@@ -46,12 +45,6 @@ void SymbolicDouble::loopInit()
     minChange = maxChange = 0;
     userAffected = false;
     uniformlyChanging = true;
-
-    if (getName() == "_1_1_n")
-    {
-        int debug;
-        debug = 2;
-    }
 }
 
 SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, SymbolicVariable* r) const
@@ -191,12 +184,6 @@ void SymbolicDouble::setTConstValue(const double& d)
 {
     clearAll();
     SymbolicVariableTemplate<double>::setTConstValue(d);
-
-    if (getName() == "_1_1_n")
-    {
-        int debug;
-        debug = 2;
-    }
     uniformlyChanging = false;
 }
 void SymbolicDouble::unionTConstValue(const double& cv, bool closed)

@@ -74,7 +74,7 @@ bool FunctionSymbol::mergeInto(FunctionSymbol* to)
     lastNode->setCompFail(functionCall->returnTo);
     lastNode->setLast(false);
     functionCall->returnTo->removeFunctionCall(functionCall->caller->getName(), this);
-    functionCall->caller->setFunctionCall(false);
+    functionCall->caller->setFunctionCall(nullptr);
     calls.clear();
 
     for (auto& pair : cfg.getCurrentNodes())
@@ -217,7 +217,7 @@ void FunctionSymbol::replaceReturnState(CFGNode* going, CFGNode* replaceWith)
             while (instrIt != instrs.end())
             {
                 AbstractCommand* ac = (*instrIt).get();
-                if (ac->getType() == CommandType::PUSH && ac->getData() == going->getName());
+                if (ac->getType() == CommandType::PUSH && ac->getData() == going->getName())
                 {
                     PushCommand* pc = static_cast<PushCommand*>(ac);
                     if (pc->pushesState())

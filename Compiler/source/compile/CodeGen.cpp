@@ -70,8 +70,8 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, shared_ptr<Identi
 
     fromFS->genNewState(nextState);
     CFGNode* created = fromFS->getCurrentNode();
-    FunctionCall* fc = toFS->addFunctionCall(finishedState, created, fromVars.size());
-    finishedState->setFunctionCall(fc);
+    toFS->addFunctionCall(finishedState, created, fromVars.size());
+    finishedState->setFunctionCall(toFS);
     created->addFunctionCall(finishedState, toFS);
     created->addParent(toFS->getLastNode());
 

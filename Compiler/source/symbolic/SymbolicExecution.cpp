@@ -236,9 +236,8 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
         }
     }
 
-    if (n->callsFunction()) //search mutual recursion
+    if (n->calledFunction()) //search mutual recursion
     {
-        printf("checking call from %s\n", n->getName().c_str());
         sef->pathConditions.clear();
         sef->checkParentPC = false;
         sef->seenFunctionCalls.push_back(n->getName());

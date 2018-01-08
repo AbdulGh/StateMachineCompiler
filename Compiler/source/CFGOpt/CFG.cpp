@@ -265,6 +265,7 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
                         SourceNode* parentNode = *parentIt;
                         vector<unique_ptr<AbstractCommand>>& parentInstructions = parentNode->getInstructions();
                         bool found = false;
+                        auto debug = sn->name;
                         for (unsigned int parentInstIndex = 0; parentInstIndex < parentInstructions.size(); ++parentInstIndex)
                         {
                             unique_ptr<AbstractCommand>& instr = parentInstructions.at(parentInstIndex);
@@ -278,7 +279,12 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
                                 found = true;
                             }
                         }
-                        if (!found) throw "bad parent";
+                        if (!found && (onlyInstr->getData() != "return" || parentInstructions.empty()
+                                       || (*parentInstructions.rend())->getData() != "return")) //todo next make return stuff work better
+                        {
+                            throw "bad parent";
+                        }
+
                         parentNode->loseKid(sn.get());
                         for (SourceNode* succ: sn->getSuccessors()) //todo quick make this one thing
                         {

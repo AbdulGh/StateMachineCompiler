@@ -84,6 +84,7 @@ public:
     //return stuff
     FunctionCall* addFunctionCall(CFGNode* calling, CFGNode* returnTo, unsigned int numPushedVars);
     void replaceReturnState(CFGNode* going, CFGNode* replaceWith);
+    void replaceCallState(CFGNode* going, CFGNode* replaceWith);
     const std::set<std::unique_ptr<FunctionCall>>& getFunctionCalls() const;
     void clearFunctionCalls();
     void removeFunctionCall(const std::string& calling, const std::string& ret, bool fixCalling = true);

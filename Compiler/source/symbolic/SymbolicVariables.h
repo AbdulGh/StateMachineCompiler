@@ -33,7 +33,7 @@ public:
     enum MonotoneEnum{INCREASING, DECREASING, FRESH, NONE, UNKNOWN};
     enum MeetEnum {CANT, MAY, MUST};
 
-    SymbolicVariable(std::string name, VariableType t, Reporter* r, bool initialised = false, bool feasable = true);
+    SymbolicVariable(std::string name, VariableType t, Reporter* r, bool defined, bool feasable, bool incrementable);
     ~SymbolicVariable();
 
     const VariableType getType() const;
@@ -100,7 +100,7 @@ protected:
 
 public:
     SymbolicVariableTemplate(std::string name, const T lower, const T upper,
-                     Reporter* r, VariableType t, bool init=false);
+                     Reporter* r, VariableType t, bool init, bool incrementable);
 
     bool isDisjointFrom(std::shared_ptr<SymbolicVariableTemplate<T>> other);
     bool meetsConstComparison(Relations::Relop r, const std::string& rhs) override;

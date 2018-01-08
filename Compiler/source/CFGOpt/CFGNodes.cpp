@@ -356,9 +356,9 @@ bool CFGNode::swallowNode(CFGNode* other)
                     {
                         CFGNode* node = parentGraph.getNode(pc->getData());
                         if (node == nullptr) throw "pushing nonexistent node";
-                        else if (functionCall && !needlessFunctionCall) throw "can only call one function";
-                        if (!other->functionCall) throw "other is pushing states w/out calling";
-                        functionCall = other->functionCall;
+                        else if (calledFunctionSymbol && !needlessFunctionCall) throw "can only call one function";
+                        if (!other->calledFunctionSymbol) throw "other is pushing states w/out calling";
+                        calledFunctionSymbol = other->calledFunctionSymbol;
                         node->addFunctionCall(this, pc->calledFunction);
                         pc->calledFunction->addFunctionCall(this, node, pc->pushedVars);
                     }
@@ -489,9 +489,9 @@ void CFGNode::setInstructions(vector<unique_ptr<AbstractCommand>>& in)
     else throw "Can only end w/ <=2 jumps";
 }
 
-void CFGNode::setFunctionCall(bool fc)
+void CFGNode::setFunctionCall(FunctionSymbol* fc)
 {
-    functionCall = fc;
+    calledFunctionSymbol = fc;
 }
 
 bool CFGNode::addParent(CFGNode* parent)
@@ -580,9 +580,9 @@ bool CFGNode::noPreds()
             (predecessors.size() == 1 && predecessors.begin()->first == name));
 }
 
-bool CFGNode::callsFunction()
+FunctionSymbol* CFGNode::calledFunction()
 {
-    return functionCall;
+    return calledFunctionSymbol;
 }
 
 void CFGNode::setCompFail(CFGNode* compareFail)
@@ -653,7 +653,7 @@ void CFGNode::removePushes()
     while (it != pushingStates.end())
     {
         auto& firstInstrs = it->first->getInstrs();
-        if (!it->first->callsFunction()) throw "not right";
+        if (!it->first->calledFunction()) throw "not right";
         unsigned int i = 0;
         bool done = false;
         while (i < firstInstrs.size())
@@ -665,6 +665,8 @@ void CFGNode::removePushes()
                 {
                     if (pc->pushedVars > i) throw "not enough pushes";
                     pc->calledFunction->forgetFunctionCall(it->first->getName(), name);
+                    pc->calledFunction = nullptr;
+                    it->first->setFunctionCall(nullptr);
                     firstInstrs.erase(firstInstrs.begin() + (i - pc->pushedVars), firstInstrs.begin() + i + 1);
                     done = true;
                     break;
@@ -682,32 +684,11 @@ void CFGNode::replacePushes(const std::string& other)
     CFGNode* toReplaceWith = parentGraph.getNode(other);
     if (toReplaceWith == nullptr) throw "asked to replace w/ nonexistent node";
 
-    auto it = pushingStates.begin();
-    while (it != pushingStates.end())
+    for (const auto& ps : pushingStates)
     {
-        CFGNode* pushing = it->first;
-        vector<unique_ptr<AbstractCommand>>& pushingInstrs =  pushing->instrs;
-        auto instructionIt = pushingInstrs.begin();
-        bool found = false;
-        while (instructionIt != pushingInstrs.end())
-        {
-            AbstractCommand* ac = (*instructionIt).get();
-            if (ac->getType() == CommandType::PUSH && ac->getData() == name)
-            {
-                PushCommand* pc = static_cast<PushCommand*>(ac);
-                if (pc->pushesState())
-                {
-                    pc->setData(other);
-                    pc->calledFunction->replaceReturnState(this, toReplaceWith);
-                    found = true;
-                    break;
-                }
-            }
-            ++instructionIt;
-        }
-        if (!found) throw "couldnt find push in pushing state";
-        it = pushingStates.erase(it);
+        ps.second->replaceReturnState(this, toReplaceWith);
     }
+    pushingStates.clear();
 }
 
 void CFGNode::removeFunctionCall(const string& bye, FunctionSymbol* fs)

@@ -54,7 +54,11 @@ namespace Optimise
                             {
                                 throw runtime_error("Guaranteed crash around line " + current->getJumpline());
                             }
-                            if (!parentit.second->swallowNode(current)) throw "should swallow";
+                            if (!parentit.second->swallowNode(current))
+                            {
+                                printf("%s\n", controlFlowGraph.getStructuredSource().c_str());
+                                throw "should swallow";
+                            }
                         }
                         current->prepareToDie();
                         pair = nodes.erase(pair);

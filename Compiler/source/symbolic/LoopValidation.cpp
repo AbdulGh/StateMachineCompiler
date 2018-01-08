@@ -69,17 +69,9 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
     }
 
     string badExample;
-    if (debug)
-    {
-        int debug2;
-        debug2 = 3;
-    }
+
     searchNode(headerNode, varChanges, tags, sef, badExample, false);
-    if (debug)
-    {
-        int debug2;
-        debug2 = 3;
-    }
+
     if (!goodPathFound)
     {
         string report;
