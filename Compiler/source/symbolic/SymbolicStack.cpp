@@ -86,17 +86,8 @@ string SymbolicStack::popString()
 unique_ptr<SymbolicVariable> SymbolicStack::popVar()
 {
     unique_ptr<StackMember> popped = popMember();
-    if (popped->getType() != SymbolicStackMemberType::VAR
-            || static_cast<SymVarStackMember*>(popped.get())->varptr->getType() == STRING) throw runtime_error("wrong");
+    if (popped->getType() != SymbolicStackMemberType::VAR) throw runtime_error("wrong");
     return move(static_cast<SymVarStackMember*>(popped.get())->varptr);
-}
-
-double SymbolicStack::popDouble()
-{
-    unique_ptr<StackMember> popped = popMember();
-    if (popped->getType() != SymbolicStackMemberType::VAR
-        || static_cast<SymVarStackMember*>(popped.get())->varptr->getType() == DOUBLE) throw runtime_error("fail");
-    return stod(static_cast<SymVarStackMember*>(popped.get())->varptr->getConstString());
 }
 
 void SymbolicStack::copyStack(SymbolicStack* other)

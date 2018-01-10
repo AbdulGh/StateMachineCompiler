@@ -6,6 +6,33 @@
 
 using namespace std;
 
+void diagFunc(ControlFlowGraph& cfg)
+{
+    map<string, vector<CFGNode*>> succs;
+    for (auto& node : cfg.getCurrentNodes()) succs[node.first] = node.second->getSuccessorVector();
+    for (auto& node : cfg.getCurrentNodes())
+    {
+        const auto& nodeName = node.first;
+        for (auto& parent : node.second->getPredecessorMap())
+        {
+            if (find_if(succs[parent.first].begin(), succs[parent.first].end(), [&, nodeName] (const CFGNode* cfgn)
+            {
+                return cfgn->getName() == nodeName;
+            }) == succs[parent.first].end()) throw runtime_error(nodeName + " claims to be a child of " + parent.first);
+        }
+
+        for (auto& succ : succs[node.first])
+        {
+            if (succ->getPredecessorMap().find(node.first) == succ->getPredecessorMap().end())
+            {
+                printf("%s", node.second->getSource().c_str());
+                throw runtime_error(nodeName + " claims to be a parent of " + succ->getName());
+            }
+        }
+    }
+
+}
+
 namespace Optimise
 {
     void optimise(SymbolTable& symbolTable, FunctionTable& functionTable, ControlFlowGraph& controlFlowGraph)
@@ -34,6 +61,7 @@ namespace Optimise
             auto pair = nodes.begin();
             while (pair != nodes.end()) //just get rid of unconditional jumps first
             {
+                diagFunc(controlFlowGraph); //debug
                 CFGNode* current = pair->second.get();
                 vector<unique_ptr<AbstractCommand>>& instructionList = current->getInstrs();
                 if (instructionList.empty() && current->getCompSuccess() == nullptr)
@@ -54,11 +82,7 @@ namespace Optimise
                             {
                                 throw runtime_error("Guaranteed crash around line " + current->getJumpline());
                             }
-                            if (!parentit.second->swallowNode(current))
-                            {
-                                printf("%s\n", controlFlowGraph.getStructuredSource().c_str());
-                                throw "should swallow";
-                            }
+                            if (!parentit.second->swallowNode(current)) throw "should swallow";
                         }
                         current->prepareToDie();
                         pair = nodes.erase(pair);
@@ -87,7 +111,7 @@ namespace Optimise
                     else
                     {
                         CFGNode* pred = preds.cbegin()->second;
-                        if (pred->getName() == current->getName()) ++pair;
+                        if (pred->getName() == current->getName()) ++pair; //pred is dead here debug
                         else
                         {
                             if (pred->swallowNode(current))
@@ -100,7 +124,7 @@ namespace Optimise
                                 pred->getParentFunction()->setLastNode(pred);
                                 pred->setLast();
                                 current->prepareToDie();
-                                pair = nodes.erase(pair);
+                                pair = nodes.erase(pair); //deleted here
                                 changes = true;
                             }
                             else ++pair;

@@ -71,9 +71,9 @@ bool FunctionSymbol::mergeInto(FunctionSymbol* to)
         while (localVarPushes > 0);
     }
 
+    functionCall->returnTo->removeFunctionCall(functionCall->caller->getName(), this);
     lastNode->setCompFail(functionCall->returnTo);
     lastNode->setLast(false);
-    functionCall->returnTo->removeFunctionCall(functionCall->caller->getName(), this);
     functionCall->caller->setFunctionCall(nullptr);
     calls.clear();
 
@@ -279,6 +279,12 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
     // first pop function local vars
     // if the function return value is being assigned to something, copy it over
 
+    if (lastNode->getName() == "F1_loopheader_fin")
+    {
+        int debug;
+        debug = 2;
+    }
+
 
     //find if we can find this specific call, and if this is the only time this node is returned to
     unsigned int numRet = 0;
@@ -295,10 +301,9 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
             if (!foundLeavingNode && pair->caller->getName() == calling)
             {
                 foundLeavingNode = pair->returnTo;
-                foundLeavingNode->removeParent(lastNode);
 
                 //if only one call returns to returnTo, erase its params
-                if (foundLeavingNode->getNumPushingStates() == 0 && numParams > 0)
+                if (foundLeavingNode->getNumPushingStates() == 1 && numParams > 0)
                 {
                     vector<unique_ptr<AbstractCommand>>& returnToInstrs = foundLeavingNode->getInstrs();
                     if (returnToInstrs.size() < numParams) throw "should have popped local vars";
@@ -353,11 +358,18 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
 
 void FunctionSymbol::forgetFunctionCall(const std::string& calling, const std::string& ret)
 {
+    if (lastNode->getName() == "F1_loopheader_fin")
+    {
+        int debug;
+        debug = 2;
+    }
+
     for (auto it = calls.begin(); it != calls.end(); ++it)
     {
         if ((*it)->caller->getName() == calling)
         {
             if ((*it)->returnTo->getName() != ret) throw "should be";
+            (*it)->returnTo->removeParent(lastNode);
             calls.erase(it);
             return;
         }

@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 #include <algorithm>
+#include <functional>
 
 #include "../CFGOpt/Loop.h"
 #include "SymbolicExecution.h"
@@ -34,9 +35,28 @@ Loop::Loop(CFGNode* entry, CFGNode* last, std::set<CFGNode*> nodeSet, ControlFlo
     }
     else throw "comparison must be at head or exit";
 
-    if (!stackBased) reverse = nodes.find(comparisonNode->getCompSuccess()) == nodes.end();
+    std::set<const CFGNode*> seenNodes; //todo more efficient structure
+    function<void(const CFGNode*)> findConditions = [&, this] (const CFGNode* toSearch)
+    {
+        seenNodes.insert(toSearch);
+        if (toSearch->getCompSuccess() != nullptr)
+        {
+            if (nodes.find(toSearch->getCompSuccess()) == nodes.end()) exitConditions.push_back(*toSearch->getComp());
+            else
+            {
+                JumpOnComparisonCommand toNegate = *toSearch->getComp();
+                toNegate.negate();
+                exitConditions.push_back(toNegate);
+            }
+        }
+        for (const CFGNode* cfgNode : toSearch->getSuccessorVector())
+        {
+            if (seenNodes.find(cfgNode) == seenNodes.end()) findConditions(cfgNode);
+        }
+    };
+    findConditions(headerNode);
 
-    if (find_if(nodes.begin(), nodes.end(), [](const CFGNode* O){return O->getName() == "F1_mc91_2";}) != nodes.end())
+    if (find_if(nodes.begin(), nodes.end(), [](const CFGNode* other){return other->getName() == "F1_mc91_2";}) != nodes.end())
     {
         debug = true;
     }
@@ -181,65 +201,62 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
         }
         else
         {
-            JumpOnComparisonCommand comp = *comparisonNode->getComp();
-            if (reverse)
+            for (JumpOnComparisonCommand& comp : exitConditions)
             {
-                comp.negate();
-                comp.makeGood();
-            }
-            SymbolicVariable* varInQuestion = sef->symbolicVarSet->findVar(comp.term1);
-            //check if this is a good path
-            //first check if we must break the loop condition
+                SymbolicVariable* varInQuestion = sef->symbolicVarSet->findVar(comp.term1);
+                //check if this is a good path
+                //first check if we must break the loop condition
 
-            SymbolicVariable::MeetEnum meetStat;
-            if (comp.term2Type != AbstractCommand::StringType::ID) meetStat = varInQuestion->canMeet(comp.op, comp.term2);
-            else
-            {
-                SymbolicVariable* rhVar = sef->symbolicVarSet->findVar(comp.term2);
-                if (!rhVar) throw runtime_error("Unknown var '" + comp.term2 + "'");
-                meetStat = varInQuestion->canMeet(comp.op, rhVar);
-            }
-
-            if (debug)
-            {
-                int debug2;
-                debug2 = 3;
-            }
-
-            if (meetStat == SymbolicVariable::MeetEnum::CANT) goodPathFound = true;
-            else
-            {
-                SymbolicVariable::MonotoneEnum change = varInQuestion->getMonotonicity();
-
-                if (change == SymbolicVariable::MonotoneEnum::FRESH)
-                {
-                    badExample = sef->printPathConditions() + "(" + comp.term1 + " unchanging)\n";
-                }
+                SymbolicVariable::MeetEnum meetStat;
+                if (comp.term2Type != AbstractCommand::StringType::ID) meetStat = varInQuestion->canMeet(comp.op, comp.term2);
                 else
                 {
-                    switch(comp.op)
+                    SymbolicVariable* rhVar = sef->symbolicVarSet->findVar(comp.term2);
+                    if (!rhVar) throw runtime_error("Unknown var '" + comp.term2 + "'");
+                    meetStat = varInQuestion->canMeet(comp.op, rhVar);
+                }
+
+                if (debug)
+                {
+                    int debug2;
+                    debug2 = 3;
+                }
+
+                if (meetStat == SymbolicVariable::MeetEnum::CANT) goodPathFound = true;
+                else
+                {
+                    SymbolicVariable::MonotoneEnum change = varInQuestion->getMonotonicity();
+
+                    if (change == SymbolicVariable::MonotoneEnum::FRESH)
                     {
-                        case Relations::LE: case Relations::LT: //needs to be increasing
-                            if (change == SymbolicVariable::MonotoneEnum::INCREASING) goodPathFound = true;
-                            else if (change == SymbolicVariable::MonotoneEnum::DECREASING && badExample.empty())
-                            {
-                                badExample = sef->printPathConditions() + "(" + comp.term1 + " decreasing)\n";
-                            }
-                            break;
-                        case Relations::GT: case Relations::GE:
-                            if (change == SymbolicVariable::MonotoneEnum::DECREASING) goodPathFound = true;
-                            else if (change == SymbolicVariable::MonotoneEnum::INCREASING && badExample.empty())
-                            {
-                                badExample = sef->printPathConditions() + "(" + comp.term1 + " increasing)\n";
-                            }
-                            break;
-                        case Relations::EQ: case Relations::NEQ:
-                            if (change != SymbolicVariable::MonotoneEnum::FRESH
-                                && meetStat == SymbolicVariable::MeetEnum::MAY) goodPathFound = true;
-                            else badExample = sef->printPathConditions() + "(" + comp.term1 + " must meet header condition)\n";
-                            break;
-                        default:
-                            throw "intriguing relop";
+                        badExample = sef->printPathConditions() + "(" + comp.term1 + " unchanging)\n";
+                    }
+                    else
+                    {
+                        switch(comp.op)
+                        {
+                            case Relations::LE: case Relations::LT: //needs to be increasing
+                                if (change == SymbolicVariable::MonotoneEnum::INCREASING) goodPathFound = true;
+                                else if (change == SymbolicVariable::MonotoneEnum::DECREASING && badExample.empty())
+                                {
+                                    badExample = sef->printPathConditions() + "(" + comp.term1 + " decreasing)\n";
+                                }
+                                break;
+                            case Relations::GT: case Relations::GE:
+                                if (change == SymbolicVariable::MonotoneEnum::DECREASING) goodPathFound = true;
+                                else if (change == SymbolicVariable::MonotoneEnum::INCREASING && badExample.empty())
+                                {
+                                    badExample = sef->printPathConditions() + "(" + comp.term1 + " increasing)\n";
+                                }
+                                break;
+                            case Relations::EQ: case Relations::NEQ:
+                                if (change != SymbolicVariable::MonotoneEnum::FRESH
+                                    && meetStat == SymbolicVariable::MeetEnum::MAY) goodPathFound = true;
+                                else badExample = sef->printPathConditions() + "(" + comp.term1 + " must meet header condition)\n";
+                                break;
+                            default:
+                                throw "intriguing relop";
+                        }
                     }
                 }
             }

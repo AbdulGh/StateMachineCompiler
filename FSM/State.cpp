@@ -22,6 +22,7 @@ void State::run()
             mnextState = command->getNextState();
             if (mnextState == 9)
             {
+                auto debug2 = command.get();
                 int debug;
                 debug = 2;
             }

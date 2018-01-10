@@ -236,7 +236,6 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
                         {
                             CFGNode* node = parentGraph.getNode(pushc->getData());
                             if (node == nullptr) throw "found a bad state";
-                            node->removeParent(pushc->calledFunction->getLastNode()->getName());
                             pushc->calledFunction->removeFunctionCall(name, pushc->getData());
                             node->removeFunctionCall(name, pushc->calledFunction);
                         }
@@ -333,11 +332,8 @@ bool CFGNode::swallowNode(CFGNode* other)
     if (compSuccess == nullptr)
     {
         if (needlessFunctionCall) other->parentFunction->mergeInto(parentFunction);
-        else if (needlessFunctionReturn)
-        {
-            auto callStruct = parentFunction->getOnlyFunctionCall();
-            parentFunction->mergeInto(callStruct->caller->getParentFunction());
-        }
+        else if (needlessFunctionReturn) return false; //will be taken care of on the other side
+
 
         if (compFail != nullptr && compFail->getName() == other->getName())
         {
@@ -381,6 +377,7 @@ bool CFGNode::swallowNode(CFGNode* other)
                 setComp(nullptr);
                 setCompSuccess(nullptr);
             }
+
             return true;
         }
     }
@@ -510,10 +507,15 @@ void CFGNode::removeParent(CFGNode* leaving)
 
 void CFGNode::removeParent(const string& s)
 {
+    if (s == "F1_loopheader_fin" && name == "F2_loopbody_1")
+    {
+        int debug;
+        debug = 2;
+    }
     if (predecessors.erase(s) == 0) runtime_error("Parent '" + s + "' not found in '" + getName() + "'");
 }
 
-JumpOnComparisonCommand* CFGNode::getComp()
+JumpOnComparisonCommand* CFGNode::getComp() const
 {
     return comp.get();
 }
@@ -528,7 +530,7 @@ const unordered_map<string, CFGNode*>& CFGNode::getPredecessorMap()
     return predecessors;
 }
 
-vector<CFGNode*> CFGNode::getSuccessorVector()
+vector<CFGNode*> CFGNode::getSuccessorVector() const
 {
     std::vector<CFGNode*> successors;
     if (getCompSuccess() != nullptr) successors.push_back(getCompSuccess());
@@ -540,19 +542,19 @@ vector<CFGNode*> CFGNode::getSuccessorVector()
     }
     return successors;
 }
-std::vector<CFGNode*> CFGNode::getPredecessorVector()
+std::vector<CFGNode*> CFGNode::getPredecessorVector() const
 {
     std::vector<CFGNode*> predecessorVec;
     for (const auto& pair : predecessors) predecessorVec.push_back(pair.second);
     return predecessorVec;
 }
 
-CFGNode* CFGNode::getCompSuccess()
+CFGNode* CFGNode::getCompSuccess() const
 {
     return compSuccess;
 }
 
-CFGNode* CFGNode::getCompFail()
+CFGNode* CFGNode::getCompFail() const
 {
     return compFail;
 }
@@ -665,9 +667,10 @@ void CFGNode::removePushes()
                 {
                     if (pc->pushedVars > i) throw "not enough pushes";
                     pc->calledFunction->forgetFunctionCall(it->first->getName(), name);
+
                     pc->calledFunction = nullptr;
                     it->first->setFunctionCall(nullptr);
-                    firstInstrs.erase(firstInstrs.begin() + (i - pc->pushedVars), firstInstrs.begin() + i + 1);
+                    firstInstrs.erase(firstInstrs.begin() + (i - pc->pushedVars - 1), firstInstrs.begin() + i + 1);
                     done = true;
                     break;
                 }
@@ -700,6 +703,7 @@ void CFGNode::removeFunctionCall(const string& bye, FunctionSymbol* fs)
     });
     if (it != pushingStates.end()) pushingStates.erase(it);
     else throw "couldnt find call";
+    removeParent(fs->getLastNode());
 }
 
 void CFGNode::prepareToDie()

@@ -130,7 +130,6 @@ public:
     void pushDouble(double toPush);
     std::string popState();
     std::string popString();
-    double popDouble();
     void copyStack(SymbolicStack* other);
     void unionStack(SymbolicStack* other);
     std::unique_ptr<SymbolicVariable> popVar();

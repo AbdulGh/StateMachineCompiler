@@ -90,12 +90,12 @@ public:
     //returns true if successful and relationship can be forgotten
     bool swallowNode(CFGNode* other);
 
-    JumpOnComparisonCommand* getComp();
+    JumpOnComparisonCommand* getComp() const;
     const std::unordered_map<std::string, CFGNode*>& getPredecessorMap();
-    std::vector<CFGNode*> getPredecessorVector();
-    std::vector<CFGNode*> getSuccessorVector();
-    CFGNode* getCompSuccess();
-    CFGNode* getCompFail();
+    std::vector<CFGNode*> getPredecessorVector() const;
+    std::vector<CFGNode*> getSuccessorVector() const;
+    CFGNode* getCompSuccess() const;
+    CFGNode* getCompFail() const;
     int getJumpline() const;
     const std::string& getName() const;
     std::vector<std::unique_ptr<AbstractCommand>>& getInstrs();
