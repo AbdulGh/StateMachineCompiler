@@ -61,7 +61,6 @@ namespace Optimise
             auto pair = nodes.begin();
             while (pair != nodes.end()) //just get rid of unconditional jumps first
             {
-                diagFunc(controlFlowGraph); //debug
                 CFGNode* current = pair->second.get();
                 vector<unique_ptr<AbstractCommand>>& instructionList = current->getInstrs();
                 if (instructionList.empty() && current->getCompSuccess() == nullptr)
@@ -111,7 +110,7 @@ namespace Optimise
                     else
                     {
                         CFGNode* pred = preds.cbegin()->second;
-                        if (pred->getName() == current->getName()) ++pair; //pred is dead here debug
+                        if (pred->getName() == current->getName()) ++pair;
                         else
                         {
                             if (pred->swallowNode(current))
@@ -124,7 +123,7 @@ namespace Optimise
                                 pred->getParentFunction()->setLastNode(pred);
                                 pred->setLast();
                                 current->prepareToDie();
-                                pair = nodes.erase(pair); //deleted here
+                                pair = nodes.erase(pair);
                                 changes = true;
                             }
                             else ++pair;

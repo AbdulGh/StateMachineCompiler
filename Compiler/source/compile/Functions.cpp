@@ -72,6 +72,7 @@ bool FunctionSymbol::mergeInto(FunctionSymbol* to)
     }
 
     functionCall->returnTo->removeFunctionCall(functionCall->caller->getName(), this);
+    functionCall->returnTo->removeParent(lastNode);
     lastNode->setCompFail(functionCall->returnTo);
     lastNode->setLast(false);
     functionCall->caller->setFunctionCall(nullptr);
@@ -279,11 +280,7 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
     // first pop function local vars
     // if the function return value is being assigned to something, copy it over
 
-    if (lastNode->getName() == "F1_loopheader_fin")
-    {
-        int debug;
-        debug = 2;
-    }
+
 
 
     //find if we can find this specific call, and if this is the only time this node is returned to
@@ -358,12 +355,6 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
 
 void FunctionSymbol::forgetFunctionCall(const std::string& calling, const std::string& ret)
 {
-    if (lastNode->getName() == "F1_loopheader_fin")
-    {
-        int debug;
-        debug = 2;
-    }
-
     for (auto it = calls.begin(); it != calls.end(); ++it)
     {
         if ((*it)->caller->getName() == calling)

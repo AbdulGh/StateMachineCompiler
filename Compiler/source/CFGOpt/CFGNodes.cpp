@@ -507,11 +507,6 @@ void CFGNode::removeParent(CFGNode* leaving)
 
 void CFGNode::removeParent(const string& s)
 {
-    if (s == "F1_loopheader_fin" && name == "F2_loopbody_1")
-    {
-        int debug;
-        debug = 2;
-    }
     if (predecessors.erase(s) == 0) runtime_error("Parent '" + s + "' not found in '" + getName() + "'");
 }
 
@@ -703,7 +698,6 @@ void CFGNode::removeFunctionCall(const string& bye, FunctionSymbol* fs)
     });
     if (it != pushingStates.end()) pushingStates.erase(it);
     else throw "couldnt find call";
-    removeParent(fs->getLastNode());
 }
 
 void CFGNode::prepareToDie()
