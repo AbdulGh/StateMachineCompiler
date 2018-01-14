@@ -48,12 +48,12 @@ void SymbolicStack::pushVar(SymbolicVariable* pushedVar)
 
 void SymbolicStack::pushDouble(double toPush)
 {
-    currentStack.emplace_back(make_unique<SymVarStackMember>(toPush));
+    currentStack.emplace_back(make_unique<SymVarStackMember>(toPush, reporter));
 }
 
 void SymbolicStack::pushString(std::string toPush)
 {
-    currentStack.emplace_back(make_unique<SymVarStackMember>(toPush));
+    currentStack.emplace_back(make_unique<SymVarStackMember>(toPush, reporter));
 }
 
 unique_ptr<StackMember> SymbolicStack::popMember()

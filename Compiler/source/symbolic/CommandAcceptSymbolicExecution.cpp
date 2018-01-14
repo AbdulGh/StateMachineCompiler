@@ -165,7 +165,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
     try
     {
         stod(term1);
-        t1 = new SymbolicDouble("LHSconst", nullptr); //if we get here it's a double
+        t1 = new SymbolicDouble("LHSconst", svs->reporter); //if we get here it's a double
         t1->setConstValue(term1);
     }
     catch (invalid_argument&)
@@ -191,7 +191,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
     try
     {
         stod(term2);
-        t2 = new SymbolicDouble("RHSconst", nullptr);
+        t2 = new SymbolicDouble("RHSconst", svs->reporter);
         t2->setConstValue(term2);
     }
     catch (invalid_argument&)
@@ -248,8 +248,8 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
 
 bool DeclareVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
 {
-    if (vt == STRING) svs->symbolicVarSet->defineVar(make_unique<SymbolicString>(getData(), &svs->reporter));
-    else if (vt == DOUBLE) svs->symbolicVarSet->defineVar(make_unique<SymbolicDouble>(getData(), &svs->reporter));
+    if (vt == STRING) svs->symbolicVarSet->defineVar(make_unique<SymbolicString>(getData(), svs->reporter));
+    else if (vt == DOUBLE) svs->symbolicVarSet->defineVar(make_unique<SymbolicDouble>(getData(), svs->reporter));
     else throw runtime_error("Bad type in DeclareVarCommand");
     return true;
 }

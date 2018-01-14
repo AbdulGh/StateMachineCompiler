@@ -31,13 +31,17 @@ public:
 class SymbolicVarSet
 {
 private:
-    std::shared_ptr<SymbolicVarSet> parent;
+    std::shared_ptr<SymbolicVarSet> parent = nullptr;
     VarMap::const_iterator endIterator;
     VarMap variables;
 
 public:
-    SymbolicVarSet(std::shared_ptr<SymbolicVarSet> p = nullptr):
-            parent(move(p)), endIterator(parent == nullptr ? variables.cend() : parent->endIterator) {}
+    explicit SymbolicVarSet(std::shared_ptr<SymbolicVarSet> p)
+    {
+        if (p == nullptr) endIterator = variables.cend();
+        else endIterator = p->endIterator;
+        parent = move(p);
+    }
     SymbolicVarSet(const SymbolicVarSet&) = delete;
     SymbolicVariable* findVar(std::string name);
     //const std::unordered_map<std::string, SymbolicVariablePointer>& getVars() const {return variables;}
@@ -47,7 +51,9 @@ public:
 
     void setLoopInit();
 
-    SVSIterator begin() const {return SVSIterator(this, variables.cbegin());}
+    std::vector<std::pair<const std::string, SymbolicVariable*>> getAllVars();
+
+    SVSIterator begin() const {throw "not working";}// return {this, variables.cbegin()};}
     SVSIterator end() const {return parent == nullptr ? SVSIterator(this, variables.cend()) : parent->end();} //end only called once when iterating
 
     friend class SVSIterator;

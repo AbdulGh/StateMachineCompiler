@@ -4,7 +4,7 @@
 
 using namespace std;
 
-SymbolicString::SymbolicString(string name, Reporter* reporter):
+SymbolicString::SymbolicString(string name, Reporter& reporter):
     SymbolicVariableTemplate(move(name), "", "", reporter, STRING, false, false),
     boundedLower(true), boundedUpper(true) {}
 

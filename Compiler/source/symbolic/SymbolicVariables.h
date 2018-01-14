@@ -17,7 +17,7 @@ protected:
     bool incrementable = false;
     bool userAffected = false;
     std::string varN;
-    Reporter* reporter;
+    Reporter& reporter;
     VariableType type;
     //most of the time we will scan through all of these - hence vectors
     std::vector<SymbolicVariable*> lt;
@@ -33,8 +33,9 @@ public:
     enum MonotoneEnum{INCREASING, DECREASING, FRESH, NONE, UNKNOWN};
     enum MeetEnum {CANT, MAY, MUST};
 
-    SymbolicVariable(std::string name, VariableType t, Reporter* r, bool defined, bool feasable, bool incrementable);
+    SymbolicVariable(std::string name, VariableType t, Reporter& r, bool defined, bool feasable, bool incrementable);
     ~SymbolicVariable();
+    Reporter& getReporter() const {return reporter;}
 
     const VariableType getType() const;
     const std::string& getName() const;
@@ -100,7 +101,7 @@ protected:
 
 public:
     SymbolicVariableTemplate(std::string name, const T lower, const T upper,
-                     Reporter* r, VariableType t, bool init, bool incrementable);
+                     Reporter& r, VariableType t, bool init, bool incrementable);
 
     bool isDisjointFrom(std::shared_ptr<SymbolicVariableTemplate<T>> other);
     bool meetsConstComparison(Relations::Relop r, const std::string& rhs) override;
@@ -140,7 +141,7 @@ private:
     void addConstToUpper(const double d);
 
 public:
-    SymbolicDouble(std::string name, Reporter* reporter);
+    SymbolicDouble(std::string name, Reporter& reporter);
     SymbolicDouble(SymbolicDouble* other);
     SymbolicDouble(SymbolicVariable* other);
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
@@ -193,7 +194,7 @@ private:
     static std::string decrementString(std::string s);
 
 public:
-    SymbolicString(std::string name, Reporter* reporter);
+    SymbolicString(std::string name, Reporter& reporter);
     SymbolicString(SymbolicVariable* other);
     SymbolicString(SymbolicString* other);
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;

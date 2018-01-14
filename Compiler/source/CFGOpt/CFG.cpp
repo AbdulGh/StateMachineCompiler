@@ -265,7 +265,6 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
                         SourceNode* parentNode = *parentIt;
                         vector<unique_ptr<AbstractCommand>>& parentInstructions = parentNode->getInstructions();
                         bool found = false;
-                        auto debug = sn->name;
                         for (unsigned int parentInstIndex = 0; parentInstIndex < parentInstructions.size(); ++parentInstIndex)
                         {
                             unique_ptr<AbstractCommand>& instr = parentInstructions.at(parentInstIndex);

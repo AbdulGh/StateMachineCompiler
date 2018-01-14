@@ -64,6 +64,19 @@ void SymbolicVarSet::unionSVS(SymbolicVarSet* other)
     //if (other->parent != nullptr) unionSVS(other->parent.get());
 }
 
+vector<pair<const string, SymbolicVariable*>> SymbolicVarSet::getAllVars()
+{
+    vector<pair<const string, SymbolicVariable*>> toReturn = {};
+    if (parent != nullptr) toReturn = parent->getAllVars();
+
+    for (const auto& v : variables)
+    {
+        toReturn.emplace_back(pair<const string, SymbolicVariable*>(v.first, v.second.get()));
+    }
+
+    return toReturn;
+}
+
 //iterator
 const pair<const string, SymbolicVariablePointer>& SVSIterator::operator*()
 {

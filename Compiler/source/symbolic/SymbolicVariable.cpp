@@ -9,7 +9,7 @@ using namespace std;
 
 //SymbolicVariable
 
-SymbolicVariable::SymbolicVariable(string name, VariableType t, Reporter* r, bool def, bool f, bool inc):
+SymbolicVariable::SymbolicVariable(string name, VariableType t, Reporter& r, bool def, bool f, bool inc):
         varN(move(name)), type(t), reporter(r), defined(def), feasable(f), incrementable(inc) {}
 
 SymbolicVariable::~SymbolicVariable()
@@ -31,7 +31,7 @@ void SymbolicVariable::setName(const string& newName)
 
 void SymbolicVariable::reportError(Reporter::AlertType type, string err)
 {
-    reporter->error(type, err);
+    reporter.error(type, err);
     feasable = false;
 }
 
@@ -307,7 +307,7 @@ void SymbolicVariable::clearGreater()
 //SymbolicVariableTemplate
 template <typename T>
 SymbolicVariableTemplate<T>::SymbolicVariableTemplate(string name, const T lower, const T upper,
-                                      Reporter* r, VariableType t, bool init, bool incrementable):
+                                      Reporter& r, VariableType t, bool init, bool incrementable):
         SymbolicVariable(name, t, r, init, lower <= upper, incrementable), lowerBound(lower), upperBound(upper)
 {}
 

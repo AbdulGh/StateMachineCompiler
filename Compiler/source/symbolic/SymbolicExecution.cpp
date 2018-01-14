@@ -11,7 +11,7 @@ SymbolicExecutionFringe::SymbolicExecutionFringe(Reporter &r) :
         parent{},
         reporter(r),
         symbolicStack(make_shared<SymbolicStack>(r)),
-        symbolicVarSet(make_shared<SymbolicVarSet>()){}
+        symbolicVarSet(make_shared<SymbolicVarSet>(nullptr)){}
 
 SymbolicExecutionFringe::SymbolicExecutionFringe(shared_ptr<SymbolicExecutionFringe> p):
         parent(p),
@@ -124,7 +124,7 @@ unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& Symbo
 {
     visitedNodes.clear();
     tags.clear();
-    for (auto& pair : cfg.getCurrentNodes()) tags[pair.first] = make_unique<SearchResult>(reporter);
+    for (auto& pair : cfg.getCurrentNodes()) tags[pair.first] = make_unique<SearchResult>();
     shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(reporter);
     visitNode(sef, cfg.getFirst());
     auto it = cfg.getCurrentNodes().begin();
@@ -222,6 +222,7 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
             if (command->getType() == CommandType::POP)
             {
                 unique_ptr<SymbolicVariable> poppedVar = sef->symbolicStack->popVar();
+                poppedVar->userInput(); //todo get rid of this
 
                 if (!command->getData().empty())
                 {

@@ -6,7 +6,7 @@ using namespace std;
 
 int main()
 {
-    string filename = "../misc/mc91.fs";
+    string filename = "../misc/ackermann.fs";
     FSM test(filename);
     test.run();
     return 0;

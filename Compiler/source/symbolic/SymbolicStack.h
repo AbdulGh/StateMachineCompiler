@@ -44,18 +44,20 @@ public:
         setType(SymbolicStackMemberType::VAR);
     }
 
-    explicit SymVarStackMember(double toPush)
+    explicit SymVarStackMember(double toPush, Reporter& r)
     {
         //execution defined vars shouldnt throw errors (so nullptr is okay)
-        std::unique_ptr<SymbolicDouble> sd = std::make_unique<SymbolicDouble>("constDouble", nullptr);
+        std::unique_ptr<SymbolicDouble> sd = std::make_unique<SymbolicDouble>("constDouble", r);
         sd->setTConstValue(toPush);
         varptr = std::move(sd);
+        setType(SymbolicStackMemberType::VAR);
     }
 
-    explicit SymVarStackMember(const std::string& toPush)
+    explicit SymVarStackMember(const std::string& toPush, Reporter& r)
     {
-        varptr = std::make_unique<SymbolicString>("constString", nullptr);
+        varptr = std::make_unique<SymbolicString>("constString", r);
         varptr->setConstValue(toPush);
+        setType(SymbolicStackMemberType::VAR);
     }
 
     std::unique_ptr<StackMember> clone() override
@@ -104,8 +106,7 @@ public:
 
     void mergeSM(std::unique_ptr<StackMember>& other) override
     {
-        if (other->getType() != SymbolicStackMemberType::STATE) throw "wrong types";
-        if (other->getName() != stateName) throw "todo next";
+        throw "cant merge state names";
     }
 };
 

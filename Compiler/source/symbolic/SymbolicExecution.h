@@ -42,6 +42,7 @@ namespace SymbolicExecution
         std::vector<std::string> seenFunctionCalls;
         std::vector<std::string> visitOrder;
 
+        SymbolicExecutionFringe() = delete;
         explicit SymbolicExecutionFringe(Reporter& r);
         explicit SymbolicExecutionFringe(std::shared_ptr<SymbolicExecutionFringe> p);
 
@@ -69,9 +70,9 @@ namespace SymbolicExecution
             std::shared_ptr<SymbolicVarSet> svs;
 
         public:
-            explicit SearchResult(Reporter& r)
+            SearchResult()
             {
-                svs = std::make_shared<SymbolicVarSet>();
+                svs = std::make_shared<SymbolicVarSet>(nullptr);
             };
 
             std::shared_ptr<SymbolicVarSet> getInitSVS()
@@ -89,36 +90,12 @@ namespace SymbolicExecution
                 ++poppedCounter;
             }
 
-            void addPop(double d)
-            {
-                if (poppedCounter == pseudoStack.size()) pseudoStack.emplace_back(SymVarStackMember(d));
-                else
-                {
-                    SymbolicDouble sd("constDouble", nullptr);
-                    sd.setTConstValue(d);
-                    pseudoStack[poppedCounter].mergeVar(sd);
-                }
-                ++poppedCounter;
-            }
-
-            void addPop(const std::string& s)
-            {
-                if (poppedCounter == pseudoStack.size()) pseudoStack.emplace_back(SymVarStackMember(s));
-                else
-                {
-                    SymbolicString ss("constString", nullptr);
-                    ss.unionTConstValue(s);
-                    pseudoStack[poppedCounter].mergeVar(ss);
-                }
-                ++poppedCounter;
-            }
-
             void addPop(std::unique_ptr<SymbolicVariable> sv)
             {
                 if (poppedCounter == pseudoStack.size()) pseudoStack.emplace_back(SymVarStackMember(move(sv)));
                 else
                 {
-                    SymbolicDouble sd("constDouble", nullptr);
+                    SymbolicDouble sd("constDouble", sv->getReporter());
                     pseudoStack[poppedCounter].mergeVar(*sv.get());
                 }
                 ++poppedCounter;

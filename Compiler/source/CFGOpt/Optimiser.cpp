@@ -25,7 +25,6 @@ void diagFunc(ControlFlowGraph& cfg)
         {
             if (succ->getPredecessorMap().find(node.first) == succ->getPredecessorMap().end())
             {
-                printf("%s", node.second->getSource().c_str());
                 throw runtime_error(nodeName + " claims to be a parent of " + succ->getName());
             }
         }
