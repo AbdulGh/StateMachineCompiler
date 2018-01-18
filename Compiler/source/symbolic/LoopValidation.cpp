@@ -185,7 +185,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             bool returnToNodeInLoop = false;
             if (!sef->symbolicStack->isEmpty())
             {
-                if (sef->symbolicStack->getTopType() != SymbolicStackMemberType::STATE) throw "tried to return to non state";
+                if (sef->symbolicStack->peekTopType() != SymbolicStackMemberType::STATE) throw "tried to return to non state";
                 const string& topName = sef->symbolicStack->peekTopName();
                 CFGNode* retNode = cfg.getNode(topName);
                 if (retNode == nullptr) throw "tried to jump to unknown node";
@@ -269,7 +269,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                 generateNodeChanges();
                 goodPathFound = true;
             }
-            else if (sef->symbolicStack->getTopType() != SymbolicStackMemberType::STATE) throw "tried to jump to non node";
+            else if (sef->symbolicStack->peekTopType() != SymbolicStackMemberType::STATE) throw "tried to jump to non node";
             else
             {
                 CFGNode* nextNode = cfg.getNode(sef->symbolicStack->popState());

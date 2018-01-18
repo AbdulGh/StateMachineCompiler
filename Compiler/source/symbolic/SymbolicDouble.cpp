@@ -162,8 +162,13 @@ bool SymbolicDouble::clipLowerBound(const std::string& lb, bool closed)
 
 bool SymbolicDouble::unionTLowerBound(const double& d, bool closed)
 {
-    if (d < getTLowerBound()) return setTLowerBound(d, closed);
-    else return isFeasable();
+    if (closed && d < getTLowerBound()
+        || !closed && d <= getTLowerBound())
+    {
+        setTLowerBound(d, closed);
+        return true;
+    }
+    else return false;
 }
 bool SymbolicDouble::unionUpperBound(const std::string& ub, bool closed)
 {
@@ -172,8 +177,13 @@ bool SymbolicDouble::unionUpperBound(const std::string& ub, bool closed)
 
 bool SymbolicDouble::unionTUpperBound(const double& d, bool closed)
 {
-    if (d > getTUpperBound()) return setTUpperBound(d, closed);
-    else return isFeasable();
+    if (closed && d > getTUpperBound()
+        || !closed && d >= getTUpperBound())
+    {
+        setTUpperBound(d, closed);
+        return true;
+    }
+    else return false;
 }
 bool SymbolicDouble::unionLowerBound(const std::string& lb, bool closed)
 {

@@ -73,14 +73,18 @@ public:
     virtual bool isBoundedBelow() const = 0;
     virtual bool isBoundedAbove() const = 0;
     virtual bool isDetermined() const = 0;
+    //todo union, clip etc directly w/ var
     virtual bool clipLowerBound(const std::string& lb, bool closed=true) = 0;
     virtual bool clipUpperBound(const std::string& ub, bool closed=true) = 0;
-    virtual bool unionLowerBound(const std::string& lb, bool closed=true) = 0; //todo union, clip etc directly w/ var
-    virtual bool unionUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setLowerBound(const std::string& ub, bool closed=true) = 0;
     virtual void iterateTo(const std::string& to, bool closed=true) = 0;
     virtual void iterateTo(SymbolicVariable* to, bool closed=true) = 0;
+
+    //these return true if there has been a change
+    virtual bool unionLowerBound(const std::string& lb, bool closed=true) = 0;
+    virtual bool unionUpperBound(const std::string& ub, bool closed=true) = 0;
+
     virtual std::string getUpperBound() const = 0;
     virtual std::string getLowerBound() const = 0;
     virtual void setConstValue(const std::string&) = 0;

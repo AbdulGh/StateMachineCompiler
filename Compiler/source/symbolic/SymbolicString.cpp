@@ -98,8 +98,12 @@ bool SymbolicString::clipUpperBound(const string& ub, bool closed)
 
 bool SymbolicString::unionTLowerBound(const string& lb, bool closed)
 {
-    if (!isBoundedBelow() && lb < lowerBound) return setLowerBound(lb, closed);
-    else return isFeasable();
+    if (!isBoundedBelow() && lb < lowerBound)
+    {
+        setLowerBound(lb, closed);
+        return true;
+    }
+    else return false;
 }
 bool SymbolicString::unionLowerBound(const string& lb, bool closed)
 {
@@ -108,8 +112,12 @@ bool SymbolicString::unionLowerBound(const string& lb, bool closed)
 
 bool SymbolicString::unionTUpperBound(const string& ub, bool closed)
 {
-    if (!isBoundedAbove() && ub > lowerBound) return setUpperBound(ub, closed);
-    else return isFeasable();
+    if (!isBoundedAbove() && ub > upperBound)
+    {
+        setUpperBound(ub, closed);
+        return true;
+    }
+    else return false;
 }
 bool SymbolicString::unionUpperBound(const string& ub, bool closed)
 {

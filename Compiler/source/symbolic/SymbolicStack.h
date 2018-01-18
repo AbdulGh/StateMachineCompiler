@@ -21,7 +21,7 @@ public:
     virtual std::unique_ptr<StackMember> clone() = 0;
     virtual std::string diagString() = 0;
     virtual void setLoopInit() {};
-    virtual void mergeSM(std::unique_ptr<StackMember>& other) = 0;
+    virtual bool mergeSM(std::unique_ptr<StackMember>& other) = 0;
     virtual const std::string& getName() {throw "not implemented in this type";}
 
     SymbolicStackMemberType getType() const {return type;}
@@ -67,13 +67,15 @@ public:
 
     void setLoopInit() override {varptr->loopInit();}
 
-    void mergeSM(std::unique_ptr<StackMember>& other) override
+    bool mergeSM(std::unique_ptr<StackMember>& other) override
     {
         if (other->getType() != SymbolicStackMemberType::VAR) throw "merged incompatable types";
+        bool change = false;
         SymVarStackMember* o = static_cast<SymVarStackMember*>(other.get());
-        varptr->unionUpperBound(o->varptr->getUpperBound());
-        varptr->unionLowerBound(o->varptr->getLowerBound());
+        if (varptr->unionUpperBound(o->varptr->getUpperBound())) change = true;
+        if (varptr->unionLowerBound(o->varptr->getLowerBound())) change = true;
         if (!varptr->isDetermined()) setType(SymbolicStackMemberType::VAR);
+        return change;
     }
 
     void mergeVar(SymbolicVariable& ovarptr)
@@ -104,23 +106,56 @@ public:
 
     std::string diagString() override {return "state " + stateName;}
 
-    void mergeSM(std::unique_ptr<StackMember>& other) override
+    bool mergeSM(std::unique_ptr<StackMember>& other) override
     {
         throw "cant merge state names";
     }
 };
 
-class SymbolicStack
+class StateListStackMember : public StackMember
+{
+private:
+    std::set<std::string> stateNames;
+public:
+    explicit StateListStackMember(std::string stateName)
+    {
+        stateNames.insert(move(stateName));
+        setType(SymbolicStackMemberType::STATE);
+    }
+
+    explicit StateListStackMember(std::set<std::string> stateNameList)
+    {
+        stateNames = move(stateNameList);
+        setType(SymbolicStackMemberType::STATE);
+    }
+
+    std::unique_ptr<StackMember> clone() override
+    {
+        return std::make_unique<StateListStackMember>(stateNames);
+    }
+
+    bool mergeSM(std::unique_ptr<StackMember>& other) override
+    {
+        bool change = false;
+        StateStackMember* o = static_cast<StateStackMember*>(other.get());
+        return stateNames.insert(other->getName()).second;
+    }
+
+    std::string diagString() override {return "state list";}
+};
+
+class SymbolicStack //todo two kinds - one for changetracking
 {
 private:
     std::shared_ptr<SymbolicStack> parent;
     std::vector<std::unique_ptr<StackMember>> currentStack;
     Reporter& reporter;
     bool loopInit = false;
+    bool changeTracking = false;
     void copyParent();
     std::unique_ptr<StackMember> popMember();
 public:
-    SymbolicStack(Reporter& r);
+    SymbolicStack(Reporter& r, bool changeTracking = false);
     SymbolicStack(std::shared_ptr<SymbolicStack> parent);
     SymbolicStack(const SymbolicStack&) = delete;
     void setLoopInit();
@@ -131,14 +166,16 @@ public:
     void pushDouble(double toPush);
     std::string popState();
     std::string popString();
+
+    const std::string getReturnState();
     void copyStack(SymbolicStack* other);
-    void unionStack(SymbolicStack* other);
+    bool assimilateChanges(SymbolicStack* other); //only until last state
     std::unique_ptr<SymbolicVariable> popVar();
     SymbolicVariable* peekTopVar();
     const std::string& peekTopName();
     void pop();
     bool isEmpty();
-    SymbolicStackMemberType getTopType();
+    SymbolicStackMemberType peekTopType();
     std::string printStack(); //diagnostic purposes
 };
 

@@ -3,12 +3,13 @@
 //
 
 //the exceptions thrown here should not have been caused by the users program
+#include <algorithm>
 
 #include "SymbolicStack.h"
 
 using namespace std;
 
-SymbolicStack::SymbolicStack(Reporter& r) : reporter(r) {}
+SymbolicStack::SymbolicStack(Reporter& r, bool ct) : reporter(r), changeTracking(ct) {}
 SymbolicStack::SymbolicStack(shared_ptr<SymbolicStack> p) : parent(move(p)), reporter(parent->reporter) {}
 
 void SymbolicStack::setLoopInit()
@@ -38,7 +39,8 @@ void SymbolicStack::copyParent()
 
 void SymbolicStack::pushState(const string& pushedState)
 {
-    currentStack.emplace_back(make_unique<StateStackMember>(pushedState));
+    if (!changeTracking) currentStack.emplace_back(make_unique<StateStackMember>(pushedState));
+    else currentStack.emplace_back(make_unique<StateListStackMember>(pushedState));
 }
 
 void SymbolicStack::pushVar(SymbolicVariable* pushedVar)
@@ -69,6 +71,17 @@ unique_ptr<StackMember> SymbolicStack::popMember()
     return m;
 }
 
+const std::string SymbolicStack::getReturnState()
+{
+    for (auto it = currentStack.rbegin(); it != currentStack.rend(); ++it)
+    {
+        if ((*it)->getType() == SymbolicStackMemberType::STATE) return (*it)->getName();
+    }
+
+    if (parent == nullptr) return "return";
+    return parent->getReturnState();
+}
+
 string SymbolicStack::popState()
 {
     unique_ptr<StackMember> popped = popMember();
@@ -97,8 +110,9 @@ void SymbolicStack::copyStack(SymbolicStack* other)
     for (const auto& cptr: other->currentStack) currentStack.push_back(cptr->clone());
 }
 
-void SymbolicStack::unionStack(SymbolicStack* other)
+bool SymbolicStack::assimilateChanges(SymbolicStack* other)
 {
+    bool change = false;
     auto myIterator = currentStack.rbegin();
     SymbolicStack* currentCopyFrom = other;
     while (currentCopyFrom->currentStack.empty() && currentCopyFrom->parent != nullptr)
@@ -110,19 +124,50 @@ void SymbolicStack::unionStack(SymbolicStack* other)
     while (theirIterator != currentCopyFrom->currentStack.rend()
             && !(theirIterator == currentCopyFrom->currentStack.rend() && currentCopyFrom->parent != nullptr))
     {
-        if (myIterator == currentStack.rend()) //todo make this loop
+        if (myIterator == currentStack.rend())
         {
             vector<unique_ptr<StackMember>> newSt;
+            while (!currentStack.empty())
+            {
+                newSt.push_back(move(currentStack.back()));
+                currentStack.pop_back();
+            }
+            for (auto tempIt = currentCopyFrom->currentStack.rbegin();;)
+            {
+                if ((*tempIt)->getType() == SymbolicStackMemberType::STATE)
+                {
+                    newSt.push_back(make_unique<StateListStackMember>((*tempIt)->getName()));
+                    break;
+                }
+                newSt.push_back((*tempIt)->clone());
+                ++tempIt;
+                if (tempIt == currentCopyFrom->currentStack.rend())
+                {
+                    if (currentCopyFrom->parent == nullptr) break;
+                    else
+                    {
+                        currentCopyFrom = currentCopyFrom->parent.get();
+                        tempIt = currentCopyFrom->currentStack.rbegin();
+                    }
+                }
+            }
+
+            currentStack = move(newSt);
+            reverse(currentStack.begin(), currentStack.end());
+            return true;
+
+            /*
             for (auto tempIt = currentCopyFrom->currentStack.begin();;)
             {
                 newSt.push_back((*tempIt)->clone());
+                //if ((*tempIt)->getType() == SymbolicStackMemberType::STATE) return change;
                 if (tempIt != theirIterator.base()) break;
                 else ++tempIt;
             }
             for (auto& oldPtr : currentStack) newSt.push_back(move(oldPtr));
             currentStack = move(newSt);
             myIterator = currentStack.rend();
-            theirIterator = currentCopyFrom->currentStack.rend();
+            theirIterator = currentCopyFrom->currentStack.rend();*/
         }
         if (theirIterator == currentCopyFrom->currentStack.rend() && currentCopyFrom->parent != nullptr)
         {
@@ -132,10 +177,12 @@ void SymbolicStack::unionStack(SymbolicStack* other)
 
         while (myIterator != currentStack.rend() && theirIterator != currentCopyFrom->currentStack.rend())
         {
-            (*myIterator)->mergeSM(*theirIterator);
+            if ((*myIterator)->mergeSM(*theirIterator)) change = true;
+            if ((*myIterator)->getType() == SymbolicStackMemberType::STATE) return change;
             ++myIterator; ++theirIterator;
         }
     }
+    return change;
 }
 
 void SymbolicStack::pop()
@@ -170,7 +217,7 @@ const string& SymbolicStack::peekTopName()
     currentStack.back()->getName();
 }
 
-SymbolicStackMemberType SymbolicStack::getTopType()
+SymbolicStackMemberType SymbolicStack::peekTopType()
 {
     while (currentStack.empty())
     {

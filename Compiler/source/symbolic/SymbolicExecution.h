@@ -66,11 +66,12 @@ namespace SymbolicExecution
         {
         private:
             unsigned int poppedCounter = 0;
-            std::vector<SymVarStackMember> pseudoStack;
+            std::vector<SymVarStackMember> pseudoStack; //todo replace this
+            SymbolicStack symbolicStack;
             std::shared_ptr<SymbolicVarSet> svs;
 
         public:
-            SearchResult()
+            explicit SearchResult(Reporter& r) : symbolicStack(r, true)
             {
                 svs = std::make_shared<SymbolicVarSet>(nullptr);
             };
@@ -78,9 +79,13 @@ namespace SymbolicExecution
             std::shared_ptr<SymbolicVarSet> getInitSVS()
             {return std::make_shared<SymbolicVarSet>(svs);};
 
-            void unionSVS(SymbolicVarSet* other)
+            bool unionSVS(SymbolicVarSet* other)
             {
-                svs->unionSVS(other);
+                return svs->unionSVS(other);
+            }
+            bool unionStack(SymbolicStack* other)
+            {
+                return symbolicStack.assimilateChanges(other);
             }
 
             void resetPoppedCounter() {poppedCounter = 0;}
@@ -96,7 +101,7 @@ namespace SymbolicExecution
                 else
                 {
                     SymbolicDouble sd("constDouble", sv->getReporter());
-                    pseudoStack[poppedCounter].mergeVar(*sv.get());
+                    pseudoStack[poppedCounter].mergeVar(*sv);
                 }
                 ++poppedCounter;
             }
@@ -118,6 +123,7 @@ namespace SymbolicExecution
     private:
         std::set<std::string> visitedNodes;
         std::unordered_map<std::string, std::unique_ptr<SearchResult>> tags;
+        //std::unordered_map<std::string, std::set<std::string>> seenReturnStates;
 
         ControlFlowGraph& cfg;
         SymbolTable& sTable;

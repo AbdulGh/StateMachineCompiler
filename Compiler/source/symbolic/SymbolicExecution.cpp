@@ -124,7 +124,7 @@ unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& Symbo
 {
     visitedNodes.clear();
     tags.clear();
-    for (auto& pair : cfg.getCurrentNodes()) tags[pair.first] = make_unique<SearchResult>();
+    for (auto& pair : cfg.getCurrentNodes()) tags[pair.first] = make_unique<SearchResult>(reporter);
     shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(reporter);
     visitNode(sef, cfg.getFirst());
     auto it = cfg.getCurrentNodes().begin();
@@ -175,7 +175,7 @@ CFGNode* SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFring
             return nullptr;
         }
 
-        if (returningSEF->symbolicStack->getTopType() != SymbolicStackMemberType::STATE) throw "tried to jump to non-state";
+        if (returningSEF->symbolicStack->peekTopType() != SymbolicStackMemberType::STATE) throw "tried to jump to non-state";
 
         failNode = n->getParentGraph().getNode(returningSEF->symbolicStack->popState());
         if (failNode == nullptr) throw "tried to jump to a nonexisting state";
@@ -188,14 +188,21 @@ CFGNode* SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFring
     return failNode;
 }
 
-bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n)
+//todo next check if this actually needs to return bool
+bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> osef, CFGNode* n)
 {
-    if (!sef->isFeasable()) return false;
-    else if (sef->hasSeen(n->getName())) return true;
+    if (!osef->isFeasable()) return false;
 
     unique_ptr<SearchResult>& thisNodeSR = tags[n->getName()];
-    thisNodeSR->unionSVS(sef->symbolicVarSet.get());
+    if (!visitedNodes.insert(n->getName()).second) //seen before
+    {
+        bool change = thisNodeSR->unionSVS(osef->symbolicVarSet.get());
+        if (thisNodeSR->unionStack(osef->symbolicStack.get())) change = true;
+        if (!change) return true;
+    }
     thisNodeSR->resetPoppedCounter();
+
+    shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(osef);
 
     for (const auto& command : n->getInstrs())
     {
@@ -222,12 +229,12 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
             if (command->getType() == CommandType::POP)
             {
                 unique_ptr<SymbolicVariable> poppedVar = sef->symbolicStack->popVar();
-                poppedVar->userInput(); //todo get rid of this
 
                 if (!command->getData().empty())
                 {
                     unique_ptr<SymbolicVariable> poppedVarClone = poppedVar->clone();
                     poppedVarClone->setName(command->getData());
+                    poppedVarClone->userInput(); //todo see if this needs to go up one level
                     sef->symbolicVarSet->defineVar(move(poppedVarClone));
                 }
                 thisNodeSR->addPop(move(poppedVar));
@@ -237,23 +244,13 @@ bool SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> sef
         }
     }
 
-    if (n->calledFunction()) //search mutual recursion
-    {
-        sef->pathConditions.clear();
-        sef->checkParentPC = false;
-        sef->seenFunctionCalls.push_back(n->getName());
-    }
-
-    //don't track conditions till later - this just tracks which nodes we've seen
-    sef->pathConditions.insert({n->getName(), Condition()});
-    visitedNodes.insert(n->getName());
-
     JumpOnComparisonCommand* jocc = n->getComp();
     if (jocc != nullptr) //is a conditional jump
     {
         //const comparisons were caught during compilation
         //note: JOCC constructor ensures that if there is a var there is a var on the LHS
         SymbolicVariable* LHS = sef->symbolicVarSet->findVar(jocc->term1);
+
         if (LHS == nullptr)
         {
             sef->error(Reporter::UNDECLARED_USE, "'" + jocc->term1 + "' used without being declared",

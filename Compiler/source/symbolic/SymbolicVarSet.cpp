@@ -47,21 +47,27 @@ void SymbolicVarSet::defineVar(SymbolicVariablePointer newvar)
     variables[newvar->getName()] = move(newvar);
 }
 
-void SymbolicVarSet::unionSVS(SymbolicVarSet* other)
+bool SymbolicVarSet::unionSVS(SymbolicVarSet* other)
 {
     if (other == nullptr) throw "cant union with nullptr";
 
-    for (auto& pair : other->variables)
+    bool change = false;
+    for (auto& pair : other->getAllVars())
     {
         SymbolicVariable* svp = findVar(pair.first);
-        if (svp == nullptr) variables[pair.first] = pair.second->clone();
+        if (svp == nullptr)
+        {
+            change = true;
+            variables[pair.first] = pair.second->clone();
+        }
         else
         {
-            svp->unionUpperBound(pair.second->getUpperBound());
-            svp->unionLowerBound(pair.second->getLowerBound());
+            if (svp->unionUpperBound(pair.second->getUpperBound())) change = true;
+            if (svp->unionLowerBound(pair.second->getLowerBound())) change = true;
         }
     }
-    //if (other->parent != nullptr) unionSVS(other->parent.get());
+
+    return change;
 }
 
 vector<pair<const string, SymbolicVariable*>> SymbolicVarSet::getAllVars()

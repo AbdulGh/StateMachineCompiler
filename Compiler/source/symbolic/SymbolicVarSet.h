@@ -46,7 +46,7 @@ public:
     SymbolicVariable* findVar(std::string name);
     //const std::unordered_map<std::string, SymbolicVariablePointer>& getVars() const {return variables;}
     void defineVar(SymbolicVariablePointer newvar);
-    void unionSVS(SymbolicVarSet* other);
+    bool unionSVS(SymbolicVarSet* other);
     bool isFeasable();
 
     void setLoopInit();

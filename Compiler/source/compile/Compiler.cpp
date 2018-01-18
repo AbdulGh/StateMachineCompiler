@@ -53,10 +53,9 @@ void Compiler::compile(stringstream& out)
     vector<Loop> loops = LengTarj(cfg).findLoops();
     for (Loop& loop : loops) loop.validate(tags);
 
-    return;
     Optimise::optimise(symbolTable, functionTable, cfg);
 
-    //cout << cfg.getStructuredSource() << endl;
+    cout << cfg.getStructuredSource() << endl;
    // cout << cfg.destroyStructureAndGetFinalSource();
 }
 

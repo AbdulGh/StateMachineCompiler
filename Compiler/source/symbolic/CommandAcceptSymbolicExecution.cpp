@@ -72,7 +72,7 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
         return true;
     }
 
-    if (svs->symbolicStack->getTopType() == SymbolicStackMemberType::STATE)
+    if (svs->symbolicStack->peekTopType() == SymbolicStackMemberType::STATE)
     {
         svs->error(Reporter::BAD_STACK_USE, "Tried to pop a state into a variable", getLineNum());
         return false;
