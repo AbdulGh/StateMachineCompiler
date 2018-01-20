@@ -51,11 +51,19 @@ string SymbolicExecutionFringe::printPathConditions()
 {
     string out;
     if (parent != nullptr) out = parent->printPathConditions();
-    for (string& nodeName : visitOrder)
+    for (const string& nodeName : visitOrder)
     {
         out += "Visit " + nodeName + " - branch " + pathConditions.at(nodeName).toString() + "\n";
     }
     return out;
+}
+
+vector<Condition> SymbolicExecutionFringe::getConditions()
+{
+    vector<Condition> retMe;
+    if (parent != nullptr) retMe = parent->getConditions();
+    for (const string& n : visitOrder) retMe.push_back(pathConditions[n]);
+    return retMe;
 }
 
 bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, JumpOnComparisonCommand* jocc, bool negate)

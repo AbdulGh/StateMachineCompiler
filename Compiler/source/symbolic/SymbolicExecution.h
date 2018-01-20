@@ -17,19 +17,19 @@ namespace SymbolicExecution
 {
     struct Condition
     {
-        std::string l;
-        Relations::Relop c;
-        std::string r;
+        std::string lhs;
+        Relations::Relop comp;
+        std::string rhs;
 
         Condition(std::string& lhs, Relations::Relop comp, std::string& rhs):
-                l(lhs), c(comp), r(rhs) {}
+                lhs(lhs), comp(comp), rhs(rhs) {}
         Condition(std::string& lhs, Relations::Relop comp, double rhs):
-                l(lhs), c(comp), r(std::to_string(rhs)) {}
+                lhs(lhs), comp(comp), rhs(std::to_string(rhs)) {}
         Condition() = default;
 
         std::string toString()
         {
-            return l + relEnumStrs[c] + r;
+            return lhs + relEnumStrs[comp] + rhs;
         }
     };
 
@@ -57,6 +57,7 @@ namespace SymbolicExecution
         void warn(Reporter::AlertType a, std::string s, int linenum = -1);
         bool isFeasable();
         bool hasSeen(const std::string& state);
+        std::vector<Condition> getConditions();
     };
 
     class SymbolicExecutionManager

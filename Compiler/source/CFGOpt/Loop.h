@@ -26,7 +26,6 @@ private:
     CFGNode* headerNode;
     CFGNode* comparisonNode;
     std::set<CFGNode*> nodes;
-    std::vector<JumpOnComparisonCommand> loopConditions;
     bool stackBased = false;
     bool goodPathFound = false;
 
