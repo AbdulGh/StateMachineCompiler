@@ -279,13 +279,13 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
                             }
                         }
                         if (!found && (onlyInstr->getData() != "return" || parentInstructions.empty()
-                                       || (*parentInstructions.rend())->getData() != "return")) //todo next make return stuff work better
+                                       || (*parentInstructions.rend())->getData() != "return"))
                         {
                             throw "bad parent";
                         }
 
                         parentNode->loseKid(sn.get());
-                        for (SourceNode* succ: sn->getSuccessors()) //todo quick make this one thing
+                        for (SourceNode* succ: sn->getSuccessors())
                         {
                             parentNode->addSuccessor(succ);
                             succ->addPredecessor(parentNode);

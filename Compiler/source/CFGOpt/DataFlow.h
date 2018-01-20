@@ -58,7 +58,7 @@ namespace DataFlow
     }
 
     template<typename T>
-    std::set<T> unionPredecessors(CFGNode *node, std::unordered_map <std::string, std::set<T>>& outSets)
+    std::set<T> unionPredecessors(CFGNode* node, std::unordered_map <std::string, std::set<T>>& outSets)
     {
         std::set<T> join;
         for (const auto& pair : node->getPredecessorMap())
@@ -69,7 +69,7 @@ namespace DataFlow
     }
 
     template<typename T>
-    std::vector<std::set<T>*> getSuccessorOutSets(CFGNode *node, std::unordered_map<std::string, std::set<T>>& outSets)
+    std::vector<std::set<T>*> getSuccessorOutSets(CFGNode* node, std::unordered_map<std::string, std::set<T>>& outSets)
     {
         std::vector <std::set<T>*> succSets;
         for (const auto& successor : getSuccessorNodes(node))
@@ -80,7 +80,7 @@ namespace DataFlow
     }
 
     template<typename T>
-    std::set<T> intersectSuccessors(CFGNode *node, std::unordered_map <std::string, std::set<T>>& outSets)
+    std::set<T> intersectSuccessors(CFGNode* node, std::unordered_map <std::string, std::set<T>>& outSets)
     {
         std::vector <std::set<T>*> succSets = getSuccessorOutSets(node, outSets);
         if (succSets.empty()) return std::set<T>(); //return empty std::set
@@ -88,7 +88,7 @@ namespace DataFlow
     }
 
     template<typename T>
-    std::set<T> unionSuccessors(CFGNode *node, std::unordered_map<std::string, std::set<T>>& outSets)
+    std::set<T> unionSuccessors(CFGNode* node, std::unordered_map<std::string, std::set<T>>& outSets)
     {
         std::set<T> join;
         for (const auto& outSet : getSuccessorOutSets(node, outSets))
@@ -99,7 +99,7 @@ namespace DataFlow
     }
 
     template<typename T,
-            std::set<T>(*in)(CFGNode *, std::unordered_map<std::string, std::set<T>>&),
+            std::set<T>(*in)(CFGNode* , std::unordered_map<std::string, std::set<T>>&),
             std::vector<CFGNode*> (*nextNodes) (CFGNode*)>
     class AbstractDataFlow
     {
@@ -138,7 +138,7 @@ namespace DataFlow
             finish();
         }
 
-        virtual void transfer(std::set<T>& inSet, CFGNode *node) = 0;
+        virtual void transfer(std::set<T>& inSet, CFGNode* node) = 0;
         virtual void finish() = 0;
     };
 
@@ -171,7 +171,7 @@ namespace DataFlow
     public:
         AssignmentPropogationDataFlow(ControlFlowGraph& cfg, SymbolTable& st);
 
-        void transfer(std::set<Assignment>& in, CFGNode *node) override;
+        void transfer(std::set<Assignment>& in, CFGNode* node) override;
         void finish() override;
     };
 
@@ -187,7 +187,7 @@ namespace DataFlow
     public:
         LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& st);
 
-        void transfer(std::set<std::string>& in, CFGNode *node) override;
+        void transfer(std::set<std::string>& in, CFGNode* node) override;
 
         void finish() override;
     };

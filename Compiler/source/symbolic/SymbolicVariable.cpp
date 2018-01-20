@@ -328,7 +328,7 @@ bool SymbolicVariableTemplate<string>::meetsConstComparison(Relations::Relop r, 
 }
 
 template <typename T>
-SymbolicVariable::MeetEnum SymbolicVariableTemplate<T>::canMeet(Relations::Relop rel, SymbolicVariable *rhs) const
+SymbolicVariable::MeetEnum SymbolicVariableTemplate<T>::canMeet(Relations::Relop rel, SymbolicVariable* rhs) const
 {
     throw "not implemented for generic vars";
     /*

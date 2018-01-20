@@ -22,9 +22,9 @@ AbstractExprNode* ExpressionCodeGenerator::expression(FunctionSymbol* fs)
     AbstractExprNode* currentLeft = term(fs);
     if (!(parent.lookahead.type == OP)) return currentLeft;
     else while (parent.lookahead.type == OP
-                && ((Op)parent.lookahead.auxType == PLUS || (Op)parent.lookahead.auxType == MINUS))
+                && ((ArithOp)parent.lookahead.auxType == PLUS || (ArithOp)parent.lookahead.auxType == MINUS))
     {
-        Op lastOp = (Op)parent.lookahead.auxType;
+        ArithOp lastOp = (ArithOp)parent.lookahead.auxType;
         AbstractExprNode* ref = new OperatorNode(lastOp);
         ref->addNode(currentLeft);
 
@@ -32,7 +32,7 @@ AbstractExprNode* ExpressionCodeGenerator::expression(FunctionSymbol* fs)
         {
             parent.match(OP);
             ref->addNode(term(fs));
-        } while (parent.lookahead.type == OP && (Op)parent.lookahead.auxType == lastOp);
+        } while (parent.lookahead.type == OP && (ArithOp)parent.lookahead.auxType == lastOp);
 
         currentLeft = ref;
     }
@@ -44,10 +44,10 @@ AbstractExprNode* ExpressionCodeGenerator::term(FunctionSymbol* fs)
     AbstractExprNode* currentLeft = factor(fs);
     if (!(parent.lookahead.type == OP)) return currentLeft;
 
-    else while (parent.lookahead.type == OP && ((Op)parent.lookahead.auxType == MULT
-                || (Op)parent.lookahead.auxType == DIV || (Op)parent.lookahead.auxType == MOD))
+    else while (parent.lookahead.type == OP && ((ArithOp)parent.lookahead.auxType == MULT
+                || (ArithOp)parent.lookahead.auxType == DIV || (ArithOp)parent.lookahead.auxType == MOD))
     {
-        Op lastOp = (Op)parent.lookahead.auxType;
+        ArithOp lastOp = (ArithOp)parent.lookahead.auxType;
         AbstractExprNode* ref = new OperatorNode(lastOp);
         ref->addNode(currentLeft);
 
@@ -55,7 +55,7 @@ AbstractExprNode* ExpressionCodeGenerator::term(FunctionSymbol* fs)
         {
             parent.match(OP);
             ref->addNode(factor(fs));
-        } while (parent.lookahead.type == OP && (Op)parent.lookahead.auxType == lastOp);
+        } while (parent.lookahead.type == OP && (ArithOp)parent.lookahead.auxType == lastOp);
 
         currentLeft = ref;
     }
@@ -65,7 +65,7 @@ AbstractExprNode* ExpressionCodeGenerator::term(FunctionSymbol* fs)
 AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
 {
     bool toNegate = false;
-    while (parent.lookahead.type == OP && ((Op)parent.lookahead.auxType == MINUS))
+    while (parent.lookahead.type == OP && ((ArithOp)parent.lookahead.auxType == MINUS))
     {
         toNegate = !toNegate;
         parent.match(OP);

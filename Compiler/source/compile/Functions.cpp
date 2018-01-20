@@ -189,7 +189,7 @@ unsigned int FunctionSymbol::numCalls()
 }
 
 //each node should only be returned to once
-FunctionCall* FunctionSymbol::addFunctionCall(CFGNode *calling, CFGNode *returnTo, unsigned int numPushedVars)
+FunctionCall* FunctionSymbol::addFunctionCall(CFGNode* calling, CFGNode* returnTo, unsigned int numPushedVars)
 {
     unique_ptr<FunctionCall> fc = make_unique<FunctionCall>(calling, returnTo, numPushedVars, this);
     FunctionCall* rawPointer = fc.get();
@@ -428,7 +428,7 @@ void FunctionSymbol::genInput(string s, int linenum)
     currentInstrs.push_back(make_unique<InputVarCommand>(s, linenum));
 }
 
-void FunctionSymbol::genExpr(string lh, string t1, Op o, string t2, int linenum)
+void FunctionSymbol::genExpr(string lh, string t1, ArithOp o, string t2, int linenum)
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(make_unique<EvaluateExprCommand>(lh, t1, o, t2, linenum));

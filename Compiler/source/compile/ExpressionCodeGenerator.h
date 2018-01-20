@@ -16,7 +16,7 @@ class AbstractExprNode
 {
 protected:
     NodeType type;
-    Op op;
+    ArithOp op;
     unsigned int varsRequired = 0;
     void setType(NodeType);
 
@@ -31,7 +31,7 @@ public:
     virtual double getDouble() {throw std::runtime_error("not a double lit");}
     unsigned int getVarsRequired() const;
 
-    Op getOp() const;
+    ArithOp getOp() const;
 };
 
 class OperatorNode : public AbstractExprNode
@@ -44,7 +44,7 @@ public:
     AbstractExprNode* getLeft() override;
     AbstractExprNode* getRight() override;
 
-    OperatorNode(Op);
+    OperatorNode(ArithOp);
     ~OperatorNode();
     void addNode(AbstractExprNode*) override;
 };

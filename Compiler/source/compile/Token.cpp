@@ -13,7 +13,7 @@ string VariableTypeEnumNames[] = {"double", "string"};
 
 char opEnumChars[] = {'+', '*', '-', '/', '%', '&', '|'};
 
-double evaluateOp(const double& lhs, Op op, const double& rhs)
+double evaluateOp(const double& lhs, ArithOp op, const double& rhs)
 {
     switch(op)
     {

@@ -22,12 +22,12 @@ bool AbstractExprNode::isAtom()
     return (type == LITERAL || type == IDENTIFIER);
 }
 
-Op AbstractExprNode::getOp() const
+ArithOp AbstractExprNode::getOp() const
 {
     return op;
 }
 
-OperatorNode::OperatorNode(Op o): left{nullptr}, right{nullptr}
+OperatorNode::OperatorNode(ArithOp o): left{nullptr}, right{nullptr}
 {
     op = o;
     if (op == PLUS || op == MULT) setType(COMM);

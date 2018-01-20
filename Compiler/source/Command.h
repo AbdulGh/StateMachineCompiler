@@ -287,9 +287,9 @@ class EvaluateExprCommand: public AbstractCommand
 public:
     std::string term1;
     std::string term2;
-    Op op;
+    ArithOp op;
 
-    EvaluateExprCommand(const std::string& lh, std::string t1, Op o, std::string t2, int linenum) :
+    EvaluateExprCommand(const std::string& lh, std::string t1, ArithOp o, std::string t2, int linenum) :
     AbstractCommand(linenum), op{o}, term1{std::move(t1)}, term2{std::move(t2)}
     {
         setData(lh);

@@ -160,7 +160,7 @@ public:
     SymbolicStack(const SymbolicStack&) = delete;
     void setLoopInit();
     //void push(std::unique_ptr<SymbolicVariable> pushedVar);
-    void pushVar(SymbolicVariable *pushedVar);
+    void pushVar(SymbolicVariable* pushedVar);
     void pushState(const std::string& pushedState);
     void pushString(std::string toPush);
     void pushDouble(double toPush);

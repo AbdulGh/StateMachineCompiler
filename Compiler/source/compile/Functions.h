@@ -101,7 +101,7 @@ public:
     void genPop(std::string, int);
     void genReturn(int);
     void genInput(std::string, int);
-    void genExpr(std::string lh, std::string t1, Op o, std::string t2, int);
+    void genExpr(std::string lh, std::string t1, ArithOp o, std::string t2, int);
     void genVariableDecl(VariableType t, std::string n, int);
     void genAssignment(std::string LHS, std::string RHS, int);
     void addCommand(std::unique_ptr<AbstractCommand> ac);

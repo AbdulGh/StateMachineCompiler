@@ -29,8 +29,8 @@ namespace Relations
 }
 extern std::string relEnumStrs[];
 
-enum Op {PLUS, MULT, MINUS, DIV, MOD, AND, OR};
-double evaluateOp(const double& lhs, Op op, const double& rhs);
+enum ArithOp {PLUS, MULT, MINUS, DIV, MOD, AND, OR};
+double evaluateOp(const double& lhs, ArithOp op, const double& rhs);
 extern char opEnumChars[];
 
 class Token
@@ -39,16 +39,16 @@ public:
     typedef union at
     {
         Relations::Relop relType;
-        Op opType;
+        ArithOp opType;
         VariableType vType;
 
         at(Relations::Relop rel): relType(rel) {};
-        at(Op op): opType(op) {};
+        at(ArithOp op): opType(op) {};
         at(VariableType vt): vType (vt) {};
         at(): opType{} {};
 
         operator Relations::Relop () const {return relType;}
-        operator Op () const {return opType;}
+        operator ArithOp () const {return opType;}
         operator VariableType () const {return vType;}
     } AuxTypeUnion;
 
@@ -94,7 +94,7 @@ public:
         }
     }
 
-    Token(Op op):
+    Token(ArithOp op):
             type(OP),
             auxType(op) {}
 

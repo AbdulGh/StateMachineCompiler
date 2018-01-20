@@ -639,7 +639,7 @@ unsigned int CFGNode::getNumPushingStates()
     return pushingStates.size();
 }
 
-void CFGNode::addFunctionCall(CFGNode *cfgn, FunctionSymbol *fs)
+void CFGNode::addFunctionCall(CFGNode* cfgn, FunctionSymbol *fs)
 {
     if (!pushingStates.insert({cfgn, fs}).second) throw "already in";
 }

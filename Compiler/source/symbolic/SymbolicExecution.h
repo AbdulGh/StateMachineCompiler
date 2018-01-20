@@ -131,48 +131,48 @@ namespace SymbolicExecution
 
         //returns if a feasable path extention goes through this node
         //a path is feasable if it visits itself or reaches the last state
-        bool visitNode(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n);
+        void visitNode(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n);
         //the below don't check if the ranges are disjoint - this is done in visitNode
-        bool branch(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n, std::string lhsvar,
+        void branch(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n, std::string lhsvar,
                     Relations::Relop op, const std::string& rhsconst, bool reverse = false);
         
-        bool branchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
+        void branchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                       std::string lhsvar, const std::string& rhsconst, bool reverse = false);
         
-        bool branchNE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
+        void branchNE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                       std::string lhsvar, const std::string& rhsconst, bool reverse = false);
         
-        bool branchLE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
+        void branchLE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                       std::string lhsvar, const std::string& rhsconst, bool reverse = false);
         
-        bool branchLT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
+        void branchLT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                       std::string lhsvar, const std::string& rhsconst, bool reverse = false);
         
-        bool branchGE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
+        void branchGE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                            std::string lhsvar, const std::string& rhsconst, bool reverse = false);
         
-        bool branchGT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
+        void branchGT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                       std::string lhsvar, const std::string& rhsconst, bool reverse = false);
         
-        bool varBranch(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
+        void varBranch(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                        SymbolicVariable* lhsvar, Relations::Relop op, SymbolicVariable* rhsvar);
         
-        bool varBranchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
+        void varBranchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                       SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
         
-        bool varBranchNE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
+        void varBranchNE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                       SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
         
-        bool varBranchLE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
+        void varBranchLE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                       SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
         
-        bool varBranchLT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
+        void varBranchLT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                       SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
         
-        bool varBranchGE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
+        void varBranchGE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                       SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
         
-        bool varBranchGT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
+        void varBranchGT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                       SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
 
         static CFGNode* getFailNode(std::shared_ptr<SymbolicExecutionFringe> returningSEF, CFGNode* n);

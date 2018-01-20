@@ -140,6 +140,15 @@ bool SymbolicDouble::setUpperBound(const std::string& ub, bool closed)
     return setTUpperBound(stod(ub), closed);
 }
 
+void SymbolicDouble::removeLowerBound()
+{
+    lowerBound = numeric_limits<double>::lowest();
+}
+void SymbolicDouble::removeUpperBound()
+{
+    upperBound = numeric_limits<double>::max();
+}
+
 bool SymbolicDouble::clipTLowerBound(const double& d, bool closed) //todo forgetting stuff
 {
     if (d > getTLowerBound()) return setTLowerBound(d, closed);

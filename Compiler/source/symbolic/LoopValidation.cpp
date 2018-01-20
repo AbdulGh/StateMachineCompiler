@@ -41,7 +41,12 @@ Loop::Loop(CFGNode* entry, CFGNode* last, std::set<CFGNode*> nodeSet, ControlFlo
         seenNodes.insert(toSearch);
         if (toSearch->getCompSuccess() != nullptr)
         {
-            if (nodes.find(toSearch->getCompSuccess()) != nodes.end()) loopConditions.push_back(*toSearch->getComp());
+            bool succIn = nodes.find(toSearch->getCompSuccess()) != nodes.end();
+            bool failIn = toSearch->getCompFail() != nullptr && nodes.find(toSearch->getCompFail()) != nodes.end();
+            if (succIn)
+            {
+                if (!failIn) loopConditions.push_back(*toSearch->getComp());
+            }
             else
             {
                 JumpOnComparisonCommand toNegate = *toSearch->getComp();
@@ -59,7 +64,10 @@ Loop::Loop(CFGNode* entry, CFGNode* last, std::set<CFGNode*> nodeSet, ControlFlo
 
 string Loop::getInfo()
 {
-    std::string outStr = "Header: " + headerNode->getName() + "\nNodes:\n";
+    std::string outStr = "Header: " + headerNode->getName();
+    outStr += "\nLoop conditions:\n";
+    for (JumpOnComparisonCommand& jocc: loopConditions) outStr += jocc.condition("") + "\n";
+    outStr += "Nodes:\n";
     for (CFGNode* node: nodes) outStr += node->getName() + "\n";
     return outStr;
 }
@@ -118,6 +126,7 @@ inline void unionMaps(ChangeMap& cmap, CFGNode* into, CFGNode* from)
     for (const auto& pair : cmap[from]) intoMap[pair.first] |= pair.second;
 }
 
+//todo next macro for map merge
 bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string, unique_ptr<SearchResult>>& tags,
                       SEFPointer sef, string& badExample, bool headerSeen)
 {
@@ -252,269 +261,275 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                     }
                 }
             }
-
             if (noGood) badExample = newBadExample;
+            else goodPathFound = true;
         }
-
         generateNodeChanges();
         return true;
     }
-    else //not final node
+    else //not done w/ this path
     {
         CFGNode* failNode = node->getCompFail();
-        if (failNode == nullptr)
+        if (node->getComp() == nullptr)
         {
-            if (sef->symbolicStack->isEmpty())
+            if (failNode == nullptr)
             {
-                generateNodeChanges();
-                goodPathFound = true;
-            }
-            else if (sef->symbolicStack->peekTopType() != SymbolicStackMemberType::STATE) throw "tried to jump to non node";
-            else
-            {
-                CFGNode* nextNode = cfg.getNode(sef->symbolicStack->popState());
-                if (nextNode == nullptr) throw "tried to jump to nonexisting node";
-                searchNode(nextNode, varChanges, tags, sef, badExample);
-                varChanges[node] = varChanges.at(nextNode); //should copy
-            }
-        }
-        else
-        {
-            if (node->getComp() == nullptr)
-            {
-                if (nodes.find(failNode) == nodes.end()) throw "unconditional jump should be in the loop";
-                searchNode(failNode, varChanges, tags, sef, badExample);
-                varChanges[node] = varChanges.at(failNode);
-            }
-            else
-            {
-                JumpOnComparisonCommand* jocc = node->getComp();
-                CFGNode* succNode = node->getCompSuccess();
-                SymbolicVariable*  jumpVar = sef->symbolicVarSet->findVar(jocc->term1);
-
-                if (jumpVar == nullptr) throw "not found";
-
-                if (jocc->term2Type != AbstractCommand::StringType::ID ||
-                        sef->symbolicVarSet->findVar(jocc->term2)->isDetermined())
+                if (sef->symbolicStack->isEmpty())
                 {
-                    string RHS;
-                    if (jocc->term2Type == AbstractCommand::StringType::ID)
+                    generateNodeChanges();
+                    goodPathFound = true;
+                }
+                else if (sef->symbolicStack->peekTopType() != SymbolicStackMemberType::STATE) throw "tried to jump to non node";
+                else
+                {
+                    SEFPointer newSEF = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                    CFGNode* nextNode = cfg.getNode(newSEF->symbolicStack->popState());
+                    if (nextNode == nullptr) throw "tried to jump to nonexisting node";
+                    else if (nodes.find(nextNode) == nodes.end()) goodPathFound = true;
+                    else
                     {
-                        RHS = sef->symbolicVarSet->findVar(jocc->term2)->getConstString();
-                    }
-                    else RHS = jocc->term2;
-
-                    switch (jumpVar->canMeet(jocc->op, RHS))
-                    {
-                        case SymbolicVariable::MeetEnum::MUST:
-                        {
-                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
-                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                            string newBadExample;
-                            if (sefSucc->addPathCondition(node->getName(), jocc))
-                            {
-                                if (nodes.find(succNode) == nodes.end()) //left the loop
-                                {
-                                    generateNodeChanges();
-                                    goodPathFound = true;
-                                }
-                                else if (searchNode(succNode, varChanges, tags, sefSucc, newBadExample))
-                                {
-                                    varChanges[node] = varChanges.at(succNode);
-
-                                    //check if we can move out of must 'MUST'
-                                    if (jumpVar->isIncrementable())
-                                    {
-                                        unsigned short int termChange = varChanges[node][jocc->term1];
-                                        bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) && termChange & FDECREASING != 0 ||
-                                                         (jocc->op == Relations::LT || jocc->op == Relations::LE) && termChange & FINCREASING != 0 ||
-                                                         (jocc->op == Relations::EQ && termChange & FFRESH != 0);
-                                        if (goingAway)
-                                        {
-                                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFailure
-                                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                                            if (sefFailure->addPathCondition(node->getName(), jocc, true))
-                                            {
-                                                if (nodes.find(failNode) == nodes.end())
-                                                {
-                                                    generateNodeChanges();
-                                                    goodPathFound = true;
-                                                }
-                                                else
-                                                {
-                                                    sefFailure->symbolicVarSet->findVar(jocc->term1)->iterateTo(RHS);
-                                                    if (searchNode(failNode, varChanges, tags, sef, badExample)) unionMaps(varChanges, node, failNode);
-                                                }
-                                            }
-                                        }
-                                        if (badExample.empty()) badExample = newBadExample;
-                                        break;
-                                    }
-                                }
-                            }
-                        }
-                        case SymbolicVariable::MeetEnum::CANT:
-                        {
-                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFailure
-                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                            string newBadExample;
-                            if (sefFailure->addPathCondition(node->getName(), jocc, true))
-                            {
-                                if (nodes.find(failNode) == nodes.end())
-                                {
-                                    generateNodeChanges();
-                                    goodPathFound = true;
-                                }
-                                else if (searchNode(failNode, varChanges, tags, sefFailure, newBadExample))
-                                {
-                                    varChanges[node] = varChanges.at(failNode);
-
-                                    if (jumpVar->isIncrementable())
-                                    {
-                                        unsigned short int termChange = varChanges[node][jocc->term1];
-                                        bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) && termChange & FINCREASING != 0 ||
-                                                         (jocc->op == Relations::LT || jocc->op == Relations::LE) && termChange & FDECREASING != 0 ||
-                                                         (jocc->op == Relations::EQ && termChange & FFRESH != 0);
-                                        if (goingAway)
-                                        {
-                                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
-                                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                                            if (sefSucc->addPathCondition(node->getName(), jocc))
-                                            {
-                                                if (nodes.find(succNode) == nodes.end())
-                                                {
-                                                    generateNodeChanges();
-                                                    goodPathFound = true;
-                                                }
-                                                else
-                                                {
-                                                    sefFailure->symbolicVarSet->findVar(jocc->term1)->iterateTo(RHS);
-                                                    if (searchNode(succNode, varChanges, tags, sefSucc, badExample)) unionMaps(varChanges, node, succNode);
-                                                }
-                                            }
-                                        }
-                                        if (badExample.empty()) badExample = newBadExample;
-                                    }
-                                }
-                            }
-                            break;
-                        }
-                        case SymbolicVariable::MeetEnum::MAY:
-                        {
-                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFailure
-                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                            bool firstSearched = false;
-                            if (sefFailure->addPathCondition(node->getName(), jocc, true))
-                            {
-                                if (nodes.find(failNode) != nodes.end())
-                                {
-                                    if (firstSearched = searchNode(failNode, varChanges, tags, sefFailure, badExample))
-                                    {
-                                        varChanges[node] = varChanges.at(failNode);
-                                    }
-                                }
-                                else
-                                {
-                                    generateNodeChanges();
-                                    goodPathFound = true;
-                                }
-                            }
-
-                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
-                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                            if (sefSucc->addPathCondition(node->getName(), jocc))
-                            {
-                                if (nodes.find(succNode) == nodes.end())
-                                {
-                                    generateNodeChanges();
-                                    goodPathFound = true;
-                                }
-                                else if (searchNode(succNode, varChanges, tags, sefSucc, badExample))
-                                {
-                                    if (firstSearched) unionMaps(varChanges, node, succNode);
-                                    else varChanges[node] = varChanges.at(succNode);
-                                }
-                            }
-                            break;
-                        }
-                        default:
-                            throw "weird enum";
+                        searchNode(nextNode, varChanges, tags, newSEF, badExample);
+                        varChanges[node] = varChanges.at(nextNode); //should copy
                     }
                 }
-                else //RHS is indeterminate var (could also do the extrapolation stuff here)
+            }
+            else
+            {
+                if (nodes.find(failNode) == nodes.end()) throw "unconditional jump should be in the loop";
+                bool t = searchNode(failNode, varChanges, tags, sef, badExample);
+                varChanges[node] = varChanges.at(failNode);
+                return t;
+            }
+        }
+
+        else
+        {
+            JumpOnComparisonCommand* jocc = node->getComp();
+            CFGNode* succNode = node->getCompSuccess();
+            SymbolicVariable* jumpVar = sef->symbolicVarSet->findVar(jocc->term1);
+
+            if (jumpVar == nullptr) throw "not found";
+
+            if (jocc->term2Type != AbstractCommand::StringType::ID ||
+                sef->symbolicVarSet->findVar(jocc->term2)->isDetermined())
+            {
+                string RHS;
+                if (jocc->term2Type == AbstractCommand::StringType::ID)
                 {
-                    SymbolicVariable* RHS = sef->symbolicVarSet->findVar(jocc->term2);
-                    if (!RHS) throw runtime_error("Unknown var '" + jocc->term2 + "'");
-                    switch (jumpVar->canMeet(jocc->op, RHS))
+                    RHS = sef->symbolicVarSet->findVar(jocc->term2)->getConstString();
+                }
+                else RHS = jocc->term2;
+
+                switch (jumpVar->canMeet(jocc->op, RHS))
+                {
+                    case SymbolicVariable::MeetEnum::MUST:
                     {
-                        case SymbolicVariable::MeetEnum::MUST:
+                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
+                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                        string newBadExample;
+                        if (sefSucc->addPathCondition(node->getName(), jocc))
                         {
-                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
-                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                            if (sefSucc->addPathCondition(node->getName(), jocc))
+                            if (nodes.find(succNode) == nodes.end()) //left the loop
                             {
-                                if (nodes.find(node->getCompSuccess()) == nodes.end())
+                                generateNodeChanges();
+                                goodPathFound = true;
+                            }
+                            else if (searchNode(succNode, varChanges, tags, sefSucc, newBadExample))
+                            {
+                                varChanges[node] = varChanges.at(succNode);
+
+                                //check if we can move out of must 'MUST'
+                                if (jumpVar->isIncrementable())
                                 {
-                                    generateNodeChanges();
-                                    goodPathFound = true;
+                                    unsigned short int termChange = varChanges[node][jocc->term1];
+                                    bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) && termChange & FDECREASING != 0 ||
+                                                     (jocc->op == Relations::LT || jocc->op == Relations::LE) && termChange & FINCREASING != 0 ||
+                                                     (jocc->op == Relations::EQ && termChange & FFRESH != 0);
+                                    if (goingAway)
+                                    {
+                                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFailure
+                                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                                        if (sefFailure->addPathCondition(node->getName(), jocc, true))
+                                        {
+                                            if (nodes.find(failNode) == nodes.end())
+                                            {
+                                                generateNodeChanges();
+                                                goodPathFound = true;
+                                            }
+                                            else
+                                            {
+                                                sefFailure->symbolicVarSet->findVar(jocc->term1)->iterateTo(RHS);
+                                                if (searchNode(failNode, varChanges, tags, sef, badExample)) unionMaps(varChanges, node, failNode);
+                                            }
+                                        }
+                                    }
+                                    if (badExample.empty()) badExample = newBadExample;
+                                    break;
                                 }
-                                else searchNode(node->getCompSuccess(), varChanges, tags, sefSucc, badExample);
+                            }
+                        }
+                    }
+                    case SymbolicVariable::MeetEnum::CANT:
+                    {
+                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFailure
+                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                        string newBadExample;
+                        if (sefFailure->addPathCondition(node->getName(), jocc, true))
+                        {
+                            if (nodes.find(failNode) == nodes.end())
+                            {
+                                generateNodeChanges();
+                                goodPathFound = true;
+                            }
+                            else if (searchNode(failNode, varChanges, tags, sefFailure, newBadExample))
+                            {
+                                varChanges[node] = varChanges.at(failNode);
+
+                                if (jumpVar->isIncrementable())
+                                {
+                                    unsigned short int termChange = varChanges[node][jocc->term1];
+                                    bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) && termChange & FINCREASING != 0 ||
+                                                     (jocc->op == Relations::LT || jocc->op == Relations::LE) && termChange & FDECREASING != 0 ||
+                                                     (jocc->op == Relations::EQ && termChange & FFRESH != 0);
+                                    if (goingAway)
+                                    {
+                                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
+                                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                                        if (sefSucc->addPathCondition(node->getName(), jocc))
+                                        {
+                                            if (nodes.find(succNode) == nodes.end())
+                                            {
+                                                generateNodeChanges();
+                                                goodPathFound = true;
+                                            }
+                                            else
+                                            {
+                                                sefFailure->symbolicVarSet->findVar(jocc->term1)->iterateTo(RHS);
+                                                if (searchNode(succNode, varChanges, tags, sefSucc, badExample)) unionMaps(varChanges, node, succNode);
+                                            }
+                                        }
+                                    }
+                                    if (badExample.empty()) badExample = newBadExample;
+                                }
+                            }
+                        }
+                        break;
+                    }
+                    case SymbolicVariable::MeetEnum::MAY:
+                    {
+                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFailure
+                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                        bool firstSearched = false;
+                        if (sefFailure->addPathCondition(node->getName(), jocc, true))
+                        {
+                            if (nodes.find(failNode) != nodes.end())
+                            {
+                                if (firstSearched = searchNode(failNode, varChanges, tags, sefFailure, badExample))
+                                {
+                                    varChanges[node] = varChanges.at(failNode);
+                                }
+                            }
+                            else
+                            {
+                                generateNodeChanges();
+                                goodPathFound = true;
+                            }
+                        }
+
+                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
+                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                        if (sefSucc->addPathCondition(node->getName(), jocc))
+                        {
+                            if (nodes.find(succNode) == nodes.end())
+                            {
+                                generateNodeChanges();
+                                goodPathFound = true;
+                            }
+                            else if (searchNode(succNode, varChanges, tags, sefSucc, badExample))
+                            {
+                                if (firstSearched) unionMaps(varChanges, node, succNode);
+                                else varChanges[node] = varChanges.at(succNode);
+                            }
+                        }
+                        break;
+                    }
+                    default:
+                        throw "weird enum";
+                }
+            }
+            else //RHS is indeterminate var (could also do the extrapolation stuff here)
+            {
+                SymbolicVariable* RHS = sef->symbolicVarSet->findVar(jocc->term2);
+                if (!RHS) throw runtime_error("Unknown var '" + jocc->term2 + "'");
+                switch (jumpVar->canMeet(jocc->op, RHS))
+                {
+                    case SymbolicVariable::MeetEnum::MUST:
+                    {
+                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
+                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                        if (sefSucc->addPathCondition(node->getName(), jocc))
+                        {
+                            if (nodes.find(node->getCompSuccess()) == nodes.end())
+                            {
+                                generateNodeChanges();
+                                goodPathFound = true;
+                            }
+                            else searchNode(node->getCompSuccess(), varChanges, tags, sefSucc, badExample);
+                            varChanges[node] = varChanges.at(failNode);
+                        }
+                    }
+
+                    case SymbolicVariable::MeetEnum::CANT:
+                    {
+                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFail
+                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                        if (sefFail->addPathCondition(node->getName(), jocc, true))
+                        {
+                            if (nodes.find(node->getCompFail()) == nodes.end())
+                            {
+                                generateNodeChanges();
+                                goodPathFound = true;
+                            }
+                            else
+                            {
+                                searchNode(node->getCompFail(), varChanges, tags, sefFail, badExample);
+                                varChanges[node] = varChanges.at(failNode);
+                            }
+                        }
+                    }
+
+                    case SymbolicVariable::MeetEnum::MAY:
+                    {
+                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
+                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                        bool firstSearched = false;
+                        if (sefSucc->addPathCondition(node->getName(), jocc))
+                        {
+                            if (nodes.find(node->getCompSuccess()) == nodes.end())
+                            {
+                                generateNodeChanges();
+                                goodPathFound = true;
+                            }
+                            else if (searchNode(node->getCompSuccess(), varChanges, tags, sefSucc, badExample))
+                            {
+                                firstSearched = true;
                                 varChanges[node] = varChanges.at(failNode);
                             }
                         }
 
-                        case SymbolicVariable::MeetEnum::CANT:
+                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFail
+                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                        if (sefFail->addPathCondition(node->getName(), jocc, true))
                         {
-                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFail
-                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                            if (sefFail->addPathCondition(node->getName(), jocc, true))
+                            if (nodes.find(node->getCompFail()) == nodes.end())
                             {
-                                if (nodes.find(node->getCompFail()) == nodes.end())
-                                {
-                                    generateNodeChanges();
-                                    goodPathFound = true;
-                                }
-                                else
-                                {
-                                    searchNode(node->getCompFail(), varChanges, tags, sefFail, badExample);
-                                    varChanges[node] = varChanges.at(failNode);
-                                }
+                                generateNodeChanges();
+                                goodPathFound = true;
                             }
-                        }
-
-                        case SymbolicVariable::MeetEnum::MAY:
-                        {
-                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
-                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                            bool firstSearched = false;
-                            if (sefSucc->addPathCondition(node->getName(), jocc))
+                            else if (searchNode(node->getCompFail(), varChanges, tags, sefFail, badExample))
                             {
-                                if (nodes.find(node->getCompSuccess()) == nodes.end())
-                                {
-                                    generateNodeChanges();
-                                    goodPathFound = true;
-                                }
-                                else if (searchNode(node->getCompSuccess(), varChanges, tags, sefSucc, badExample))
-                                {
-                                    firstSearched = true;
-                                    varChanges[node] = varChanges.at(failNode);
-                                }
-                            }
-
-                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFail
-                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                            if (sefFail->addPathCondition(node->getName(), jocc, true))
-                            {
-                                if (nodes.find(node->getCompFail()) == nodes.end())
-                                {
-                                    generateNodeChanges();
-                                    goodPathFound = true;
-                                }
-                                else if (searchNode(node->getCompFail(), varChanges, tags, sefFail, badExample))
-                                {
-                                    if (firstSearched) unionMaps(varChanges, node, node->getCompFail());
-                                    else varChanges[node] = varChanges.at(failNode);
-                                }
+                                if (firstSearched) unionMaps(varChanges, node, node->getCompFail());
+                                else varChanges[node] = varChanges.at(failNode);
                             }
                         }
                     }

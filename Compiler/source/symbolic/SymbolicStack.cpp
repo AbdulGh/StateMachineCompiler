@@ -119,6 +119,7 @@ bool SymbolicStack::assimilateChanges(SymbolicStack* other)
     {
         currentCopyFrom = currentCopyFrom->parent.get();
     }
+    if (currentCopyFrom->currentStack.empty()) return false;
     auto theirIterator = currentCopyFrom->currentStack.rbegin();
 
     while (theirIterator != currentCopyFrom->currentStack.rend()
@@ -132,29 +133,36 @@ bool SymbolicStack::assimilateChanges(SymbolicStack* other)
                 newSt.push_back(move(currentStack.back()));
                 currentStack.pop_back();
             }
+
             for (auto tempIt = currentCopyFrom->currentStack.rbegin();;)
             {
-                if ((*tempIt)->getType() == SymbolicStackMemberType::STATE)
+                while (tempIt == currentCopyFrom->currentStack.rend())
                 {
-                    newSt.push_back(make_unique<StateListStackMember>((*tempIt)->getName()));
-                    break;
-                }
-                newSt.push_back((*tempIt)->clone());
-                ++tempIt;
-                if (tempIt == currentCopyFrom->currentStack.rend())
-                {
-                    if (currentCopyFrom->parent == nullptr) break;
+                    if (currentCopyFrom->parent == nullptr)
+                    {
+                        currentStack = move(newSt);
+                        reverse(currentStack.begin(), currentStack.end());
+                        return true;
+                    }
                     else
                     {
                         currentCopyFrom = currentCopyFrom->parent.get();
                         tempIt = currentCopyFrom->currentStack.rbegin();
                     }
                 }
+
+                if ((*tempIt)->getType() == SymbolicStackMemberType::STATE)
+                {
+                    newSt.push_back(make_unique<StateListStackMember>((*tempIt)->getName()));
+                    currentStack = move(newSt);
+                    reverse(currentStack.begin(), currentStack.end());
+                    return true;
+                }
+                newSt.push_back((*tempIt)->clone());
+                ++tempIt;
             }
 
-            currentStack = move(newSt);
-            reverse(currentStack.begin(), currentStack.end());
-            return true;
+
 
             /*
             for (auto tempIt = currentCopyFrom->currentStack.begin();;)
