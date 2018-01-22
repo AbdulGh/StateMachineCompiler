@@ -65,6 +65,11 @@ public:
         return std::make_unique<SymVarStackMember>(varptr.get());
     }
 
+    std::unique_ptr<SymVarStackMember> cloneVarMember()
+    {
+        return std::make_unique<SymVarStackMember>(varptr.get());
+    }
+
     void setLoopInit() override {varptr->loopInit();}
 
     bool mergeSM(std::unique_ptr<StackMember>& other) override
@@ -144,18 +149,17 @@ public:
     std::string diagString() override {return "state list";}
 };
 
-class SymbolicStack //todo two kinds - one for changetracking
+class SymbolicStack
 {
 private:
     std::shared_ptr<SymbolicStack> parent;
-    std::vector<std::unique_ptr<StackMember>> currentStack;
     Reporter& reporter;
     bool loopInit = false;
-    bool changeTracking = false;
     void copyParent();
     std::unique_ptr<StackMember> popMember();
 public:
-    SymbolicStack(Reporter& r, bool changeTracking = false);
+    std::vector<std::unique_ptr<StackMember>> currentStack;
+    SymbolicStack(Reporter& r);
     SymbolicStack(std::shared_ptr<SymbolicStack> parent);
     SymbolicStack(const SymbolicStack&) = delete;
     void setLoopInit();
@@ -165,7 +169,7 @@ public:
     void pushString(std::string toPush);
     void pushDouble(double toPush);
     std::string popState();
-    std::string popString();
+    std::shared_ptr<SymbolicStack>& getParent() {return parent;}
 
     const std::string getReturnState();
     void copyStack(SymbolicStack* other);

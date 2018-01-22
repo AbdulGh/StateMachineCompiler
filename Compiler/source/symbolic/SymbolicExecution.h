@@ -11,8 +11,6 @@
 #include "../compile/Token.h" //relop
 #include "../compile/Functions.h"
 
-//todo improve expressions in first execution (ruin determination only one way)
-
 namespace SymbolicExecution
 {
     struct Condition
@@ -66,13 +64,13 @@ namespace SymbolicExecution
         class SearchResult
         {
         private:
-            unsigned int poppedCounter = 0;
-            std::vector<SymVarStackMember> pseudoStack; //todo replace this
-            SymbolicStack symbolicStack;
+            std::vector<std::unique_ptr<SymVarStackMember>> pseudoStack;
+            std::set<std::string> returnStates;
             std::shared_ptr<SymbolicVarSet> svs;
+            unsigned int poppedCounter = 0;
 
         public:
-            explicit SearchResult(Reporter& r) : symbolicStack(r, true)
+            explicit SearchResult(Reporter& r)
             {
                 svs = std::make_shared<SymbolicVarSet>(nullptr);
             };
@@ -84,26 +82,14 @@ namespace SymbolicExecution
             {
                 return svs->unionSVS(other);
             }
-            bool unionStack(SymbolicStack* other)
-            {
-                return symbolicStack.assimilateChanges(other);
-            }
+
+            bool unionStack(SymbolicStack* other);
 
             void resetPoppedCounter() {poppedCounter = 0;}
+
             void incrementPoppedCounter()
             {
                 if (poppedCounter >= pseudoStack.size()) throw "went too far";
-                ++poppedCounter;
-            }
-
-            void addPop(std::unique_ptr<SymbolicVariable> sv)
-            {
-                if (poppedCounter == pseudoStack.size()) pseudoStack.emplace_back(SymVarStackMember(move(sv)));
-                else
-                {
-                    SymbolicDouble sd("constDouble", sv->getReporter());
-                    pseudoStack[poppedCounter].mergeVar(*sv);
-                }
                 ++poppedCounter;
             }
 
@@ -112,7 +98,7 @@ namespace SymbolicExecution
             std::unique_ptr<SymbolicVariable> popVar()
             {
                 if (!hasPop()) throw "popped empty stack";
-                return pseudoStack[poppedCounter++].varptr->clone();
+                return pseudoStack[poppedCounter++]->varptr->clone();
             }
         };
 

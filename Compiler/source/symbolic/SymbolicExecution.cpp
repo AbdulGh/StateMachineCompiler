@@ -6,6 +6,78 @@
 using namespace std;
 using namespace SymbolicExecution;
 
+//SearchResult
+bool SymbolicExecutionManager::SearchResult::unionStack(SymbolicStack* other)
+{
+    bool change = false;
+    auto myIterator = pseudoStack.rbegin();
+    SymbolicStack* currentCopyFrom = other;
+    while (currentCopyFrom->currentStack.empty() && currentCopyFrom->getParent() != nullptr)
+    {
+        currentCopyFrom = currentCopyFrom->getParent().get();
+    }
+    if (currentCopyFrom->currentStack.empty()) return false;
+    auto theirIterator = currentCopyFrom->currentStack.rbegin();
+
+    while (theirIterator != currentCopyFrom->currentStack.rend()
+           && !(theirIterator == currentCopyFrom->currentStack.rend() && currentCopyFrom->getParent() != nullptr))
+    {
+        if (myIterator == pseudoStack.rend())
+        {
+            vector<unique_ptr<SymVarStackMember>> newSt;
+            while (!pseudoStack.empty())
+            {
+                newSt.push_back(move(pseudoStack.back()));
+                pseudoStack.pop_back();
+            }
+
+            for (auto tempIt = currentCopyFrom->currentStack.rbegin();;)
+            {
+                while (tempIt == currentCopyFrom->currentStack.rend())
+                {
+                    if (currentCopyFrom->getParent() == nullptr)
+                    {
+                        pseudoStack = move(newSt);
+                        reverse(pseudoStack.begin(), pseudoStack.end());
+                        return true;
+                    }
+                    else
+                    {
+                        currentCopyFrom = currentCopyFrom->getParent().get();
+                        tempIt = currentCopyFrom->currentStack.rbegin();
+                    }
+                }
+
+                if ((*tempIt)->getType() == SymbolicStackMemberType::STATE)
+                {
+                    returnStates.insert((*tempIt)->getName());
+                    pseudoStack = move(newSt);
+                    reverse(pseudoStack.begin(), pseudoStack.end());
+                    return true;
+                }
+                newSt.push_back(move(static_cast<SymVarStackMember*>((*tempIt)->clone().get())->cloneVarMember()));
+                ++tempIt;
+            }
+        }
+        if (theirIterator == currentCopyFrom->currentStack.rend() && currentCopyFrom->getParent() != nullptr)
+        {
+            currentCopyFrom = currentCopyFrom->getParent().get();
+            theirIterator = currentCopyFrom->currentStack.rbegin();
+        }
+
+        while (myIterator != pseudoStack.rend() && theirIterator != currentCopyFrom->currentStack.rend())
+        {
+            if ((*theirIterator)->getType() == SymbolicStackMemberType::STATE)
+            {
+                return returnStates.insert((*theirIterator)->getName()).second;
+            }
+            if ((*myIterator)->mergeSM(*theirIterator)) change = true;
+            ++myIterator; ++theirIterator;
+        }
+    }
+    return change;
+}
+
 //SymbolicExecutionFringe
 SymbolicExecutionFringe::SymbolicExecutionFringe(Reporter &r) :
         parent{},
@@ -201,13 +273,9 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
     if (!osef->isFeasable()) return;
 
     unique_ptr<SearchResult>& thisNodeSR = tags[n->getName()];
-    if (!visitedNodes.insert(n->getName()).second) //seen before
-    {
-        bool change = thisNodeSR->unionSVS(osef->symbolicVarSet.get());
-        if (thisNodeSR->unionStack(osef->symbolicStack.get())) change = true;
-        if (!change) return;
-    }
-    thisNodeSR->resetPoppedCounter();
+    bool change = thisNodeSR->unionSVS(osef->symbolicVarSet.get());
+    if (thisNodeSR->unionStack(osef->symbolicStack.get())) change = true;
+    if (!visitedNodes.insert(n->getName()).second && !change) return; //seen before
 
     shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(osef);
 
@@ -285,7 +353,6 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
                     poppedVarClone->userInput(); //todo do I need this?
                     sef->symbolicVarSet->defineVar(move(poppedVarClone));
                 }
-                thisNodeSR->addPop(move(poppedVar));
             }
 
             else if (!command->acceptSymbolicExecution(sef)) return;

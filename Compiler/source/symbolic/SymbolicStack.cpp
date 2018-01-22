@@ -9,7 +9,7 @@
 
 using namespace std;
 
-SymbolicStack::SymbolicStack(Reporter& r, bool ct) : reporter(r), changeTracking(ct) {}
+SymbolicStack::SymbolicStack(Reporter& r) : reporter(r){}
 SymbolicStack::SymbolicStack(shared_ptr<SymbolicStack> p) : parent(move(p)), reporter(parent->reporter) {}
 
 void SymbolicStack::setLoopInit()
@@ -39,8 +39,7 @@ void SymbolicStack::copyParent()
 
 void SymbolicStack::pushState(const string& pushedState)
 {
-    if (!changeTracking) currentStack.emplace_back(make_unique<StateStackMember>(pushedState));
-    else currentStack.emplace_back(make_unique<StateListStackMember>(pushedState));
+    currentStack.emplace_back(make_unique<StateStackMember>(pushedState));
 }
 
 void SymbolicStack::pushVar(SymbolicVariable* pushedVar)
@@ -89,13 +88,6 @@ string SymbolicStack::popState()
     return popped->getName();
 }
 
-string SymbolicStack::popString()
-{
-    unique_ptr<StackMember> popped = popMember();
-    if (popped->getType() != SymbolicStackMemberType::VAR) throw runtime_error("wrong");
-    return static_cast<SymVarStackMember*>(popped.get())->varptr->getConstString();
-}
-
 unique_ptr<SymbolicVariable> SymbolicStack::popVar()
 {
     unique_ptr<StackMember> popped = popMember();
@@ -110,7 +102,7 @@ void SymbolicStack::copyStack(SymbolicStack* other)
     for (const auto& cptr: other->currentStack) currentStack.push_back(cptr->clone());
 }
 
-bool SymbolicStack::assimilateChanges(SymbolicStack* other)
+bool SymbolicStack::assimilateChanges(SymbolicStack* other) //no longer needed
 {
     bool change = false;
     auto myIterator = currentStack.rbegin();
@@ -161,21 +153,6 @@ bool SymbolicStack::assimilateChanges(SymbolicStack* other)
                 newSt.push_back((*tempIt)->clone());
                 ++tempIt;
             }
-
-
-
-            /*
-            for (auto tempIt = currentCopyFrom->currentStack.begin();;)
-            {
-                newSt.push_back((*tempIt)->clone());
-                //if ((*tempIt)->getType() == SymbolicStackMemberType::STATE) return change;
-                if (tempIt != theirIterator.base()) break;
-                else ++tempIt;
-            }
-            for (auto& oldPtr : currentStack) newSt.push_back(move(oldPtr));
-            currentStack = move(newSt);
-            myIterator = currentStack.rend();
-            theirIterator = currentCopyFrom->currentStack.rend();*/
         }
         if (theirIterator == currentCopyFrom->currentStack.rend() && currentCopyFrom->parent != nullptr)
         {

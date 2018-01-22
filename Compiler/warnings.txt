@@ -2,3 +2,16 @@ WARNING : OVERFLOW : _1_1_y could possibly exceed double limits
 WARNING : OVERFLOW : _1_1_y could possibly exceed double limits
 WARNING : OVERFLOW : _1_1_y could possibly exceed double limits
 WARNING : OVERFLOW : _1_1_y could possibly exceed double limits
+=Potential bad path through the following loop:
+Header: F1_ack_0
+Nodes:
+F1_ack_0
+F1_ack_2
+F1_ack_6
+
+Example:
+Visit F1_ack_0 - branch _1_1_x != 0.000000
+Visit F1_ack_2 - branch _1_1_y != 0.000000
+(_1_1_y unchanging)
+ exit loop
+-----
