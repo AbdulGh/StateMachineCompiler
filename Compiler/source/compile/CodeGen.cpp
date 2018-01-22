@@ -1,7 +1,7 @@
 #include "Compiler.h"
 
 using namespace std;
-VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, shared_ptr<Identifier> toVar)
+VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, Identifier* toVar)
 {
     match(Type::CALL);
     string fid = ident();
@@ -47,7 +47,7 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, shared_ptr<Identi
             else
             {
                 string iid = ident();
-                shared_ptr<Identifier> idp = findVariable(iid);
+                Identifier* idp = findVariable(iid);
                 paramTypes.push_back(idp->getType());
                 fromFS->genPush(idp->getUniqueID(), lookahead.line);
             }

@@ -65,9 +65,9 @@ Token Compiler::nextToken()
     return *(tp++);
 }
 
-shared_ptr<Identifier> Compiler::findVariable(string name)
+Identifier* Compiler::findVariable(string name)
 {
-    shared_ptr<Identifier> ret = symbolTable.findIdentifier(name);
+    Identifier* ret = symbolTable.findIdentifier(name);
     if (ret == nullptr) error("Undeclared variable '" + name + "'");
     return ret;
 }
@@ -142,7 +142,7 @@ void Compiler::findGlobalsAndMakeStates()
             {
                 VariableType t = vtype();
                 string id = ident();
-                shared_ptr<Identifier> i = symbolTable.declare(t, id, lookahead.line);
+                Identifier* i = symbolTable.declare(t, id, lookahead.line);
                 initialState.push_back(make_unique<DeclareVarCommand>(t, i->getUniqueID(), lookahead.line));
                 if (lookahead.type == ASSIGN)
                 {

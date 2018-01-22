@@ -34,7 +34,7 @@ private:
     void warning(std::string);
     Token nextToken();
     void findGlobalsAndMakeStates();
-    std::shared_ptr<Identifier> findVariable(std::string);
+    Identifier* findVariable(std::string);
     std::string quoteString(std::string& s);
 
     //parsing
@@ -47,7 +47,7 @@ private:
     std::string ident();
 
     //code generation
-    VariableType genFunctionCall(FunctionSymbol*, std::shared_ptr<Identifier> toPtr = nullptr);
+    VariableType genFunctionCall(FunctionSymbol*, Identifier* toPtr = nullptr);
     void genIf(FunctionSymbol*);
     void genWhile(FunctionSymbol*);
     void ands(FunctionSymbol* fs, std::string success, std::string fail);

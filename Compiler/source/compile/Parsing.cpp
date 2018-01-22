@@ -30,7 +30,7 @@ void Compiler::body()
             VariableType t = vtype();
             unsigned int line = lookahead.line;
             string s = ident();
-            shared_ptr<Identifier> vid = symbolTable.declare(t, s, line);
+            Identifier* vid = symbolTable.declare(t, s, line);
             vid->setDefined();
             const string& vidName = vid->getUniqueID();
             argumentStack.push(make_unique<PopCommand>(vidName, lookahead.line));
@@ -93,7 +93,7 @@ bool Compiler::statement(FunctionSymbol* fs)
             }
             else
             {
-                shared_ptr<Identifier> id = findVariable(ident());
+                Identifier* id = findVariable(ident());
                 fs->genPrint(id->getUniqueID(), lookahead.line);
             }
 
@@ -110,7 +110,7 @@ bool Compiler::statement(FunctionSymbol* fs)
     {
         match(INPUT);
         string id = ident();
-        shared_ptr<Identifier> idPtr = findVariable(id);
+        Identifier* idPtr = findVariable(id);
         fs->genInput(idPtr->getUniqueID(), lookahead.line);
         idPtr->setDefined();
         match(SEMIC);
@@ -121,7 +121,7 @@ bool Compiler::statement(FunctionSymbol* fs)
         string id = ident();
         if (symbolTable.isInScope(id)) //set to '0' or '""' depending on type
         {
-            shared_ptr<Identifier> idPtr = findVariable(id);
+            Identifier* idPtr = findVariable(id);
             if (t != idPtr->getType()) error("'" + id + "' redeclared in same scope with different type");
             else if (lookahead.type == ASSIGN)
             {
@@ -142,14 +142,14 @@ bool Compiler::statement(FunctionSymbol* fs)
             }
             else
             {
-                shared_ptr<Identifier> ident = findVariable(id);
+                Identifier* ident = findVariable(id);
                 if (ident->getType() == DOUBLE) fs->genAssignment(ident->getUniqueID(), "0", lookahead.line);
                 else fs->genAssignment(ident->getUniqueID(), "\"\"", lookahead.line);
             }
         }
         else
         {
-            shared_ptr<Identifier> idPtr = symbolTable.declare(t, id, lookahead.line);
+            Identifier* idPtr = symbolTable.declare(t, id, lookahead.line);
             fs->genVariableDecl(t, idPtr->getUniqueID(), lookahead.line);
 
             if (lookahead.type == ASSIGN)
@@ -177,7 +177,7 @@ bool Compiler::statement(FunctionSymbol* fs)
     }
     else if (lookahead.type == IDENT)
     {
-        shared_ptr<Identifier> idPtr = findVariable(ident());
+        Identifier* idPtr = findVariable(ident());
         match(ASSIGN);
         if (idPtr->getType() == VariableType::STRING)
         {

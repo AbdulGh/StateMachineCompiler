@@ -58,21 +58,21 @@ public:
     }
 };
 
-typedef std::unordered_map<std::string, std::shared_ptr<Identifier>> SymbolTableMap;
+typedef std::unordered_map<std::string, std::unique_ptr<Identifier>> SymbolTableMap;
 class SymbolTable
 {
 private:
-    std::shared_ptr<SymbolTableMap> currentMap;
-    std::forward_list<std::shared_ptr<SymbolTableMap>> sTable;
+    std::unique_ptr<SymbolTableMap> currentMap;
+    std::forward_list<std::unique_ptr<SymbolTableMap>> sTable;
     //used for generating identifiers
     std::vector<unsigned int> scopeDepths;
     unsigned int depth;
 public:
     SymbolTable();
-    std::shared_ptr<Identifier> findIdentifier(std::string name);
+    Identifier* findIdentifier(const std::string& name);
     void pushScope();
     void popScope();
-    std::shared_ptr<Identifier> declare(VariableType type, std::string name, int lineNum);
+    Identifier* declare(VariableType type, std::string name, int lineNum);
     void define(VariableType type, const std::string& name);
     bool isDeclared(const std::string& name);
     bool isDefined(const std::string& name);
