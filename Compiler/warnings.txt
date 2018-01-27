@@ -1,4 +1,13 @@
-WARNING : OVERFLOW : _1_1_y could possibly exceed double limits
-WARNING : OVERFLOW : _1_1_y could possibly exceed double limits
-WARNING : OVERFLOW : _1_1_y could possibly exceed double limits
-WARNING : OVERFLOW : _1_1_y could possibly exceed double limits
+=Potential bad path through the following loop:
+Header: F0_main_1
+Nodes:
+F0_main_1
+F0_main_2
+F0_main_6
+
+Example:
+Visit F0_main_1 - branch _2_0_i < _2_0_n
+Visit F0_main_2 - branch LHS = 0.000000
+(LHS must meet header condition)
+ exit loop
+-----

@@ -15,7 +15,8 @@
 
 //implemented in LoopValidation.cpp
 
-typedef std::map<CFGNode*, std::map<std::string, unsigned short int>> ChangeMap;
+typedef std::map<std::string, unsigned short int> NodeChangeMap;
+typedef std::map<CFGNode*, NodeChangeMap> ChangeMap;
 typedef std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> SEFPointer;
 
 class Loop
