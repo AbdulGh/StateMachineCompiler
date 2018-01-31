@@ -26,7 +26,7 @@ private:
     ControlFlowGraph& cfg;
     CFGNode* headerNode;
     CFGNode* comparisonNode;
-    std::set<CFGNode*> nodes;
+    std::map<CFGNode*, bool> nodes; //bool represents nested loop
     bool stackBased = false;
     bool goodPathFound = false;
 
@@ -34,10 +34,10 @@ private:
     bool searchNode(CFGNode* node, ChangeMap& map, std::unordered_map<std::string, std::unique_ptr<SearchResult>>& tags,
                     SEFPointer sef, std::string& badExample, bool headerSeen = true);
 
+
 public:
-    Loop(CFGNode* entry, CFGNode* last, std::set<CFGNode*> nodeSet, ControlFlowGraph& cfg);
+    Loop(CFGNode* entry, CFGNode* last, std::map<CFGNode*, bool> nodeSet, ControlFlowGraph& cfg);
     std::string getInfo();
-    std::set<CFGNode*> getNodeCopy() {return nodes;}
     void validate(std::unordered_map<std::string, std::unique_ptr<SearchResult>>& tags);
 };
 

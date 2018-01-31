@@ -18,7 +18,7 @@
 
 using namespace std;
 
-Loop::Loop(CFGNode* entry, CFGNode* last, std::set<CFGNode*> nodeSet, ControlFlowGraph& controlFlowGraph):
+Loop::Loop(CFGNode* entry, CFGNode* last, std::map<CFGNode*, bool> nodeSet, ControlFlowGraph& controlFlowGraph):
             headerNode(entry), nodes(move(nodeSet)), cfg(controlFlowGraph)
 {
     if (headerNode->getCompSuccess() != nullptr) comparisonNode = headerNode;
@@ -39,7 +39,12 @@ Loop::Loop(CFGNode* entry, CFGNode* last, std::set<CFGNode*> nodeSet, ControlFlo
 string Loop::getInfo()
 {
     std::string outStr = "Header: " + headerNode->getName() + "\nNodes:\n";
-    for (CFGNode* node: nodes) outStr += node->getName() + "\n";
+    for (auto pair: nodes)
+    {
+        outStr += pair.first->getName();
+        if (pair.second) outStr += " (nested)";
+        outStr += "\n";
+    }
     return outStr;
 }
 
@@ -51,7 +56,7 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
     sef->symbolicVarSet = move(headerSR->getInitSVS());
     sef->setLoopInit();
 
-    if (stackBased)
+    /*if (stackBased) todo next
     {
         vector<CFGNode*> retNodes = comparisonNode->getSuccessorVector();
         sort(retNodes.begin(), retNodes.end());
@@ -60,9 +65,9 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
                          nodes.begin(), nodes.end(), inserter(intersect, intersect.begin()));
         if (intersect.size() != 1) throw "should be";
         sef->symbolicStack->pushState((*intersect.cbegin())->getName());
-    }
+    }*/
 
-    for (CFGNode* node: nodes) varChanges.emplace(node, NodeChangeMap());
+    for (auto pair: nodes) varChanges.emplace(pair.first, NodeChangeMap());
 
     string badExample;
     searchNode(headerNode, varChanges, tags, sef, badExample, false);

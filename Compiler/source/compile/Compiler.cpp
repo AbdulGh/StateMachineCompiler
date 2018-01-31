@@ -50,8 +50,11 @@ void Compiler::compile(stringstream& out)
     unordered_map<string, SRPointer>& tags
             = symbolicExecutionManager.search();
 
+    cout << cfg.getDotGraph();
+    return;
+
     vector<Loop> loops = LengTarj(cfg).findLoops();
-    //for (Loop& loop : loops) cout << loop.getInfo() << endl;
+    for (Loop& loop : loops) cout << loop.getInfo() << endl;
     for (Loop& loop : loops) loop.validate(tags);
 
     Optimise::optimise(symbolTable, functionTable, cfg);

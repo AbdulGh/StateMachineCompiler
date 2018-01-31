@@ -150,7 +150,7 @@ vector<Loop> LengTarj::findLoops()
         unsigned long currentDom = domNums[i];
         do
         {
-            auto succ = find(iSuccessors.begin(), iSuccessors.end(), currentDom); //check if successor is immediate dominator
+            auto succ = find(iSuccessors.begin(), iSuccessors.end(), currentDom); //check if successor is a dominator
             if (succ != iSuccessors.end()) natLoopTails.push_back(currentDom);  //natural loop found
             currentDom = domNums[currentDom];
         } while (currentDom != domNums[currentDom]);
@@ -158,7 +158,10 @@ vector<Loop> LengTarj::findLoops()
         for (const auto& succNum : natLoopTails)
         {
             stack<unsigned long> toProcess({i});
-            std::set<CFGNode*> nodeSet({verticies[i]->node});
+
+            printf("nat loop: %d -> %d\n", i, succNum);
+
+            std::map<CFGNode*, bool> nodeMap({{verticies[i]->node, domNums[i] == succNum}});
             while (!toProcess.empty()) //search upwards
             {
                 unsigned long processingIndex = toProcess.top();
@@ -168,10 +171,12 @@ vector<Loop> LengTarj::findLoops()
                 for (unsigned long pred : processing->predecessors)
                 {
                     unique_ptr<NodeWrapper>& predNode = verticies[pred];
-                    if (nodeSet.insert(predNode->node).second) toProcess.push(pred);
+                    printf("pred n: %s\n pred dn: %d\n b: %s\n\n", predNode->node->getName().c_str(),
+                           domNums[pred], domNums[pred] != succNum ? "true" : "false");
+                    if (nodeMap.insert({predNode->node, (domNums[pred] != succNum && pred != succNum)}).second) toProcess.push(pred);
                 }
             }
-            loops.emplace_back(Loop(verticies[succNum]->node, verticies[i]->node, nodeSet, controlFlowGraph));
+            loops.emplace_back(Loop(verticies[succNum]->node, verticies[i]->node, nodeMap, controlFlowGraph));
         }
     }
     return loops;
