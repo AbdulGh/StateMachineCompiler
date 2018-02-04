@@ -73,11 +73,11 @@ public:
     virtual bool isBoundedBelow() const = 0;
     virtual bool isBoundedAbove() const = 0;
     virtual bool isDetermined() const = 0;
-    //todo union, clip etc directly w/ var
     virtual bool clipLowerBound(const std::string& lb, bool closed=true) = 0;
     virtual bool clipUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setLowerBound(const std::string& ub, bool closed=true) = 0;
+    virtual bool unionVar(SymbolicVariable* unionFrom) = 0;
     virtual void iterateTo(const std::string& to, bool closed=true) = 0;
     virtual void iterateTo(SymbolicVariable* to, bool closed=true) = 0;
 
@@ -151,6 +151,7 @@ public:
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
     SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, SymbolicVariable* rhs) const override;
     std::unique_ptr<SymbolicVariable> clone() override;
+    std::unique_ptr<SymbolicDouble> cloneSD();
     SymbolicVariable* cloneRaw() override;
 
     void removeUpperBound();
@@ -162,6 +163,7 @@ public:
     void setTConstValue(const double& d) override;
     bool unionTLowerBound(const double& lb, bool closed = true) override;
     bool unionTUpperBound(const double& up, bool closed = true) override;
+    bool unionVar(SymbolicVariable* other) override;
     void setConstValue(const std::string&) override;
     bool clipUpperBound(const std::string& ub, bool closed = true) override;
     bool clipLowerBound(const std::string& lb, bool closed = true) override;
@@ -216,6 +218,7 @@ public:
     bool unionTUpperBound(const std::string& up, bool closed = true) override;
     void setTConstValue(const std::string& s) override;
     void unionTConstValue(const std::string& s, bool closed=true) override;
+    bool unionVar(SymbolicVariable* other) override;
     void setConstValue(const std::string&) override;
     bool clipUpperBound(const std::string& ub, bool closed = true) override;
     bool clipLowerBound(const std::string& lb, bool closed = true) override;

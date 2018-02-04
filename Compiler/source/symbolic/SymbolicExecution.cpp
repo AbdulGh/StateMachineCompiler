@@ -281,82 +281,20 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
 
     for (const auto& command : n->getInstrs())
     {
-        //might be in a loop
-        if (command->getType() == CommandType::EXPR)
+        if (command->getType() == CommandType::POP)  //todo do I need this?
         {
-            EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(command.get());
+            unique_ptr<SymbolicVariable> poppedVar = sef->symbolicStack->popVar();
 
-            bool t2islit = false;
-            double t2;
-            try
+            if (!command->getData().empty())
             {
-                t2 = stod(eec->term2);
-                t2islit = true;
-            }
-            catch (invalid_argument&){}
-
-            if (eec->op == MOD)
-            {
-                if (t2islit)
-                {
-                    if (!command->acceptSymbolicExecution(sef)) return;
-                }
-                else sef->symbolicVarSet->findVar(command->getData())->userInput();
-            }
-            else if (!t2islit) sef->symbolicVarSet->findVar(command->getData())->userInput();
-            else
-            {
-                if (!command->acceptSymbolicExecution(sef)) return;
-                SymbolicDouble* sd = static_cast<SymbolicDouble*>(sef->symbolicVarSet->findVar(command->getData()));
-
-                switch (eec->op)
-                {
-                    case ArithOp::MINUS:
-                        t2 *= -1;
-                    case ArithOp::PLUS:
-                        if (t2 > 0) sd->removeUpperBound();
-                        else if (t2 < 0) sd->removeLowerBound();
-                        break;
-                        
-                    case ArithOp::DIV:
-                        if (t2 == 0) throw runtime_error("divide by 0");
-                        else t2 = 1/t2;
-                    case ArithOp::MULT:
-                        if (abs(t2) > 1)
-                        {
-                            if (sd->getTUpperBound() > 0) sd->removeUpperBound();
-                            else if (sd->getTUpperBound() < 0) sd->removeLowerBound();
-                            if (sd->getTLowerBound() < 0) sd->removeLowerBound();
-                            else if (sd->getTLowerBound() > 0) sd->removeUpperBound();
-                        }
-                        else if (abs(t2) < 1)
-                        {
-                            if (sd->getTLowerBound() > 0) sd->setTLowerBound(0);
-                            if (sd->getTUpperBound() < 0) sd->setTUpperBound(0);
-                        }
-
-                    default:
-                        throw runtime_error("Unsupported op");
-                }
+                unique_ptr<SymbolicVariable> poppedVarClone = poppedVar->clone();
+                poppedVarClone->setName(command->getData());
+                poppedVarClone->userInput();
+                sef->symbolicVarSet->defineVar(move(poppedVarClone));
             }
         }
-        else
-        {
-            if (command->getType() == CommandType::POP)
-            {
-                unique_ptr<SymbolicVariable> poppedVar = sef->symbolicStack->popVar();
 
-                if (!command->getData().empty())
-                {
-                    unique_ptr<SymbolicVariable> poppedVarClone = poppedVar->clone();
-                    poppedVarClone->setName(command->getData());
-                    poppedVarClone->userInput(); //todo do I need this?
-                    sef->symbolicVarSet->defineVar(move(poppedVarClone));
-                }
-            }
-
-            else if (!command->acceptSymbolicExecution(sef)) return;
-        }
+        else if (!command->acceptSymbolicExecution(sef, true)) return;
     }
 
     JumpOnComparisonCommand* jocc = n->getComp();

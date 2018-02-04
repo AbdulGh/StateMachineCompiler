@@ -159,9 +159,7 @@ vector<Loop> LengTarj::findLoops()
         {
             stack<unsigned long> toProcess({i});
 
-            printf("nat loop: %d -> %d\n", i, succNum);
-
-            std::map<CFGNode*, bool> nodeMap({{verticies[i]->node, domNums[i] == succNum}});
+            std::map<CFGNode*, unsigned long> nodeMap({{verticies[i]->node, domNums[i]}});
             while (!toProcess.empty()) //search upwards
             {
                 unsigned long processingIndex = toProcess.top();
@@ -171,12 +169,10 @@ vector<Loop> LengTarj::findLoops()
                 for (unsigned long pred : processing->predecessors)
                 {
                     unique_ptr<NodeWrapper>& predNode = verticies[pred];
-                    printf("pred n: %s\n pred dn: %d\n b: %s\n\n", predNode->node->getName().c_str(),
-                           domNums[pred], domNums[pred] != succNum ? "true" : "false");
-                    if (nodeMap.insert({predNode->node, (domNums[pred] != succNum && pred != succNum)}).second) toProcess.push(pred);
+                    if (nodeMap.insert({predNode->node, domNums[pred]}).second) toProcess.push(pred);
                 }
             }
-            loops.emplace_back(Loop(verticies[succNum]->node, verticies[i]->node, nodeMap, controlFlowGraph));
+            loops.emplace_back(Loop(verticies[succNum]->node, verticies[i]->node, move(nodeMap), succNum, controlFlowGraph));
         }
     }
     return loops;

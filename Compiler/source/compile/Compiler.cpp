@@ -7,7 +7,7 @@
 #include "Compiler.h"
 #include "../CFGOpt/Optimiser.h"
 #include "../CFGOpt/LengTarj.h"
-#include "../CFGOpt/Loop.h"
+#include "../symbolic/SymbolicArray.h" //delet
 
 using namespace std;
 
@@ -50,16 +50,17 @@ void Compiler::compile(stringstream& out)
     unordered_map<string, SRPointer>& tags
             = symbolicExecutionManager.search();
 
-    cout << cfg.getDotGraph();
-    return;
 
     vector<Loop> loops = LengTarj(cfg).findLoops();
     for (Loop& loop : loops) cout << loop.getInfo() << endl;
+
+    cout << cfg.getDotGraph() << endl;
+    return;
     for (Loop& loop : loops) loop.validate(tags);
 
     Optimise::optimise(symbolTable, functionTable, cfg);
 
-//    cout << cfg.getStructuredSource() << endl;
+    cout << cfg.getStructuredSource() << endl;
    // cout << cfg.destroyStructureAndGetFinalSource();
 }
 

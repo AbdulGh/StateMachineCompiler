@@ -18,8 +18,9 @@
 
 using namespace std;
 
-Loop::Loop(CFGNode* entry, CFGNode* last, std::map<CFGNode*, bool> nodeSet, ControlFlowGraph& controlFlowGraph):
-            headerNode(entry), nodes(move(nodeSet)), cfg(controlFlowGraph)
+Loop::Loop(CFGNode* entry, CFGNode* last, std::map<CFGNode*, unsigned long> nodeSet,
+           unsigned long tailNumber, ControlFlowGraph& controlFlowGraph):
+           headerNode(entry), nodes(move(nodeSet)), cfg(controlFlowGraph), domNum(tailNumber)
 {
     if (headerNode->getCompSuccess() != nullptr) comparisonNode = headerNode;
     else if (last->getCompSuccess() != nullptr) comparisonNode = last;
@@ -42,7 +43,7 @@ string Loop::getInfo()
     for (auto pair: nodes)
     {
         outStr += pair.first->getName();
-        if (pair.second) outStr += " (nested)";
+        if (!(pair.second == domNum || pair.first->getName() == headerNode->getName())) outStr += " (nested)";
         outStr += "\n";
     }
     return outStr;

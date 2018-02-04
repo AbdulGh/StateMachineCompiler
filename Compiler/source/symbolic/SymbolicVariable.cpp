@@ -308,8 +308,7 @@ void SymbolicVariable::clearGreater()
 template <typename T>
 SymbolicVariableTemplate<T>::SymbolicVariableTemplate(string name, const T lower, const T upper,
                                       Reporter& r, VariableType t, bool init, bool incrementable):
-        SymbolicVariable(name, t, r, init, lower <= upper, incrementable), lowerBound(lower), upperBound(upper)
-{}
+        SymbolicVariable(name, t, r, init, lower <= upper, incrementable), lowerBound(lower), upperBound(upper) {}
 
 template<typename T>
 bool SymbolicVariableTemplate<T>::isDisjointFrom(shared_ptr<SymbolicVariableTemplate<T>> other)

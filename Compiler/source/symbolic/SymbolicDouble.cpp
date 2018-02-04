@@ -26,6 +26,11 @@ unique_ptr<SymbolicVariable> SymbolicDouble::clone()
     return make_unique<SymbolicDouble>(*this);
 }
 
+unique_ptr<SymbolicDouble> SymbolicDouble::cloneSD()
+{
+    return make_unique<SymbolicDouble>(*this);
+}
+
 SymbolicVariable* SymbolicDouble::cloneRaw()
 {
     return new SymbolicDouble(*this);
@@ -197,6 +202,15 @@ bool SymbolicDouble::unionTUpperBound(const double& d, bool closed)
 bool SymbolicDouble::unionLowerBound(const std::string& lb, bool closed)
 {
     return unionTLowerBound(stod(lb), closed);
+}
+
+bool SymbolicDouble::unionVar(SymbolicVariable *other)
+{
+    if (other->getType() != DOUBLE) throw "wrong";
+    SymbolicDouble* sd = static_cast<SymbolicDouble*>(other);
+    bool ret = unionTLowerBound(sd->getTLowerBound());
+    if (unionTUpperBound(sd->getTUpperBound())) ret = true;
+    return ret;
 }
 
 void SymbolicDouble::setTConstValue(const double& d)

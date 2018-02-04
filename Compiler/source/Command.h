@@ -28,8 +28,8 @@ public:
     virtual ~AbstractCommand() {}
     virtual std::unique_ptr<AbstractCommand> clone() = 0;
 
-    //returns if the symbolic execution of this command went through
-    virtual bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs);
+    //returns true if the symbolic execution of this command went through
+    virtual bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat = false);
 
     const std::string& getData() const
     {
@@ -204,7 +204,7 @@ public:
         return std::make_unique<InputVarCommand>(getData(), getLineNum());
     }
 
-    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
+    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 };
 
 class FunctionSymbol;
@@ -238,7 +238,7 @@ public:
         return std::make_unique<PushCommand>(getData(), getLineNum(), calledFunction);
     }
 
-    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
+    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 };
 
 class PopCommand: public AbstractCommand
@@ -258,7 +258,7 @@ public:
     bool isEmpty() const {return getData() == "";}
 
     std::string translation(const std::string& delim) const override {return isEmpty() ? "pop;" + delim : "pop " + getData() + ";" + delim;}
-    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
+    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 };
 
 
@@ -279,7 +279,7 @@ public:
     }
 
     std::string translation(const std::string& delim) const override{return getData() + " = " + RHS + ";" + delim;}
-    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
+    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 };
 
 class EvaluateExprCommand: public AbstractCommand
@@ -303,7 +303,7 @@ public:
 
     std::string translation(const std::string& delim) const override{return getData() + " = " + term1 + ' '
                                                                      + opEnumChars[op]  + ' ' + term2 + ";" + delim;}
-    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
+    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat) override;
 };
 
 class DeclareVarCommand: public AbstractCommand
@@ -326,7 +326,7 @@ public:
     {
         return VariableTypeEnumNames[vt] + " " + getData() + ";" + delim;
     }
-    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs) override;
+    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 };
 
 #endif

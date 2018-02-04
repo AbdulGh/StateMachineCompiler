@@ -81,6 +81,8 @@ Token Lexer::parseToken()
         case '*': return Token(MULT);
         case '%': return Token(MOD);
         case ',': return Token(COMMA);
+        case '[': return Token(LSQPAREN);
+        case ']': return Token(RSQPAREN);
         case '|':
             if ((c = getChar()) && c == '|') return Token(COMPOR);
             else

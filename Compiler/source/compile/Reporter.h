@@ -3,7 +3,7 @@
 
 #include <fstream>
 
-#define NUM_ALERTS 10
+#define NUM_ALERTS 11
 
 
 class Loop;
@@ -17,7 +17,7 @@ private:
 
 public:
     enum AlertType {GENERIC, RANGE, UNINITIALISED_USE, UNDECLARED_USE, TYPE,
-                    ZERODIVISION, USELESS_OP, BAD_STACK_USE, COMPILER, DEADCODE};
+                    ZERODIVISION, USELESS_OP, BAD_STACK_USE, ARRAY_BOUNDS, COMPILER, DEADCODE, };
 
     Reporter(std::string filename);
     ~Reporter();

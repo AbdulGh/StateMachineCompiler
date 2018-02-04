@@ -1,5 +1,4 @@
 #include <iostream>
-
 #include "compile/Compiler.h"
 
 using namespace std;
@@ -7,7 +6,7 @@ using namespace std;
 int main()
 {
     Lexer lexer;
-    vector<Token> st = lexer.tokenize("/home/abdul/CLionProjects/Compiler/examples/nestedTest.f");
+    vector<Token> st = lexer.tokenize("/home/abdul/CLionProjects/Compiler/examples/delet.f");
     Compiler c(st, "../warnings.txt");
     stringstream pleaseWork;
     c.compile(pleaseWork);

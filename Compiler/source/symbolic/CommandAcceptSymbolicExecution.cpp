@@ -6,12 +6,12 @@
 
 using namespace std;
 
-bool AbstractCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe>)
+bool AbstractCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe>, bool repeat)
 {
     return true;
 }
 
-bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
+bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat)
 {
     SymbolicVariable* found = svs->symbolicVarSet->findVar(getData());
     if (found == nullptr) throw "should be found";
@@ -19,7 +19,7 @@ bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symb
     return true;
 }
 
-bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
+bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat)
 {
     if (calledFunction != nullptr) svs->symbolicStack->pushState(getData());
 
@@ -58,7 +58,7 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
     return true;
 }
 
-bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
+bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat)
 {
     if (svs->symbolicStack->isEmpty())
     {
@@ -100,7 +100,7 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
     return true;
 }
 
-bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
+bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat)
 {
     SymbolicVariable* svp = svs->symbolicVarSet->findVar(getData());
     if (svp == nullptr)
@@ -144,109 +144,160 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
     return svp->isFeasable();
 }
 
-bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
+bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
-    SymbolicVariable* LHS = svs->symbolicVarSet->findVar(getData());
+    SymbolicVariable* LHS = sef->symbolicVarSet->findVar(getData());
     if (LHS == nullptr)
     {
-        svs->error(Reporter::UNDECLARED_USE, "'" + getData() + "' assigned to without being declared", getLineNum());
+        sef->error(Reporter::UNDECLARED_USE, "'" + getData() + "' assigned to without being declared", getLineNum());
         return false;
     }
     else if (LHS->getType() != DOUBLE)
     {
-        svs->error(Reporter::TYPE, "'" + getData() + "' (type " + TypeEnumNames[LHS->getType()] +
+        sef->error(Reporter::TYPE, "'" + getData() + "' (type " + TypeEnumNames[LHS->getType()] +
                 ") used in arithmetic evaluation", getLineNum());
         return false;
     }
 
-    //todo make it use consts directly instead of creating vars
-    bool deletet1 = true;
-    SymbolicVariable* t1;
-    try
+
+    if (op != MOD && repeat)
     {
-        stod(term1);
-        t1 = new SymbolicDouble("LHSconst", svs->reporter); //if we get here it's a double
-        t1->setConstValue(term1);
-    }
-    catch (invalid_argument&)
-    {
-        t1 = svs->symbolicVarSet->findVar(term1);
-        if (t1 == nullptr)
+        bool t2islit = false;
+        double t2;
+        try
         {
-            svs->error(Reporter::UNDECLARED_USE, "'" + term1 + "' used without being declared", getLineNum());
-            return false;
+            t2 = stod(term2);
+            t2islit = true;
         }
-        else if (t1->getType() != DOUBLE)
+        catch (invalid_argument&){}
+
+        if (!t2islit) LHS->userInput();
+        else
         {
-            svs->error(Reporter::TYPE, "'" + term1 + "' (type " + TypeEnumNames[t1->getType()] +
-                                       ") used in arithmetic evaluation", getLineNum());
-            return false;
-        }
-        else if (!t1->isDefined()) svs->warn(Reporter::TYPE, "'" + term1 + "' used before definition", getLineNum());
-        deletet1 = false;
-    }
+            SymbolicDouble* sd = static_cast<SymbolicDouble*>(LHS);
 
-    bool deletet2 = true;
-    SymbolicVariable* t2;
-    try
-    {
-        stod(term2);
-        t2 = new SymbolicDouble("RHSconst", svs->reporter);
-        t2->setConstValue(term2);
+            switch (op)
+            {
+                case ArithOp::MINUS:
+                    t2 *= -1;
+                case ArithOp::PLUS:
+                    if (t2 > 0) sd->removeUpperBound();
+                    else if (t2 < 0) sd->removeLowerBound();
+                    break;
+
+                case ArithOp::DIV:
+                    if (t2 == 0) throw runtime_error("divide by 0");
+                    else t2 = 1/t2;
+                case ArithOp::MULT:
+                    if (abs(t2) > 1)
+                    {
+                        if (sd->getTUpperBound() > 0) sd->removeUpperBound();
+                        else if (sd->getTUpperBound() < 0) sd->removeLowerBound();
+                        if (sd->getTLowerBound() < 0) sd->removeLowerBound();
+                        else if (sd->getTLowerBound() > 0) sd->removeUpperBound();
+                    }
+                    else if (abs(t2) < 1)
+                    {
+                        if (sd->getTLowerBound() > 0) sd->setTLowerBound(0);
+                        if (sd->getTUpperBound() < 0) sd->setTUpperBound(0);
+                    }
+
+                default:
+                    throw runtime_error("Unsupported op");
+            }
+        }
     }
-    catch (invalid_argument&)
+    else
     {
-        t2 = svs->symbolicVarSet->findVar(term2);
-        if (t2 == nullptr)
+        //todo make it use consts directly instead of creating vars
+        bool deletet1 = true;
+        SymbolicVariable* t1;
+        try
         {
-            svs->error(Reporter::UNDECLARED_USE, "'" + term2 + "' used without being declared", getLineNum());
-            return false;
+            stod(term1);
+            t1 = new SymbolicDouble("LHSconst", sef->reporter); //if we get here it's a double
+            t1->setConstValue(term1);
         }
-        else if (t2->getType() != DOUBLE)
+        catch (invalid_argument&)
         {
-            svs->error(Reporter::TYPE, "'" + term2 + "' (type " + TypeEnumNames[t2->getType()] +
-                                       ") used in arithmetic evaluation", getLineNum());
-            return false;
+            t1 = sef->symbolicVarSet->findVar(term1);
+            if (t1 == nullptr)
+            {
+                sef->error(Reporter::UNDECLARED_USE, "'" + term1 + "' used without being declared", getLineNum());
+                return false;
+            }
+            else if (t1->getType() != DOUBLE)
+            {
+                sef->error(Reporter::TYPE, "'" + term1 + "' (type " + TypeEnumNames[t1->getType()] +
+                                           ") used in arithmetic evaluation", getLineNum());
+                return false;
+            }
+            else if (!t1->isDefined()) sef->warn(Reporter::TYPE, "'" + term1 + "' used before definition", getLineNum());
+            deletet1 = false;
         }
-        else if (!t2->isDefined()) svs->warn(Reporter::TYPE, "'" + term2 + "' used before definition", getLineNum());
 
-        deletet2 = false;
+        bool deletet2 = true;
+        SymbolicVariable* t2;
+        try
+        {
+            stod(term2);
+            t2 = new SymbolicDouble("RHSconst", sef->reporter);
+            t2->setConstValue(term2);
+        }
+        catch (invalid_argument&)
+        {
+            t2 = sef->symbolicVarSet->findVar(term2);
+            if (t2 == nullptr)
+            {
+                sef->error(Reporter::UNDECLARED_USE, "'" + term2 + "' used without being declared", getLineNum());
+                return false;
+            }
+            else if (t2->getType() != DOUBLE)
+            {
+                sef->error(Reporter::TYPE, "'" + term2 + "' (type " + TypeEnumNames[t2->getType()] +
+                                           ") used in arithmetic evaluation", getLineNum());
+                return false;
+            }
+            else if (!t2->isDefined()) sef->warn(Reporter::TYPE, "'" + term2 + "' used before definition", getLineNum());
+
+            deletet2 = false;
+        }
+
+        unique_ptr<SymbolicDouble> result = make_unique<SymbolicDouble>(t1);
+        SymbolicDouble t2copy(t2);
+
+        switch (op)
+        {
+            case PLUS:
+                result->addSymbolicDouble(t2copy);
+                break;
+            case MULT:
+                result->multSymbolicDouble(t2copy);
+                break;
+            case MINUS:
+                t2copy.multConst(-1);
+                result->addSymbolicDouble(t2copy);
+                break;
+            case DIV:
+                result->divSymbolicDouble(t2copy);
+                break;
+            case MOD:
+                result->modSymbolicDouble(t2copy);
+                break;
+            default:
+                throw runtime_error("Bitwise operations not supported");
+        }
+        result->setName(LHS->getName());
+        result->define();
+        sef->symbolicVarSet->defineVar(move(result));
+
+        if (deletet1) delete t1;
+        if (deletet2) delete t2;
     }
-
-    unique_ptr<SymbolicDouble> result = make_unique<SymbolicDouble>(t1);
-    SymbolicDouble t2copy(t2);
-
-    switch (op)
-    {
-        case PLUS:
-            result->addSymbolicDouble(t2copy);
-            break;
-        case MULT:
-            result->multSymbolicDouble(t2copy);
-            break;
-        case MINUS:
-            t2copy.multConst(-1);
-            result->addSymbolicDouble(t2copy);
-            break;
-        case DIV:
-            result->divSymbolicDouble(t2copy);
-            break;
-        case MOD:
-            result->modSymbolicDouble(t2copy);
-            break;
-        default:
-            throw runtime_error("Bitwise operations not supported");
-    }
-    result->setName(LHS->getName());
-    result->define();
-    svs->symbolicVarSet->defineVar(move(result));
-
-    if (deletet1) delete t1;
-    if (deletet2) delete t2;
-    return svs->isFeasable();
+    return sef->isFeasable();
 }
 
-bool DeclareVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs)
+bool DeclareVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat)
 {
     if (vt == STRING) svs->symbolicVarSet->defineVar(make_unique<SymbolicString>(getData(), svs->reporter));
     else if (vt == DOUBLE) svs->symbolicVarSet->defineVar(make_unique<SymbolicDouble>(getData(), svs->reporter));
