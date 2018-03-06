@@ -33,6 +33,30 @@ string Compiler::quoteString(string &s)
 
 void Compiler::compile(stringstream& out)
 {
+    SymbolicArray sa(100, reporter);
+    sa.set(40, -10);
+    sa.set(45, 10);
+    unique_ptr<SymbolicDouble> sd1 = make_unique<SymbolicDouble>("a", reporter);
+    sd1->setTLowerBound(35);
+    sd1->setTUpperBound(39);
+    unique_ptr<SymbolicDouble> r1 = sa[sd1.get()];
+    printf("expection 0 0: %f %f\n", r1->getTLowerBound(), r1->getTUpperBound());
+    sd1->setTLowerBound(39);
+    sd1->setTUpperBound(40);
+    unique_ptr<SymbolicDouble> r2 = sa[sd1.get()];
+    printf("expecting -10, 0: %f %f\n", r2->getTLowerBound(), r2->getTUpperBound());
+    sd1->setTConstValue(45);
+    unique_ptr<SymbolicDouble> r3 = sa[sd1.get()];
+    printf("expecting 10, 10: %f %f\n", r3->getTLowerBound(), r3->getTUpperBound());
+    sd1->setTLowerBound(30);
+    sd1->setTUpperBound(50);
+    unique_ptr<SymbolicDouble> r4 = sa[sd1.get()];
+    printf("expecting -10, 10: %f %f\n", r4->getTLowerBound(), r4->getTUpperBound());
+    sd1->setTConstValue(99);
+    unique_ptr<SymbolicDouble> r5 = sa[sd1.get()];
+    printf("expecting 0, 0: %f %f\n", r5->getTLowerBound(), r5->getTUpperBound());
+    return;
+
     tp = stream.cbegin();
     findGlobalsAndMakeStates();
     tp = stream.cbegin();
@@ -49,7 +73,6 @@ void Compiler::compile(stringstream& out)
             = SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter);
     unordered_map<string, SRPointer>& tags
             = symbolicExecutionManager.search();
-
 
     vector<Loop> loops = LengTarj(cfg).findLoops();
     for (Loop& loop : loops) cout << loop.getInfo() << endl;
@@ -146,6 +169,7 @@ void Compiler::findGlobalsAndMakeStates()
             {
                 VariableType t = vtype();
                 string id = ident();
+
                 Identifier* i = symbolTable.declare(t, id, lookahead.line);
                 initialState.push_back(make_unique<DeclareVarCommand>(t, i->getUniqueID(), lookahead.line));
                 if (lookahead.type == ASSIGN)

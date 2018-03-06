@@ -6,10 +6,13 @@
 #include <memory>
 
 #include "SymbolicVariables.h"
+#include "SymbolicArray.h"
 
 
 typedef std::unique_ptr<SymbolicVariable> SymbolicVariablePointer;
 typedef std::unordered_map<std::string, SymbolicVariablePointer> VarMap;
+typedef std::unique_ptr<SymbolicArray> SymbolicArrayPointer;
+typedef std::unordered_map<std::string, SymbolicArrayPointer> ArrayMap;
 
 class SymbolicVarSet;
 
@@ -34,6 +37,7 @@ private:
     std::shared_ptr<SymbolicVarSet> parent = nullptr;
     VarMap::const_iterator endIterator;
     VarMap variables;
+    ArrayMap arrays;
 
 public:
     explicit SymbolicVarSet(std::shared_ptr<SymbolicVarSet> p)
@@ -44,6 +48,7 @@ public:
     }
     SymbolicVarSet(const SymbolicVarSet&) = delete;
     SymbolicVariable* findVar(std::string name);
+    SymbolicArray* findArray(std::string name);
     //const std::unordered_map<std::string, SymbolicVariablePointer>& getVars() const {return variables;}
     void defineVar(SymbolicVariablePointer newvar);
     bool unionSVS(SymbolicVarSet* other);
@@ -53,7 +58,7 @@ public:
 
     std::vector<std::pair<const std::string, SymbolicVariable*>> getAllVars();
 
-    SVSIterator begin() const {throw "not working";}// return {this, variables.cbegin()};}
+    SVSIterator begin() const {throw "not working";}// return {this, variables.cbegin()};} (todo)
     SVSIterator end() const {return parent == nullptr ? SVSIterator(this, variables.cend()) : parent->end();} //end only called once when iterating
 
     friend class SVSIterator;

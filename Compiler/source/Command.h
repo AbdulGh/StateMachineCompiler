@@ -104,7 +104,7 @@ public:
 class JumpCommand: public AbstractCommand
 {
 public:
-    JumpCommand(std::string to, int linenum) : AbstractCommand(linenum)
+    JumpCommand(const std::string& to, int linenum) : AbstractCommand(linenum)
     {
         setData(to);
         setType(CommandType::JUMP);
@@ -289,7 +289,7 @@ public:
     std::string term2;
     ArithOp op;
 
-    EvaluateExprCommand(const std::string& lh, std::string t1, ArithOp o, std::string t2, int linenum) :
+    EvaluateExprCommand(const std::string& lh, std::string t1, ArithOp o, std::string t2, int linenum):
     AbstractCommand(linenum), op{o}, term1{std::move(t1)}, term2{std::move(t2)}
     {
         setData(lh);
@@ -327,6 +327,22 @@ public:
         return VariableTypeEnumNames[vt] + " " + getData() + ";" + delim;
     }
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
+};
+
+class DeclareArrayCommand: public AbstractCommand
+{
+public:
+    const unsigned long size;
+
+    DeclareArrayCommand(const std::string& name, const unsigned long& n, int linenum): AbstractCommand(linenum), size(n)
+    {
+        setData(name);
+    }
+
+    std::string translation(const std::string& delim) const override
+    {
+        return "array[" + std::to_string(size) + "] " + getData() + ";" + delim;
+    }
 };
 
 #endif

@@ -10,7 +10,7 @@ string TypeEnumNames[] = {"IDENT", "OP", "RELOP", "LBRACE", "RBRACE",
                           "COMPAND", "COMPOR", "STRINGLIT", "ELSE",
                           "LSQPAREN", "RSQPAREN"};
 
-string VariableTypeEnumNames[] = {"double", "string"};
+string VariableTypeEnumNames[] = {"double", "string", "double array"};
 
 char opEnumChars[] = {'+', '*', '-', '/', '%', '&', '|'};
 

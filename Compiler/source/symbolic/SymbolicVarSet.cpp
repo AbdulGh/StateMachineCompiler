@@ -19,19 +19,32 @@ SymbolicVariable* SymbolicVarSet::findVar(string name)
         }
         else if (oldSym->getType() == STRING)
         {
-            variables[name] = make_unique<SymbolicDouble>(oldSym);
+            variables[name] = make_unique<SymbolicString>(oldSym);
             return variables[name].get();
         }
         else throw runtime_error("Bad type found");
     }
 }
 
+SymbolicArray* SymbolicVarSet::findArray(string name)
+{
+    unordered_map<string, SymbolicArrayPointer>::const_iterator it = arrays.find(name);
+    if (it != arrays.cend()) return it->second.get();
+    else
+    {
+        if (parent == nullptr) return nullptr;
+        SymbolicArray* oldSym = parent->findArray(name);
+        if (oldSym == nullptr) return nullptr;
+        SymbolicArrayPointer ap = oldSym->clone();
+        SymbolicArray* newSym = ap.get();
+        arrays[name] = move(ap);
+        return newSym;
+    }
+}
+
 bool SymbolicVarSet::isFeasable()
 {
-    for (auto& i : variables)
-    {
-        if (!i.second->isFeasable()) return false;
-    }
+    for (auto& i : variables) if (!i.second->isFeasable()) return false;
     if (parent != nullptr && !parent->isFeasable()) throw "shouldnt happen";
     return true;
 }
@@ -50,7 +63,6 @@ void SymbolicVarSet::defineVar(SymbolicVariablePointer newvar)
 bool SymbolicVarSet::unionSVS(SymbolicVarSet* other)
 {
     if (other == nullptr) throw "cant union with nullptr";
-
     bool change = false;
     for (auto& pair : other->getAllVars())
     {
@@ -66,7 +78,6 @@ bool SymbolicVarSet::unionSVS(SymbolicVarSet* other)
             if (svp->unionLowerBound(pair.second->getLowerBound())) change = true;
         }
     }
-
     return change;
 }
 

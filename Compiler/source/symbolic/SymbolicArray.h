@@ -5,17 +5,18 @@
 #ifndef PROJECT_SYMBOLICARRAY_H
 #define PROJECT_SYMBOLICARRAY_H
 
-#include <vector>
+#include <list>
+#include <map>
 
 #include "SymbolicVariables.h"
 
 class SymbolicArray
 {
-private: //todo forward lists
-    std::vector<int> indicies;
+private:
     std::vector<std::unique_ptr<SymbolicDouble>> myVars;
-    //<l_1, u_1, l_2, u_2...> where vars[0] is in indicies [l_1, u_1)
-    std::vector<SymbolicDouble*> indexVars;
+    //<u_0, u_1... > where vars[i] is in indicies [u_{i-1}, u_i)
+    std::list<int> indicies;
+    std::list<SymbolicDouble*> indexVars;
     const unsigned int size;
     Reporter& reporter;
 
@@ -26,7 +27,33 @@ public:
         indicies.push_back(size);
         indexVars.push_back(myVars.begin()->get());
     }
-    
+
+    SymbolicArray(const SymbolicArray& other): reporter(other.reporter), size(other.size)
+    {
+        indicies = other.indicies;
+
+        std::map<SymbolicDouble*, SymbolicDouble*> replaceVars;
+
+        for (const auto& var : other.myVars)
+        {
+            std::unique_ptr<SymbolicDouble> nvar = var->cloneSD();
+            replaceVars.insert({var.get(), nvar.get()});
+            myVars.push_back(std::move(nvar));
+        }
+
+        for (const auto var: other.indexVars)
+        {
+            auto it = replaceVars.find(var);
+            if (it == replaceVars.end()) throw "went wrong";
+            indexVars.push_back(it->second);
+        }
+    }
+
+    std::unique_ptr<SymbolicArray> clone()
+    {
+        return std::make_unique<SymbolicArray>(*this);
+    }
+
     const SymbolicDouble* operator[](unsigned int n)
     {
         if (n >= size)
@@ -48,6 +75,63 @@ public:
             }
         }
         throw "shouldn't happen";
+    }
+
+    std::unique_ptr<SymbolicDouble> operator[](SymbolicDouble* index)
+    {
+        int lb = ceil(index->getTLowerBound());
+        int ub = floor(index->getTUpperBound());
+
+
+        if (index->getTUpperBound() < 0)
+        {
+            reporter.error(Reporter::ARRAY_BOUNDS,
+                           "Asked to get index <= " + std::to_string(index->getTUpperBound()) + " in array");
+            return nullptr;
+        }
+        else if (lb >= size)
+        {
+            reporter.error(Reporter::ARRAY_BOUNDS,
+                           "Asked to get index >= " + std::to_string(lb) + " in array of size " + std::to_string(size));
+            return nullptr;
+        }
+
+        if (lb < 0)
+        {
+            reporter.warn(Reporter::ARRAY_BOUNDS, "Asked to access possibly negative index");
+            lb = 0;
+        }
+        else if (ub >= size)
+        {
+            reporter.warn(Reporter::ARRAY_BOUNDS,
+                          "Could access index up to " + std::to_string(ub) + " in index of size " + std::to_string(size));
+            ub = size - 1;
+        }
+
+        auto it = indicies.begin();
+        auto varit = indexVars.begin();
+
+        while (*it <= lb)
+        {
+            ++it;
+            ++varit;
+            if (it == indicies.end() || varit == indexVars.end()) throw "bad";
+        }
+
+        std::unique_ptr<SymbolicDouble> cp = (*varit)->cloneSD();
+
+        while (it != indicies.end() || varit != indexVars.end())
+        {
+            if (ub >= *it)
+            {
+                ++varit;
+                ++it;
+                cp->unionVar(*varit);
+            }
+            else return std::move(cp);
+        }
+        
+        throw "shouldn't get here";
     }
 
     bool set(unsigned int n, double v)
@@ -142,7 +226,6 @@ public:
                 newSD->unionVar(sd.get());
                 indexVars.insert(varit, newSD.get());
                 myVars.push_back(std::move((*varit)->cloneSD()));
-                delet();
                 return true;
             }
             else

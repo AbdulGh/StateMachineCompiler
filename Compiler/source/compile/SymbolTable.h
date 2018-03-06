@@ -21,7 +21,7 @@ private:
 
 public:
     Identifier(std::string identifier, VariableType datatype, unsigned int line, unsigned int depth, unsigned int scopenum) :
-            lexeme(identifier),
+            lexeme(move(identifier)),
             lineNum(line),
             type(datatype),
             defined(false),
