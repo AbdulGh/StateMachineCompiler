@@ -34,7 +34,7 @@ private:
     void warning(std::string);
     Token nextToken();
     void findGlobalsAndMakeStates();
-    Identifier* findVariable(std::string);
+    Identifier* findVariable(std::string n, std::string& uid, VariableType* vtype = nullptr);
     std::string quoteString(std::string& s);
 
     //parsing
@@ -43,11 +43,11 @@ private:
     bool statement(FunctionSymbol* fs); //returns true if the state has been ended
     Relations::Relop relop();
     void expression(FunctionSymbol* fs, const std::string& to);
-    VariableType vtype();
+    VariableType vtype(unsigned int* = nullptr);
     std::string ident();
 
     //code generation
-    VariableType genFunctionCall(FunctionSymbol*, Identifier* toPtr = nullptr);
+    VariableType genFunctionCall(FunctionSymbol*, VariableType expectedType, std::string uid = "");
     void genIf(FunctionSymbol*);
     void genWhile(FunctionSymbol*);
     void ands(FunctionSymbol* fs, std::string success, std::string fail);

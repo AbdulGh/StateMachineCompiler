@@ -130,7 +130,7 @@ public:
             }
             else return std::move(cp);
         }
-        
+
         throw "shouldn't get here";
     }
 

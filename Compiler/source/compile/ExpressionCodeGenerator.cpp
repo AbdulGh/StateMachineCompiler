@@ -85,10 +85,11 @@ AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
 
     if (parent.lookahead.type == IDENT)
     {
-        Identifier* id = parent.findVariable(parent.ident());
+        string uid;
+        Identifier* id = parent.findVariable(parent.ident(), uid);
         if (!id->isDefined()) parent.warning(id->getLexeme() +
                                              " may not be defined (line " + to_string(parent.lookahead.line) + ")");
-        return withNeg(new AtomNode(id->getUniqueID(), false));
+        return withNeg(new AtomNode(uid, false));
     }
     else if (parent.lookahead.type == NUMBER)
     {
@@ -106,10 +107,7 @@ AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
     }
     else if (parent.lookahead.type == CALL)
     {
-        if (parent.genFunctionCall(fs, nullptr) != VariableType::DOUBLE)
-        {
-            parent.error("Function in expression does not return double");
-        }
+        parent.genFunctionCall(fs, DOUBLE);
         string uni = genUnique(fs);
         fs->genAssignment(uni, "retD", parent.lookahead.line);
         return withNeg(new AtomNode(uni, false));

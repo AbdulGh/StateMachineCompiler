@@ -1,20 +1,16 @@
 #include "Compiler.h"
 
 using namespace std;
-VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, Identifier* toVar)
+VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType, string uid) //todo remember why this returns a vtype
 {
     match(Type::CALL);
     string fid = ident();
     FunctionSymbol *toFS = functionTable.getFunction(fid);
-    VariableType expectedType;
-    if (toVar != nullptr)
+
+    if (expectedType != ANY && !toFS->isOfType(expectedType))
     {
-        expectedType = toVar->getType();
-        if (expectedType != ANY && !toFS->isOfType(expectedType))
-        {
-            error("Function '" + fid + "' returns type " + TypeEnumNames[toFS->getReturnType()]
-                  + ", expected " + TypeEnumNames[expectedType]);
-        }
+        error("Function '" + fid + "' returns type " + TypeEnumNames[toFS->getReturnType()]
+              + ", expected " + TypeEnumNames[expectedType]);
     }
 
     //push all vars
@@ -47,9 +43,10 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, Identifier* toVar
             else
             {
                 string iid = ident();
-                Identifier* idp = findVariable(iid);
+                string uid2;
+                Identifier* idp = findVariable(iid, uid2);
                 paramTypes.push_back(idp->getType());
-                fromFS->genPush(idp->getUniqueID(), lookahead.line);
+                fromFS->genPush(uid2, lookahead.line);
             }
             if (lookahead.type == Type::COMMA)
             {
@@ -81,15 +78,15 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, Identifier* toVar
         fromFS->genPop(*rit, lookahead.line);
     }
 
-    if (toVar != nullptr)
+    if (!uid.empty())
     {
         switch (toFS->getReturnType())
         {
             case DOUBLE:
-                fromFS->genAssignment(toVar->getUniqueID(), "retD", lookahead.line);
+                fromFS->genAssignment(uid, "retD", lookahead.line);
                 break;
             case STRING:
-                fromFS->genAssignment(toVar->getUniqueID(), "retS", lookahead.line);
+                fromFS->genAssignment(uid, "retS", lookahead.line);
                 break;
             default:
                 throw runtime_error("Unaccounted for variable type");

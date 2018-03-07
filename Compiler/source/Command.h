@@ -337,11 +337,17 @@ public:
     DeclareArrayCommand(const std::string& name, const unsigned long& n, int linenum): AbstractCommand(linenum), size(n)
     {
         setData(name);
+        setType(CommandType::DECLAREVAR);
+    }
+
+    std::unique_ptr<AbstractCommand> clone() override
+    {
+        return std::make_unique<DeclareArrayCommand>(getData(), size, getLineNum());
     }
 
     std::string translation(const std::string& delim) const override
     {
-        return "array[" + std::to_string(size) + "] " + getData() + ";" + delim;
+        return "double[" + std::to_string(size) + "] " + getData() + ";" + delim;
     }
 };
 

@@ -93,8 +93,9 @@ bool Compiler::statement(FunctionSymbol* fs)
             }
             else
             {
-                Identifier* id = findVariable(ident());
-                fs->genPrint(id->getUniqueID(), lookahead.line);
+                string uid;
+                Identifier* id = findVariable(ident(), uid);
+                fs->genPrint(uid, lookahead.line);
             }
 
             if (lookahead.type == COMMA)
@@ -110,46 +111,50 @@ bool Compiler::statement(FunctionSymbol* fs)
     {
         match(INPUT);
         string id = ident();
-        Identifier* idPtr = findVariable(id);
-        fs->genInput(idPtr->getUniqueID(), lookahead.line);
-        idPtr->setDefined();
+        string uid;
+        Identifier* idPtr = findVariable(id, uid);
+        fs->genInput(uid, lookahead.line);
+        idPtr->setDefined(); //todo this but w/ arrays
         match(SEMIC);
     }
     else if (lookahead.type == DTYPE)
     {
+        unsigned int size = 0;
         VariableType t = vtype();
         string id = ident();
         if (symbolTable.isInScope(id)) //set to '0' or '""' depending on type
         {
-            Identifier* idPtr = findVariable(id);
+            string uid; VariableType vtype;
+            Identifier* idPtr = findVariable(id, uid, &vtype);
             if (t != idPtr->getType()) error("'" + id + "' redeclared in same scope with different type");
             else if (lookahead.type == ASSIGN)
             {
                 match(ASSIGN);
                 if (t == STRING)
                 {
-                    if (lookahead.type == CALL) genFunctionCall(fs, idPtr);
+                    if (lookahead.type == CALL) genFunctionCall(fs, vtype, uid);
                     else if (lookahead.type == STRINGLIT)
                     {
-                        fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString), lookahead.line);
+                        fs->genAssignment(uid, quoteString(lookahead.lexemeString), lookahead.line);
                         match(STRINGLIT);
                     }
                     else
                         error("'" + id + "' declared in this scope as a string, assigned to "
                               + TypeEnumNames[lookahead.type]);
                 }
-                else expression(fs, idPtr->getUniqueID());
+                else expression(fs, uid);
             }
             else
             {
-                Identifier* ident = findVariable(id);
-                if (ident->getType() == DOUBLE) fs->genAssignment(ident->getUniqueID(), "0", lookahead.line);
-                else fs->genAssignment(ident->getUniqueID(), "\"\"", lookahead.line);
+                if (idPtr->getType() == DOUBLE || idPtr->getType() == ARRAY) fs->genAssignment(uid, "0", lookahead.line);
+                else if (idPtr->getType() == STRING) fs->genAssignment(uid, "\"\"", lookahead.line);
+                else throw "bad dtype";
             }
         }
         else
         {
-            Identifier* idPtr = symbolTable.declare(t, id, lookahead.line);
+            Identifier* idPtr = symbolTable.declare(t, id, lookahead.line); //todo next this
+            if (t == ARRAY) fs->genArrayDecl(idPtr->getUniqueID(), size, lookahead.line);
             fs->genVariableDecl(t, idPtr->getUniqueID(), lookahead.line);
 
             if (lookahead.type == ASSIGN)
@@ -157,7 +162,7 @@ bool Compiler::statement(FunctionSymbol* fs)
                 match(ASSIGN);
                 if (t == VariableType::STRING)
                 {
-                    if (lookahead.type == CALL) genFunctionCall(fs, idPtr);
+                    if (lookahead.type == CALL) genFunctionCall(fs, STRING, idPtr->getUniqueID());
                     else
                     {
                         fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString), lookahead.line);
@@ -177,25 +182,26 @@ bool Compiler::statement(FunctionSymbol* fs)
     }
     else if (lookahead.type == IDENT)
     {
-        Identifier* idPtr = findVariable(ident());
+        string uid; VariableType vtype;
+        Identifier* idPtr = findVariable(ident(), uid, &vtype);
         match(ASSIGN);
         if (idPtr->getType() == VariableType::STRING)
         {
             if (lookahead.type == STRINGLIT)
             {
-                fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString), lookahead.line);
+                fs->genAssignment(uid, quoteString(lookahead.lexemeString), lookahead.line);
                 match(STRINGLIT);
             }
-            else if (lookahead.type == CALL) genFunctionCall(fs, idPtr);
+            else if (lookahead.type == CALL) genFunctionCall(fs, vtype, uid);
             else error("Malformed assignment to string");
         }
-        else expression(fs, idPtr->getUniqueID());
+        else expression(fs, uid);
         idPtr->setDefined();
         match(SEMIC);
     }
     else if (lookahead.type == CALL)
     {
-        genFunctionCall(fs, nullptr);
+        genFunctionCall(fs, ANY);
         match(SEMIC);
     }
     else if (lookahead.type == IF) genIf(fs);
@@ -235,10 +241,19 @@ void Compiler::expression(FunctionSymbol* fs, const std::string& to)
     gen.compileExpression(fs);
 }
 
-VariableType Compiler::vtype()
+VariableType Compiler::vtype(unsigned int* size)
 {
     VariableType t = lookahead.auxType;
     match(DTYPE);
+    if (lookahead.type == LSQPAREN)
+    {
+        match(LSQPAREN);
+        if (lookahead.type != NUMBER) error("Expected number for array size");
+        if (size != nullptr) *size = stoi(lookahead.lexemeString);
+        match(NUMBER);
+        match(RSQPAREN);
+        t = ARRAY;
+    }
     return t;
 }
 

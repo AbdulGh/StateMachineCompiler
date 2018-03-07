@@ -443,6 +443,12 @@ void FunctionSymbol::genVariableDecl(VariableType t, string n, int linenum)
     currentVarScope->addVarName(n);
 }
 
+void FunctionSymbol::genArrayDecl(std::string name, unsigned long int size, int linenum)
+{
+    if (endedState) throw "No state to add to";
+    currentInstrs.push_back(make_unique<DeclareArrayCommand>(move(name), size, linenum));
+}
+
 void FunctionSymbol::addCommand(unique_ptr<AbstractCommand> ac)
 {
     if (endedState) throw "No state to add to";
