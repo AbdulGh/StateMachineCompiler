@@ -67,7 +67,7 @@ Token Compiler::nextToken()
     return *(tp++);
 }
 
-Identifier* Compiler::findVariable(string name, string& uid, VariableType* vtype)
+Identifier* Compiler::findVariable(string name, string& uid, VariableType* vtype, int* index)
 {
     if (name.empty()) name = ident();
     Identifier* ret = symbolTable.findIdentifier(name);
@@ -79,6 +79,8 @@ Identifier* Compiler::findVariable(string name, string& uid, VariableType* vtype
     if (lookahead.type == LSQPAREN)
     {
         match(LSQPAREN);
+        if (lookahead.type != NUMBER) throw "must be numbers atm";
+        if (index != nullptr) *index = stoi(lookahead.lexemeString);
         uid += "[" + lookahead.lexemeString + "]";
         match(NUMBER);
         match(RSQPAREN);

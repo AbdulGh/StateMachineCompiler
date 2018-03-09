@@ -85,6 +85,21 @@ public:
     }
 };
 
+class PrintIndirectCommand: public AbstractCommand //done in CommandAcceptSymbolicExecution (forward declarations)
+{
+    class SymbolicDoubleGetter;
+    std::unique_ptr<SymbolicDoubleGetter> toPrint;
+
+public:
+    PrintIndirectCommand(std::unique_ptr<SymbolicDoubleGetter> sdg, int linenum);
+    ~PrintIndirectCommand();
+
+    std::string translation(const std::string& delim) const override;
+
+    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
+
+};
+
 class ReturnCommand: public AbstractCommand
 {
 public:
@@ -336,6 +351,7 @@ public:
 
     DeclareArrayCommand(const std::string& name, const unsigned long& n, int linenum): AbstractCommand(linenum), size(n)
     {
+        if (size == 0) throw "arrays have size >0";
         setData(name);
         setType(CommandType::DECLAREVAR);
     }
@@ -349,6 +365,8 @@ public:
     {
         return "double[" + std::to_string(size) + "] " + getData() + ";" + delim;
     }
+
+    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat) override;
 };
 
 #endif

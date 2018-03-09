@@ -94,8 +94,11 @@ bool Compiler::statement(FunctionSymbol* fs)
             else
             {
                 string uid;
-                Identifier* id = findVariable(ident(), uid);
-                fs->genPrint(uid, lookahead.line);
+                VariableType vtype;
+                int index;
+                Identifier* id = findVariable(ident(), uid, &vtype, &index);
+                if (vtype == ARRAY) fs->genIndirectPrint(id->getUniqueID(), index, lookahead.line);
+                else fs->genPrint(uid, lookahead.line);
             }
 
             if (lookahead.type == COMMA)
@@ -120,7 +123,7 @@ bool Compiler::statement(FunctionSymbol* fs)
     else if (lookahead.type == DTYPE)
     {
         unsigned int size = 0;
-        VariableType t = vtype();
+        VariableType t = vtype(&size);
         string id = ident();
         if (symbolTable.isInScope(id)) //set to '0' or '""' depending on type
         {
@@ -155,7 +158,7 @@ bool Compiler::statement(FunctionSymbol* fs)
         {
             Identifier* idPtr = symbolTable.declare(t, id, lookahead.line); //todo next this
             if (t == ARRAY) fs->genArrayDecl(idPtr->getUniqueID(), size, lookahead.line);
-            fs->genVariableDecl(t, idPtr->getUniqueID(), lookahead.line);
+            else fs->genVariableDecl(t, idPtr->getUniqueID(), lookahead.line);
 
             if (lookahead.type == ASSIGN)
             {

@@ -10,6 +10,8 @@
 
 #include "SymbolicVariables.h"
 
+//todo add name
+//todo indeterminate size
 class SymbolicArray
 {
 private:
@@ -53,6 +55,75 @@ public:
     {
         return std::make_unique<SymbolicArray>(*this);
     }
+    
+    bool checkIndex(long index)
+    {
+        if (index < 0) reporter.error(Reporter::ARRAY_BOUNDS, "Asked for negative index from array");
+        else if (index >= size) reporter.error(Reporter::ARRAY_BOUNDS,
+                                               "Asked to get index " + std::to_string(index) + " in array of size " + std::to_string(size));
+    }
+    
+    bool checkBounds(double lbd, double ubd, int& lb, int& ub)
+    {
+        lb = ceil(lbd);
+        ub = floor(ubd);
+
+        if (ub < 0)
+        {
+            reporter.error(Reporter::ARRAY_BOUNDS,
+                           "Asked to get index <= " + std::to_string(ub) + " in array");
+            return false;
+        }
+        else if (lb >= size)
+        {
+            reporter.error(Reporter::ARRAY_BOUNDS,
+                           "Asked to get index >= " + std::to_string(lb) + " in array of size " + std::to_string(size));
+            return false;
+        }
+
+        if (lb < 0)
+        {
+            reporter.warn(Reporter::ARRAY_BOUNDS, "Asked to access possibly negative index");
+            lb = 0;
+        }
+        else if (ub >= size)
+        {
+            reporter.warn(Reporter::ARRAY_BOUNDS,
+                          "Could access index up to " + std::to_string(ub) + " in index of size " + std::to_string(size));
+            ub = size - 1;
+        }
+        
+        return true;
+    }
+
+    bool checkBounds(double lbd, double ubd)
+    {
+        lbd = ceil(lbd);
+        ubd = floor(ubd);
+
+        if (ubd < 0)
+        {
+            reporter.error(Reporter::ARRAY_BOUNDS,
+                           "Asked to get index <= " + std::to_string(ubd) + " in array");
+            return false;
+        }
+        else if (lbd >= size)
+        {
+            reporter.error(Reporter::ARRAY_BOUNDS,
+                           "Asked to get index >= " + std::to_string(lbd) + " in array of size " + std::to_string(size));
+            return false;
+        }
+
+        if (lbd < 0) reporter.warn(Reporter::ARRAY_BOUNDS, "Asked to access possibly negative index");
+
+        else if (ubd >= size)
+        {
+            reporter.warn(Reporter::ARRAY_BOUNDS,
+                          "Could access index up to " + std::to_string(ubd) + " in index of size " + std::to_string(size));
+        }
+
+        return true;
+    }
 
     const SymbolicDouble* operator[](unsigned int n)
     {
@@ -79,34 +150,9 @@ public:
 
     std::unique_ptr<SymbolicDouble> operator[](SymbolicDouble* index)
     {
-        int lb = ceil(index->getTLowerBound());
-        int ub = floor(index->getTUpperBound());
+        int lb, ub;
 
-
-        if (index->getTUpperBound() < 0)
-        {
-            reporter.error(Reporter::ARRAY_BOUNDS,
-                           "Asked to get index <= " + std::to_string(index->getTUpperBound()) + " in array");
-            return nullptr;
-        }
-        else if (lb >= size)
-        {
-            reporter.error(Reporter::ARRAY_BOUNDS,
-                           "Asked to get index >= " + std::to_string(lb) + " in array of size " + std::to_string(size));
-            return nullptr;
-        }
-
-        if (lb < 0)
-        {
-            reporter.warn(Reporter::ARRAY_BOUNDS, "Asked to access possibly negative index");
-            lb = 0;
-        }
-        else if (ub >= size)
-        {
-            reporter.warn(Reporter::ARRAY_BOUNDS,
-                          "Could access index up to " + std::to_string(ub) + " in index of size " + std::to_string(size));
-            ub = size - 1;
-        }
+        if (!checkBounds(index->getTLowerBound(), index->getTUpperBound(), lb, ub)) return nullptr;
 
         auto it = indicies.begin();
         auto varit = indexVars.begin();

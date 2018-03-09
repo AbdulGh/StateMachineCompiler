@@ -290,7 +290,7 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
                 unique_ptr<SymbolicVariable> poppedVarClone = poppedVar->clone();
                 poppedVarClone->setName(command->getData());
                 poppedVarClone->userInput();
-                sef->symbolicVarSet->defineVar(move(poppedVarClone));
+                sef->symbolicVarSet->addVar(move(poppedVarClone));
             }
         }
 

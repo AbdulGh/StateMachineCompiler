@@ -94,17 +94,18 @@ public:
     //codegen
     void genNewState(std::string);
     void genEndState();
-    void genPrint(std::string, int);
-    void genJump(std::string, int);
-    void genConditionalJump(std::string, std::string, Relations::Relop r, std::string, int);
+    void genPrint(std::string, int linenum);
+    void genIndirectPrint(std::string arrayName, int index, int linenum);
+    void genJump(std::string, int linenum);
+    void genConditionalJump(std::string, std::string, Relations::Relop r, std::string, int linenum);
     void genPush(std::string, int, FunctionSymbol* calledFuntion = nullptr);
-    void genPop(std::string, int);
-    void genReturn(int);
-    void genInput(std::string, int);
-    void genExpr(std::string lh, std::string t1, ArithOp o, std::string t2, int);
-    void genVariableDecl(VariableType t, std::string n, int);
-    void genArrayDecl(std::string name, unsigned long int size, int);
-    void genAssignment(std::string LHS, std::string RHS, int);
+    void genPop(std::string, int linenum);
+    void genReturn(int linenum);
+    void genInput(std::string, int linenum);
+    void genExpr(std::string lh, std::string t1, ArithOp o, std::string t2, int linenum);
+    void genVariableDecl(VariableType t, std::string n, int linenum);
+    void genArrayDecl(std::string name, unsigned long int size, int linenum);
+    void genAssignment(std::string LHS, std::string RHS, int linenum);
     void addCommand(std::unique_ptr<AbstractCommand> ac);
     void addCommands(std::vector<std::unique_ptr<AbstractCommand>>& acs);
 };

@@ -102,6 +102,9 @@ void AssignmentPropogationDataFlow::finish()
 }
 
 //LiveVariableDataFlow
+//strip array indicies
+#define filterVarName(dat) dat.substr(0, dat.find('['))
+
 #define insertAndCheckUpwardExposed(inserting) \
     if (!isdigit(inserting[0]) && inserting[0] != '"')\
     {\
@@ -131,36 +134,36 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 case CommandType::CHANGEVAR:
                 case CommandType::DECLAREVAR:
                 case CommandType::POP:
-                    killSet.insert(instr->getData());
+                    killSet.insert(filterVarName(instr->getData()));
                     break;
                 //simple commands that just read some variable
                 case CommandType::PUSH:
                 {
                     PushCommand* pvc = static_cast<PushCommand*>(instr.get());
-                    const string& data = pvc->getData();
+                    string data = filterVarName(pvc->getData());
                     if (!pvc->pushesState()
                         && AbstractCommand::getStringType(pvc->getData()) == AbstractCommand::StringType::ID)
                     {
-                        insertAndCheckUpwardExposed(data);
+                        insertAndCheckUpwardExposed(move(data));
                     }
                     break;
                 }
                 case CommandType::PRINT:
-                    insertAndCheckUpwardExposed(instr->getData());
+                    insertAndCheckUpwardExposed(filterVarName(instr->getData()));
                     break;
                 case CommandType::ASSIGNVAR:
                 {
                     auto avc = static_cast<AssignVarCommand*>(instr.get());
-                    killSet.insert(avc->getData());
+                    killSet.insert(filterVarName(avc->getData()));
                     insertAndCheckUpwardExposed(avc->RHS);
                     break;
                 }
                 case CommandType::EXPR:
                 {
                     EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(instr.get());
-                    killSet.insert(eec->getData());
-                    insertAndCheckUpwardExposed(eec->term1);
-                    insertAndCheckUpwardExposed(eec->term2);
+                    killSet.insert(filterVarName(eec->getData()));
+                    insertAndCheckUpwardExposed(filterVarName(eec->term1));
+                    insertAndCheckUpwardExposed(filterVarName(eec->term2));
                 }
             }
         }
@@ -168,8 +171,14 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
         JumpOnComparisonCommand* jocc = node->getComp();
         if (jocc != nullptr)
         {
-            if (jocc->term1Type == AbstractCommand::StringType::ID) insertAndCheckUpwardExposed(jocc->term1);
-            if (jocc->term2Type == AbstractCommand::StringType::ID) insertAndCheckUpwardExposed(jocc->term2);
+            if (jocc->term1Type == AbstractCommand::StringType::ID)
+            {
+                insertAndCheckUpwardExposed(filterVarName(jocc->term1));
+            }
+            if (jocc->term2Type == AbstractCommand::StringType::ID)
+            {
+                insertAndCheckUpwardExposed(filterVarName(jocc->term2));
+            }
         }
 
         outSets[node->getName()] = thisUEVars;//copies

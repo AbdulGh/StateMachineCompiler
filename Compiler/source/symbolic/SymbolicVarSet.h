@@ -50,7 +50,8 @@ public:
     SymbolicVariable* findVar(std::string name);
     SymbolicArray* findArray(std::string name);
     //const std::unordered_map<std::string, SymbolicVariablePointer>& getVars() const {return variables;}
-    void defineVar(SymbolicVariablePointer newvar);
+    void addVar(SymbolicVariablePointer newvar);
+    void addArray(const std::string& name, SymbolicArrayPointer sap);
     bool unionSVS(SymbolicVarSet* other);
     bool isFeasable();
 

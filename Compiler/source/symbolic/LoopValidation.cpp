@@ -126,7 +126,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                     unique_ptr<SymbolicVariable> popped = thisNodeSR->popVar();
                     popped->setName(instr->getData());
                     popped->loopInit();
-                    sef->symbolicVarSet->defineVar(move(popped));
+                    sef->symbolicVarSet->addVar(move(popped));
                 }
             }
             else

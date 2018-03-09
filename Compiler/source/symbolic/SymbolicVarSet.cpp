@@ -55,9 +55,14 @@ void SymbolicVarSet::setLoopInit()
     if (parent != nullptr) parent->setLoopInit();
 }
 
-void SymbolicVarSet::defineVar(SymbolicVariablePointer newvar)
+void SymbolicVarSet::addVar(SymbolicVariablePointer newvar)
 {
     variables[newvar->getName()] = move(newvar);
+}
+
+void SymbolicVarSet::addArray(const std::string& name, SymbolicArrayPointer p)
+{
+    arrays[name] = move(p);
 }
 
 bool SymbolicVarSet::unionSVS(SymbolicVarSet* other)

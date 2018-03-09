@@ -3,6 +3,7 @@
 
 #include "Functions.h"
 #include "../CFGOpt/CFG.h"
+#include "../symbolic/SymbolicVarWrappers.h"
 
 using namespace std;
 
@@ -394,6 +395,14 @@ void FunctionSymbol::genPrint(string s, int linenum)
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(make_unique<PrintCommand>(s, linenum));
+}
+
+void FunctionSymbol::genIndirectPrint(std::string arrayName, int index, int linenum)
+{
+    if (endedState) throw "No state to add to";
+    currentInstrs.push_back
+            (make_unique<PrintIndirectCommand>
+                     (make_unique<GetSDByArrayIndex>(arrayName, index), linenum));
 }
 
 void FunctionSymbol::genConditionalJump(string state, string lh, Relations::Relop r, string rh, int linenum)

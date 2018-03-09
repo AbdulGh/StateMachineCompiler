@@ -3,6 +3,7 @@
 //
 #include "../Command.h"
 #include "SymbolicExecution.h"
+#include "SymbolicVarWrappers.h"
 
 using namespace std;
 
@@ -58,6 +59,22 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
     return true;
 }
 
+PrintIndirectCommand::PrintIndirectCommand(std::unique_ptr<SymbolicDoubleGetter> sdg, int linenum):
+    AbstractCommand(linenum), toPrint(std::move(sdg)) {}
+
+PrintIndirectCommand::~PrintIndirectCommand() {toPrint.reset();}
+
+std::string PrintIndirectCommand::translation(const std::string& delim) const
+{
+    return "print " + toPrint->getName() + ";" + delim;
+}
+
+bool PrintIndirectCommand::acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs,
+                                                   bool repeat)
+{
+    return toPrint->check(svs.get());
+}
+
 bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat)
 {
     if (svs->symbolicStack->isEmpty())
@@ -95,7 +112,7 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
 
     popped->setName(found->getName());
     if (!popped->isFeasable()) throw "should be feasable";
-    svs->symbolicVarSet->defineVar(move(popped));
+    svs->symbolicVarSet->addVar(move(popped));
 
     return true;
 }
@@ -135,7 +152,7 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
             unique_ptr<SymbolicDouble> newLHS = make_unique<SymbolicDouble>(RHSvar);
             if (!newLHS->isFeasable()) return false;
             newLHS->setName(getData());
-            svs->symbolicVarSet->defineVar(move(newLHS));
+            svs->symbolicVarSet->addVar(move(newLHS));
             return true;
         }
     }
@@ -158,7 +175,6 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 ") used in arithmetic evaluation", getLineNum());
         return false;
     }
-
 
     if (op != MOD && repeat)
     {
@@ -289,7 +305,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
         }
         result->setName(LHS->getName());
         result->define();
-        sef->symbolicVarSet->defineVar(move(result));
+        sef->symbolicVarSet->addVar(move(result));
 
         if (deletet1) delete t1;
         if (deletet2) delete t2;
@@ -299,9 +315,15 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
 
 bool DeclareVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat)
 {
-    if (vt == STRING) svs->symbolicVarSet->defineVar(make_unique<SymbolicString>(getData(), svs->reporter));
-    else if (vt == DOUBLE) svs->symbolicVarSet->defineVar(make_unique<SymbolicDouble>(getData(), svs->reporter));
+    if (vt == STRING) svs->symbolicVarSet->addVar(make_unique<SymbolicString>(getData(), svs->reporter));
+    else if (vt == DOUBLE) svs->symbolicVarSet->addVar(make_unique<SymbolicDouble>(getData(), svs->reporter));
     else throw runtime_error("Bad type in DeclareVarCommand");
     return true;
+}
+
+bool DeclareArrayCommand::acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs,
+                                                  bool repeat)
+{
+    svs->symbolicVarSet->addArray(getData(), make_unique<SymbolicArray>(size, svs->reporter));
 }
 
