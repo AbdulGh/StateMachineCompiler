@@ -85,13 +85,13 @@ public:
     }
 };
 
-class SymbolicDoubleGetter;
+class SymbolicVarGetter;
 class PrintIndirectCommand: public AbstractCommand //done in CommandAcceptSymbolicExecution (forward declarations)
 {
-    std::unique_ptr<SymbolicDoubleGetter> toPrint;
+    std::unique_ptr<SymbolicVarGetter> toPrint;
 
 public:
-    PrintIndirectCommand(std::unique_ptr<SymbolicDoubleGetter> sdg, int linenum);
+    PrintIndirectCommand(std::unique_ptr<SymbolicVarGetter> sdg, int linenum);
     ~PrintIndirectCommand();
     std::string translation(const std::string& delim) const override;
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;

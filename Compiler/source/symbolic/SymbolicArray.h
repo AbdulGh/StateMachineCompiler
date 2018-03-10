@@ -15,9 +15,10 @@
 class SymbolicArray
 {
 private:
+    std::vector<std::unique_ptr<SymbolicDouble>> myVars;
     //<u_0, u_1... > where vars[i] is in indicies [u_{i-1}, u_i)
     std::list<int> indicies;
-    std::list<std::shared_ptr<SymbolicDouble>> indexVars;
+    std::list<SymbolicDouble*> indexVars;
     const unsigned int size;
     Reporter& reporter;
     std::string name;
@@ -25,17 +26,31 @@ private:
 public:
     SymbolicArray(std::string id, unsigned int n, Reporter& r): size(n), reporter(r), name(std::move(id))
     {
+        myVars.emplace_back(std::make_unique<SymbolicDouble>("uninit", reporter));
         indicies.push_back(size);
-        indexVars.push_back(std::make_shared<SymbolicDouble>("uninit", reporter));
+        indexVars.push_back(myVars.begin()->get());
     }
 
     SymbolicArray(const SymbolicArray& other): reporter(other.reporter), size(other.size)
     {
         indicies = other.indicies;
-        for (auto& ptr : other.indexVars)
+
+        std::map<SymbolicDouble*, SymbolicDouble*> cloneMap;
+        myVars.reserve(other.myVars.size());
+
+        for (const auto& otherVar : other.myVars)
         {
-            indexVars.push_back(ptr->cloneSP());
+            std::unique_ptr<SymbolicDouble> clone = otherVar->cloneSD();
+            cloneMap[otherVar.get()] = clone.get();
+            myVars.push_back(move(clone));
         }
+
+        for (SymbolicDouble* ind : other.indexVars) indexVars.push_back(cloneMap[ind]);
+    }
+
+    ~SymbolicArray()
+    {
+        for (auto& var : myVars) var.reset();
     }
 
     std::unique_ptr<SymbolicArray> clone()
@@ -112,7 +127,7 @@ public:
         return true;
     }
 
-    std::shared_ptr<SymbolicDouble> operator[](unsigned int n)
+    std::unique_ptr<SymbolicDouble> operator[](unsigned int n)
     {
         if (n >= size)
         {
@@ -125,7 +140,7 @@ public:
         auto varit = indexVars.begin();
         while (it != indicies.end() && varit != indexVars.end())
         {
-            if (*it > n) return *varit;
+            if (*it > n) return (*varit)->cloneSD();
             else
             {
                 ++it;
@@ -135,7 +150,7 @@ public:
         throw "shouldn't happen";
     }
 
-    std::shared_ptr<SymbolicDouble> operator[](SymbolicDouble* index)
+    std::unique_ptr<SymbolicDouble> operator[](SymbolicDouble* index)
     {
         int lb, ub;
 
@@ -151,7 +166,7 @@ public:
             if (it == indicies.end() || varit == indexVars.end()) throw "bad";
         }
 
-        std::shared_ptr<SymbolicDouble> cp = (*varit)->cloneSP();
+        std::unique_ptr<SymbolicDouble> cp = (*varit)->cloneSD();
 
         while (it != indicies.end() || varit != indexVars.end())
         {
@@ -159,7 +174,7 @@ public:
             {
                 ++varit;
                 ++it;
-                cp->unionVar(varit->get());
+                cp->unionVar(*varit);
             }
             else return std::move(cp);
         }
@@ -176,7 +191,7 @@ public:
 
     bool set(unsigned int n, SymbolicDouble* sdr)
     {
-        std::shared_ptr<SymbolicDouble> sd = sdr->cloneSP();
+        std::unique_ptr<SymbolicDouble> sd = sdr->cloneSD();
         if (n >= size)
         {
             reporter.error(Reporter::ARRAY_BOUNDS,
@@ -198,7 +213,8 @@ public:
                     varit = indexVars.insert(varit, *varit);
                     ++varit;
                 }
-                indexVars.insert(varit, move(sd));
+                indexVars.insert(varit, sd.get());
+                myVars.push_back(move(sd));
                 return true;
             }
             else
@@ -213,7 +229,7 @@ public:
     bool set(SymbolicDouble* index, SymbolicDouble* sdr)
     {
         if (index->isDetermined()) set(index->getTConstValue(), sdr);
-        std::shared_ptr<SymbolicDouble> sd = sdr->cloneSP();
+        std::unique_ptr<SymbolicDouble> sd = sdr->cloneSD();
         if (index->getTUpperBound() < 0)
         {
             reporter.error(Reporter::ARRAY_BOUNDS,
@@ -246,7 +262,9 @@ public:
 
         it = indicies.insert(it, index->getTLowerBound());
         ++it;
-        varit = indexVars.insert(++varit, (*varit)->cloneSP());
+        std::unique_ptr<SymbolicDouble> cp = (*varit)->cloneSD();
+        varit = indexVars.insert(++varit, cp.get());
+        myVars.push_back(move(cp));
 
         while (it != indicies.end() && varit != indexVars.end())
         {
@@ -254,9 +272,10 @@ public:
             else if (*it > index->getTUpperBound() + 1)
             {
                 indicies.insert(it, index->getTUpperBound() + 1);
-                std::shared_ptr<SymbolicDouble> newSD = (*varit)->cloneSP();
+                std::unique_ptr<SymbolicDouble> newSD = (*varit)->cloneSD();
                 newSD->unionVar(sd.get());
-                indexVars.insert(varit, newSD);
+                indexVars.insert(varit, newSD.get());
+                myVars.push_back(std::move((*varit)->cloneSD()));
                 return true;
             }
             else
@@ -269,6 +288,5 @@ public:
         throw "shouldn't get here";
     }
 };
-
 
 #endif //PROJECT_SYMBOLICARRAY_H

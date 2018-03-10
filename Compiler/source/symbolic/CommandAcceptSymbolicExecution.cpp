@@ -59,7 +59,7 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
     return true;
 }
 
-PrintIndirectCommand::PrintIndirectCommand(std::unique_ptr<SymbolicDoubleGetter> sdg, int linenum):
+PrintIndirectCommand::PrintIndirectCommand(std::unique_ptr<SymbolicVarGetter> sdg, int linenum):
     AbstractCommand(linenum), toPrint(std::move(sdg)) {setType(CommandType::PRINT), setData(toPrint->getName());}
 
 PrintIndirectCommand::~PrintIndirectCommand() {toPrint.reset();}
