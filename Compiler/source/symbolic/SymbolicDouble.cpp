@@ -36,6 +36,11 @@ SymbolicVariable* SymbolicDouble::cloneRaw()
     return new SymbolicDouble(*this);
 }
 
+shared_ptr<SymbolicDouble> SymbolicDouble::cloneSP()
+{
+    return make_shared<SymbolicDouble>(this);
+}
+
 void SymbolicDouble::userInput()
 {
     SymbolicVariable::userInput();

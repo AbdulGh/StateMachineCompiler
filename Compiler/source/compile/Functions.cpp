@@ -400,9 +400,8 @@ void FunctionSymbol::genPrint(string s, int linenum)
 void FunctionSymbol::genIndirectPrint(std::string arrayName, int index, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back
-            (make_unique<PrintIndirectCommand>
-                     (make_unique<GetSDByArrayIndex>(arrayName, index), linenum));
+    unique_ptr<SymbolicDoubleGetter> sdg = make_unique<GetSDByArrayIndex>(arrayName, index);
+    currentInstrs.push_back(make_unique<PrintIndirectCommand>(move(sdg), linenum));
 }
 
 void FunctionSymbol::genConditionalJump(string state, string lh, Relations::Relop r, string rh, int linenum)

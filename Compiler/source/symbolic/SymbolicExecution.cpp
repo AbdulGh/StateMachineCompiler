@@ -293,8 +293,11 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
                 sef->symbolicVarSet->addVar(move(poppedVarClone));
             }
         }
+            bool debug = command->acceptSymbolicExecution(sef, true);
+        AbstractCommand* c = command.get();
 
-        else if (!command->acceptSymbolicExecution(sef, true)) return;
+        if (!debug) return;
+        //else if (!command->acceptSymbolicExecution(sef, true)) return;
     }
 
     JumpOnComparisonCommand* jocc = n->getComp();

@@ -85,6 +85,7 @@ Identifier* Compiler::findVariable(string name, string& uid, VariableType* vtype
         match(NUMBER);
         match(RSQPAREN);
     }
+    else if (index != nullptr) *index = -1;
 
     return ret;
 }

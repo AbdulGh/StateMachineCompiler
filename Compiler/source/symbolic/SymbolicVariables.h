@@ -152,6 +152,7 @@ public:
     SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, SymbolicVariable* rhs) const override;
     std::unique_ptr<SymbolicVariable> clone() override;
     std::unique_ptr<SymbolicDouble> cloneSD();
+    std::shared_ptr<SymbolicDouble> cloneSP();
     SymbolicVariable* cloneRaw() override;
 
     void removeUpperBound();

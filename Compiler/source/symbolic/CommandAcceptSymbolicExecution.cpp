@@ -60,7 +60,7 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
 }
 
 PrintIndirectCommand::PrintIndirectCommand(std::unique_ptr<SymbolicDoubleGetter> sdg, int linenum):
-    AbstractCommand(linenum), toPrint(std::move(sdg)) {}
+    AbstractCommand(linenum), toPrint(std::move(sdg)) {setType(CommandType::PRINT), setData(toPrint->getName());}
 
 PrintIndirectCommand::~PrintIndirectCommand() {toPrint.reset();}
 
@@ -73,6 +73,11 @@ bool PrintIndirectCommand::acceptSymbolicExecution(std::shared_ptr<SymbolicExecu
                                                    bool repeat)
 {
     return toPrint->check(svs.get());
+}
+
+std::unique_ptr<AbstractCommand> PrintIndirectCommand::clone()
+{
+    return std::make_unique<PrintIndirectCommand>(toPrint->clone(), getLineNum());
 }
 
 bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat)
@@ -324,6 +329,7 @@ bool DeclareVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sy
 bool DeclareArrayCommand::acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs,
                                                   bool repeat)
 {
-    svs->symbolicVarSet->addArray(getData(), make_unique<SymbolicArray>(size, svs->reporter));
+    svs->symbolicVarSet->addArray(getData(), make_unique<SymbolicArray>(getData(), size, svs->reporter));
+    return true;
 }
 

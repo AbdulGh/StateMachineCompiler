@@ -12,6 +12,7 @@ class SymbolicDoubleGetter
 public:
     virtual std::shared_ptr<SymbolicDouble> getSD(SymbolicExecution::SymbolicExecutionFringe* sef) = 0;
     virtual bool check(SymbolicExecution::SymbolicExecutionFringe* sef) {return true;};
+    virtual std::unique_ptr<SymbolicDoubleGetter> clone() = 0;
     virtual std::string getName() const = 0;
 };
 
@@ -43,6 +44,11 @@ public:
     {
         return name;
     }
+
+    std::unique_ptr<SymbolicDoubleGetter> clone() override
+    {
+        return std::make_unique<GetSDByName>(name);
+    }
 };
 
 class GetSDByArrayIndex: public SymbolicDoubleGetter
@@ -51,7 +57,7 @@ public:
     const std::string name;
     unsigned int index;
 
-    GetSDByArrayIndex(const std::string& n, unsigned int& i): name(n), index(i)
+    GetSDByArrayIndex(std::string n, unsigned int i): name(move(n)), index(i)
         {if (i < 0) throw std::runtime_error("don't be silly!");};
 
     std::shared_ptr<SymbolicDouble> getSD(SymbolicExecution::SymbolicExecutionFringe* sef) override
@@ -76,6 +82,11 @@ public:
     {
         return name + "[" + std::to_string(index) + "]";
     }
+
+    std::unique_ptr<SymbolicDoubleGetter> clone() override
+    {
+        return std::make_unique<GetSDByArrayIndex>(name, index);
+    }
 };
 
 class GetSDByIndexVar: public SymbolicDoubleGetter
@@ -84,7 +95,7 @@ public:
     const std::string arrayName;
     std::unique_ptr<SymbolicDoubleGetter> index;
 
-    GetSDByIndexVar(const std::string& arrN, std::unique_ptr<SymbolicDoubleGetter> var): arrayName(arrN), index(std::move(var)) {}
+    GetSDByIndexVar(std::string arrN, std::unique_ptr<SymbolicDoubleGetter> var): arrayName(move(arrN)), index(std::move(var)) {}
 
     std::shared_ptr<SymbolicDouble> getSD(SymbolicExecution::SymbolicExecutionFringe* sef) override
     {
@@ -92,7 +103,8 @@ public:
         if (sa == nullptr) throw std::runtime_error("Array '" + arrayName + "' undeclared");
         auto sv = index->getSD(sef);
         if (sv->getType() != DOUBLE) throw std::runtime_error("wrong type");
-        return std::move(sa[sv.get()]);
+        std::shared_ptr<SymbolicDouble> sd = sa->operator[](sv.get()); //WHY???!
+        return std::move(sd);
     }
 
     bool check(SymbolicExecution::SymbolicExecutionFringe* sef) override
@@ -113,6 +125,11 @@ public:
     {
         return arrayName + "[" + index->getName() + "]";
     }
+
+    std::unique_ptr<SymbolicDoubleGetter> clone() override
+    {
+        return std::make_unique<GetSDByIndexVar>(arrayName, index->clone());
+    }
 };
 
 class SetArraySDByIndex: public SymbolicDoubleSetter
@@ -121,7 +138,7 @@ public:
     const std::string name;
     const unsigned long index;
 
-    SetArraySDByIndex(const std::string& n, const unsigned long& i): name(n), index(i) {};
+    SetArraySDByIndex(std::string n, const unsigned long& i): name(move(n)), index(i) {};
 
     void setSD(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sv) override
     {
@@ -146,15 +163,16 @@ class SetArraySDByVar: public SymbolicDoubleSetter
 {
 public:
     const std::string arrayName;
-    SymbolicDoubleGetter index;
+    std::unique_ptr<SymbolicDoubleGetter> index;
 
-    SetArraySDByVar(const std::string& arrN, SymbolicDoubleGetter var): arrayName(arrN), index(std::move(var)) {}
+    SetArraySDByVar(std::string arrN, std::unique_ptr<SymbolicDoubleGetter> var):
+            arrayName(std::move(arrN)), index(std::move(var)) {}
 
     void setSD(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sv) override
     {
         SymbolicArray* sa = sef->symbolicVarSet->findArray(arrayName);
         if (sa == nullptr) throw std::runtime_error("Array '" + arrayName + "' undeclared");
-        SymbolicDouble* ind = index.getSD(sef).get();
+        SymbolicDouble* ind = index->getSD(sef).get();
         sa->set(ind, sv);
         
     }
@@ -168,7 +186,7 @@ public:
             return false;
         }
 
-        SymbolicDouble* sv = index.getSD(sef).get();
+        SymbolicDouble* sv = index->getSD(sef).get();
         if (sv->isDetermined()) return sa->checkIndex(sv->getTConstValue());
         else return sa->checkBounds(sv->getTLowerBound(), sv->getTUpperBound());
     }
@@ -179,12 +197,12 @@ class SetSDByName: public SymbolicDoubleSetter
 public:
     const std::string name;
 
-    SetSDByName(const std::string& n) : name(n) {};
+    SetSDByName(std::string n) : name(move(n)) {};
 
     void setSD(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sv) override
     {
         sv->setName(name);
-        sef->symbolicVarSet->addVar(std::move(sv));
+        sef->symbolicVarSet->addVar(sv->clone());
     }
 };
 #endif //PROJECT_SYMBOLICVARWRAPPERS_H

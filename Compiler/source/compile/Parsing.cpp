@@ -97,7 +97,7 @@ bool Compiler::statement(FunctionSymbol* fs)
                 VariableType vtype;
                 int index;
                 Identifier* id = findVariable(ident(), uid, &vtype, &index);
-                if (vtype == ARRAY) fs->genIndirectPrint(id->getUniqueID(), index, lookahead.line);
+                if (index >= 0) fs->genIndirectPrint(id->getUniqueID(), index, lookahead.line);
                 else fs->genPrint(uid, lookahead.line);
             }
 
