@@ -144,7 +144,7 @@ Token Lexer::parseToken()
                 stod(str);
                 return Token(NUMBER, str);
             }
-            catch(invalid_argument)
+            catch(invalid_argument&)
             {
                 unordered_map<string, Token>::const_iterator found = resWords.find(str);
                 if (found == resWords.end()) return Token(IDENT, str);

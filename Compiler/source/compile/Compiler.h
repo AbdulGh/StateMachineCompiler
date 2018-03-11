@@ -12,6 +12,8 @@
 #include "Reporter.h"
 #include "../symbolic/SymbolicExecution.h"
 
+enum class AccessType;
+
 //Implemented in Compiler.cpp, Parsing.cpp, CodeGen.cpp
 class Compiler
 {
@@ -44,7 +46,8 @@ private:
     Relations::Relop relop();
     void expression(FunctionSymbol* fs, const std::string& to);
     VariableType vtype(unsigned int* = nullptr);
-    std::string ident();
+    std::unique_ptr<VarGetter> identGetter(AccessType* at = nullptr);
+    std::unique_ptr<VarSetter> identSetter(AccessType* at = nullptr);
 
     //code generation
     VariableType genFunctionCall(FunctionSymbol*, VariableType expectedType, std::string uid = "");

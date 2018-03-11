@@ -5,6 +5,9 @@
 
 #include "compile/Token.h"
 
+class VarGetter;
+class VarSetter;
+
 enum class CommandType{JUMP, CONDJUMP, DECLAREVAR, PUSH, POP, ASSIGNVAR, CHANGEVAR, EXPR, PRINT};
 
 namespace SymbolicExecution {class SymbolicExecutionFringe;}; //symbolic/SymbolicExecution.cpp
@@ -46,7 +49,7 @@ public:
         AbstractCommand::data = data;
     }
 
-    int getLineNum()
+    int getLineNum() const
     {
         return linenumber;
     }
@@ -85,14 +88,13 @@ public:
     }
 };
 
-class SymbolicVarGetter;
 class PrintIndirectCommand: public AbstractCommand //done in CommandAcceptSymbolicExecution (forward declarations)
 {
-    std::unique_ptr<SymbolicVarGetter> toPrint;
+    std::unique_ptr<VarGetter> toPrint;
 
 public:
-    PrintIndirectCommand(std::unique_ptr<SymbolicVarGetter> sdg, int linenum);
-    ~PrintIndirectCommand();
+    PrintIndirectCommand(std::unique_ptr<VarGetter> sdg, int linenum);
+    ~PrintIndirectCommand() override;
     std::string translation(const std::string& delim) const override;
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
     std::unique_ptr<AbstractCommand> clone() override;
@@ -134,47 +136,52 @@ public:
 class JumpOnComparisonCommand: public AbstractCommand
 {
 public:
-    std::string term1;
+    union Comparatee
+    {
+        std::string* sptr;
+        VarGetter* vptr;
+    };
+    
+    Comparatee term1;
+    Comparatee term2;
+    
     StringType term1Type;
-    std::string term2;
     StringType term2Type;
     Relations::Relop op;
 
-    JumpOnComparisonCommand(const std::string& st, const std::string& t1, const std::string& t2, Relations::Relop o, int linenum) : AbstractCommand(linenum)
+    JumpOnComparisonCommand(const std::string& st, std::unique_ptr<VarGetter> t1,
+                            std::unique_ptr<VarGetter> t2, Relations::Relop o, int linenum);
+
+    JumpOnComparisonCommand(const std::string& st, std::unique_ptr<VarGetter> t1,
+                            const std::string& t2, Relations::Relop o, int linenum);
+
+    JumpOnComparisonCommand(const JumpOnComparisonCommand& jocc);
+
+    ~JumpOnComparisonCommand() override
     {
-        setData(st);
-        term1 = t1;
-        term2 = t2;
-        op = o;
-        //these are only used during symbolic execution
-        term1Type = getStringType(term1);
-        term2Type = getStringType(term2);
-
-        //ensure a var appears on the lhs if there is one
-        //const comparisons will be hardcoded later
-        if (term1Type != AbstractCommand::StringType::ID
-            && term2Type == AbstractCommand::StringType::ID)
-        {
-            StringType temp = term1Type;
-            term1Type = term2Type;
-            term2Type = temp;
-            term1.swap(term2);
-            op = Relations::mirrorRelop(op);
-        }
-
-        setType(CommandType::CONDJUMP);
+        resetTerm1();
+        resetTerm2();
     }
+    
+    void resetTerm1();
+    void resetTerm2();
+    std::string t1str() const;
+    std::string t2str() const;
 
     void setTerm1(const std::string& t1)
     {
-        term1 = t1;
-        term1Type = getStringType(term1);
+        resetTerm1();
+        term1Type = getStringType(t1);
+        if (term1Type == StringType::ID) throw "Use VarGetter";
+        term1.sptr = new std::string(t1);
     }
 
     void setTerm2(const std::string& t2)
     {
-        term2 = t2;
-        term2Type = getStringType(term2);
+        resetTerm2();
+        term2Type = getStringType(t2);
+        if (term2Type == StringType::ID) throw "Use VarGetter";
+        term2.sptr = new std::string(t2);
     }
 
     void makeGood()
@@ -182,10 +189,11 @@ public:
         if (term1Type != AbstractCommand::StringType::ID
             && term2Type == AbstractCommand::StringType::ID)
         {
-            StringType temp = term1Type;
-            term1Type = term2Type;
-            term2Type = temp;
-            term1.swap(term2);
+            auto tempptr = term2.vptr;
+            if (term1Type == StringType::ID) term2.vptr = term1.vptr;
+            else term2.sptr = term1.sptr;
+            term2Type = term1Type;
+            term1Type = StringType::ID;
             op = Relations::mirrorRelop(op);
         }
     }
@@ -195,11 +203,11 @@ public:
         return std::make_unique<JumpOnComparisonCommand>(getData(), term1, term2, op, getLineNum());
     }
 
-    std::string translation(const std::string& delim) const override {return "jumpif " + term1 + relEnumStrs[op] + term2 + " " + getData() + ";" + delim;}
-    std::string negatedTranslation(const std::string& delim) const {return "jumpif " + term1 +
-                relEnumStrs[Relations::negateRelop(op)] + term2 + " " + getData() + ";" + delim;}
-    std::string condition(const std::string& delim) const {return term1 + relEnumStrs[op] + term2 + delim;}
-    std::string negatedCondition(const std::string& delim) const {return term1 + relEnumStrs[Relations::negateRelop(op)] + term2 + delim;}
+    std::string translation(const std::string& delim) const override {return "jumpif " + t1str() + relEnumStrs[op] + t2str() + " " + getData() + ";" + delim;}
+    std::string negatedTranslation(const std::string& delim) const {return "jumpif " + t1str() +
+                relEnumStrs[Relations::negateRelop(op)] + t2str() + " " + getData() + ";" + delim;}
+    std::string condition(const std::string& delim) const {return t1str() + relEnumStrs[op] + t2str() + delim;}
+    std::string negatedCondition(const std::string& delim) const {return t1str() + relEnumStrs[Relations::negateRelop(op)] + t2str() + delim;}
     void negate() {op = Relations::negateRelop(op);}
 };
 

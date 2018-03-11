@@ -7,8 +7,10 @@
 
 #include "SymbolicExecution.h"
 
+enum class AccessType{DIRECT, BYARRAY};
+
 template <typename T>
-class GottenSymVarPtr
+class GottenVarPtr
 {
 private:
     union
@@ -19,22 +21,22 @@ private:
     const bool owns;
 
 public:
-    GottenSymVarPtr(GottenSymVarPtr&& o) : owns(o.owns)
+    GottenVarPtr(GottenVarPtr&& o) : owns(o.owns)
     {
         if (owns) up = std::move(o.up);
         else rp = o.rp;
     }
 
-    /* debug GottenSymVarPtr& operator=(GottenSymVarPtr&& o) : owns(o.owns)
+    /* debug GottenVarPtr& operator=(GottenVarPtr&& o) : owns(o.owns)
     {
         if (owns) up = std::move(o.up);
         else rp = o.rp;
         return *this;
     }*/
 
-    explicit GottenSymVarPtr(T* pointTo) : rp(pointTo), owns(false) {}
-    explicit GottenSymVarPtr(std::unique_ptr<T> sv) : up(std::move(sv)), owns(true) {}
-    ~GottenSymVarPtr() {if (owns) up.reset();}
+    explicit GottenVarPtr(T* pointTo) : rp(pointTo), owns(false) {}
+    explicit GottenVarPtr(std::unique_ptr<T> sv) : up(std::move(sv)), owns(true) {}
+    ~GottenVarPtr() {if (owns) up.reset();}
 
     T* get()
     {
@@ -54,49 +56,77 @@ public:
     }
 };
 
-class SymbolicVarGetter
+/*
+std::unique_ptr<VarGetter> parseAccess(const std::string& toParse, AbstractCommand::StringType* st = nullptr)
 {
+    if (toParse.empty()) throw "Can't parse an empty string";
+    if (toParse[0] == '\"')
+    {
+        *st = AbstractCommand::StringType::STRINGLIT;
+        return nullptr;
+    }
+    else try
+    {
+        std::stod(toParse);
+        *st = AbstractCommand::StringType::DOUBLELIT;
+        return nullptr;
+    }
+    catch (std::invalid_argument&) //id or array access
+    {
+    }
+}*/
+
+class VarGetter
+{
+protected:
+    AccessType accessType;
+    void setAccessType(AccessType at) {accessType = at;}
+
 public:
-    virtual GottenSymVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) = 0;
-    virtual GottenSymVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) = 0;
+
+    const AccessType& getAccessType() {return accessType;}
+
+    virtual GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) = 0;
+    virtual GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) = 0;
     virtual bool check(SymbolicExecution::SymbolicExecutionFringe* sef) {return true;};
-    virtual std::unique_ptr<SymbolicVarGetter> clone() = 0;
-    virtual VariableType getType(SymbolicExecution::SymbolicExecutionFringe* sef) = 0;
+    virtual std::unique_ptr<VarGetter> clone() = 0;
+    virtual VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe *sef) = 0;
     virtual std::string getName() const = 0;
+
+    operator std::string() {return getName();}
 };
 
-class SymbolicVarSetter
+class VarSetter
 {
 public:
     virtual void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble *sv) = 0;
     virtual bool check(SymbolicExecution::SymbolicExecutionFringe* sef) {return true;};
 };
 
-class GetSVByName: public SymbolicVarGetter
+class GetSVByName: public VarGetter
 {
 public:
     const std::string name;
 
-    GetSVByName(std::string n) : name(move(n)) {};
+    GetSVByName(std::string n) : name(move(n)) {VarGetter::setAccessType(AccessType::DIRECT);};
 
-    GottenSymVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) override
+    GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) override
     {
         SymbolicVariable* foundsv = sef->symbolicVarSet->findVar(name);
-        GottenSymVarPtr<SymbolicVariable> FUCK(foundsv);
-        return FUCK;
+        return GottenVarPtr<SymbolicVariable>(foundsv);
     }
 
-    GottenSymVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) override
+    GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) override
     {
         SymbolicVariable* sv = sef->symbolicVarSet->findVar(name);
         if (sv == nullptr) throw std::runtime_error("Var '" + name + "' undeclared");
         if (sv->getType() != DOUBLE) throw std::runtime_error("wrong type");
         SymbolicDouble* sd = static_cast<SymbolicDouble*>(sv);
         
-        return std::move(GottenSymVarPtr<SymbolicDouble>(sd));
+        return std::move(GottenVarPtr<SymbolicDouble>(sd));
     }
 
-    VariableType getType(SymbolicExecution::SymbolicExecutionFringe* sef) override
+    VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe *sef) override
     {
         SymbolicVariable* sv = sef->symbolicVarSet->findVar(name);
         if (sv == nullptr) throw std::runtime_error("Var '" + name + "' undeclared");
@@ -108,34 +138,38 @@ public:
         return name;
     }
 
-    std::unique_ptr<SymbolicVarGetter> clone() override
+    std::unique_ptr<VarGetter> clone() override
     {
         return std::make_unique<GetSVByName>(name);
     }
 };
 
-class GetSDByArrayIndex: public SymbolicVarGetter
+class GetSDByArrayIndex: public VarGetter
 {
 public:
     const std::string name;
     unsigned int index;
 
     GetSDByArrayIndex(std::string n, unsigned int i): name(move(n)), index(i)
-        {if (i < 0) throw std::runtime_error("don't be silly!");};
 
-    GottenSymVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) override
+    {
+        VarGetter::setAccessType(AccessType::DIRECT);
+        if (i < 0) throw std::runtime_error("don't be silly!");
+    };
+
+    GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) override
     {
         throw "bad!";
     }
 
-    GottenSymVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) override
+    GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) override
     {
         SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
         if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
-        return std::move(GottenSymVarPtr<SymbolicDouble>(std::move(sa->operator[](index)))); //WHY operator[]???!
+        return std::move(GottenVarPtr<SymbolicDouble>(std::move(sa->operator[](index)))); //WHY operator[]???!
     }
 
-    VariableType getType(SymbolicExecution::SymbolicExecutionFringe* sef) override
+    VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe *sef) override
     {
         return DOUBLE;
     }
@@ -156,36 +190,37 @@ public:
         return name + "[" + std::to_string(index) + "]";
     }
 
-    std::unique_ptr<SymbolicVarGetter> clone() override
+    std::unique_ptr<VarGetter> clone() override
     {
         return std::make_unique<GetSDByArrayIndex>(name, index);
     }
 };
 
-class GetSDByIndexVar: public SymbolicVarGetter
+class GetSDByIndexVar: public VarGetter
 {
 public:
     const std::string arrayName;
-    std::unique_ptr<SymbolicVarGetter> index;
+    std::unique_ptr<VarGetter> index;
 
-    GetSDByIndexVar(std::string arrN, std::unique_ptr<SymbolicVarGetter> var): arrayName(move(arrN)), index(std::move(var)) {}
+    GetSDByIndexVar(std::string arrN, std::unique_ptr<VarGetter> var):
+            arrayName(move(arrN)), index(std::move(var)) {VarGetter::setAccessType(AccessType::DIRECT);};
 
-    GottenSymVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) override
+    GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) override
     {
         throw "accesses array";
     }
 
-    GottenSymVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) override
+    GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) override
     {
         SymbolicArray* sa = sef->symbolicVarSet->findArray(arrayName);
         if (sa == nullptr) throw std::runtime_error("Array '" + arrayName + "' undeclared");
         auto sv = index->getSymbolicDouble(sef);
         if (sv->getType() != DOUBLE) throw std::runtime_error("wrong type");
-        GottenSymVarPtr<SymbolicDouble> sd(sa->operator[](sv.get()));
+        GottenVarPtr<SymbolicDouble> sd(sa->operator[](sv.get()));
         return std::move(sd);
     }
 
-    VariableType getType(SymbolicExecution::SymbolicExecutionFringe* sef) override
+    VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe *sef) override
     {
         return DOUBLE;
     }
@@ -209,13 +244,13 @@ public:
         return arrayName + "[" + index->getName() + "]";
     }
 
-    std::unique_ptr<SymbolicVarGetter> clone() override
+    std::unique_ptr<VarGetter> clone() override
     {
         return std::make_unique<GetSDByIndexVar>(arrayName, index->clone());
     }
 };
 
-class SetArraySDByIndex: public SymbolicVarSetter
+class SetArraySDByIndex: public VarSetter
 {
 public:
     const std::string name;
@@ -242,13 +277,13 @@ public:
     }
 };
 
-class SetArraySDByVar: public SymbolicVarSetter
+class SetArrayByVar: public VarSetter
 {
 public:
     const std::string arrayName;
-    std::unique_ptr<SymbolicVarGetter> index;
+    std::unique_ptr<VarGetter> index;
 
-    SetArraySDByVar(std::string arrN, std::unique_ptr<SymbolicVarGetter> var):
+    SetArrayByVar(std::string arrN, std::unique_ptr<VarGetter> var):
             arrayName(std::move(arrN)), index(std::move(var)) {}
 
     void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble *sv) override
@@ -275,12 +310,12 @@ public:
     }
 };
 
-class SetSDByName: public SymbolicVarSetter
+class SetSVByName: public VarSetter
 {
 public:
     const std::string name;
 
-    SetSDByName(std::string n) : name(move(n)) {};
+    SetSVByName(std::string n) : name(move(n)) {};
 
     void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble *sv) override
     {

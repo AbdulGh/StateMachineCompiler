@@ -59,25 +59,10 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
     return true;
 }
 
-PrintIndirectCommand::PrintIndirectCommand(std::unique_ptr<SymbolicVarGetter> sdg, int linenum):
-    AbstractCommand(linenum), toPrint(std::move(sdg)) {setType(CommandType::PRINT), setData(toPrint->getName());}
-
-PrintIndirectCommand::~PrintIndirectCommand() {toPrint.reset();}
-
-std::string PrintIndirectCommand::translation(const std::string& delim) const
-{
-    return "print " + toPrint->getName() + ";" + delim;
-}
-
 bool PrintIndirectCommand::acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs,
                                                    bool repeat)
 {
     return toPrint->check(svs.get());
-}
-
-std::unique_ptr<AbstractCommand> PrintIndirectCommand::clone()
-{
-    return std::make_unique<PrintIndirectCommand>(toPrint->clone(), getLineNum());
 }
 
 bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat)

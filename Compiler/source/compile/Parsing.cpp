@@ -3,7 +3,7 @@
 #include <stack>
 
 #include "Compiler.h"
-
+#include "../symbolic/SymbolicVarWrappers.h"
 
 using namespace std;
 
@@ -18,8 +18,10 @@ void Compiler::body()
     else if (lookahead.type == FUNCTION)
     {
         match(FUNCTION);
-        string funName = ident();
-        FunctionSymbol* fs = functionTable.getFunction(funName);
+
+        unique_ptr<VarGetter> funName = identGetter();
+
+        FunctionSymbol* fs = functionTable.getFunction(funName->getName());
 
         //get stack parameters into variables
         symbolTable.pushScope();
@@ -29,8 +31,10 @@ void Compiler::body()
         {
             VariableType t = vtype();
             unsigned int line = lookahead.line;
-            string s = ident();
-            Identifier* vid = symbolTable.declare(t, s, line);
+            AccessType atcheck;
+            unique_ptr<VarGetter> s = identGetter(&atcheck);
+            if (&atcheck != AccessType::DIRECT) error("'" + s->getName() + "' is not a valid function parameter");
+            Identifier* vid = symbolTable.declare(t, s->getName(), line);
             vid->setDefined();
             const string& vidName = vid->getUniqueID();
             argumentStack.push(make_unique<PopCommand>(vidName, lookahead.line));
@@ -39,7 +43,10 @@ void Compiler::body()
             if (lookahead.type == COMMA)
             {
                 match(COMMA);
-                if (lookahead.type == RPAREN) warning("Unexpected comma in parameters for function '" + funName + "' - ignoring");
+                if (lookahead.type == RPAREN)
+                {
+                    warning("Unexpected comma in parameters for function '" + fs->getIdent() + "' - ignoring");
+                }
             }
         }
         match(RPAREN);
@@ -260,9 +267,62 @@ VariableType Compiler::vtype(unsigned int* size)
     return t;
 }
 
-string Compiler::ident()
+unique_ptr<VarGetter> Compiler::identGetter(AccessType* at)
 {
     string s = lookahead.lexemeString;
     Compiler::match(IDENT);
-    return s;
+    if (lookahead.type == LSQPAREN)
+    {
+        if (at != nullptr) *at = AccessType::BYARRAY;
+        match(LSQPAREN);
+
+        if (lookahead.type == NUMBER)
+        {
+            int index = stoi(lookahead.lexemeString);
+            match(NUMBER);
+            match(RSQPAREN);
+            return make_unique<GetSDByArrayIndex>(s, index);
+        }
+        else
+        {
+            unique_ptr<VarGetter> indexVar = identGetter();
+            match(RSQPAREN);
+            return make_unique<GetSDByIndexVar>(s, move(indexVar));
+        }
+    }
+    else
+    {
+        if (at != nullptr) *at = AccessType::DIRECT;
+        return make_unique<GetSVByName>(s);
+    }
+}
+
+unique_ptr<VarSetter> Compiler::identSetter(AccessType* at)
+{
+    string s = lookahead.lexemeString;
+    Compiler::match(IDENT);
+    if (lookahead.type == LSQPAREN)
+    {
+        if (at != nullptr) *at = AccessType::BYARRAY;
+        match(LSQPAREN);
+
+        if (lookahead.type == NUMBER)
+        {
+            int index = stoi(lookahead.lexemeString);
+            match(NUMBER);
+            match(RSQPAREN);
+            return make_unique<SetArraySDByIndex>(s, index);
+        }
+        else
+        {
+            unique_ptr<VarGetter> indexVar = identGetter();
+            match(RSQPAREN);
+            return make_unique<SetArrayByVar>(s, move(indexVar));
+        }
+    }
+    else
+    {
+        if (at != nullptr) *at = AccessType::DIRECT;
+        return make_unique<SetSVByName>(s);
+    }
 }

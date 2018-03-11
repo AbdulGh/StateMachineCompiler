@@ -400,7 +400,7 @@ void FunctionSymbol::genPrint(string s, int linenum)
 void FunctionSymbol::genIndirectPrint(std::string arrayName, int index, int linenum)
 {
     if (endedState) throw "No state to add to";
-    unique_ptr<SymbolicVarGetter> sdg = make_unique<GetSDByArrayIndex>(arrayName, index);
+    unique_ptr<VarGetter> sdg = make_unique<GetSDByArrayIndex>(arrayName, index);
     currentInstrs.push_back(make_unique<PrintIndirectCommand>(move(sdg), linenum));
 }
 
