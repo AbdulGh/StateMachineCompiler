@@ -200,7 +200,7 @@ public:
 
     std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_unique<JumpOnComparisonCommand>(getData(), term1, term2, op, getLineNum());
+        return std::make_unique<JumpOnComparisonCommand>(*this);
     }
 
     std::string translation(const std::string& delim) const override {return "jumpif " + t1str() + relEnumStrs[op] + t2str() + " " + getData() + ";" + delim;}

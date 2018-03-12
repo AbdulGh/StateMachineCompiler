@@ -9,6 +9,9 @@
 #include "../compile/Token.h"
 //SymbolicVariable.cpp
 
+class VarGetter;
+namespace SymbolicExecution{class SymbolicExecutionFringe;};
+
 class SymbolicVariable : public std::enable_shared_from_this<SymbolicVariable>
 {
 protected:
@@ -53,12 +56,12 @@ public:
     virtual bool guaranteedEQ(SymbolicVariable* searchFor, const std::string& initName);
     virtual bool guaranteedNEQ(SymbolicVariable* searchFor, const std::string& initName);
 
-    virtual bool addLT(SymbolicVariable* other);
-    virtual bool addLE(SymbolicVariable* other);
-    virtual bool addGT(SymbolicVariable* other);
-    virtual bool addGE(SymbolicVariable* other);
-    virtual bool addEQ(SymbolicVariable* other);
-    virtual bool addNEQ(SymbolicVariable* other);
+    virtual bool addLT(VarGetter* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
+    virtual bool addLE(VarGetter* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
+    virtual bool addGT(VarGetter* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
+    virtual bool addGE(VarGetter* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
+    virtual bool addEQ(VarGetter* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
+    virtual bool addNEQ(VarGetter* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
     virtual void addNEQConst(const std::string& c) = 0;
     virtual void clearLess();
     virtual void clearGreater();
@@ -111,7 +114,8 @@ public:
     bool meetsConstComparison(Relations::Relop r, const std::string& rhs) override;
     virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, SymbolicVariable* rhs) const override;
 
-    virtual bool addEQ(SymbolicVariable* other) override;
+    virtual bool addEQ(VarGetter* other,
+                       SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed) override;
     void addNEQConst(const std::string& c) override;
     void clearEQ() override;
 

@@ -13,6 +13,7 @@
 #include "../symbolic/SymbolicExecution.h"
 
 enum class AccessType;
+class VarWrapper;
 
 //Implemented in Compiler.cpp, Parsing.cpp, CodeGen.cpp
 class Compiler
@@ -36,7 +37,7 @@ private:
     void warning(std::string);
     Token nextToken();
     void findGlobalsAndMakeStates();
-    Identifier* findVariable(std::string n, std::string& uid, VariableType* vtype = nullptr, int* index = nullptr);
+    Identifier* findVariable(VarWrapper* varGetter, VariableType* vtype = nullptr);
     std::string quoteString(std::string& s);
 
     //parsing
@@ -48,6 +49,7 @@ private:
     VariableType vtype(unsigned int* = nullptr);
     std::unique_ptr<VarGetter> identGetter(AccessType* at = nullptr);
     std::unique_ptr<VarSetter> identSetter(AccessType* at = nullptr);
+    std::string identPlain();
 
     //code generation
     VariableType genFunctionCall(FunctionSymbol*, VariableType expectedType, std::string uid = "");

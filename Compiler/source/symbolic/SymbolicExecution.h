@@ -11,6 +11,9 @@
 #include "../compile/Token.h" //relop
 #include "../compile/Functions.h"
 
+template <typename T>
+class GottenVarPtr;
+
 namespace SymbolicExecution
 {
     struct Condition
@@ -19,10 +22,10 @@ namespace SymbolicExecution
         Relations::Relop comp;
         std::string rhs;
 
-        Condition(std::string& lhs, Relations::Relop comp, std::string& rhs):
-                lhs(lhs), comp(comp), rhs(rhs) {}
-        Condition(std::string& lhs, Relations::Relop comp, double rhs):
-                lhs(lhs), comp(comp), rhs(std::to_string(rhs)) {}
+        Condition(std::string l, Relations::Relop c, std::string r):
+                lhs(move(l)), comp(c), rhs(move(r)) {}
+        Condition(std::string l, Relations::Relop c, double r):
+                lhs(move(l)), comp(c), rhs(std::to_string(r)) {}
         Condition() = default;
 
         std::string toString()
@@ -141,26 +144,26 @@ namespace SymbolicExecution
         void branchGT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                       std::string lhsvar, const std::string& rhsconst, bool reverse = false);
         
-        void varBranch(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                       SymbolicVariable* lhsvar, Relations::Relop op, SymbolicVariable* rhsvar);
+        void varBranch(std::shared_ptr<SymbolicExecutionFringe>& sef, CFGNode* n,
+                       VarGetter* lhsvar, Relations::Relop op, VarGetter* rhsvar);
         
         void varBranchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
+                      VarGetter* lhsvar, VarGetter* rhsvar);
         
         void varBranchNE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
+                      VarGetter* lhsvar, VarGetter* rhsvar);
         
         void varBranchLE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
+                      VarGetter* lhsvar, VarGetter* rhsvar);
         
         void varBranchLT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
+                      VarGetter* lhsvar, VarGetter* rhsvar);
         
         void varBranchGE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
+                      VarGetter* lhsvar, VarGetter* rhsvar);
         
         void varBranchGT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      SymbolicVariable* lhsvar, SymbolicVariable* rhsvar);
+                      VarGetter* lhsvar, VarGetter* rhsvar);
 
         static CFGNode* getFailNode(std::shared_ptr<SymbolicExecutionFringe> returningSEF, CFGNode* n);
     };

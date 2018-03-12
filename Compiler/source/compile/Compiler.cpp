@@ -2,12 +2,11 @@
 // Created by abdul on 10/08/17.
 //
 #include <iostream>
-#include <algorithm>
 
 #include "Compiler.h"
 #include "../CFGOpt/Optimiser.h"
 #include "../CFGOpt/LengTarj.h"
-#include "../symbolic/SymbolicArray.h" //delet
+#include "../symbolic/SymbolicVarWrappers.h"
 
 using namespace std;
 
@@ -73,26 +72,11 @@ Token Compiler::nextToken()
     return *(tp++);
 }
 
-Identifier* Compiler::findVariable(string name, string& uid, VariableType* vtype, int* index)
+Identifier* Compiler::findVariable(VarWrapper* vg, VariableType* vtype)
 {
-    if (name.empty()) name = ident();
-    Identifier* ret = symbolTable.findIdentifier(name);
-    if (ret == nullptr) error("Undeclared variable '" + name + "'");
-
-    uid = ret->getUniqueID();
+    Identifier* ret = symbolTable.findIdentifier(vg->getBaseName());
+    if (ret == nullptr) error("Undeclared variable '" + vg->getBaseName() + "'");
     if (vtype) *vtype = ret->getType() == ARRAY ? DOUBLE : ret->getType();
-
-    if (lookahead.type == LSQPAREN)
-    {
-        match(LSQPAREN);
-        if (lookahead.type != NUMBER) throw "must be numbers atm";
-        if (index != nullptr) *index = stoi(lookahead.lexemeString);
-        uid += "[" + lookahead.lexemeString + "]";
-        match(NUMBER);
-        match(RSQPAREN);
-    }
-    else if (index != nullptr) *index = -1;
-
     return ret;
 }
 

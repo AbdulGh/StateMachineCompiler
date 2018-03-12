@@ -1,10 +1,11 @@
 #include "Compiler.h"
+#include "../symbolic/SymbolicVarWrappers.h"
 
 using namespace std;
 VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType, string uid) //todo remember why this returns a vtype
 {
     match(Type::CALL);
-    string fid = ident();
+    string fid = identPlain();
     FunctionSymbol *toFS = functionTable.getFunction(fid);
 
     if (expectedType != ANY && !toFS->isOfType(expectedType))
@@ -42,11 +43,10 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expe
             }
             else
             {
-                string iid = ident();
-                string uid2;
-                Identifier* idp = findVariable(iid, uid2);
+                unique_ptr<VarGetter> vg = identGetter();
+                Identifier* idp = findVariable(vg.get());
                 paramTypes.push_back(idp->getType());
-                fromFS->genPush(uid2, lookahead.line);
+                fromFS->genPush(vg->getUniqueID(symbolTable), lookahead.line);
             }
             if (lookahead.type == Type::COMMA)
             {
@@ -239,7 +239,7 @@ void Compiler::condition(FunctionSymbol* fs, string success, string fail)
     Relations::Relop r = relop();
     expression(fs, "RHS");
 
-    fs->genConditionalJump(success, "LHS", r, "RHS", lookahead.line);
-    fs->genJump(fail, lookahead.line);
+    fs->genConditionalJump(move(success), make_unique<GetSVByName>("LHS"), r, make_unique<GetSVByName>("LHS"), lookahead.line);
+    fs->genJump(move(fail), lookahead.line);
     fs->genEndState();
 }

@@ -397,17 +397,17 @@ void FunctionSymbol::genPrint(string s, int linenum)
     currentInstrs.push_back(make_unique<PrintCommand>(s, linenum));
 }
 
-void FunctionSymbol::genIndirectPrint(std::string arrayName, int index, int linenum)
+void FunctionSymbol::genIndirectPrint(unique_ptr<VarGetter> sdg, int linenum)
 {
     if (endedState) throw "No state to add to";
-    unique_ptr<VarGetter> sdg = make_unique<GetSDByArrayIndex>(arrayName, index);
     currentInstrs.push_back(make_unique<PrintIndirectCommand>(move(sdg), linenum));
 }
 
-void FunctionSymbol::genConditionalJump(string state, string lh, Relations::Relop r, string rh, int linenum)
+void FunctionSymbol::genConditionalJump(string state, unique_ptr<VarGetter> lh, Relations::Relop r,
+                                        unique_ptr<VarGetter> rh, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_unique<JumpOnComparisonCommand>(state, lh, rh, r, linenum));
+    currentInstrs.push_back(make_unique<JumpOnComparisonCommand>(state, move(lh), move(rh), r, linenum));
 }
 
 void FunctionSymbol::genPop(string s, int linenum)

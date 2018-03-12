@@ -21,7 +21,7 @@ void Compiler::body()
 
         unique_ptr<VarGetter> funName = identGetter();
 
-        FunctionSymbol* fs = functionTable.getFunction(funName->getName());
+        FunctionSymbol* fs = functionTable.getFunction(funName->getFullName());
 
         //get stack parameters into variables
         symbolTable.pushScope();
@@ -33,8 +33,8 @@ void Compiler::body()
             unsigned int line = lookahead.line;
             AccessType atcheck;
             unique_ptr<VarGetter> s = identGetter(&atcheck);
-            if (&atcheck != AccessType::DIRECT) error("'" + s->getName() + "' is not a valid function parameter");
-            Identifier* vid = symbolTable.declare(t, s->getName(), line);
+            if (atcheck != AccessType::DIRECT) error("'" + s->getFullName() + "' is not a valid function parameter");
+            Identifier* vid = symbolTable.declare(t, s->getFullName(), line);
             vid->setDefined();
             const string& vidName = vid->getUniqueID();
             argumentStack.push(make_unique<PopCommand>(vidName, lookahead.line));
@@ -98,15 +98,7 @@ bool Compiler::statement(FunctionSymbol* fs)
                 fs->genPrint(lookahead.lexemeString, lookahead.line);
                 match(NUMBER);
             }
-            else
-            {
-                string uid;
-                VariableType vtype;
-                int index;
-                Identifier* id = findVariable(ident(), uid, &vtype, &index);
-                if (index >= 0) fs->genIndirectPrint(id->getUniqueID(), index, lookahead.line);
-                else fs->genPrint(uid, lookahead.line);
-            }
+            else fs->genIndirectPrint(identGetter(),  lookahead.line);
 
             if (lookahead.type == COMMA)
             {
@@ -120,21 +112,21 @@ bool Compiler::statement(FunctionSymbol* fs)
     else if (lookahead.type == INPUT)
     {
         match(INPUT);
-        string id = ident();
-        string uid;
-        Identifier* idPtr = findVariable(id, uid);
-        fs->genInput(uid, lookahead.line);
-        idPtr->setDefined(); //todo this but w/ arrays
+        auto id = identGetter();
+        fs->genInput(id->getUniqueID(symbolTable), lookahead.line);
+        Identifier* idPtr = findVariable(id.get());
+        if (idPtr->getType() != ARRAY) idPtr->setDefined();
         match(SEMIC);
     }
     else if (lookahead.type == DTYPE)
     {
         unsigned int size = 0;
         VariableType t = vtype(&size);
-        string id = ident();
-        if (symbolTable.isInScope(id)) //set to '0' or '""' depending on type
+        auto id = identGetter();
+        if (symbolTable.isInScope(id->getBaseName())) //set to '0' or '""' depending on type
         {
-            string uid; VariableType vtype;
+            error("Variable '" + id->getBaseName() + "' is already in scope");
+            /*string uid; VariableType vtype;
             Identifier* idPtr = findVariable(id, uid, &vtype);
             if (t != idPtr->getType()) error("'" + id + "' redeclared in same scope with different type");
             else if (lookahead.type == ASSIGN)
@@ -159,11 +151,11 @@ bool Compiler::statement(FunctionSymbol* fs)
                 if (idPtr->getType() == DOUBLE || idPtr->getType() == ARRAY) fs->genAssignment(uid, "0", lookahead.line);
                 else if (idPtr->getType() == STRING) fs->genAssignment(uid, "\"\"", lookahead.line);
                 else throw "bad dtype";
-            }
+            }*/
         }
         else
         {
-            Identifier* idPtr = symbolTable.declare(t, id, lookahead.line); //todo next this
+            Identifier* idPtr = symbolTable.declare(t, id->getBaseName(), lookahead.line);
             if (t == ARRAY) fs->genArrayDecl(idPtr->getUniqueID(), size, lookahead.line);
             else fs->genVariableDecl(t, idPtr->getUniqueID(), lookahead.line);
 
@@ -192,20 +184,20 @@ bool Compiler::statement(FunctionSymbol* fs)
     }
     else if (lookahead.type == IDENT)
     {
-        string uid; VariableType vtype;
-        Identifier* idPtr = findVariable(ident(), uid, &vtype);
+        std::unique_ptr<VarSetter> setter = identSetter();
+        Identifier* idPtr = findVariable(setter.get());
         match(ASSIGN);
         if (idPtr->getType() == VariableType::STRING)
         {
             if (lookahead.type == STRINGLIT)
             {
-                fs->genAssignment(uid, quoteString(lookahead.lexemeString), lookahead.line);
+                fs->genAssignment(setter->getUniqueID(symbolTable), quoteString(lookahead.lexemeString), lookahead.line);
                 match(STRINGLIT);
             }
-            else if (lookahead.type == CALL) genFunctionCall(fs, vtype, uid);
+            else if (lookahead.type == CALL) genFunctionCall(fs, idPtr->getType(), setter->getUniqueID(symbolTable));
             else error("Malformed assignment to string");
         }
-        else expression(fs, uid);
+        else expression(fs, setter->getUniqueID(symbolTable));
         idPtr->setDefined();
         match(SEMIC);
     }
@@ -325,4 +317,11 @@ unique_ptr<VarSetter> Compiler::identSetter(AccessType* at)
         if (at != nullptr) *at = AccessType::DIRECT;
         return make_unique<SetSVByName>(s);
     }
+}
+
+std::string Compiler::identPlain()
+{
+    string s = lookahead.lexemeString;
+    Compiler::match(IDENT);
+    return s;
 }

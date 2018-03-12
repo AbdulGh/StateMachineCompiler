@@ -1,6 +1,8 @@
 #include <stack>
 
 #include "Compiler.h"
+#include "../symbolic/SymbolicVarWrappers.h"
+
 
 using namespace std;
 
@@ -85,11 +87,8 @@ AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
 
     if (parent.lookahead.type == IDENT)
     {
-        string uid;
-        Identifier* id = parent.findVariable(parent.ident(), uid);
-        if (!id->isDefined()) parent.warning(id->getLexeme() +
-                                             " may not be defined (line " + to_string(parent.lookahead.line) + ")");
-        return withNeg(new AtomNode(uid, false));
+        unique_ptr<VarGetter> vg = parent.identGetter();
+        return withNeg(new AtomNode(vg->getUniqueID(parent.symbolTable), false));
     }
     else if (parent.lookahead.type == NUMBER)
     {

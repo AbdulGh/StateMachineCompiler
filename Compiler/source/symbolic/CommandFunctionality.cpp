@@ -9,13 +9,13 @@ using namespace std;
 
 //PrintIndirectCommand
 PrintIndirectCommand::PrintIndirectCommand(unique_ptr<VarGetter> sdg, int linenum):
-        AbstractCommand(linenum), toPrint(move(sdg)) {setType(CommandType::PRINT), setData(toPrint->getName());}
+        AbstractCommand(linenum), toPrint(move(sdg)) {setType(CommandType::PRINT), setData(toPrint->getFullName());}
 
 PrintIndirectCommand::~PrintIndirectCommand() {toPrint.reset();}
 
 string PrintIndirectCommand::translation(const string& delim) const
 {
-    return "print " + toPrint->getName() + ";" + delim;
+    return "print " + toPrint->getFullName() + ";" + delim;
 }
 
 unique_ptr<AbstractCommand> PrintIndirectCommand::clone()
@@ -97,12 +97,12 @@ void JumpOnComparisonCommand::resetTerm2()
 
 string JumpOnComparisonCommand::t1str() const
 {
-    if (term1Type == StringType::ID) return term1.vptr->getName();
+    if (term1Type == StringType::ID) return term1.vptr->getFullName();
     else return *term1.sptr;
 }
 
 string JumpOnComparisonCommand::t2str() const
 {
-    if (term2Type == StringType::ID) return term2.vptr->getName();
+    if (term2Type == StringType::ID) return term2.vptr->getFullName();
     else return *term2.sptr;
 }

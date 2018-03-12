@@ -1,7 +1,7 @@
 #include <algorithm>
 
 #include "SymbolicExecution.h"
-#include "../Command.h"
+#include "SymbolicVarWrappers.h"
 
 using namespace std;
 using namespace SymbolicExecution;
@@ -141,29 +141,31 @@ vector<Condition> SymbolicExecutionFringe::getConditions()
 bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, JumpOnComparisonCommand* jocc, bool negate)
 {
     if (hasSeen(nodeName)) throw "cant visit node twice";
+    else if (jocc->term1Type != AbstractCommand::StringType::ID) throw "lhs should be ID";
     visitOrder.push_back(nodeName);
     Relations::Relop op = negate ? Relations::negateRelop(jocc->op) : jocc->op;
-    pathConditions.insert({nodeName, Condition(jocc->term1, op, jocc->term2)});
-    auto t1var = symbolicVarSet->findVar(jocc->term1);
-    if (t1var == nullptr) throw "comparing unknown var or constants";
+    pathConditions.insert({nodeName, Condition(jocc->t1str(), op, jocc->t2str())});
+    auto t1var = jocc->term1.vptr->getSymbolicVariable(this);
+    if (!t1var) throw "comparing unknown var or constants";
+    bool t1constructed = jocc->term1.vptr->getSymbolicVariable(this).constructed(); //todo make this less embarassing
     if (jocc->term2Type == AbstractCommand::StringType::ID)
     {
-        auto t2var = symbolicVarSet->findVar(jocc->term2);
-        if (t2var == nullptr) throw "comparing unknown var";
+        auto t2var = jocc->term2.vptr->getSymbolicVariable(this);
+        if (!t2var) throw "comparing unknown var";
         switch(op)
         {
             case Relations::LT:
-                return t1var->addLT(t2var);
+                return t1var->addLT(jocc->term2.vptr, this, t1constructed);
             case Relations::LE:
-                return t1var->addLE(t2var);
+                return t1var->addLE(jocc->term2.vptr, this, t1constructed);
             case Relations::GT:
-                return t1var->addGT(t2var);
+                return t1var->addGT(jocc->term2.vptr, this, t1constructed);
             case Relations::GE:
-                return t1var->addGE(t2var);
+                return t1var->addGE(jocc->term2.vptr, this, t1constructed);
             case Relations::EQ:
-                return t1var->addEQ(t2var);
+                return t1var->addEQ(jocc->term2.vptr, this, t1constructed);
             case Relations::NEQ:
-                return t1var->addNEQ(t2var);
+                return t1var->addNEQ(jocc->term2.vptr, this, t1constructed);
             default:
                 throw "unknown op";
         }
@@ -176,16 +178,16 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
             case Relations::LT:
                 closed = false;
             case Relations::LE:
-                return t1var->clipUpperBound(jocc->term2, closed);
+                return t1var->clipUpperBound(jocc->t2str(), closed);
             case Relations::GT:
                 closed = false;
             case Relations::GE:
-                return t1var->clipLowerBound(jocc->term2, closed);
+                return t1var->clipLowerBound(jocc->t2str(), closed);
             case Relations::EQ:
-                t1var->setConstValue(jocc->term2);
+                t1var->setConstValue(jocc->t2str());
                 return true;
             case Relations::NEQ:
-                t1var->addNEQConst(jocc->term2);
+                t1var->addNEQConst(jocc->t2str());
                 return true;
             default:
                 throw "unknown relop";
@@ -300,15 +302,18 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
     if (jocc != nullptr) //is a conditional jump
     {
         //const comparisons were caught during compilation
-        //note: JOCC constructor ensures that if there is a var there is a var on the LHS
-        SymbolicVariable* LHS = sef->symbolicVarSet->findVar(jocc->term1);
+        if (jocc->term1Type != AbstractCommand::StringType::ID) throw "fail";
 
-        if (LHS == nullptr)
+        //note: JOCC constructor ensures that if there is a var there is a var on the LHS
+        auto LHS = jocc->term1.vptr->getSymbolicVariable(sef.get());
+
+        if (!LHS)
         {
-            sef->error(Reporter::UNDECLARED_USE, "'" + jocc->term1 + "' used without being declared",
+            sef->error(Reporter::UNDECLARED_USE, "'" + jocc->term1.vptr->getFullName() + "' used without being declared",
                        jocc->getLineNum());
             return;
         }
+
         if (!LHS->isDefined()) sef->warn(Reporter::UNINITIALISED_USE,
                                          "'" + LHS->getName() + "' used before being defined", jocc->getLineNum());
 
@@ -318,13 +323,13 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
             if ((jocc->term2Type == AbstractCommand::StringType::DOUBLELIT && LHS->getType() != DOUBLE)
                     || (jocc->term2Type == AbstractCommand::StringType::STRINGLIT && LHS->getType() != STRING))
             {
-                sef->error(Reporter::TYPE, "'" + jocc->term1 + "' (type " + TypeEnumNames[LHS->getType()]
+                sef->error(Reporter::TYPE, "'" + jocc->term1.vptr->getFullName() + "' (type " + TypeEnumNames[LHS->getType()]
                                            + ")  compared to a different type",
                            jocc->getLineNum());
                 return;
             }
 
-            string& rhs = jocc->term2;
+            string& rhs = *jocc->term2.sptr;
 
             if (LHS->isDetermined() && LHS->meetsConstComparison(jocc->op, rhs)) return visitNode(sef, n->getCompSuccess());
 
@@ -353,18 +358,18 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
         }
         else //comparing to another variable
         {
-            SymbolicVariable* RHS = sef->symbolicVarSet->findVar(jocc->term2);
-            if (RHS == nullptr)
+            auto RHS = jocc->term2.vptr->getSymbolicVariable(sef.get());
+            if (!RHS)
             {
-                sef->error(Reporter::UNDECLARED_USE, "'" + jocc->term2 + "' used without being declared",
+                sef->error(Reporter::UNDECLARED_USE, "'" + jocc->term2.vptr->getFullName() + "' used without being declared",
                            jocc->getLineNum());
                 return;
             }
 
             if (LHS->getType() != RHS->getType())
             {
-                sef->error(Reporter::TYPE, "'" + jocc->term1 + "' (type " + TypeEnumNames[LHS->getType()] +
-                        ") compared to '" + jocc->term2 + "' (type " + TypeEnumNames[RHS->getType()] + ")",
+                sef->error(Reporter::TYPE, "'" + jocc->term1.vptr->getFullName() + "' (type " + TypeEnumNames[LHS->getType()] +
+                        ") compared to '" + jocc->term2.vptr->getFullName() + "' (type " + TypeEnumNames[RHS->getType()] + ")",
                            jocc->getLineNum());
                 return;
             }
@@ -399,7 +404,7 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
             }
 
             //neither are determined here
-            varBranch(sef, n, LHS, jocc->op, RHS);
+            varBranch(sef, n, jocc->term1.vptr, jocc->op, jocc->term2.vptr);
         }
     }
     else //unconditional jump
@@ -652,29 +657,28 @@ void SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
 }
 
 //branching on var comparison
-void SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                         SymbolicVariable* LHS, Relations::Relop op,
-                                         SymbolicVariable* RHS)
+void SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe>& sef, CFGNode* n,
+                                         VarGetter* LHS, Relations::Relop op, VarGetter* RHS)
 {
     switch(op)
     {
         case Relations::EQ:
-            varBranchEQ(sef, n, LHS, RHS);
+            varBranchEQ(sef, n, move(LHS), move(RHS));
             break;
         case Relations::NEQ:
-            varBranchNE(sef, n, LHS, RHS);
+            varBranchNE(sef, n, move(LHS), move(RHS));
             break;
         case Relations::LT:
-            varBranchLT(sef, n, LHS, RHS);
+            varBranchLT(sef, n, move(LHS), move(RHS));
             break;
         case Relations::LE:
-            varBranchLE(sef, n, LHS, RHS);
+            varBranchLE(sef, n, move(LHS), move(RHS));
             break;
         case Relations::GT:
-            varBranchGT(sef, n, LHS, RHS);
+            varBranchGT(sef, n, move(LHS), move(RHS));
             break;
         case Relations::GE:
-            varBranchGE(sef, n, LHS, RHS);
+            varBranchGE(sef, n, move(LHS), move(RHS));
             break;
         default:
             throw runtime_error("bad relop");
@@ -682,7 +686,7 @@ void SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe> sef
 }
 
 void SymbolicExecutionManager::varBranchGE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                           SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
+                                           VarGetter* lhsvar, VarGetter* rhsvar)
 {
     if (!(n->isLastNode() && sef->symbolicStack->isEmpty())) 
     {
@@ -691,21 +695,19 @@ void SymbolicExecutionManager::varBranchGE(shared_ptr<SymbolicExecutionFringe> s
         if (failNode == nullptr) return;
         else
         {
-            SymbolicVariable* newLHSVar = seflt->symbolicVarSet->findVar(lhsvar->getName());
-            SymbolicVariable* newRHSVar = seflt->symbolicVarSet->findVar(rhsvar->getName());
-            if (newLHSVar->addLT(newRHSVar)) visitNode(seflt, failNode);
+            GottenVarPtr<SymbolicVariable> lhgv = lhsvar->getSymbolicVariable(seflt.get());
+            if (lhgv->addLT(rhsvar, seflt.get(), lhgv.constructed())) visitNode(seflt, failNode);
         }
     }
 
     shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
-    SymbolicVariable* newLHSVar = sefge->symbolicVarSet->findVar(lhsvar->getName());
-    SymbolicVariable* newRHSVar = sefge->symbolicVarSet->findVar(rhsvar->getName());
-    if (newLHSVar->addGE(newRHSVar)) visitNode(sefge, n->getCompSuccess());
+    GottenVarPtr<SymbolicVariable> lhgv = lhsvar->getSymbolicVariable(sefge.get());
+    if (lhgv->addGE(rhsvar, sef.get(), lhgv.constructed())) visitNode(sefge, n->getCompSuccess());
 }
 
 
 void SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                              SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
+                                              VarGetter* lhsvar, VarGetter* rhsvar)
 {
     
     if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
@@ -724,7 +726,7 @@ void SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> s
 }
 
 void SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                              SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
+                                              VarGetter* lhsvar, VarGetter* rhsvar)
 {
     if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
     {
@@ -743,7 +745,7 @@ void SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> s
 
 
 void SymbolicExecutionManager::varBranchLE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                              SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
+                                              VarGetter* lhsvar, VarGetter* rhsvar)
 {
     if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
     {
@@ -762,7 +764,7 @@ void SymbolicExecutionManager::varBranchLE(shared_ptr<SymbolicExecutionFringe> s
 
 
 void SymbolicExecutionManager::varBranchNE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                           SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
+                                           VarGetter* lhsvar, VarGetter* rhsvar)
 {
     if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
     {
@@ -789,7 +791,7 @@ void SymbolicExecutionManager::varBranchNE(shared_ptr<SymbolicExecutionFringe> s
 
 
 void SymbolicExecutionManager::varBranchEQ(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                           SymbolicVariable* lhsvar, SymbolicVariable* rhsvar)
+                                           VarGetter* lhsvar, VarGetter* rhsvar)
 {
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
     CFGNode* failNode = getFailNode(sefeq, n);

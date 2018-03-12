@@ -95,9 +95,10 @@ public:
     void genNewState(std::string);
     void genEndState();
     void genPrint(std::string, int linenum);
-    void genIndirectPrint(std::string arrayName, int index, int linenum);
+    void genIndirectPrint(std::unique_ptr<VarGetter> sdg, int linenum);
     void genJump(std::string, int linenum);
-    void genConditionalJump(std::string, std::string, Relations::Relop r, std::string, int linenum);
+    void genConditionalJump(std::string state, std::unique_ptr<VarGetter> lh,
+                            Relations::Relop r, std::unique_ptr<VarGetter> rh, int linenum);
     void genPush(std::string, int, FunctionSymbol* calledFuntion = nullptr);
     void genPop(std::string, int linenum);
     void genReturn(int linenum);

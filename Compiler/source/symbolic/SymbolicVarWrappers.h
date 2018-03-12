@@ -23,19 +23,19 @@ private:
 public:
     GottenVarPtr(GottenVarPtr&& o) : owns(o.owns)
     {
-        if (owns) up = std::move(o.up);
+        if (owns) up = move(o.up);
         else rp = o.rp;
     }
 
     /* debug GottenVarPtr& operator=(GottenVarPtr&& o) : owns(o.owns)
     {
-        if (owns) up = std::move(o.up);
+        if (owns) up = move(o.up);
         else rp = o.rp;
         return *this;
     }*/
 
     explicit GottenVarPtr(T* pointTo) : rp(pointTo), owns(false) {}
-    explicit GottenVarPtr(std::unique_ptr<T> sv) : up(std::move(sv)), owns(true) {}
+    explicit GottenVarPtr(std::unique_ptr<T> sv) : up(move(sv)), owns(true) {}
     ~GottenVarPtr() {if (owns) up.reset();}
 
     T* get()
@@ -53,6 +53,16 @@ public:
     {
         if (owns) return *up.get();
         else return *rp;
+    }
+
+    explicit operator bool() const
+    {
+        return owns ? up != nullptr : rp != nullptr;
+    }
+
+    bool constructed() const
+    {
+        return !owns;
     }
 };
 
@@ -76,27 +86,32 @@ std::unique_ptr<VarGetter> parseAccess(const std::string& toParse, AbstractComma
     }
 }*/
 
-class VarGetter
+class VarWrapper
 {
 protected:
     AccessType accessType;
     void setAccessType(AccessType at) {accessType = at;}
-
+    std::string name;
+    void setName(std::string n) {name = move(n);}
+    
 public:
-
+    virtual std::string getFullName() const = 0;
+    const std::string& getBaseName() {return name;}
+    virtual std::string getUniqueID(SymbolTable& st) const = 0;
     const AccessType& getAccessType() {return accessType;}
+};
 
+class VarGetter: public VarWrapper
+{
+public:
     virtual GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) = 0;
     virtual GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) = 0;
     virtual bool check(SymbolicExecution::SymbolicExecutionFringe* sef) {return true;};
     virtual std::unique_ptr<VarGetter> clone() = 0;
     virtual VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe *sef) = 0;
-    virtual std::string getName() const = 0;
-
-    operator std::string() {return getName();}
 };
 
-class VarSetter
+class VarSetter: public VarWrapper
 {
 public:
     virtual void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble *sv) = 0;
@@ -106,9 +121,11 @@ public:
 class GetSVByName: public VarGetter
 {
 public:
-    const std::string name;
-
-    GetSVByName(std::string n) : name(move(n)) {VarGetter::setAccessType(AccessType::DIRECT);};
+    GetSVByName(std::string n)
+    {
+        setName(move(n));
+        setAccessType(AccessType::DIRECT);
+    }
 
     GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) override
     {
@@ -123,7 +140,7 @@ public:
         if (sv->getType() != DOUBLE) throw std::runtime_error("wrong type");
         SymbolicDouble* sd = static_cast<SymbolicDouble*>(sv);
         
-        return std::move(GottenVarPtr<SymbolicDouble>(sd));
+        return GottenVarPtr<SymbolicDouble>(sd);
     }
 
     VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe *sef) override
@@ -133,9 +150,14 @@ public:
         return sv->getType();
     }
     
-    std::string getName() const override 
+    std::string getFullName() const override
     {
         return name;
+    }
+
+    std::string getUniqueID(SymbolTable& st) const override
+    {
+        return st.findIdentifier(name)->getUniqueID();
     }
 
     std::unique_ptr<VarGetter> clone() override
@@ -147,14 +169,12 @@ public:
 class GetSDByArrayIndex: public VarGetter
 {
 public:
-    const std::string name;
     unsigned int index;
 
-    GetSDByArrayIndex(std::string n, unsigned int i): name(move(n)), index(i)
-
+    GetSDByArrayIndex(std::string n, unsigned int i): index(i)
     {
-        VarGetter::setAccessType(AccessType::DIRECT);
-        if (i < 0) throw std::runtime_error("don't be silly!");
+        setAccessType(AccessType::DIRECT);
+        setName(move(n));
     };
 
     GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) override
@@ -166,7 +186,7 @@ public:
     {
         SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
         if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
-        return std::move(GottenVarPtr<SymbolicDouble>(std::move(sa->operator[](index)))); //WHY operator[]???!
+        return GottenVarPtr<SymbolicDouble>(move(sa->operator[](index))); //WHY operator[]???!
     }
 
     VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe *sef) override
@@ -185,9 +205,14 @@ public:
         sa->checkIndex(index);
     }
     
-    std::string getName() const override 
+    std::string getFullName() const override
     {
         return name + "[" + std::to_string(index) + "]";
+    }
+
+    std::string getUniqueID(SymbolTable& st) const override
+    {
+        return st.findIdentifier(name)->getUniqueID() + "[" + std::to_string(index) + "]";
     }
 
     std::unique_ptr<VarGetter> clone() override
@@ -199,11 +224,14 @@ public:
 class GetSDByIndexVar: public VarGetter
 {
 public:
-    const std::string arrayName;
     std::unique_ptr<VarGetter> index;
 
     GetSDByIndexVar(std::string arrN, std::unique_ptr<VarGetter> var):
-            arrayName(move(arrN)), index(std::move(var)) {VarGetter::setAccessType(AccessType::DIRECT);};
+            index(move(var))
+    {
+        setName(move(arrN));
+        setAccessType(AccessType::DIRECT);
+    }
 
     GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) override
     {
@@ -212,12 +240,11 @@ public:
 
     GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) override
     {
-        SymbolicArray* sa = sef->symbolicVarSet->findArray(arrayName);
-        if (sa == nullptr) throw std::runtime_error("Array '" + arrayName + "' undeclared");
+        SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
+        if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
         auto sv = index->getSymbolicDouble(sef);
         if (sv->getType() != DOUBLE) throw std::runtime_error("wrong type");
-        GottenVarPtr<SymbolicDouble> sd(sa->operator[](sv.get()));
-        return std::move(sd);
+        return GottenVarPtr<SymbolicDouble>(sa->operator[](sv.get()));
     }
 
     VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe *sef) override
@@ -227,10 +254,10 @@ public:
 
     bool check(SymbolicExecution::SymbolicExecutionFringe* sef) override
     {
-        SymbolicArray* sa = sef->symbolicVarSet->findArray(arrayName);
+        SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
         if (sa == nullptr)
         {
-            sef->error(Reporter::UNDECLARED_USE, "Array '" + arrayName + "' undeclared");
+            sef->error(Reporter::UNDECLARED_USE, "Array '" + name + "' undeclared");
             return false;
         }
 
@@ -238,25 +265,29 @@ public:
         if (sv->isDetermined()) return sa->checkIndex(sv->getTConstValue());
         else return sa->checkBounds(sv->getTLowerBound(), sv->getTUpperBound());
     }
-    
-    std::string getName() const override
+
+    std::string getFullName() const override
     {
-        return arrayName + "[" + index->getName() + "]";
+        return name + "[" + index->getFullName() + "]";
+    }
+
+    std::string getUniqueID(SymbolTable& st) const override
+    {
+        return st.findIdentifier(name)->getUniqueID() + "[" + index->getUniqueID(st) + "]";
     }
 
     std::unique_ptr<VarGetter> clone() override
     {
-        return std::make_unique<GetSDByIndexVar>(arrayName, index->clone());
+        return std::make_unique<GetSDByIndexVar>(name, index->clone());
     }
 };
 
 class SetArraySDByIndex: public VarSetter
 {
 public:
-    const std::string name;
     const unsigned long index;
 
-    SetArraySDByIndex(std::string n, const unsigned long& i): name(move(n)), index(i) {};
+    SetArraySDByIndex(std::string n, const unsigned long& i): index(i) {setName(move(n));};
 
     void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble *sv) override
     {
@@ -275,21 +306,30 @@ public:
         }
         sa->checkIndex(index);
     }
+
+    std::string getFullName() const override
+    {
+        return name + "[" + std::to_string(index) + "]";
+    }
+
+    std::string getUniqueID(SymbolTable& st) const override
+    {
+        return st.findIdentifier(name)->getUniqueID() + "[" + std::to_string(index) + "]";
+    }
 };
 
 class SetArrayByVar: public VarSetter
 {
 public:
-    const std::string arrayName;
     std::unique_ptr<VarGetter> index;
 
     SetArrayByVar(std::string arrN, std::unique_ptr<VarGetter> var):
-            arrayName(std::move(arrN)), index(std::move(var)) {}
+            index(move(var)) {setName(move(arrN));}
 
     void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble *sv) override
     {
-        SymbolicArray* sa = sef->symbolicVarSet->findArray(arrayName);
-        if (sa == nullptr) throw std::runtime_error("Array '" + arrayName + "' undeclared");
+        SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
+        if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
         SymbolicDouble* ind = index->getSymbolicDouble(sef).get();
         sa->set(ind, sv);
         
@@ -297,10 +337,10 @@ public:
 
     bool check(SymbolicExecution::SymbolicExecutionFringe* sef) override
     {
-        SymbolicArray* sa = sef->symbolicVarSet->findArray(arrayName);
+        SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
         if (sa == nullptr)
         {
-            sef->error(Reporter::UNDECLARED_USE, "Array '" + arrayName + "' undeclared");
+            sef->error(Reporter::UNDECLARED_USE, "Array '" + name + "' undeclared");
             return false;
         }
 
@@ -308,19 +348,37 @@ public:
         if (sv->isDetermined()) return sa->checkIndex(sv->getTConstValue());
         else return sa->checkBounds(sv->getTLowerBound(), sv->getTUpperBound());
     }
+
+    std::string getFullName() const override
+    {
+        return name + "[" + index->getFullName() + "]";
+    }
+
+    std::string getUniqueID(SymbolTable& st) const override
+    {
+        return st.findIdentifier(name)->getUniqueID() + "[" + index->getUniqueID(st) + "]";
+    }
 };
 
 class SetSVByName: public VarSetter
 {
 public:
-    const std::string name;
-
-    SetSVByName(std::string n) : name(move(n)) {};
+    SetSVByName(std::string n) {setName(move(n));};
 
     void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble *sv) override
     {
         sv->setName(name);
         sef->symbolicVarSet->addVar(sv->clone());
+    }
+
+    std::string getFullName() const override
+    {
+        return name;
+    }
+
+    std::string getUniqueID(SymbolTable& st) const override
+    {
+        return st.findIdentifier(name)->getUniqueID();
     }
 };
 #endif //PROJECT_SYMBOLICVARWRAPPERS_H
