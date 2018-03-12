@@ -18,7 +18,7 @@ private:
         T* rp;
         std::unique_ptr<T> up;
     };
-    const bool owns;
+    bool owns;
 
 public:
     GottenVarPtr(GottenVarPtr&& o) : owns(o.owns)
@@ -26,17 +26,16 @@ public:
         if (owns) up = move(o.up);
         else rp = o.rp;
     }
-
-    /* debug GottenVarPtr& operator=(GottenVarPtr&& o) : owns(o.owns)
-    {
-        if (owns) up = move(o.up);
-        else rp = o.rp;
-        return *this;
-    }*/
-
     explicit GottenVarPtr(T* pointTo) : rp(pointTo), owns(false) {}
     explicit GottenVarPtr(std::unique_ptr<T> sv) : up(move(sv)), owns(true) {}
     ~GottenVarPtr() {if (owns) up.reset();}
+
+    void become(GottenVarPtr& o) //keep assignment operator deleted, I guess?
+    {
+        owns = o.owns;
+        if (owns) up = move(o.up);
+        else rp = o.rp;
+    }
 
     T* get()
     {

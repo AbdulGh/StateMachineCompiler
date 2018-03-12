@@ -64,7 +64,7 @@ JumpOnComparisonCommand::JumpOnComparisonCommand(const JumpOnComparisonCommand& 
     else
     {
         term1Type = jocc.term1Type;
-        term1.sptr = new string(jocc.term1);
+        term1.sptr = new string(*jocc.term1.sptr);
     }
 
     if (jocc.term2Type == StringType::ID)
@@ -75,7 +75,7 @@ JumpOnComparisonCommand::JumpOnComparisonCommand(const JumpOnComparisonCommand& 
     else
     {
         term2Type = jocc.term2Type;
-        term2.sptr = new string(jocc.term2);
+        term2.sptr = new string(*jocc.term2.sptr);
     }
 
     op = jocc.op;

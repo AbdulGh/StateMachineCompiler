@@ -1,6 +1,7 @@
 #include <algorithm>
 
 #include "DataFlow.h"
+#include "../symbolic/SymbolicVarWrappers.h"
 
 using namespace std;
 using namespace DataFlow;
@@ -144,7 +145,7 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                     if (!pvc->pushesState()
                         && AbstractCommand::getStringType(pvc->getData()) == AbstractCommand::StringType::ID)
                     {
-                        insertAndCheckUpwardExposed(move(data));
+                        insertAndCheckUpwardExposed(data);
                     }
                     break;
                 }
@@ -173,11 +174,11 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
         {
             if (jocc->term1Type == AbstractCommand::StringType::ID)
             {
-                insertAndCheckUpwardExposed(filterVarName(jocc->term1));
+                insertAndCheckUpwardExposed(filterVarName(jocc->term1.vptr->getBaseName()));
             }
             if (jocc->term2Type == AbstractCommand::StringType::ID)
             {
-                insertAndCheckUpwardExposed(filterVarName(jocc->term2));
+                insertAndCheckUpwardExposed(filterVarName(jocc->term2.vptr->getBaseName()));
             }
         }
 

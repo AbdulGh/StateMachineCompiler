@@ -269,9 +269,9 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
     if (comp != nullptr)
     {
         if (comp->term1Type == AbstractCommand::StringType::ID &&
-            assignments.find(comp->term1) != assignments.end()) comp->setTerm1(assignments[comp->term1]);
+            assignments.find(comp->t1str()) != assignments.end()) comp->setTerm1(assignments[comp->t1str()]);
         if (comp->term2Type == AbstractCommand::StringType::ID &&
-            assignments.find(comp->term2) != assignments.end()) comp->setTerm2(assignments[comp->term2]);
+            assignments.find(comp->t2str()) != assignments.end()) comp->setTerm2(assignments[comp->t2str()]);
 
         //check for const comparison
         if (comp->term1Type != AbstractCommand::StringType::ID
@@ -294,11 +294,11 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
                 bool isTrue;
                 if (comp->term1Type == AbstractCommand::StringType::DOUBLELIT)
                 {
-                    double d1 = stod(comp->term1);
-                    double d2 = stod(comp->term2);
+                    double d1 = stod(comp->t1str());
+                    double d2 = stod(comp->t2str());
                     isTrue = Relations::evaluateRelop<double>(d1, comp->op, d2);
                 }
-                else isTrue = Relations::evaluateRelop<string>(comp->term1, comp->op, comp->term2);
+                else isTrue = Relations::evaluateRelop<string>(comp->t1str(), comp->op, comp->t2str());
 
                 if (isTrue)
                 {
@@ -366,7 +366,7 @@ bool CFGNode::swallowNode(CFGNode* other)
             if (other->getComp() != nullptr)
             {
                 JumpOnComparisonCommand* jocc = other->getComp();
-                setComp(make_unique<JumpOnComparisonCommand>(jocc->getData(), jocc->term1, jocc->term2, jocc->op, jocc->getLineNum()));
+                setComp(make_unique<JumpOnComparisonCommand>(*jocc));
             }
             else setComp(nullptr);
             
@@ -465,7 +465,7 @@ void CFGNode::setInstructions(vector<unique_ptr<AbstractCommand>>& in)
         compSuccess = parentGraph.getNode(jocc->getData());
         if (compSuccess == nullptr) compSuccess = parentGraph.createNode(jocc->getData(), false, false);
         compSuccess->addParent(this);
-        setComp(make_unique<JumpOnComparisonCommand>(jocc->getData(), jocc->term1, jocc->term2, jocc->op, jocc->getLineNum()));
+        setComp(make_unique<JumpOnComparisonCommand>(*jocc));
 
         if (++it == in.cend()) return;
     }

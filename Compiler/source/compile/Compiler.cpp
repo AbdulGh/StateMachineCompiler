@@ -149,7 +149,7 @@ void Compiler::findGlobalsAndMakeStates()
             else //must be a global variable declaration
             {
                 VariableType t = vtype();
-                string id = ident();
+                string id = identPlain();
 
                 Identifier* i = symbolTable.declare(t, id, lookahead.line);
                 initialState.push_back(make_unique<DeclareVarCommand>(t, i->getUniqueID(), lookahead.line));

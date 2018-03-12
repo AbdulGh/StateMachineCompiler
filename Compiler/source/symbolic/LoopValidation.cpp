@@ -7,6 +7,7 @@
 #include <functional>
 
 #include "../CFGOpt/Loop.h"
+#include "SymbolicVarWrappers.h"
 #include "SymbolicExecution.h"
 
 //these flags are set if it is possible downstream
@@ -290,21 +291,26 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
         {
             JumpOnComparisonCommand* jocc = node->getComp();
             CFGNode* succNode = node->getCompSuccess();
-            SymbolicVariable* jumpVar = sef->symbolicVarSet->findVar(jocc->term1);
+            GottenVarPtr<SymbolicVariable> lhVar = jocc->term1.vptr->getSymbolicVariable(sef.get());
+            if (!lhVar) throw "not found";
 
-            if (jumpVar == nullptr) throw "not found";
+            GottenVarPtr<SymbolicVariable> rhVar(nullptr);
+            bool rhconst = true;
+            if (jocc->term2Type == AbstractCommand::StringType::ID)
+            {
+                auto lvalue = jocc->term2.vptr->getSymbolicVariable(sef.get());
+                rhVar.become(lvalue);
+                if (!rhVar) throw runtime_error("Unknown var '" + jocc->t2str() + "'");
+                rhconst = rhVar->isDetermined();
+            }
 
-            if (jocc->term2Type != AbstractCommand::StringType::ID ||
-                sef->symbolicVarSet->findVar(jocc->term2)->isDetermined())
+            if (rhconst)
             {
                 string RHS;
-                if (jocc->term2Type == AbstractCommand::StringType::ID)
-                {
-                    RHS = sef->symbolicVarSet->findVar(jocc->term2)->getConstString();
-                }
-                else RHS = jocc->term2;
+                if (jocc->term2Type == AbstractCommand::StringType::ID) RHS = rhVar->getConstString();
+                else RHS = jocc->t2str();
 
-                switch (jumpVar->canMeet(jocc->op, RHS))
+                switch (lhVar->canMeet(jocc->op, RHS))
                 {
                     case SymbolicVariable::MeetEnum::MUST:
                     {
@@ -323,9 +329,9 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                 mergeMaps(varChanges.at(node), varChanges.at(succNode));
 
                                 //check if we can move out of must 'MUST'
-                                if (jumpVar->isIncrementable())
+                                if (lhVar->isIncrementable())
                                 {
-                                    unsigned short int termChange = varChanges.at(node)[jocc->term1];
+                                    unsigned short int termChange = varChanges.at(node)[jocc->t1str()];
                                     bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) && termChange & FDECREASING != 0 ||
                                                      (jocc->op == Relations::LT || jocc->op == Relations::LE) && termChange & FINCREASING != 0 ||
                                                      (jocc->op == Relations::EQ && termChange & FFRESH != 0);
@@ -342,7 +348,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                             }
                                             else
                                             {
-                                                sefFailure->symbolicVarSet->findVar(jocc->term1)->iterateTo(RHS);
+                                                jocc->term1.vptr->getSymbolicVariable(sefFailure.get())->iterateTo(RHS);
                                                 if (searchNode(failNode, varChanges, tags, sef, badExample))
                                                 {
                                                     mergeMaps(varChanges.at(node), varChanges.at(failNode));
@@ -372,9 +378,9 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                             {
                                 mergeMaps(varChanges.at(node), varChanges.at(failNode));
 
-                                if (jumpVar->isIncrementable())
+                                if (lhVar->isIncrementable())
                                 {
-                                    unsigned short int termChange = varChanges.at(node)[jocc->term1];
+                                    unsigned short int termChange = varChanges.at(node)[jocc->t1str()];
                                     bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) && termChange & FINCREASING != 0 ||
                                                      (jocc->op == Relations::LT || jocc->op == Relations::LE) && termChange & FDECREASING != 0 ||
                                                      (jocc->op == Relations::EQ && termChange & FFRESH != 0);
@@ -391,7 +397,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                             }
                                             else
                                             {
-                                                sefFailure->symbolicVarSet->findVar(jocc->term1)->iterateTo(RHS);
+                                                jocc->term1.vptr->getSymbolicVariable(sefSucc.get())->iterateTo(RHS);
                                                 if (searchNode(succNode, varChanges, tags, sefSucc, badExample))
                                                 {
                                                     mergeMaps(varChanges.at(node), varChanges.at(succNode));
@@ -449,9 +455,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             }
             else //RHS is indeterminate var (could also do the extrapolation stuff here)
             {
-                SymbolicVariable* RHS = sef->symbolicVarSet->findVar(jocc->term2);
-                if (!RHS) throw runtime_error("Unknown var '" + jocc->term2 + "'");
-                switch (jumpVar->canMeet(jocc->op, RHS))
+                switch (lhVar->canMeet(jocc->op, rhVar.get()))
                 {
                     case SymbolicVariable::MeetEnum::MUST:
                     {
