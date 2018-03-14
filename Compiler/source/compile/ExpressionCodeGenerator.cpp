@@ -3,6 +3,7 @@
 #include "Compiler.h"
 #include "../symbolic/SymbolicVarWrappers.h"
 
+#include <memory>
 
 using namespace std;
 
@@ -186,7 +187,8 @@ bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol*
     }
     else
     {
-        fs->genExpr(genTemp(fs, reg), left, p->getOp(), right, parent.lookahead.line);
+        unique_ptr<SetSVByName> lval = make_unique<SetSVByName>(genTemp(fs, reg));
+        fs->genExpr(move(lval), EvaluateExprCommand::Term(left), p->getOp(), EvaluateExprCommand::Term(right), parent.lookahead.line);
         return false;
     }
 }

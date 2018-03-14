@@ -91,7 +91,7 @@ public:
     std::vector<CFGNode*> getNodesReturnedTo();
     FunctionCall* getOnlyFunctionCall();
 
-    //codegen
+    //codegen (todo next convert al to use vargetter/setter
     void genNewState(std::string);
     void genEndState();
     void genPrint(std::string, int linenum);
@@ -102,8 +102,8 @@ public:
     void genPush(std::string, int, FunctionSymbol* calledFuntion = nullptr);
     void genPop(std::string, int linenum);
     void genReturn(int linenum);
-    void genInput(std::string, int linenum);
-    void genExpr(std::string lh, std::string t1, ArithOp o, std::string t2, int linenum);
+    void genInput(std::unique_ptr<VarSetter>, int linenum);
+    void genExpr(std::unique_ptr<VarSetter> lh, EvaluateExprCommand::Term t1, ArithOp o, EvaluateExprCommand::Term t2, int linenum);
     void genVariableDecl(VariableType t, std::string n, int linenum);
     void genArrayDecl(std::string name, unsigned long int size, int linenum);
     void genAssignment(std::string LHS, std::string RHS, int linenum);

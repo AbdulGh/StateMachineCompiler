@@ -65,26 +65,6 @@ public:
     }
 };
 
-/*
-std::unique_ptr<VarGetter> parseAccess(const std::string& toParse, AbstractCommand::StringType* st = nullptr)
-{
-    if (toParse.empty()) throw "Can't parse an empty string";
-    if (toParse[0] == '\"')
-    {
-        *st = AbstractCommand::StringType::STRINGLIT;
-        return nullptr;
-    }
-    else try
-    {
-        std::stod(toParse);
-        *st = AbstractCommand::StringType::DOUBLELIT;
-        return nullptr;
-    }
-    catch (std::invalid_argument&) //id or array access
-    {
-    }
-}*/
-
 class VarWrapper
 {
 protected:
@@ -108,13 +88,6 @@ public:
     virtual bool check(SymbolicExecution::SymbolicExecutionFringe* sef) {return true;};
     virtual std::unique_ptr<VarGetter> clone() = 0;
     virtual VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe *sef) = 0;
-};
-
-class VarSetter: public VarWrapper
-{
-public:
-    virtual void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble *sv) = 0;
-    virtual bool check(SymbolicExecution::SymbolicExecutionFringe* sef) {return true;};
 };
 
 class GetSVByName: public VarGetter
@@ -281,6 +254,14 @@ public:
     }
 };
 
+class VarSetter: public VarWrapper
+{
+public:
+    virtual void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble *sv) = 0;
+    virtual bool check(SymbolicExecution::SymbolicExecutionFringe* sef) {return true;};
+    virtual std::unique_ptr<VarSetter> clone() = 0;
+};
+
 class SetArraySDByIndex: public VarSetter
 {
 public:
@@ -315,6 +296,8 @@ public:
     {
         return st.findIdentifier(name)->getUniqueID() + "[" + std::to_string(index) + "]";
     }
+
+    std::unique_ptr<VarSetter> clone() {return std::make_unique<SetArraySDByIndex>(name, index);}
 };
 
 class SetArrayByVar: public VarSetter
@@ -331,7 +314,6 @@ public:
         if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
         SymbolicDouble* ind = index->getSymbolicDouble(sef).get();
         sa->set(ind, sv);
-        
     }
 
     bool check(SymbolicExecution::SymbolicExecutionFringe* sef) override
@@ -357,6 +339,9 @@ public:
     {
         return st.findIdentifier(name)->getUniqueID() + "[" + index->getUniqueID(st) + "]";
     }
+
+    std::unique_ptr<VarSetter> clone() {return std::make_unique<SetArrayByVar>(name, index->clone());}
+
 };
 
 class SetSVByName: public VarSetter
@@ -379,5 +364,41 @@ public:
     {
         return st.findIdentifier(name)->getUniqueID();
     }
+
+    std::unique_ptr<VarSetter> clone() {return std::make_unique<SetSVByName>(name);}
 };
+
+std::unique_ptr<VarGetter> parseAccess(const std::string& toParse, AbstractCommand::StringType* st = nullptr)
+{
+    if (toParse.empty()) throw "Can't parse an empty string";
+    if (toParse[0] == '\"')
+    {
+        *st = AbstractCommand::StringType::STRINGLIT;
+        return nullptr;
+    }
+    else try
+    {
+        std::stod(toParse);
+        *st = AbstractCommand::StringType::DOUBLELIT;
+        return nullptr;
+    }
+    catch (std::invalid_argument&) //id or array access
+    {
+        size_t first = toParse.find("[");
+        if (first == -1) return std::make_unique<GetSVByName>(toParse);
+        std::string index = toParse.substr(first, toParse.size() - first - 1);
+        try
+        {
+            double dAttempt = stod(toParse);
+            return std::make_unique<GetSDByArrayIndex>(toParse.substr(0, first), dAttempt);
+        }
+        catch (std::invalid_argument&)
+        {
+            std::unique_ptr<VarGetter> indexWrapper = parseAccess(index);
+            if (!indexWrapper) throw "went wrong";
+            return std::make_unique<GetSDByIndexVar>(toParse.substr(0, first), move(indexWrapper));
+        }
+    }
+}
+
 #endif //PROJECT_SYMBOLICVARWRAPPERS_H

@@ -430,16 +430,17 @@ void FunctionSymbol::genPush(string s, int linenum, FunctionSymbol* calledFuncti
     currentInstrs.push_back(make_unique<PushCommand>(s, linenum, calledFunction));
 }
 
-void FunctionSymbol::genInput(string s, int linenum)
+void FunctionSymbol::genInput(unique_ptr<VarSetter> s, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_unique<InputVarCommand>(s, linenum));
+    currentInstrs.push_back(make_unique<InputVarCommand>(move(s), linenum));
 }
 
-void FunctionSymbol::genExpr(string lh, string t1, ArithOp o, string t2, int linenum)
+void FunctionSymbol::genExpr(unique_ptr<VarSetter> lh, EvaluateExprCommand::Term t1,
+                             ArithOp o, EvaluateExprCommand::Term t2, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_unique<EvaluateExprCommand>(lh, t1, o, t2, linenum));
+    currentInstrs.push_back(make_unique<EvaluateExprCommand>(move(lh), move(t1), o, move(t2), linenum));
 }
 
 void FunctionSymbol::genVariableDecl(VariableType t, string n, int linenum)

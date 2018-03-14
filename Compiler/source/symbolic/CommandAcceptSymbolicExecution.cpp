@@ -168,18 +168,10 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
 
     if (op != MOD && repeat)
     {
-        bool t2islit = false;
-        double t2;
-        try
-        {
-            t2 = stod(term2);
-            t2islit = true;
-        }
-        catch (invalid_argument&){}
-
-        if (!t2islit) LHS->userInput();
+        if (!term2.isLit) LHS->userInput();
         else
         {
+            double t2 = term2.d;
             SymbolicDouble* sd = static_cast<SymbolicDouble*>(LHS);
 
             switch (op)

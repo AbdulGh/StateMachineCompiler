@@ -296,19 +296,19 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
 
             GottenVarPtr<SymbolicVariable> rhVar(nullptr);
             bool rhconst = true;
-            if (jocc->term2Type == AbstractCommand::StringType::ID)
+            if (jocc->term2.type == AbstractCommand::StringType::ID)
             {
                 auto lvalue = jocc->term2.vptr->getSymbolicVariable(sef.get());
                 rhVar.become(lvalue);
-                if (!rhVar) throw runtime_error("Unknown var '" + jocc->t2str() + "'");
+                if (!rhVar) throw runtime_error("Unknown var '" + string(jocc->term2) + "'");
                 rhconst = rhVar->isDetermined();
             }
 
             if (rhconst)
             {
                 string RHS;
-                if (jocc->term2Type == AbstractCommand::StringType::ID) RHS = rhVar->getConstString();
-                else RHS = jocc->t2str();
+                if (jocc->term2.type == AbstractCommand::StringType::ID) RHS = rhVar->getConstString();
+                else RHS = string(jocc->term2);
 
                 switch (lhVar->canMeet(jocc->op, RHS))
                 {
@@ -331,7 +331,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                 //check if we can move out of must 'MUST'
                                 if (lhVar->isIncrementable())
                                 {
-                                    unsigned short int termChange = varChanges.at(node)[jocc->t1str()];
+                                    unsigned short int termChange = varChanges.at(node)[string(jocc->term1)];
                                     bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) && termChange & FDECREASING != 0 ||
                                                      (jocc->op == Relations::LT || jocc->op == Relations::LE) && termChange & FINCREASING != 0 ||
                                                      (jocc->op == Relations::EQ && termChange & FFRESH != 0);
@@ -380,7 +380,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
 
                                 if (lhVar->isIncrementable())
                                 {
-                                    unsigned short int termChange = varChanges.at(node)[jocc->t1str()];
+                                    unsigned short int termChange = varChanges.at(node)[string(jocc->term1)];
                                     bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) && termChange & FINCREASING != 0 ||
                                                      (jocc->op == Relations::LT || jocc->op == Relations::LE) && termChange & FDECREASING != 0 ||
                                                      (jocc->op == Relations::EQ && termChange & FFRESH != 0);

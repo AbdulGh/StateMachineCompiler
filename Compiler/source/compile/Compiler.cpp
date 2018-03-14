@@ -32,11 +32,8 @@ string Compiler::quoteString(string &s)
 
 void Compiler::compile(stringstream& out)
 {
-    for (auto& t : stream)
-    {
-        cout << TypeEnumNames[t.type] << endl;
-    }
-    exit(0);
+    //for (auto& t : stream) cout << TypeEnumNames[t.type] << endl;
+    //exit(0);
 
     tp = stream.cbegin();
     findGlobalsAndMakeStates();

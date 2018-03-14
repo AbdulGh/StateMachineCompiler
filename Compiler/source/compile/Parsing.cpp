@@ -112,10 +112,10 @@ bool Compiler::statement(FunctionSymbol* fs)
     else if (lookahead.type == INPUT)
     {
         match(INPUT);
-        auto id = identGetter();
-        fs->genInput(id->getUniqueID(symbolTable), lookahead.line);
+        auto id = identSetter();
         Identifier* idPtr = findVariable(id.get());
         if (idPtr->getType() != ARRAY) idPtr->setDefined();
+        fs->genInput(move(id), lookahead.line);
         match(SEMIC);
     }
     else if (lookahead.type == DTYPE)

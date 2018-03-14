@@ -134,9 +134,10 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 //commands that just stop some variable being live
                 case CommandType::CHANGEVAR:
                 case CommandType::DECLAREVAR:
-                case CommandType::POP:
+                case CommandType::POP:{
+                    auto debug = instr->getData();
                     killSet.insert(filterVarName(instr->getData()));
-                    break;
+                    break;}
                 //simple commands that just read some variable
                 case CommandType::PUSH:
                 {
@@ -162,9 +163,9 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 case CommandType::EXPR:
                 {
                     EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(instr.get());
-                    killSet.insert(filterVarName(eec->getData()));
-                    insertAndCheckUpwardExposed(filterVarName(eec->term1));
-                    insertAndCheckUpwardExposed(filterVarName(eec->term2));
+                    killSet.insert(filterVarName(eec->lhs->getBaseName()));
+                    insertAndCheckUpwardExposed(filterVarName(eec->term1->getBaseName()));
+                    insertAndCheckUpwardExposed(filterVarName(eec->term2->getBaseName()));
                 }
             }
         }
@@ -172,11 +173,11 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
         JumpOnComparisonCommand* jocc = node->getComp();
         if (jocc != nullptr)
         {
-            if (jocc->term1Type == AbstractCommand::StringType::ID)
+            if (jocc->term1.type == AbstractCommand::StringType::ID)
             {
                 insertAndCheckUpwardExposed(filterVarName(jocc->term1.vptr->getBaseName()));
             }
-            if (jocc->term2Type == AbstractCommand::StringType::ID)
+            if (jocc->term2.type == AbstractCommand::StringType::ID)
             {
                 insertAndCheckUpwardExposed(filterVarName(jocc->term2.vptr->getBaseName()));
             }

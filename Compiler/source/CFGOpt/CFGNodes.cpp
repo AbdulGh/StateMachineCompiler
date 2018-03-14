@@ -266,18 +266,19 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
     }
 
     bool skippedReturn = false;
+
     if (comp != nullptr)
     {
-        if (comp->term1Type == AbstractCommand::StringType::ID &&
-            assignments.find(comp->t1str()) != assignments.end()) comp->setTerm1(assignments[comp->t1str()]);
-        if (comp->term2Type == AbstractCommand::StringType::ID &&
-            assignments.find(comp->t2str()) != assignments.end()) comp->setTerm2(assignments[comp->t2str()]);
+        /*if (comp->term1.type == AbstractCommand::StringType::ID &&
+            assignments.find(string(comp->term1)) != assignments.end()) comp->setTerm1(assignments[string(comp->term1)]);
+        if (comp->term2.type == AbstractCommand::StringType::ID &&
+            assignments.find(string(comp->term2)) != assignments.end()) comp->setTerm2(assignments[string(comp->term2)]);*/
 
         //check for const comparison
-        if (comp->term1Type != AbstractCommand::StringType::ID
-            && comp->term2Type != AbstractCommand::StringType::ID)
+        if (comp->term1.type != AbstractCommand::StringType::ID
+            && comp->term2.type != AbstractCommand::StringType::ID)
         {
-            if (comp->term1Type != comp->term2Type)
+            if (comp->term1.type != comp->term2.type)
             {
                 parentGraph.reporter.error(Reporter::TYPE, "Tried to compare literals of different types", comp->getLineNum());
                 return false;
@@ -292,13 +293,13 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
 
                 //replace conditionals with true/false
                 bool isTrue;
-                if (comp->term1Type == AbstractCommand::StringType::DOUBLELIT)
+                if (comp->term1.type == AbstractCommand::StringType::DOUBLELIT)
                 {
-                    double d1 = stod(comp->t1str());
-                    double d2 = stod(comp->t2str());
+                    double d1 = stod(string(comp->term1));
+                    double d2 = stod(string(comp->term2));
                     isTrue = Relations::evaluateRelop<double>(d1, comp->op, d2);
                 }
-                else isTrue = Relations::evaluateRelop<string>(comp->t1str(), comp->op, comp->t2str());
+                else isTrue = Relations::evaluateRelop<string>(string(comp->term1), comp->op, string(comp->term2));
 
                 if (isTrue)
                 {
