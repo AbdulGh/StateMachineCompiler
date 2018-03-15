@@ -10,6 +10,7 @@
 #include <iostream>
 
 #include "../compile/Functions.h"
+#include "../symbolic/SymbolicVarWrappers.h"
 #include "CFG.h"
 
 using namespace std;
@@ -140,62 +141,53 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
             {
                 EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(current.get());
                 //literals will not be found
-                if (AbstractCommand::getStringType(eec->term1) == AbstractCommand::StringType::ID)
+                if (!eec->term1.isLit)
                 {
-                    unordered_map<string, string>::const_iterator t1it = assignments.find(eec->term1);
-                    if (t1it != assignments.end()) eec->term1 = t1it->second;
+                    unordered_map<string, string>::const_iterator t1it = assignments.find(eec->term1.vg->getFullName());
+                    if (t1it != assignments.end()) eec->term1.parse(t1it->second);
                 }
     
-                if (AbstractCommand::getStringType(eec->term2) == AbstractCommand::StringType::ID)
+                if (!eec->term2.isLit)
                 {
-                    unordered_map<string, string>::const_iterator t2it = assignments.find(eec->term2);
-                    if (t2it != assignments.end()) eec->term2 = t2it->second;
+                    unordered_map<string, string>::const_iterator t2it = assignments.find(eec->term1.vg->getFullName());
+                    if (t2it != assignments.end()) eec->term2.parse(t2it->second);
                 }
     
-                if (eec->term1 == eec->term2
-                    && AbstractCommand::getStringType(eec->term1) == AbstractCommand::StringType::ID
-                    && parentGraph.symbolTable.findIdentifier(eec->term1)->getType() == DOUBLE)
+                if (eec->term1 == eec->term2 && !eec->term1.isLit)
                 {
                     switch (eec->op)
                     {
                         case MINUS:
+                        {
                             assignments[eec->getData()] = "0";
                             newInstrs.push_back(make_unique<AssignVarCommand>(eec->getData(), "0", eec->getLineNum()));
                             break;
+                        }
                         case PLUS:
+                        {
                             assignments.erase(eec->getData());
                             eec->op = MULT;
-                            eec->term2 = "2";
+                            string two = "2";
+                            eec->term2.parse(two);
                             newInstrs.push_back(move(current));
                             break;
+                        }
                         default:
+                        {
                             assignments.erase(eec->getData());
                             newInstrs.push_back(move(current));
+                        }
                     }
                 }//when we leave this at least one term is an ID so we dont enter the next condition
     
-                if (AbstractCommand::getStringType(eec->term1) != AbstractCommand::StringType::ID
-                    && AbstractCommand::getStringType(eec->term2) != AbstractCommand::StringType::ID)
+                if (eec->term1.isLit && eec->term2.isLit)
                 {
-                    try
-                    {
-                        double lhs = stod(eec->term1);
-                        double rhs = stod(eec->term2);
-                        double result = evaluateOp(lhs, eec->op, rhs);
-                        string resultstr = to_string(result);
-                        assignments[eec->getData()] = resultstr;
-                        newInstrs.push_back(make_unique<AssignVarCommand>(eec->getData(), resultstr, eec->getLineNum()));
-                    }
-                    catch (invalid_argument&)
-                    {
-                        if (eec->op == PLUS)
-                        {
-                            string result = eec->term1 + eec->term2;
-                            assignments[eec->getData()] = result;
-                            newInstrs.push_back(make_unique<AssignVarCommand>(eec->getData(), result, eec->getLineNum()));
-                        }
-                        else throw runtime_error("Strings only support +");
-                    }
+                    double lhs = eec->term1.d;
+                    double rhs = eec->term2.d;;
+                    double result = evaluateOp(lhs, eec->op, rhs);
+                    string resultstr = to_string(result);
+                    assignments[eec->getData()] = resultstr;
+                    newInstrs.push_back(make_unique<AssignVarCommand>(eec->getData(), resultstr, eec->getLineNum()));
                 }
                 else
                 {

@@ -92,7 +92,7 @@ public:
 };
 
 
-class PrintCommand: public AbstractCommand
+class PrintCommand: public AbstractCommand //todo combine this w/ PrintIndirect using atom
 {
 public:
     PrintCommand(const std::string& info, int linenum) : AbstractCommand(linenum)
@@ -313,10 +313,14 @@ public:
             double d;
         };
 
-        Term(std::string& toParse);
+        Term(const std::string& toParse);
         Term(const Term& other);
-        Term(const Term&& other);
+        Term(Term&& other);
         ~Term();
+
+        void parse(const std::string& toParse);
+
+        bool operator==(Term& o);
 
         std::string str() const;
     };

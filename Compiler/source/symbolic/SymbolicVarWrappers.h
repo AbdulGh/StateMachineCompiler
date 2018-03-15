@@ -30,6 +30,20 @@ public:
     explicit GottenVarPtr(std::unique_ptr<T> sv) : up(move(sv)), owns(true) {}
     ~GottenVarPtr() {if (owns) up.reset();}
 
+    void reset(T* pointTo)
+    {
+        if (owns) up.reset();
+        rp = pointTo;
+        owns = false;
+    }
+
+    void reset(std::unique_ptr<T> pointTo)
+    {
+        if (owns) up.reset();
+        up = std::move(pointTo);
+        owns = true;
+    }
+
     void become(GottenVarPtr& o) //keep assignment operator deleted, I guess?
     {
         owns = o.owns;
@@ -367,38 +381,5 @@ public:
 
     std::unique_ptr<VarSetter> clone() {return std::make_unique<SetSVByName>(name);}
 };
-
-std::unique_ptr<VarGetter> parseAccess(const std::string& toParse, AbstractCommand::StringType* st = nullptr)
-{
-    if (toParse.empty()) throw "Can't parse an empty string";
-    if (toParse[0] == '\"')
-    {
-        *st = AbstractCommand::StringType::STRINGLIT;
-        return nullptr;
-    }
-    else try
-    {
-        std::stod(toParse);
-        *st = AbstractCommand::StringType::DOUBLELIT;
-        return nullptr;
-    }
-    catch (std::invalid_argument&) //id or array access
-    {
-        size_t first = toParse.find("[");
-        if (first == -1) return std::make_unique<GetSVByName>(toParse);
-        std::string index = toParse.substr(first, toParse.size() - first - 1);
-        try
-        {
-            double dAttempt = stod(toParse);
-            return std::make_unique<GetSDByArrayIndex>(toParse.substr(0, first), dAttempt);
-        }
-        catch (std::invalid_argument&)
-        {
-            std::unique_ptr<VarGetter> indexWrapper = parseAccess(index);
-            if (!indexWrapper) throw "went wrong";
-            return std::make_unique<GetSDByIndexVar>(toParse.substr(0, first), move(indexWrapper));
-        }
-    }
-}
 
 #endif //PROJECT_SYMBOLICVARWRAPPERS_H

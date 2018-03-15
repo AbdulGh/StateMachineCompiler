@@ -1,0 +1,1 @@
+cloc ./ --include-lang=c,c++,h

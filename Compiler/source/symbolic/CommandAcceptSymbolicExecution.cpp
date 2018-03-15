@@ -208,61 +208,58 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
     else
     {
         //todo make it use consts directly instead of creating vars
-        bool deletet1 = true;
-        SymbolicVariable* t1;
-        try
+        GottenVarPtr<SymbolicDouble> t1(nullptr);
+        if (term1.isLit)
         {
-            stod(term1);
-            t1 = new SymbolicDouble("LHSconst", sef->reporter); //if we get here it's a double
-            t1->setConstValue(term1);
+            t1.reset(make_unique<SymbolicDouble>("LHSconst", sef->reporter));
+            t1->setTConstValue(term1.d);
         }
-        catch (invalid_argument&)
+        else
         {
-            t1 = sef->symbolicVarSet->findVar(term1);
-            if (t1 == nullptr)
+            auto t1gvp = term1.vg->getSymbolicDouble(sef.get());
+            t1.become(t1gvp);
+            if (!t1)
             {
-                sef->error(Reporter::UNDECLARED_USE, "'" + term1 + "' used without being declared", getLineNum());
+                sef->error(Reporter::UNDECLARED_USE, "'" + term1.vg->getFullName() + "' used without being declared", getLineNum());
                 return false;
             }
-            else if (t1->getType() != DOUBLE)
-            {
-                sef->error(Reporter::TYPE, "'" + term1 + "' (type " + TypeEnumNames[t1->getType()] +
-                                           ") used in arithmetic evaluation", getLineNum());
-                return false;
-            }
-            else if (!t1->isDefined()) sef->warn(Reporter::TYPE, "'" + term1 + "' used before definition", getLineNum());
-            deletet1 = false;
+            else if (!t1->isDefined()) sef->warn(Reporter::TYPE, "'" + term1.vg->getFullName() + "' used before definition", getLineNum());
+
+            //else if (t1->getType() != DOUBLE)
+            //{
+            //    sef->error(Reporter::TYPE, "'" + term1 + "' (type " + TypeEnumNames[t1->getType()] +
+            //                               ") used in arithmetic evaluation", getLineNum());
+            //   return false;
+            //}
         }
 
-        bool deletet2 = true;
-        SymbolicVariable* t2;
-        try
+        GottenVarPtr<SymbolicDouble> t2(nullptr);
+        if (term2.isLit)
         {
-            stod(term2);
-            t2 = new SymbolicDouble("RHSconst", sef->reporter);
-            t2->setConstValue(term2);
+            t2.reset(make_unique<SymbolicDouble>("RHSconst", sef->reporter));
+            t2->setTConstValue(term2.d);
         }
-        catch (invalid_argument&)
+        else
         {
-            t2 = sef->symbolicVarSet->findVar(term2);
-            if (t2 == nullptr)
+            auto t2gvp = term2.vg->getSymbolicDouble(sef.get());
+            t2.become(t2gvp);
+            if (!t2)
             {
-                sef->error(Reporter::UNDECLARED_USE, "'" + term2 + "' used without being declared", getLineNum());
+                sef->error(Reporter::UNDECLARED_USE, "'" + term2.vg->getFullName() + "' used without being declared", getLineNum());
                 return false;
             }
-            else if (t2->getType() != DOUBLE)
-            {
-                sef->error(Reporter::TYPE, "'" + term2 + "' (type " + TypeEnumNames[t2->getType()] +
-                                           ") used in arithmetic evaluation", getLineNum());
-                return false;
-            }
-            else if (!t2->isDefined()) sef->warn(Reporter::TYPE, "'" + term2 + "' used before definition", getLineNum());
+            else if (!t2->isDefined()) sef->warn(Reporter::TYPE, "'" + term2.vg->getFullName() + "' used before definition", getLineNum());
 
-            deletet2 = false;
+            //else if (t2->getType() != DOUBLE)
+            //{
+            //    sef->error(Reporter::TYPE, "'" + term2 + "' (type " + TypeEnumNames[t2->getType()] +
+            //                               ") used in arithmetic evaluation", getLineNum());
+            //   return false;
+            //}
         }
-
-        unique_ptr<SymbolicDouble> result = make_unique<SymbolicDouble>(t1);
-        SymbolicDouble t2copy(t2);
+        
+        unique_ptr<SymbolicDouble> result = make_unique<SymbolicDouble>(t1.get());
+        SymbolicDouble t2copy(t2.get());
 
         switch (op)
         {
@@ -288,9 +285,6 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
         result->setName(LHS->getName());
         result->define();
         sef->symbolicVarSet->addVar(move(result));
-
-        if (deletet1) delete t1;
-        if (deletet2) delete t2;
     }
     return sef->isFeasable();
 }

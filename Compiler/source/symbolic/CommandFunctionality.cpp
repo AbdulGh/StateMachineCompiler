@@ -7,6 +7,39 @@
 
 using namespace std;
 
+std::unique_ptr<VarGetter> parseAccess(const std::string& toParse, AbstractCommand::StringType* st = nullptr)
+{
+    if (toParse.empty()) throw "Can't parse an empty string";
+    if (toParse[0] == '\"')
+    {
+        *st = AbstractCommand::StringType::STRINGLIT;
+        return nullptr;
+    }
+    else try
+    {
+        std::stod(toParse);
+        *st = AbstractCommand::StringType::DOUBLELIT;
+        return nullptr;
+    }
+    catch (std::invalid_argument&) //id or array access
+    {
+        size_t first = toParse.find("[");
+        if (first == -1) return std::make_unique<GetSVByName>(toParse);
+        std::string index = toParse.substr(first + 1, toParse.size() - first);
+        try
+        {
+            double dAttempt = stod(toParse);
+            return std::make_unique<GetSDByArrayIndex>(toParse.substr(0, first), dAttempt);
+        }
+        catch (std::invalid_argument&)
+        {
+            std::unique_ptr<VarGetter> indexWrapper = parseAccess(index);
+            if (!indexWrapper) throw "went wrong";
+            return std::make_unique<GetSDByIndexVar>(toParse.substr(0, first), move(indexWrapper));
+        }
+    }
+}
+
 unique_ptr<AbstractCommand> PrintIndirectCommand::clone()
 {
     return make_unique<PrintIndirectCommand>(toPrint->clone(), getLineNum());
@@ -134,7 +167,12 @@ string JumpOnComparisonCommand::t2str() const
 }*/
 
 //EvaluateExpressionCommand
-EvaluateExprCommand::Term::Term(std::string& toParse)
+EvaluateExprCommand::Term::Term(const std::string& toParse)
+{
+    parse(toParse);
+}
+
+void EvaluateExprCommand::Term::parse(const std::string& toParse)
 {
     StringType st;
     auto up = parseAccess(toParse, &st);
@@ -158,11 +196,25 @@ EvaluateExprCommand::Term::Term(const Term& other)
     else vg = other.vg->clone();
 }
 
-EvaluateExprCommand::Term::Term(const Term&& other)
+EvaluateExprCommand::Term::Term(Term&& other)
 {
     isLit = other.isLit;
     if (isLit) d = other.d;
-    else vg = move(other.vg);
+    else vg.reset(other.vg.release());
+}
+
+bool EvaluateExprCommand::Term::operator==(Term& o)
+{
+    if (isLit)
+    {
+        if (o.isLit) return d == o.d;
+        else return false;
+    }
+    else
+    {
+        if (!o.isLit) return vg->getFullName() == o.vg->getFullName();
+        else return false;
+    }
 }
 
 EvaluateExprCommand::Term::~Term() {if (!isLit) vg.reset();}
@@ -220,5 +272,5 @@ InputVarCommand::InputVarCommand(std::unique_ptr<VarSetter> into, int linenum) :
 
 std::unique_ptr<AbstractCommand> InputVarCommand::clone()
 {
-    return std::make_unique<InputVarCommand>(getData(), getLineNum());
+    return std::make_unique<InputVarCommand>(vs->clone(), getLineNum());
 }

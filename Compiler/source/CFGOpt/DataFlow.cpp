@@ -134,10 +134,9 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 //commands that just stop some variable being live
                 case CommandType::CHANGEVAR:
                 case CommandType::DECLAREVAR:
-                case CommandType::POP:{
-                    auto debug = instr->getData();
+                case CommandType::POP:
                     killSet.insert(filterVarName(instr->getData()));
-                    break;}
+                    break;
                 //simple commands that just read some variable
                 case CommandType::PUSH:
                 {
@@ -164,8 +163,8 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 {
                     EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(instr.get());
                     killSet.insert(filterVarName(eec->lhs->getBaseName()));
-                    insertAndCheckUpwardExposed(filterVarName(eec->term1->getBaseName()));
-                    insertAndCheckUpwardExposed(filterVarName(eec->term2->getBaseName()));
+                    insertAndCheckUpwardExposed(filterVarName(eec->term1.vg->getBaseName()));
+                    insertAndCheckUpwardExposed(filterVarName(eec->term2.vg->getBaseName()));
                 }
             }
         }
