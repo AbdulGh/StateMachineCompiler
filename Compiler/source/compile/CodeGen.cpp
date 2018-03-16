@@ -1,5 +1,5 @@
 #include "Compiler.h"
-#include "../symbolic/SymbolicVarWrappers.h"
+#include "VarWrappers.h"
 
 using namespace std;
 VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType, string uid) //todo remember why this returns a vtype
@@ -237,7 +237,7 @@ void Compiler::condition(FunctionSymbol* fs, string success, string fail)
 {
     expression(fs, "LHS");
     Relations::Relop r = relop();
-    expression(fs, "RHS");
+    expression(fs, "rhs");
 
     fs->genConditionalJump(move(success), make_unique<GetSVByName>("LHS"), r, make_unique<GetSVByName>("LHS"), lookahead.line);
     fs->genJump(move(fail), lookahead.line);

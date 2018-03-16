@@ -8,14 +8,34 @@
 class VarWrapper;
 class VarGetter;
 class VarSetter;
-
-enum class CommandType{JUMP, CONDJUMP, DECLAREVAR, PUSH, POP, ASSIGNVAR, CHANGEVAR, EXPR, PRINT};
-
 namespace SymbolicExecution {class SymbolicExecutionFringe;}; //symbolic/SymbolicExecution.cpp
+
+enum class CommandType{JUMP, CONDJUMP, RETURN, DECLAREVAR, PUSH, POP, ASSIGNVAR, EXPR, PRINT, INPUTVAR};
+enum class StringType{ID, STRINGLIT, DOUBLELIT};
+
+class Atom
+{
+public:
+    union
+    {
+        std::string* sptr;
+        VarGetter* vptr;
+    };
+
+    Atom(const std::string&);
+    Atom(std::unique_ptr<VarGetter>);
+    Atom(const Atom& o);
+    void set(const std::string& sptr);
+    void set(std::unique_ptr<VarGetter> sptr);
+    StringType type;
+    operator std::string() const;
+    ~Atom();
+};
+
+//todo move type into AC constructor
 class AbstractCommand
 {
 private:
-    std::string data;
     CommandType commandType;
     int linenumber;
 
@@ -35,19 +55,16 @@ public:
     //returns true if the symbolic execution of this command went through
     virtual bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat = false);
 
-    const std::string& getData() const
-    {
-        return data;
-    }
+    virtual const std::string& getState() const {throw "no state";}
+    virtual void setState(const std::string& data) {throw "no state";}
+    virtual const Atom& getAtom() const {throw "no atom";}
+    virtual void setAtom(const Atom& data) {throw "no atom";}
+    virtual const std::unique_ptr<VarSetter>& getVarSetter() const {throw "doesn't set var";}
+    virtual void setVarSetter(std::unique_ptr<VarSetter> sv) {throw "doesn't set var";}
 
     CommandType getType() const
     {
         return commandType;
-    }
-
-    void setData(const std::string &data)
-    {
-        AbstractCommand::data = data;
     }
 
     int getLineNum() const
@@ -55,8 +72,7 @@ public:
         return linenumber;
     }
 
-    enum class StringType{ID, STRINGLIT, DOUBLELIT};
-    static AbstractCommand::StringType getStringType(const std::string& str)
+    static StringType getStringType(const std::string& str)
     {
         if (str.length() == 0) throw std::runtime_error("Asked to find StringType of empty string");
         else if (str.length() > 1 && str[0] == '\"') return StringType::STRINGLIT;
@@ -72,54 +88,49 @@ public:
     }
 };
 
-class Atom
+class StateHoldingCommand : public AbstractCommand
 {
+protected:
+    std::string state;
 public:
-    union
-    {
-        std::string* sptr;
-        VarGetter* vptr;
-    };
-
-    Atom(const std::string&);
-    Atom(std::unique_ptr<VarGetter>);
-    Atom(const Atom& o);
-    void set(const std::string& sptr);
-    void set(std::unique_ptr<VarGetter> sptr);
-    AbstractCommand::StringType type;
-    operator std::string() const;
-    ~Atom();
+    const std::string& getState() const override {return state;}
+    void setState(const std::string& data) override {state = data;}
 };
 
+class AtomHoldingCommand : public AbstractCommand
+{
+protected:
+    Atom atom;
+public:
+    const Atom& getAtom() const override {return atom;}
+    void setAtom(const Atom& data) override {atom = data;}
+};
 
-class PrintCommand: public AbstractCommand //todo combine this w/ PrintIndirect using atom
+class VarSettingCommand : public AbstractCommand
+{
+protected:
+    std::unique_ptr<VarSetter> vs;
+public:
+    VarSettingCommand::VarSettingCommand(): vs{} {}
+
+    const std::unique_ptr<VarSetter>& getVarSetter() const override {return move(vs);}
+    void setVarSetter(std::unique_ptr<VarSetter> nvs) override {vs = move(nvs);}
+};
+
+class PrintCommand: public AbstractCommand, public AtomHoldingCommand
 {
 public:
-    PrintCommand(const std::string& info, int linenum) : AbstractCommand(linenum)
+    PrintCommand(Atom atom, int linenum) : AbstractCommand(linenum), AtomHoldingCommand::atom(std::move(atom))
     {
-        setData(info);
         setType(CommandType::PRINT);
     }
 
-    std::string translation(const std::string& delim) const override {return "print " + getData() + ";" + delim;}
+    std::string translation(const std::string& delim) const override {return "print " + std::string(atom) + ";" + delim;}
 
     std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_unique<PrintCommand>(getData(), getLineNum());
+        return std::make_unique<PrintCommand>(atom, getLineNum());
     }
-};
-
-class PrintIndirectCommand: public AbstractCommand //done in CommandAcceptSymbolicExecution (forward declarations)
-{
-    std::unique_ptr<VarGetter> toPrint;
-
-public:
-    PrintIndirectCommand(std::unique_ptr<VarGetter> sdg, int linenum);
-    ~PrintIndirectCommand() override;
-    std::string translation(const std::string& delim) const override;
-    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
-    std::unique_ptr<AbstractCommand> clone() override;
-
 };
 
 class ReturnCommand: public AbstractCommand
@@ -127,8 +138,7 @@ class ReturnCommand: public AbstractCommand
 public:
     ReturnCommand(int linenum) : AbstractCommand(linenum)
     {
-        setData("return");
-        setType(CommandType::JUMP);
+        setType(CommandType::RETURN);
     }
     std::string translation(const std::string& delim) const override {return "return;" + delim;} //meta
 
@@ -138,23 +148,23 @@ public:
     }
 };
 
-class JumpCommand: public AbstractCommand
+class JumpCommand: public AbstractCommand, public StateHoldingCommand
 {
 public:
     JumpCommand(const std::string& to, int linenum) : AbstractCommand(linenum)
     {
-        setData(to);
+        setState(to);
         setType(CommandType::JUMP);
     }
-    std::string translation(const std::string& delim) const override{return "jump " + getData() + ";" + delim;};
+    std::string translation(const std::string& delim) const override{return "jump " + state + ";" + delim;};
 
     std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_unique<JumpCommand>(getData(), getLineNum());
+        return std::make_unique<JumpCommand>(state, getLineNum());
     }
 };
 
-class JumpOnComparisonCommand: public AbstractCommand
+class JumpOnComparisonCommand: public AbstractCommand, public StateHoldingCommand
 {
 public:
     Atom term1;
@@ -172,8 +182,8 @@ public:
     
     void makeGood()
     {
-        if (term1.type != AbstractCommand::StringType::ID
-            && term2.type == AbstractCommand::StringType::ID)
+        if (term1.type != StringType::ID
+            && term2.type == StringType::ID)
         {
             auto tempptr = term2.vptr;
             if (term1.type == StringType::ID) term2.vptr = term1.vptr;
@@ -191,12 +201,12 @@ public:
 
     std::string translation(const std::string& delim) const override 
     {
-        return "jumpif " + std::string(term1) + relEnumStrs[op] + std::string(term2) + " " + getData() + ";" + delim;
+        return "jumpif " + std::string(term1) + relEnumStrs[op] + std::string(term2) + " " + state + ";" + delim;
     }
     std::string negatedTranslation(const std::string& delim) const 
     {
         return "jumpif " + std::string(term1) +
-                relEnumStrs[Relations::negateRelop(op)] + std::string(term2) + " " + getData() + ";" + delim;
+                relEnumStrs[Relations::negateRelop(op)] + std::string(term2) + " " + state + ";" + delim;
     }
     std::string condition(const std::string& delim) const 
     {
@@ -209,21 +219,17 @@ public:
     void negate() {op = Relations::negateRelop(op);}
 };
 
-class InputVarCommand: public AbstractCommand
+class InputVarCommand: public AbstractCommand, public VarSettingCommand
 {
 public:
-    const std::unique_ptr<VarSetter> vs;
-
     InputVarCommand(std::unique_ptr<VarSetter> into, int linenum);
-    std::string translation(const std::string& delim) const override{return "input " + getData() + ";" + delim;};
-
+    std::string translation(const std::string& delim) const override;
     std::unique_ptr<AbstractCommand> clone() override;
-
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 };
 
 class FunctionSymbol;
-class PushCommand: public AbstractCommand
+class PushCommand: public AbstractCommand, public AtomHoldingCommand //todo split into push state/var
 {
 public:
     StringType stringType;
@@ -231,9 +237,8 @@ public:
     unsigned int pushedVars;
 
     PushCommand(const std::string& in, int linenum, FunctionSymbol* cf = nullptr, unsigned int numPushedLocalVars = 0):
-            AbstractCommand(linenum), calledFunction(cf), pushedVars(numPushedLocalVars), stringType(getStringType(in))
+    AbstractCommand(linenum), calledFunction(cf), pushedVars(numPushedLocalVars), stringType(getStringType(in)), atom(in)
     {
-        setData(in);
         setType(CommandType::PUSH);
     }
 
@@ -244,35 +249,25 @@ public:
 
     std::string translation(const std::string& delim) const override
     {
-        if (pushesState()) return "push state " + getData() + ";" + delim;
-        else return "push " + getData() + ";" + delim;
+        if (pushesState()) return "push state " + std::string(atom) + ";" + delim;
+        else return "push " + std::string(atom) + ";" + delim;
     }
 
     std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_unique<PushCommand>(getData(), getLineNum(), calledFunction);
+        return std::make_unique<PushCommand>(atom, getLineNum(), calledFunction);
     }
 
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 };
 
-class PopCommand: public AbstractCommand
+class PopCommand: public AbstractCommand, public VarSettingCommand
 {
 public:
-    PopCommand(const std::string& in, int linenum) : AbstractCommand(linenum)
-    {
-        setData(in);
-        setType(CommandType::POP);
-    }
-
-    std::unique_ptr<AbstractCommand> clone() override
-    {
-        return std::make_unique<PopCommand>(getData(), getLineNum());
-    }
-
-    bool isEmpty() const {return getData() == "";}
-
-    std::string translation(const std::string& delim) const override {return isEmpty() ? "pop;" + delim : "pop " + getData() + ";" + delim;}
+    PopCommand(std::unique_ptr<VarSetter> into, int linenum);
+    std::unique_ptr<AbstractCommand> clone() override;
+    bool isEmpty() const {return vs != nullptr;}
+    std::string translation(const std::string& delim) const override;
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 };
 
@@ -280,20 +275,13 @@ public:
 class AssignVarCommand: public AbstractCommand
 {
 public:
-    std::string RHS;
-    AssignVarCommand(const std::string& lh, const std::string& rh, int linenum) : AbstractCommand(linenum)
-    {
-        setData(lh);
-        RHS = rh;
-        setType(CommandType::ASSIGNVAR);
-    }
+    std::unique_ptr<VarSetter> lhs;
+    Atom rhs;
 
-    std::unique_ptr<AbstractCommand> clone() override
-    {
-        return std::make_unique<AssignVarCommand>(getData(), RHS, getLineNum());
-    }
-
-    std::string translation(const std::string& delim) const override{return getData() + " = " + RHS + ";" + delim;}
+    AssignVarCommand(std::unique_ptr<VarSetter> lh, std::unique_ptr<VarGetter> rh, int linenum);
+    AssignVarCommand(std::unique_ptr<VarSetter> lh, const std::string& rh, int linenum);
+    std::unique_ptr<AbstractCommand> clone() override;
+    std::string translation(const std::string& delim) const override;
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 };
 
@@ -338,50 +326,68 @@ public:
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat) override;
 };
 
-class DeclareVarCommand: public AbstractCommand
+
+class DeclareCommand: public AbstractCommand
 {
 public:
-    VariableType vt;
-
-    DeclareVarCommand(VariableType t, const std::string& n, int linenum) : AbstractCommand(linenum), vt(t)
+    enum class DeclareType {VAR, ARRAY, POINTER};
+    const DeclareType dt;
+    const VariableType vt;
+    DeclareCommand(DeclareType declareType, VariableType variableType, int linenum)
+            :AbstractCommand(linenum), dt(declareType), vt(variableType)
     {
-        setData(n);
         setType(CommandType::DECLAREVAR);
     }
+    virtual const std::string& getBaseName() const = 0;
+};
+
+class DeclareVarCommand: public AbstractCommand, public DeclareCommand
+{
+private:
+    std::string name;
+public:
+    DeclareVarCommand(VariableType t, std::string n, int linenum)
+            :DeclareCommand(DeclareType::VAR, t, linenum), name(move(n)) {}
 
     std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_unique<DeclareVarCommand>(vt, getData(), getLineNum());
+        return std::make_unique<DeclareVarCommand>(vt, name, getLineNum());
     }
 
     std::string translation(const std::string& delim) const override
     {
-        return VariableTypeEnumNames[vt] + " " + getData() + ";" + delim;
+        return VariableTypeEnumNames[vt] + " " + name + ";" + delim;
     }
+
+    const std::string& getBaseName() const override {return name;}
+
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 };
 
-class DeclareArrayCommand: public AbstractCommand
+class DeclareArrayCommand: public AbstractCommand, public DeclareCommand
 {
+private:
+    std::string name;
 public:
     const unsigned long size;
 
-    DeclareArrayCommand(const std::string& name, const unsigned long& n, int linenum): AbstractCommand(linenum), size(n)
+    DeclareArrayCommand(std::string n, const unsigned long& s, int linenum):
+            DeclareCommand(DeclareType::ARRAY, DOUBLE, linenum), name(move(n)), size(s)
     {
         if (size == 0) throw "arrays have size >0";
-        setData(name);
-        setType(CommandType::DECLAREVAR);
     }
 
     std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_unique<DeclareArrayCommand>(getData(), size, getLineNum());
+        return std::make_unique<DeclareArrayCommand>(name, size, getLineNum());
     }
 
     std::string translation(const std::string& delim) const override
     {
-        return "double[" + std::to_string(size) + "] " + getData() + ";" + delim;
+        return "double[" + std::to_string(size) + "] " + name + ";" + delim;
     }
+
+    const std::string& getBaseName() const override {return name;}
 
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat) override;
 };

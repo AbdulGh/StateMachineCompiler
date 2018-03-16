@@ -5,7 +5,7 @@
 #ifndef PROJECT_SYMBOLICVARWRAPPERS_H
 #define PROJECT_SYMBOLICVARWRAPPERS_H
 
-#include "SymbolicExecution.h"
+#include "../symbolic/SymbolicExecution.h"
 
 enum class AccessType{DIRECT, BYARRAY};
 

@@ -10,7 +10,7 @@
 #include <iostream>
 
 #include "../compile/Functions.h"
-#include "../symbolic/SymbolicVarWrappers.h"
+#include "../compile/VarWrappers.h"
 #include "CFG.h"
 
 using namespace std;
@@ -120,21 +120,21 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
             case CommandType::ASSIGNVAR:
             {
                 auto avc = static_cast<AssignVarCommand*>(current.get());
-                if (AbstractCommand::getStringType(avc->RHS) != AbstractCommand::StringType::ID)
+                if (AbstractCommand::getStringType(avc->rhs) != StringType::ID)
                 {
-                    assignments[avc->getData()] = avc->RHS;
+                    assignments[avc->getData()] = avc->rhs;
                 }
                 else
                 {
-                    unordered_map<string, string>::const_iterator constit = assignments.find(avc->RHS);
+                    unordered_map<string, string>::const_iterator constit = assignments.find(avc->rhs);
                     if (constit != assignments.end())
                     {
                         assignments[avc->getData()] = constit->second;
-                        avc->RHS = constit->second;
+                        avc->rhs = constit->second;
                     }
-                    else assignments[avc->getData()] = avc->RHS;
+                    else assignments[avc->getData()] = avc->rhs;
                 }
-                if (avc->getData() != avc->RHS) newInstrs.push_back(move(current));
+                if (avc->getData() != avc->rhs) newInstrs.push_back(move(current));
                 break;
             }
             case CommandType::EXPR:
@@ -261,14 +261,14 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
 
     if (comp != nullptr)
     {
-        /*if (comp->term1.type == AbstractCommand::StringType::ID &&
+        /*if (comp->term1.type == StringType::ID &&
             assignments.find(string(comp->term1)) != assignments.end()) comp->setTerm1(assignments[string(comp->term1)]);
-        if (comp->term2.type == AbstractCommand::StringType::ID &&
+        if (comp->term2.type == StringType::ID &&
             assignments.find(string(comp->term2)) != assignments.end()) comp->setTerm2(assignments[string(comp->term2)]);*/
 
         //check for const comparison
-        if (comp->term1.type != AbstractCommand::StringType::ID
-            && comp->term2.type != AbstractCommand::StringType::ID)
+        if (comp->term1.type != StringType::ID
+            && comp->term2.type != StringType::ID)
         {
             if (comp->term1.type != comp->term2.type)
             {
@@ -285,7 +285,7 @@ bool CFGNode::constProp(unordered_map<string,string> assignments)
 
                 //replace conditionals with true/false
                 bool isTrue;
-                if (comp->term1.type == AbstractCommand::StringType::DOUBLELIT)
+                if (comp->term1.type == StringType::DOUBLELIT)
                 {
                     double d1 = stod(string(comp->term1));
                     double d2 = stod(string(comp->term2));

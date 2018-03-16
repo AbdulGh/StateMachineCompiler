@@ -3,7 +3,7 @@
 //
 #include "../Command.h"
 #include "SymbolicExecution.h"
-#include "SymbolicVarWrappers.h"
+#include "../compile/VarWrappers.h"
 
 using namespace std;
 
@@ -120,21 +120,21 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
     {
         try
         {
-            stod(RHS);
-            svp->setConstValue(RHS);
+            stod(rhs);
+            svp->setConstValue(rhs);
             return true;
         }
         catch (invalid_argument&)
         {
-            SymbolicVariable* RHSvar = svs->symbolicVarSet->findVar(RHS);
+            SymbolicVariable* RHSvar = svs->symbolicVarSet->findVar(rhs);
             if (RHSvar == nullptr)
             {
-                svs->error(Reporter::UNDECLARED_USE, "'" + RHS + "' used on RHS without being declared", getLineNum());
+                svs->error(Reporter::UNDECLARED_USE, "'" + rhs + "' used on rhs without being declared", getLineNum());
                 return false;
             }
             else if (RHSvar->getType() != DOUBLE)
             {
-                svs->error(Reporter::TYPE, "'" + RHS + "' (type " + TypeEnumNames[RHSvar->getType()] +
+                svs->error(Reporter::TYPE, "'" + rhs + "' (type " + TypeEnumNames[RHSvar->getType()] +
                                            ") assigned to double", getLineNum());
                 return false;
             }
@@ -146,7 +146,7 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
             return true;
         }
     }
-    else svp->setConstValue(RHS);
+    else svp->setConstValue(rhs);
     svp->define();
     return svp->isFeasable();
 }

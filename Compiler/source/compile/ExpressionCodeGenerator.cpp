@@ -1,7 +1,7 @@
 #include <stack>
 
 #include "Compiler.h"
-#include "../symbolic/SymbolicVarWrappers.h"
+#include "VarWrappers.h"
 
 #include <memory>
 
@@ -180,6 +180,7 @@ bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol*
         else if (rightlit = translateTree(rightp, fs, reg + 1, dr)) right = to_string(dr);
         else right = genTemp(fs, reg + 1);
     }
+
     if (leftlit && rightlit)
     {
         ret = evaluateOp(dl, p->getOp(), dr);
@@ -188,7 +189,10 @@ bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol*
     else
     {
         unique_ptr<SetSVByName> lval = make_unique<SetSVByName>(genTemp(fs, reg));
-        fs->genExpr(move(lval), EvaluateExprCommand::Term(left), p->getOp(), EvaluateExprCommand::Term(right), parent.lookahead.line);
+        auto debug1 = EvaluateExprCommand::Term(left);
+        auto debug2 = EvaluateExprCommand::Term(right);
+        auto debug3 = p;
+        fs->genExpr(move(lval), debug1, p->getOp(), debug2, parent.lookahead.line);
         return false;
     }
 }

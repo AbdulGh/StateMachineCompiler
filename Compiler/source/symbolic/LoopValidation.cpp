@@ -7,7 +7,7 @@
 #include <functional>
 
 #include "../CFGOpt/Loop.h"
-#include "SymbolicVarWrappers.h"
+#include "../compile/VarWrappers.h"
 #include "SymbolicExecution.h"
 
 //these flags are set if it is possible downstream
@@ -197,7 +197,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                 //first check if we must break a loop condition
 
                 SymbolicVariable::MeetEnum meetStat;
-                if (AbstractCommand::getStringType(condition.rhs) != AbstractCommand::StringType::ID)
+                if (AbstractCommand::getStringType(condition.rhs) != StringType::ID)
                 {
                     meetStat = varInQuestion->canMeet(condition.comp, condition.rhs);
                 }
@@ -296,7 +296,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
 
             GottenVarPtr<SymbolicVariable> rhVar(nullptr);
             bool rhconst = true;
-            if (jocc->term2.type == AbstractCommand::StringType::ID)
+            if (jocc->term2.type == StringType::ID)
             {
                 auto lvalue = jocc->term2.vptr->getSymbolicVariable(sef.get());
                 rhVar.become(lvalue);
@@ -307,7 +307,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             if (rhconst)
             {
                 string RHS;
-                if (jocc->term2.type == AbstractCommand::StringType::ID) RHS = rhVar->getConstString();
+                if (jocc->term2.type == StringType::ID) RHS = rhVar->getConstString();
                 else RHS = string(jocc->term2);
 
                 switch (lhVar->canMeet(jocc->op, RHS))
@@ -453,7 +453,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                         throw "weird enum";
                 }
             }
-            else //RHS is indeterminate var (could also do the extrapolation stuff here)
+            else //rhs is indeterminate var (could also do the extrapolation stuff here)
             {
                 switch (lhVar->canMeet(jocc->op, rhVar.get()))
                 {

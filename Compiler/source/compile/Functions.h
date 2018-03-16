@@ -106,7 +106,8 @@ public:
     void genExpr(std::unique_ptr<VarSetter> lh, EvaluateExprCommand::Term t1, ArithOp o, EvaluateExprCommand::Term t2, int linenum);
     void genVariableDecl(VariableType t, std::string n, int linenum);
     void genArrayDecl(std::string name, unsigned long int size, int linenum);
-    void genAssignment(std::string LHS, std::string RHS, int linenum);
+    void genAssignment(std::unique_ptr<VarSetter> LHS, std::string RHS, int linenum);
+    void genAssignment(std::unique_ptr<VarSetter> LHS, std::unique_ptr<VarGetter> RHS, int linenum);
     void addCommand(std::unique_ptr<AbstractCommand> ac);
     void addCommands(std::vector<std::unique_ptr<AbstractCommand>>& acs);
 };

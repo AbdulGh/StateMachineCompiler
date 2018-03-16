@@ -3,7 +3,7 @@
 #include <stack>
 
 #include "Compiler.h"
-#include "../symbolic/SymbolicVarWrappers.h"
+#include "VarWrappers.h"
 
 using namespace std;
 

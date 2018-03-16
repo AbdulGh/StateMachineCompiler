@@ -109,8 +109,7 @@ AbstractExprNode* OperatorNode::getRight()
 }
 
 AtomNode::AtomNode(string in, bool num):
-        varsRequired(0),
-        data(in)
+        varsRequired(0), data(in)
 {
     if (num)
     {

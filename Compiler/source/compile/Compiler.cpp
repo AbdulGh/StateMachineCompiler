@@ -6,7 +6,7 @@
 #include "Compiler.h"
 #include "../CFGOpt/Optimiser.h"
 #include "../CFGOpt/LengTarj.h"
-#include "../symbolic/SymbolicVarWrappers.h"
+#include "VarWrappers.h"
 
 using namespace std;
 
@@ -81,7 +81,7 @@ Identifier* Compiler::findVariable(VarWrapper* vg, VariableType* vtype)
 void Compiler::findGlobalsAndMakeStates()
 {
     vector<unique_ptr<AbstractCommand>> initialState;
-    string initialNames[NUM_INITIAL] = {"LHS", "RHS", "retD", "retS"};
+    string initialNames[NUM_INITIAL] = {"LHS", "rhs", "retD", "retS"};
     VariableType initialTypes[NUM_INITIAL] = {DOUBLE, DOUBLE, DOUBLE, STRING};
 
     for (int i = 0; i < NUM_INITIAL; ++i)

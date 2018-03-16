@@ -1,7 +1,7 @@
 #include <algorithm>
 
 #include "SymbolicExecution.h"
-#include "SymbolicVarWrappers.h"
+#include "../compile/VarWrappers.h"
 
 using namespace std;
 using namespace SymbolicExecution;
@@ -141,14 +141,14 @@ vector<Condition> SymbolicExecutionFringe::getConditions()
 bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, JumpOnComparisonCommand* jocc, bool negate)
 {
     if (hasSeen(nodeName)) throw "cant visit node twice";
-    else if (jocc->term1.type != AbstractCommand::StringType::ID) throw "lhs should be ID";
+    else if (jocc->term1.type != StringType::ID) throw "lhs should be ID";
     visitOrder.push_back(nodeName);
     Relations::Relop op = negate ? Relations::negateRelop(jocc->op) : jocc->op;
     pathConditions.insert({nodeName, Condition(string(jocc->term1), op, string(jocc->term2))});
     auto t1var = jocc->term1.vptr->getSymbolicVariable(this);
     if (!t1var) throw "comparing unknown var or constants";
     bool t1constructed = jocc->term1.vptr->getSymbolicVariable(this).constructed(); //todo make this less embarassing
-    if (jocc->term2.type == AbstractCommand::StringType::ID)
+    if (jocc->term2.type == StringType::ID)
     {
         auto t2var = jocc->term2.vptr->getSymbolicVariable(this);
         if (!t2var) throw "comparing unknown var";
@@ -302,7 +302,7 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
     if (jocc != nullptr) //is a conditional jump
     {
         //const comparisons were caught during compilation
-        if (jocc->term1.type != AbstractCommand::StringType::ID) throw "fail";
+        if (jocc->term1.type != StringType::ID) throw "fail";
 
         //note: JOCC constructor ensures that if there is a var there is a var on the LHS
         auto LHS = jocc->term1.vptr->getSymbolicVariable(sef.get());
@@ -318,10 +318,10 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
                                          "'" + LHS->getName() + "' used before being defined", jocc->getLineNum());
 
         //check if we can meet the comparison - search if so
-        if (jocc->term2.type != AbstractCommand::StringType::ID) //comparing to a literal
+        if (jocc->term2.type != StringType::ID) //comparing to a literal
         {
-            if ((jocc->term2.type == AbstractCommand::StringType::DOUBLELIT && LHS->getType() != DOUBLE)
-                    || (jocc->term2.type == AbstractCommand::StringType::STRINGLIT && LHS->getType() != STRING))
+            if ((jocc->term2.type == StringType::DOUBLELIT && LHS->getType() != DOUBLE)
+                    || (jocc->term2.type == StringType::STRINGLIT && LHS->getType() != STRING))
             {
                 sef->error(Reporter::TYPE, "'" + jocc->term1.vptr->getFullName() + "' (type " + TypeEnumNames[LHS->getType()]
                                            + ")  compared to a different type",

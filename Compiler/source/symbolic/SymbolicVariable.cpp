@@ -3,7 +3,7 @@
 #include <string>
 
 #include "SymbolicVariables.h"
-#include "SymbolicVarWrappers.h"
+#include "../compile/VarWrappers.h"
 
 using namespace std;
 using namespace SymbolicExecution;

@@ -1,7 +1,7 @@
 #include <algorithm>
 
 #include "DataFlow.h"
-#include "../symbolic/SymbolicVarWrappers.h"
+#include "../compile/VarWrappers.h"
 
 using namespace std;
 using namespace DataFlow;
@@ -50,7 +50,7 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
                                       [&, lhs](const Assignment& ass)
                                       { return ass.lhs == lhs; });
                     if (it != genSet.end()) genSet.erase(it);
-                    genSet.insert(Assignment(lhs, avc->RHS));
+                    genSet.insert(Assignment(lhs, avc->rhs));
                     killSet.erase(lhs);
                     break;
                 }
@@ -103,8 +103,6 @@ void AssignmentPropogationDataFlow::finish()
 }
 
 //LiveVariableDataFlow
-//strip array indicies
-#define filterVarName(dat) dat.substr(0, dat.find('['))
 
 #define insertAndCheckUpwardExposed(inserting) \
     if (!isdigit(inserting[0]) && inserting[0] != '"')\
@@ -132,39 +130,48 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
             switch (instr->getType())
             {
                 //commands that just stop some variable being live
-                case CommandType::CHANGEVAR:
                 case CommandType::DECLAREVAR:
+                    DeclareCommand* dc = static_cast<DeclareCommand*>(instr.get());
+                    killSet.insert(dc->getBaseName());
+                    break;
+                case CommandType::INPUTVAR:
                 case CommandType::POP:
-                    killSet.insert(filterVarName(instr->getData()));
+                    killSet.insert(instr->getVarSetter()->getBaseName());
                     break;
                 //simple commands that just read some variable
                 case CommandType::PUSH:
                 {
+                    const Atom& at = instr->getAtom();
+                    if (at.type == StringType::ID) killSet.insert(at.vptr->getBaseName());
+                    break;
                     PushCommand* pvc = static_cast<PushCommand*>(instr.get());
-                    string data = filterVarName(pvc->getData());
+                    string data = pvc->getData();
                     if (!pvc->pushesState()
-                        && AbstractCommand::getStringType(pvc->getData()) == AbstractCommand::StringType::ID)
+                        && AbstractCommand::getStringType(pvc->getData()) == StringType::ID)
                     {
                         insertAndCheckUpwardExposed(data);
                     }
                     break;
                 }
                 case CommandType::PRINT:
-                    insertAndCheckUpwardExposed(filterVarName(instr->getData()));
+                    insertAndCheckUpwardExposed(instr->getData());
                     break;
                 case CommandType::ASSIGNVAR:
                 {
                     auto avc = static_cast<AssignVarCommand*>(instr.get());
-                    killSet.insert(filterVarName(avc->getData()));
-                    insertAndCheckUpwardExposed(avc->RHS);
+                    killSet.insert(avc->lhs->getBaseName());
+                    if (avc->rhs.type == StringType::ID)
+                    {
+                        insertAndCheckUpwardExposed(avc->rhs.vptr->getBaseName());
+                    }
                     break;
                 }
                 case CommandType::EXPR:
                 {
                     EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(instr.get());
-                    killSet.insert(filterVarName(eec->lhs->getBaseName()));
-                    insertAndCheckUpwardExposed(filterVarName(eec->term1.vg->getBaseName()));
-                    insertAndCheckUpwardExposed(filterVarName(eec->term2.vg->getBaseName()));
+                    killSet.insert(eec->lhs->getBaseName()));
+                    if (!eec->term1.isLit) insertAndCheckUpwardExposed(eec->term1.vg->getBaseName());
+                    if (!eec->term2.isLit) insertAndCheckUpwardExposed(eec->term2.vg->getBaseName());
                 }
             }
         }
@@ -172,13 +179,13 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
         JumpOnComparisonCommand* jocc = node->getComp();
         if (jocc != nullptr)
         {
-            if (jocc->term1.type == AbstractCommand::StringType::ID)
+            if (jocc->term1.type == StringType::ID)
             {
-                insertAndCheckUpwardExposed(filterVarName(jocc->term1.vptr->getBaseName()));
+                insertAndCheckUpwardExposed(jocc->term1.vptr->getBaseName());
             }
-            if (jocc->term2.type == AbstractCommand::StringType::ID)
+            if (jocc->term2.type == StringType::ID)
             {
-                insertAndCheckUpwardExposed(filterVarName(jocc->term2.vptr->getBaseName()));
+                insertAndCheckUpwardExposed(jocc->term2.vptr->getBaseName());
             }
         }
 

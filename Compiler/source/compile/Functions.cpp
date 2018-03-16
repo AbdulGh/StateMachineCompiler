@@ -3,7 +3,7 @@
 
 #include "Functions.h"
 #include "../CFGOpt/CFG.h"
-#include "../symbolic/SymbolicVarWrappers.h"
+#include "VarWrappers.h"
 
 using namespace std;
 
@@ -464,10 +464,17 @@ void FunctionSymbol::addCommand(unique_ptr<AbstractCommand> ac)
     currentInstrs.push_back(move(ac));
 }
 
-void FunctionSymbol::genAssignment(string LHS, string RHS, int linenum)
+void FunctionSymbol::genAssignment(unique_ptr<VarSetter> LHS, string RHS, int linenum)
 {
     if (endedState) throw "No state to add to";
-    currentInstrs.push_back(make_unique<AssignVarCommand>(LHS, RHS, linenum));
+    else if(StringType(RHS) == StringType::ID) throw "use other constructor";
+    currentInstrs.push_back(make_unique<AssignVarCommand>(move(LHS), move(RHS), linenum));
+}
+
+void FunctionSymbol::genAssignment(std::unique_ptr<VarSetter> LHS, std::unique_ptr<VarGetter> RHS, int linenum)
+{
+    if (endedState) throw "No state to add to";
+    currentInstrs.push_back(make_unique<AssignVarCommand>(move(LHS), move(RHS), linenum));
 }
 
 void FunctionSymbol::addCommands(vector<unique_ptr<AbstractCommand>>& acs)
