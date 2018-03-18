@@ -10,7 +10,6 @@
 
 #include "SymbolicVariables.h"
 
-//todo add name
 //todo indeterminate size
 class SymbolicArray
 {
@@ -189,7 +188,7 @@ public:
         set(n, &sd); //todo this gets built and immediately cloned
     }
 
-    bool set(unsigned int n, SymbolicDouble* sdr)
+    bool set(unsigned int n, SymbolicDouble* sdr) //todo check if we need to clone sdr
     {
         std::unique_ptr<SymbolicDouble> sd = sdr->cloneSD();
         if (n >= size)
@@ -286,6 +285,20 @@ public:
             }
         }
         throw "shouldn't get here";
+    }
+
+    void nondet(unsigned int i)
+    {
+        SymbolicDouble undet(undet);
+        undet.userInput();
+        set(i, &undet);
+    }
+
+    void nondet(SymbolicDouble* index)
+    {
+        SymbolicDouble undet(undet);
+        undet.userInput();
+        set(index, &undet);
     }
 };
 

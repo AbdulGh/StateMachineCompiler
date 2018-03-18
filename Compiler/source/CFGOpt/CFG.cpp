@@ -192,17 +192,17 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
 
             unique_ptr<AbstractCommand>& lastInstr = instructions.back();
             if (lastInstr->getType() == CommandType::JUMP
-                && lastInstr->getData() != "return"
-                && lastInstr->getData() != name)
+                && lastInstr->getState() != "return"
+                && lastInstr->getState() != name)
             {
-                unique_ptr<SourceNode>& swallowing = outputMap[lastInstr->getData()];
+                unique_ptr<SourceNode>& swallowing = outputMap[lastInstr->getState()];
                 if (swallowing == nullptr) throw "cant find jumped to node";
                 else if (swallowing->predecessors.size() > 1) return false; //todo improve this by detecting cycles
 
                 vector<unique_ptr<AbstractCommand>>& swallowingInstrs = swallowing->instructions;
                 if (swallowingInstrs.empty()) throw "this shouldn't be";
                 else if(swallowingInstrs.back()->getType() == CommandType::JUMP
-                        && swallowingInstrs.back()->getData() == name) return false;
+                        && swallowingInstrs.back()->getState() == name) return false;
 
                 instructions.pop_back();
 
@@ -268,18 +268,18 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
                         for (unsigned int parentInstIndex = 0; parentInstIndex < parentInstructions.size(); ++parentInstIndex)
                         {
                             unique_ptr<AbstractCommand>& instr = parentInstructions.at(parentInstIndex);
-                            if (instr->getData() == sn->name)
+                            if (instr->getState() == sn->name)
                             {
-                                if (onlyInstr->getData() == "return")
+                                if (onlyInstr->getState() == "return")
                                 {
                                     parentInstructions[parentInstIndex] = make_unique<ReturnCommand>(instr->getLineNum());
                                 }
-                                else instr->setData(onlyInstr->getData());
+                                else instr->setState(onlyInstr->getState());
                                 found = true;
                             }
                         }
-                        if (!found && (onlyInstr->getData() != "return" || parentInstructions.empty()
-                                       || (*parentInstructions.rend())->getData() != "return"))
+                        if (!found && (onlyInstr->getState() != "return" || parentInstructions.empty()
+                                       || (*parentInstructions.rend())->getState() != "return"))
                         {
                             throw "bad parent";
                         }

@@ -4,6 +4,7 @@
 
 using namespace std;
 
+//todo convert thrown strings to runtime_errors
 int main()
 {
     Lexer lexer;

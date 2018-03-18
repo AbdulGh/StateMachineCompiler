@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "SymbolicVariables.h"
+#include "../compile/VarWrappers.h"
 
 enum class SymbolicStackMemberType {STATE, VAR};
 
@@ -42,6 +43,13 @@ public:
     {
         varptr = toPush->clone();
         setType(SymbolicStackMemberType::VAR);
+    }
+
+    explicit SymVarStackMember(GottenVarPtr<SymbolicVariable> toPush)
+    {
+        setType(SymbolicStackMemberType::VAR);
+        if (toPush.constructed()) varptr = move(toPush.up);
+        else varptr = toPush->clone();
     }
 
     explicit SymVarStackMember(double toPush, Reporter& r)
@@ -165,6 +173,7 @@ public:
     void setLoopInit();
     //void push(std::unique_ptr<SymbolicVariable> pushedVar);
     void pushVar(SymbolicVariable* pushedVar);
+    void pushVar(GottenVarPtr<SymbolicVariable> pushedVar);
     void pushState(const std::string& pushedState);
     void pushString(std::string toPush);
     void pushDouble(double toPush);

@@ -7,7 +7,7 @@
 
 using namespace std;
 
-std::unique_ptr<VarGetter> parseAccess(const std::string& toParse, StringType* st = nullptr)
+unique_ptr<VarGetter> parseAccess(const string& toParse, StringType* st = nullptr)
 {
     if (toParse.empty()) throw "Can't parse an empty string";
     if (toParse[0] == '\"')
@@ -17,68 +17,102 @@ std::unique_ptr<VarGetter> parseAccess(const std::string& toParse, StringType* s
     }
     else try
     {
-        std::stod(toParse);
+        stod(toParse);
         if (st) *st = StringType::DOUBLELIT;
         return nullptr;
     }
-    catch (std::invalid_argument&) //id or array access
+    catch (invalid_argument&) //id or array access
     {
         if (st) *st = StringType::ID;
-        size_t first = toParse.find("[");
-        if (first == -1) return std::make_unique<GetSVByName>(toParse);
-        std::string index = toParse.substr(first + 1, toParse.size() - first - 2);
+        size_t first = toParse.find('[');
+        if (first == -1) return make_unique<GetSVByName>(toParse);
+        string index = toParse.substr(first + 1, toParse.size() - first - 2);
         try
         {
             double dAttempt = stod(index);
-            return std::make_unique<GetSDByArrayIndex>(toParse.substr(0, first), dAttempt);
+            return make_unique<GetSDByArrayIndex>(toParse.substr(0, first), dAttempt);
         }
-        catch (std::invalid_argument&)
+        catch (invalid_argument&)
         {
-            std::unique_ptr<VarGetter> indexWrapper = parseAccess(index);
+            unique_ptr<VarGetter> indexWrapper = parseAccess(index);
             if (!indexWrapper) throw "went wrong";
-            return std::make_unique<GetSDByIndexVar>(toParse.substr(0, first), move(indexWrapper));
+            return make_unique<GetSDByIndexVar>(toParse.substr(0, first), move(indexWrapper));
         }
     }
 }
 
-Atom::Atom(const string& s)
+//VarSetting superclass
+
+VarSettingCommand::VarSettingCommand(std::unique_ptr<VarSetter> varSetter, int linenum):
+        AbstractCommand(linenum), vs(std::move(varSetter)) {}
+
+void VarSettingCommand::setVarSetter(std::unique_ptr<VarSetter> nvs) {vs = move(nvs);}
+
+Atom::Atom(const string& s): holding(false) //todo next check use of this constructor (& string set below), avoid redundant st testing
 {
-    set(s);
+    type = getStringType(s);
+    if (type == StringType::ID) throw runtime_error("bad");
+    sptr = new string(s);
 }
 
-Atom::Atom(unique_ptr<VarGetter> vg)
+Atom::Atom(unique_ptr<VarGetter> vg): holding(true)
 {
-    set(move(vg));
+    type = StringType::ID;
+    vptr = vg.release();
 }
 
 Atom::~Atom()
 {
-    if (type == StringType::ID) delete vptr;
+    if (holding) delete vptr;
     else delete sptr;
 }
 
 Atom::Atom(const Atom& o): type(o.type)
 {
-    if (type == StringType::ID) vptr = o.vptr->clone().release();
-    else sptr = new string(*o.sptr);
+    if (o.holding)
+    {
+        vptr = o.vptr->clone().release();
+        holding = true;
+    }
+    else
+    {
+        sptr = new string(*o.sptr);
+        holding = false;
+    }
 }
 
 void Atom::set(const string& s)
 {
-    if (type == StringType::ID) delete vptr;
+    if (holding) delete vptr;
     else delete sptr;
-    type = AbstractCommand::getStringType(s);
-    if (type == StringType::ID) throw "ow!";
+    type = getStringType(s);
+    if (type == StringType::ID) throw runtime_error("bad");
     sptr = new string(s);
+    holding = false;
 }
 
 void Atom::set(unique_ptr<VarGetter> vg)
 {
-    if (type == StringType::ID) delete vptr;
+    if (holding) delete vptr;
     else delete sptr;
     type = StringType::ID;
     vptr = vg.release();
+    holding = true;
 }
+
+bool Atom::isHolding() {return holding;}
+
+const std::string* Atom::getString()
+{
+    return sptr;
+}
+
+const VarGetter* Atom::getVarGetter()
+{
+    return vptr;
+}
+
+StringType Atom::getType() {return type;}
 
 Atom::operator std::string() const
 {
@@ -89,51 +123,24 @@ Atom::operator std::string() const
 //JumpOnComparisonCommand
 JumpOnComparisonCommand::JumpOnComparisonCommand(const string& st, unique_ptr<VarGetter> t1,
                                                  unique_ptr<VarGetter> t2, Relations::Relop o, int linenum)
-    :AbstractCommand(linenum), term1(move(t1)), term2(move(t2))
+    :StateHoldingCommand(st, linenum), term1(move(t1)), term2(move(t2))
 {
-    setState(st);
     op = o;
     setType(CommandType::CONDJUMP);
 }
 
 JumpOnComparisonCommand::JumpOnComparisonCommand(const string& st, unique_ptr<VarGetter> t1,
                                                  const string& t2, Relations::Relop o, int linenum)
-    :AbstractCommand(linenum), term1(move(t1)), term2(t2)
+    :StateHoldingCommand(st, linenum), term1(move(t1)), term2(t2)
 {
-    setState(st);
     op = o;
     setType(CommandType::CONDJUMP);
 }
 
 JumpOnComparisonCommand::JumpOnComparisonCommand(const JumpOnComparisonCommand& jocc)
-        :AbstractCommand(jocc.getLineNum()), term1(jocc.term1), term2(jocc.term2)
+    :StateHoldingCommand(jocc.getState(), jocc.getLineNum()), term1(jocc.term1), term2(jocc.term2)
 {
-    setState(jocc.getState());
-
-    if (jocc.term1.type == StringType::ID)
-    {
-        term1.type = StringType::ID;
-        term1.vptr = jocc.term1.vptr->clone().release(); //probably will be optimised?
-    }
-    else
-    {
-        term1.type = jocc.term1.type;
-        term1.sptr = new string(*jocc.term1.sptr);
-    }
-
-    if (jocc.term2.type == StringType::ID)
-    {
-        term2.type = StringType::ID;
-        term2.vptr = jocc.term2.vptr->clone().release();
-    }
-    else
-    {
-        term2.type = jocc.term2.type;
-        term2.sptr = new string(*jocc.term2.sptr);
-    }
-
     op = jocc.op;
-
     setType(CommandType::CONDJUMP);
 }
 
@@ -163,12 +170,12 @@ string JumpOnComparisonCommand::t2str() const
 }*/
 
 //EvaluateExpressionCommand
-EvaluateExprCommand::Term::Term(const std::string& toParse) : vg{}
+EvaluateExprCommand::Term::Term(const string& toParse) : vg{}
 {
     parse(toParse);
 }
 
-void EvaluateExprCommand::Term::parse(const std::string& toParse)
+void EvaluateExprCommand::Term::parse(const string& toParse)
 {
     StringType st;
     auto up = parseAccess(toParse, &st);
@@ -217,21 +224,21 @@ bool EvaluateExprCommand::Term::operator==(Term& o)
 
 EvaluateExprCommand::Term::~Term() {if (!isLit) vg.reset();}
 
-std::string EvaluateExprCommand::Term::str() const
+string EvaluateExprCommand::Term::str() const
 {
     if (isLit) return to_string(d);
     else return vg->getFullName();
 }
 
-EvaluateExprCommand::EvaluateExprCommand(std::unique_ptr<VarSetter> lh, Term t1,
+EvaluateExprCommand::EvaluateExprCommand(unique_ptr<VarSetter> lh, Term t1,
                                          ArithOp o, Term t2, int linenum):
-        AbstractCommand(linenum), lhs(move(lh)), op{o}, term1{move(t1)}, term2{move(t2)} //todo br
+        VarSettingCommand(move(lh), linenum), VarSettingCommand::vs(move(lh)), op{o}, term1{move(t1)}, term2{move(t2)} //todo brackets vs paren
 {
     setType(CommandType::EXPR);
 }
 
 EvaluateExprCommand::EvaluateExprCommand(const EvaluateExprCommand& o):
-    lhs(o.lhs->clone()), term1(o.term1), term2(o.term2), op(o.op) {}
+        VarSettingCommand(o.vs->clone(), o.getLineNum()), term1(o.term1), term2(o.term2), op(o.op) {}
 
 EvaluateExprCommand::~EvaluateExprCommand()
 {
@@ -239,68 +246,85 @@ EvaluateExprCommand::~EvaluateExprCommand()
     term2.~Term();
 }
 
-std::unique_ptr<AbstractCommand> EvaluateExprCommand::clone()
+unique_ptr<AbstractCommand> EvaluateExprCommand::clone()
 {
-    return std::make_unique<EvaluateExprCommand>(*this);
+    return make_unique<EvaluateExprCommand>(*this);
 }
 
-std::string EvaluateExprCommand::translation(const std::string& delim) const
+string EvaluateExprCommand::translation(const string& delim) const
 {
-    return lhs->getFullName() + " = " + term1.str() + ' ' + opEnumChars[op]  + ' ' + term2.str() + ";" + delim;
+    return vs->getFullName() + " = " + term1.str() + ' ' + opEnumChars[op]  + ' ' + term2.str() + ";" + delim;
 }
 
 //InputVarCommand
-InputVarCommand::InputVarCommand(std::unique_ptr<VarSetter> into, int linenum) : AbstractCommand(linenum), vs(move(into))
+InputVarCommand::InputVarCommand(unique_ptr<VarSetter> into, int linenum) : VarSettingCommand(move(into), linenum)
 {
     setType(CommandType::INPUTVAR);
 }
 
-std::string InputVarCommand::translation(const std::string& delim) const
+string InputVarCommand::translation(const string& delim) const
 {
     return "input " + vs->getFullName() + ";" + delim;
 };
 
-std::unique_ptr<AbstractCommand> InputVarCommand::clone()
+unique_ptr<AbstractCommand> InputVarCommand::clone()
 {
-    return std::make_unique<InputVarCommand>(vs->clone(), getLineNum());
+    return make_unique<InputVarCommand>(vs->clone(), getLineNum());
 }
 
 //AssignVarCommand
-AssignVarCommand::AssignVarCommand(std::unique_ptr<VarSetter> lh, std::unique_ptr<VarGetter> rh, int linenum):
-        AbstractCommand(linenum), rhs(move(rh)), lhs(move(lh))
+AssignVarCommand::AssignVarCommand(unique_ptr<VarSetter> lh, unique_ptr<VarGetter> rh, int linenum):
+        AbstractCommand(linenum), vs(move(lh)), atom(move(rh))
 {
     setType(CommandType::ASSIGNVAR);
 }
 
-AssignVarCommand::AssignVarCommand(std::unique_ptr<VarSetter> lh, const std::string& rh, int linenum):
-    AbstractCommand(linenum), rhs(rh), lhs(move(lh))
+AssignVarCommand::AssignVarCommand(unique_ptr<VarSetter> lh, const string& rh, int linenum):
+        AbstractCommand(linenum), vs(move(lh)), atom(move(rh))
 {
     setType(CommandType::ASSIGNVAR);
 }
 
-std::string AssignVarCommand::translation(const std::string& delim) const
+AssignVarCommand::AssignVarCommand(unique_ptr<VarSetter> lh, const Atom& rh, int linenum):
+        AbstractCommand(linenum), vs(move(lh)), atom(move(rh))
 {
-    return lhs->getFullName() + " = " + string(rhs) + ";" + delim;
+    setType(CommandType::ASSIGNVAR);
+}
+
+void AssignVarCommand::setVarSetter(std::unique_ptr<VarSetter> sv)
+{
+    vs = move(sv);
+}
+
+string AssignVarCommand::translation(const string& delim) const
+{
+    return vs->getFullName() + " = " + string(atom) + ";" + delim;
 }
 
 unique_ptr<AbstractCommand> AssignVarCommand::clone()
 {
-    return std::make_unique<AssignVarCommand>(lhs->clone(), rhs, getLineNum());
+    return make_unique<AssignVarCommand>(vs->clone(), atom, getLineNum());
 }
 
 //PopCommand
-PopCommand::PopCommand(std::unique_ptr<VarSetter> into, int linenum): AbstractCommand(linenum), vs(move(into))
+PopCommand::PopCommand(unique_ptr<VarSetter> into, int linenum): VarSettingCommand(move(into), linenum)
 {
     setType(CommandType::POP);
 }
 
-std::string PopCommand::translation(const std::string& delim) const
+void PopCommand::clear()
+{
+    vs.reset();
+    vs = nullptr;
+}
+
+string PopCommand::translation(const string& delim) const
 {
     return isEmpty() ? "pop;" + delim : "pop " + vs->getFullName() + ";" + delim;
 }
 
-std::unique_ptr<AbstractCommand> PopCommand::clone()
+unique_ptr<AbstractCommand> PopCommand::clone()
 {
-    return std::make_unique<PopCommand>(vs->clone(), getLineNum());
+    return make_unique<PopCommand>(vs->clone(), getLineNum());
 }
 

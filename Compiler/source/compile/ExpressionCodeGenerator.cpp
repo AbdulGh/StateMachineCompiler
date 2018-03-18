@@ -7,16 +7,16 @@
 
 using namespace std;
 
-ExpressionCodeGenerator::ExpressionCodeGenerator(Compiler &p, const string& asignee):
+ExpressionCodeGenerator::ExpressionCodeGenerator(Compiler &p, std::unique_ptr<VarSetter> asignee):
         parent(p),
         currentUnique(0),
-        goingto(asignee){}
+        goingto(move(asignee)){}
 
 void ExpressionCodeGenerator::compileExpression(FunctionSymbol *fs)
 {
     AbstractExprNode* tree = expression(fs);
     double df;
-    if (translateTree(tree, fs,  0, df)) fs->genAssignment(goingto, to_string(df), parent.lookahead.line);
+    if (translateTree(tree, fs,  0, df)) fs->genAssignment(move(goingto), to_string(df), parent.lookahead.line);
     delete tree;
 }
 
@@ -89,7 +89,7 @@ AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
     if (parent.lookahead.type == IDENT)
     {
         unique_ptr<VarGetter> vg = parent.identGetter();
-        return withNeg(new AtomNode(vg->getUniqueID(parent.symbolTable), false));
+        return withNeg(new AtomNode(vg->getFullName(), false));
     }
     else if (parent.lookahead.type == NUMBER)
     {
@@ -108,40 +108,41 @@ AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
     else if (parent.lookahead.type == CALL)
     {
         parent.genFunctionCall(fs, DOUBLE);
-        string uni = genUnique(fs);
-        fs->genAssignment(uni, "retD", parent.lookahead.line);
-        return withNeg(new AtomNode(uni, false));
+        unique_ptr<VarSetter> uni = genUnique(fs);
+        std::string name = uni->getFullName();
+        fs->genAssignment(move(uni), "retD", parent.lookahead.line);
+        return withNeg(new AtomNode(name, false));
     }
     else parent.error("Expected identifier or double in expression");
 }
 
-unsigned int ExpressionCodeGenerator::nextTemp = 0;
-string ExpressionCodeGenerator::genTemp(FunctionSymbol* fs, unsigned int i)
+unsigned int ExpressionCodeGenerator::nextTemp = 0; //todo quick make next two return SetSVByName
+std::unique_ptr<VarSetter> ExpressionCodeGenerator::genTemp(FunctionSymbol* fs, unsigned int i)
 {
-    if (i == 0) return goingto;
+    if (i == 0) return goingto->clone();
     i -= 1;
     if (i == nextTemp)
     {
         string s = "temp" + to_string(nextTemp++);
         fs->genVariableDecl(DOUBLE, s, parent.lookahead.line);
-        return s;
+        return make_unique<SetSVByName>(s);
     }
     if (i > nextTemp) throw "Something went wrong somehow";
-    return "temp" + to_string(i);
+    return make_unique<SetSVByName>("temp" + to_string(i));
 }
 
 unsigned int ExpressionCodeGenerator::nextUnique = 0;
-string ExpressionCodeGenerator::genUnique(FunctionSymbol* fs)
+std::unique_ptr<VarSetter> ExpressionCodeGenerator::genUnique(FunctionSymbol* fs)
 {
     if (currentUnique == nextUnique)
     {
         string s = "unique" + to_string(nextUnique++);
         ++currentUnique;
         fs->genVariableDecl(DOUBLE, s, parent.lookahead.line);
-        return s;
+        return make_unique<SetSVByName>(s);
     }
     else if (currentUnique > nextUnique) throw "Something went wrong somehow";
-    return "unique" + to_string(currentUnique++);
+    return make_unique<SetSVByName>("unique" + to_string(currentUnique++));
 }
 
 bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol* fs, unsigned int reg, double& ret)
@@ -174,11 +175,11 @@ bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol*
     {
         if (leftp->isAtom()) left = leftp->getData();
         else if (leftlit = translateTree(leftp, fs, reg, dl)) left = to_string(dl);
-        else left = genTemp(fs, reg);
+        else left = genTemp(fs, reg)->getFullName(); //todo varsetter -> term
         
         if (rightp->isAtom()) right = rightp->getData();
         else if (rightlit = translateTree(rightp, fs, reg + 1, dr)) right = to_string(dr);
-        else right = genTemp(fs, reg + 1);
+        else right = genTemp(fs, reg + 1)->getFullName();
     }
 
     if (leftlit && rightlit)
@@ -188,11 +189,10 @@ bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol*
     }
     else
     {
-        unique_ptr<SetSVByName> lval = make_unique<SetSVByName>(genTemp(fs, reg));
         auto debug1 = EvaluateExprCommand::Term(left);
         auto debug2 = EvaluateExprCommand::Term(right);
         auto debug3 = p;
-        fs->genExpr(move(lval), debug1, p->getOp(), debug2, parent.lookahead.line);
+        fs->genExpr(genTemp(fs, reg), debug1, p->getOp(), debug2, parent.lookahead.line);
         return false;
     }
 }

@@ -2,7 +2,7 @@
 #include "VarWrappers.h"
 
 using namespace std;
-VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType, string uid) //todo remember why this returns a vtype
+VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType, unique_ptr<VarSetter> uid) //todo remember why this returns a vtype
 {
     match(Type::CALL);
     string fid = identPlain();
@@ -15,8 +15,8 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expe
     }
 
     //push all vars
-    const set<string>& fromVars = fromFS->getVars(); //sets are ordered
-    for (const string& s : fromVars) fromFS->genPush(s, lookahead.line);
+    const set<VarSetter*>& fromVars = fromFS->getVars(); //sets are ordered
+    for (auto& s : fromVars) fromFS->genPush(s->getFullName(), lookahead.line);
 
     string nextState = fromFS->newStateName();
     fromFS->genPush(nextState, lookahead.line, toFS);
@@ -46,7 +46,7 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expe
                 unique_ptr<VarGetter> vg = identGetter();
                 Identifier* idp = findVariable(vg.get());
                 paramTypes.push_back(idp->getType());
-                fromFS->genPush(vg->getUniqueID(symbolTable), lookahead.line);
+                fromFS->genPush(vg->getFullName(), lookahead.line);
             }
             if (lookahead.type == Type::COMMA)
             {
@@ -75,18 +75,18 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expe
     //pop all vars back
     for (auto rit = fromVars.rbegin(); rit != fromVars.rend(); ++rit)
     {
-        fromFS->genPop(*rit, lookahead.line);
+        fromFS->genPop((*rit)->clone(), lookahead.line);
     }
 
-    if (!uid.empty())
+    if (uid)
     {
         switch (toFS->getReturnType())
         {
             case DOUBLE:
-                fromFS->genAssignment(uid, "retD", lookahead.line);
+                fromFS->genAssignment(move(uid), Atom("retD"), lookahead.line);
                 break;
             case STRING:
-                fromFS->genAssignment(uid, "retS", lookahead.line);
+                fromFS->genAssignment(move(uid), Atom("retS"), lookahead.line);
                 break;
             default:
                 throw runtime_error("Unaccounted for variable type");
@@ -235,9 +235,9 @@ void Compiler::ands(FunctionSymbol* fs, string success, string fail)
 
 void Compiler::condition(FunctionSymbol* fs, string success, string fail)
 {
-    expression(fs, "LHS");
+    expression(fs, make_unique<SetSVByName>("LHS"));
     Relations::Relop r = relop();
-    expression(fs, "rhs");
+    expression(fs, make_unique<SetSVByName>("rhs"));
 
     fs->genConditionalJump(move(success), make_unique<GetSVByName>("LHS"), r, make_unique<GetSVByName>("LHS"), lookahead.line);
     fs->genJump(move(fail), lookahead.line);

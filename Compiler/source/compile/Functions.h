@@ -21,26 +21,14 @@ private:
     {
     private:
         std::unique_ptr<FunctionVars> parent;
-        std::set<std::string> vars;
+        std::set<VarSetter*> vars;
 
     public:
-        explicit FunctionVars(std::unique_ptr<FunctionVars> p = nullptr): parent(move(p)) {}
-        std::set<std::string> getVarSet()
-        {
-            if (parent == nullptr) return vars;
-            else
-            {
-                std::set<std::string> pvars = parent->getVarSet();
-                pvars.insert(vars.begin(), vars.end());
-                return pvars;
-            }
-        }
-        std::unique_ptr<FunctionVars> moveScope()
-        {
-            if (parent == nullptr) throw "moved bottom scope";
-            return move(parent);
-        }
-        void addVarName(const std::string& varN) {vars.insert(varN);}
+        explicit FunctionVars(std::unique_ptr<FunctionVars> p = nullptr);
+        ~FunctionVars();
+        const std::set<VarSetter*> getVarSet();
+        std::unique_ptr<FunctionVars> moveScope();
+        void addVar(VarSetter* varN);
     };
 
     VariableType returnType;
@@ -70,8 +58,8 @@ public:
     CFGNode* getFirstNode();
     void setFirstNode(CFGNode* firstNode);
     CFGNode* getCurrentNode() const;
-    const std::set<std::string> getVars();
-    void addVar(const std::string& id);
+    const std::set<VarSetter*> getVars();
+    void addVar(VarSetter* id);
     unsigned int numParams();
     unsigned int numCalls();
 
@@ -91,16 +79,15 @@ public:
     std::vector<CFGNode*> getNodesReturnedTo();
     FunctionCall* getOnlyFunctionCall();
 
-    //codegen (todo next convert al to use vargetter/setter
+    //codegen (todo next convert all to use vargetter/setter)
     void genNewState(std::string);
     void genEndState();
-    void genPrint(std::string, int linenum);
-    void genIndirectPrint(std::unique_ptr<VarGetter> sdg, int linenum);
+    void genPrint(Atom a, int linenum);
     void genJump(std::string, int linenum);
     void genConditionalJump(std::string state, std::unique_ptr<VarGetter> lh,
                             Relations::Relop r, std::unique_ptr<VarGetter> rh, int linenum);
-    void genPush(std::string, int, FunctionSymbol* calledFuntion = nullptr);
-    void genPop(std::string, int linenum);
+    void genPush(std::string toPush, int, FunctionSymbol* calledFuntion = nullptr);
+    void genPop(std::unique_ptr<VarSetter> vs, int linenum);
     void genReturn(int linenum);
     void genInput(std::unique_ptr<VarSetter>, int linenum);
     void genExpr(std::unique_ptr<VarSetter> lh, EvaluateExprCommand::Term t1, ArithOp o, EvaluateExprCommand::Term t2, int linenum);

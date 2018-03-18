@@ -47,6 +47,11 @@ void SymbolicStack::pushVar(SymbolicVariable* pushedVar)
     currentStack.emplace_back(make_unique<SymVarStackMember>(pushedVar));
 }
 
+void SymbolicStack::pushVar(GottenVarPtr<SymbolicVariable> pushedVar)
+{
+    currentStack.emplace_back(make_unique<SymVarStackMember>(move(pushedVar)));
+}
+
 void SymbolicStack::pushDouble(double toPush)
 {
     currentStack.emplace_back(make_unique<SymVarStackMember>(toPush, reporter));

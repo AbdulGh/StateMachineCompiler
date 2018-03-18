@@ -32,14 +32,14 @@ void Compiler::body()
             VariableType t = vtype();
             unsigned int line = lookahead.line;
             AccessType atcheck;
-            unique_ptr<VarGetter> s = identGetter(&atcheck);
+            unique_ptr<VarSetter> s = identSetter(&atcheck);
             if (atcheck != AccessType::DIRECT) error("'" + s->getFullName() + "' is not a valid function parameter");
             Identifier* vid = symbolTable.declare(t, s->getFullName(), line);
             vid->setDefined();
             const string& vidName = vid->getUniqueID();
-            argumentStack.push(make_unique<PopCommand>(vidName, lookahead.line));
+            argumentStack.push(make_unique<PopCommand>(move(s), lookahead.line));
             argumentStack.push(make_unique<DeclareVarCommand>(t, vidName, lookahead.line));
-            fs->addVar(vidName);
+            fs->addVar(s->clone().release());
             if (lookahead.type == COMMA)
             {
                 match(COMMA);
@@ -90,15 +90,15 @@ bool Compiler::statement(FunctionSymbol* fs)
         {
             if (lookahead.type == STRINGLIT)
             {
-                fs->genPrint(quoteString(lookahead.lexemeString), lookahead.line);
+                fs->genPrint(Atom(quoteString(lookahead.lexemeString)), lookahead.line);
                 match(STRINGLIT);
             }
             else if (lookahead.type == NUMBER)
             {
-                fs->genPrint(lookahead.lexemeString, lookahead.line);
+                fs->genPrint(Atom(lookahead.lexemeString), lookahead.line);
                 match(NUMBER);
             }
-            else fs->genIndirectPrint(identGetter(),  lookahead.line);
+            else fs->genPrint(Atom(identGetter()),  lookahead.line);
 
             if (lookahead.type == COMMA)
             {
@@ -161,17 +161,23 @@ bool Compiler::statement(FunctionSymbol* fs)
 
             if (lookahead.type == ASSIGN)
             {
+                if (t == ARRAY) error("Cannot assign into entire array");
                 match(ASSIGN);
+                unique_ptr<VarSetter> vs = make_unique<SetSVByName>(idPtr->getUniqueID());
+
                 if (t == VariableType::STRING)
                 {
-                    if (lookahead.type == CALL) genFunctionCall(fs, STRING, idPtr->getUniqueID());
+                    if (lookahead.type == CALL)
+                    {
+                        genFunctionCall(fs, STRING, move(vs));
+                    }
                     else
                     {
-                        fs->genAssignment(idPtr->getUniqueID(), quoteString(lookahead.lexemeString), lookahead.line);
+                        fs->genAssignment(move(vs), quoteString(lookahead.lexemeString), lookahead.line);
                         match(STRINGLIT);
                     }
                 }
-                else expression(fs, idPtr->getUniqueID());
+                else expression(fs, move(vs));
                 idPtr->setDefined();
             }
         }
@@ -191,13 +197,13 @@ bool Compiler::statement(FunctionSymbol* fs)
         {
             if (lookahead.type == STRINGLIT)
             {
-                fs->genAssignment(setter->getUniqueID(symbolTable), quoteString(lookahead.lexemeString), lookahead.line);
+                fs->genAssignment(move(setter), quoteString(lookahead.lexemeString), lookahead.line);
                 match(STRINGLIT);
             }
-            else if (lookahead.type == CALL) genFunctionCall(fs, idPtr->getType(), setter->getUniqueID(symbolTable));
+            else if (lookahead.type == CALL) genFunctionCall(fs, idPtr->getType(), move(setter));
             else error("Malformed assignment to string");
         }
-        else expression(fs, setter->getUniqueID(symbolTable));
+        else expression(fs, move(setter));
         idPtr->setDefined();
         match(SEMIC);
     }
@@ -217,10 +223,10 @@ bool Compiler::statement(FunctionSymbol* fs)
             if (lookahead.type == STRINGLIT)
             {
                 if (fs->getReturnType() != STRING) error("Cannot return string in function of type " + fs->getReturnType());
-                fs->genAssignment("retS", quoteString(lookahead.lexemeString), lookahead.line);
+                fs->genAssignment(make_unique<SetSVByName>("retS"), quoteString(lookahead.lexemeString), lookahead.line);
                 match(STRINGLIT);
             }
-            else ExpressionCodeGenerator(*this, "retD").compileExpression(fs);
+            else ExpressionCodeGenerator(*this, make_unique<SetSVByName>("retD")).compileExpression(fs);
         }
         else if (fs->getReturnType() != VOID) error("Void function '" + fs->getIdent() + "' returns some value");
         match(SEMIC);
@@ -237,9 +243,9 @@ Relations::Relop Compiler::relop()
     return r;
 }
 
-void Compiler::expression(FunctionSymbol* fs, const std::string& to)
+void Compiler::expression(FunctionSymbol* fs, unique_ptr<VarSetter> to)
 {
-    ExpressionCodeGenerator gen(*this, to);
+    ExpressionCodeGenerator gen(*this, move(to));
     gen.compileExpression(fs);
 }
 

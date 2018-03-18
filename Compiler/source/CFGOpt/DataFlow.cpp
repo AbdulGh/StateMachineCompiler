@@ -30,11 +30,11 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
         {
             switch (instr->getType())
             {
-                case CommandType::CHANGEVAR:
+                case CommandType::INPUTVAR:
                 case CommandType::EXPR:
                 case CommandType::POP:
                 {
-                    const std::string& data = instr->getData();
+                    const std::string& data = instr->getVarSetter()->getBaseName();
                     auto it = find_if(genSet.begin(), genSet.end(),
                                       [&, data](const Assignment& ass)
                                       { return ass.lhs == data; });
@@ -44,20 +44,21 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
                 }
                 case CommandType::ASSIGNVAR:
                 {
-                    auto avc = static_cast<AssignVarCommand*>(instr.get());
-                    const string& lhs = avc->getData();
+                    const string& lhs = instr->getVarSetter()->getFullName();
                     auto it = find_if(genSet.begin(), genSet.end(),
                                       [&, lhs](const Assignment& ass)
                                       { return ass.lhs == lhs; });
                     if (it != genSet.end()) genSet.erase(it);
-                    genSet.insert(Assignment(lhs, avc->rhs));
+                    genSet.insert(Assignment(lhs, string(instr->getAtom())));
                     killSet.erase(lhs);
                     break;
                 }
                 case CommandType::DECLAREVAR:
                 {
-                    DeclareVarCommand* dvc = static_cast<DeclareVarCommand*>(instr.get());
-                    const string& lhs = dvc->getData();
+                    DeclareCommand* dvc = static_cast<DeclareCommand*>(instr.get());
+                    if (dvc->dt == DeclareCommand::DeclareType::ARRAY) continue;
+
+                    const string& lhs = dvc->getBaseName();
                     auto it = find_if(genSet.begin(), genSet.end(),
                                       [&, lhs](const Assignment& ass)
                                       { return ass.lhs == lhs; });
@@ -140,36 +141,23 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                     break;
                 //simple commands that just read some variable
                 case CommandType::PUSH:
+                case CommandType::PRINT:
                 {
                     const Atom& at = instr->getAtom();
-                    if (at.type == StringType::ID) killSet.insert(at.vptr->getBaseName());
-                    break;
-                    PushCommand* pvc = static_cast<PushCommand*>(instr.get());
-                    string data = pvc->getData();
-                    if (!pvc->pushesState()
-                        && AbstractCommand::getStringType(pvc->getData()) == StringType::ID)
-                    {
-                        insertAndCheckUpwardExposed(data);
-                    }
+                    if (at.type == StringType::ID) insertAndCheckUpwardExposed(at.vptr->getBaseName());
                     break;
                 }
-                case CommandType::PRINT:
-                    insertAndCheckUpwardExposed(instr->getData());
-                    break;
                 case CommandType::ASSIGNVAR:
                 {
-                    auto avc = static_cast<AssignVarCommand*>(instr.get());
-                    killSet.insert(avc->lhs->getBaseName());
-                    if (avc->rhs.type == StringType::ID)
-                    {
-                        insertAndCheckUpwardExposed(avc->rhs.vptr->getBaseName());
-                    }
+                    killSet.insert(instr->getVarSetter()->getBaseName());
+                    const Atom& rhs = instr->getAtom();
+                    if (rhs.type == StringType::ID) insertAndCheckUpwardExposed(rhs.vptr->getBaseName());
                     break;
                 }
                 case CommandType::EXPR:
                 {
                     EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(instr.get());
-                    killSet.insert(eec->lhs->getBaseName()));
+                    killSet.insert(eec->getVarSetter()->getBaseName());
                     if (!eec->term1.isLit) insertAndCheckUpwardExposed(eec->term1.vg->getBaseName());
                     if (!eec->term2.isLit) insertAndCheckUpwardExposed(eec->term2.vg->getBaseName());
                 }
@@ -218,25 +206,35 @@ void LiveVariableDataFlow::finish()
 
         for (auto& ac : node->getInstrs())
         {
-            if ((ac->getType() == CommandType::ASSIGNVAR
-                || ac->getType() == CommandType::EXPR
-                || ac->getType() == CommandType::CHANGEVAR
-                || ac->getType() == CommandType::DECLAREVAR) &&
-                isDead(ac->getData()))
+            std::string name;
+            CommandType acType = ac->getType();
+            
+            if (acType == CommandType::ASSIGNVAR
+                || acType == CommandType::EXPR
+                || acType == CommandType::INPUTVAR) name = ac->getVarSetter()->getBaseName();
+            
+            else if (acType == CommandType::DECLAREVAR)
             {
-                if (ac->getType() == CommandType::DECLAREVAR && usedVars.find(ac->getData()) != usedVars.end())
+                DeclareCommand* dvc = static_cast<DeclareVarCommand*>(ac.get());
+                name = dvc->getBaseName();
+            }
+            
+            if (isDead(name))
+            {
+                if (ac->getType() == CommandType::DECLAREVAR && usedVars.find(name) != usedVars.end())
                 {
                     DeclareVarCommand* dvc = static_cast<DeclareVarCommand*>(ac.get());
-                    toDeclare.insert({dvc->vt, dvc->getData()});
+                    VariableType vt = dvc->dt == DeclareCommand::DeclareType::ARRAY ? VariableType::ARRAY : dvc->vt;
+                    toDeclare.insert({vt, name});
                 }
             }
 
             else
             {
-                if (ac->getType() == CommandType::POP && isDead(ac->getData()))
+                if (ac->getType() == CommandType::POP && isDead(ac->getVarSetter()->getBaseName()))
                 {
                     PopCommand* pc = static_cast<PopCommand*>(ac.get());
-                    pc->setData("");
+                    pc->clear();
                 }
                 newInstrs.push_back(move(ac));
             }

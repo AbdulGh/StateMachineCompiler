@@ -287,13 +287,8 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
         {
             unique_ptr<SymbolicVariable> poppedVar = sef->symbolicStack->popVar();
 
-            if (!command->getData().empty())
-            {
-                unique_ptr<SymbolicVariable> poppedVarClone = poppedVar->clone();
-                poppedVarClone->setName(command->getData());
-                poppedVarClone->userInput();
-                sef->symbolicVarSet->addVar(move(poppedVarClone));
-            }
+            if (command->getVarSetter()) command->getVarSetter()->setSymbolicVariable(sef.get(), poppedVar.release());
+
         }
         else if (!command->acceptSymbolicExecution(sef, true)) return;
     }
