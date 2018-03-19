@@ -145,25 +145,25 @@ namespace SymbolicExecution
                       std::string lhsvar, const std::string& rhsconst, bool reverse = false);
         
         void varBranch(std::shared_ptr<SymbolicExecutionFringe>& sef, CFGNode* n,
-                       VarWrapper* lhsvar, Relations::Relop op, VarWrapper* rhsvar);
+                       const VarWrapper* lhsvar, Relations::Relop op, const VarWrapper* rhsvar);
         
         void varBranchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, VarWrapper* rhsvar);
+                      const VarWrapper* lhsvar, const VarWrapper* rhsvar);
         
         void varBranchNE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, VarWrapper* rhsvar);
+                      const VarWrapper* lhsvar, const VarWrapper* rhsvar);
         
         void varBranchLE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, VarWrapper* rhsvar);
+                      const VarWrapper* lhsvar, const VarWrapper* rhsvar);
         
         void varBranchLT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, VarWrapper* rhsvar);
+                      const VarWrapper* lhsvar, const VarWrapper* rhsvar);
         
         void varBranchGE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, VarWrapper* rhsvar);
+                      const VarWrapper* lhsvar, const VarWrapper* rhsvar);
         
         void varBranchGT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, VarWrapper* rhsvar);
+                      const VarWrapper* lhsvar, const VarWrapper* rhsvar);
 
         static CFGNode* getFailNode(std::shared_ptr<SymbolicExecutionFringe> returningSEF, CFGNode* n);
     };

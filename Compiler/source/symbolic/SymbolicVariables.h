@@ -56,12 +56,12 @@ public:
     virtual bool guaranteedEQ(SymbolicVariable* searchFor, const std::string& initName);
     virtual bool guaranteedNEQ(SymbolicVariable* searchFor, const std::string& initName);
 
-    virtual bool addLT(VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
-    virtual bool addLE(VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
-    virtual bool addGT(VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
-    virtual bool addGE(VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
-    virtual bool addEQ(VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
-    virtual bool addNEQ(VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
+    virtual bool addLT(const VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
+    virtual bool addLE(const VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
+    virtual bool addGT(const VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
+    virtual bool addGE(const VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
+    virtual bool addEQ(const VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
+    virtual bool addNEQ(const VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
     virtual void addNEQConst(const std::string& c) = 0;
     virtual void clearLess();
     virtual void clearGreater();
@@ -114,7 +114,7 @@ public:
     bool meetsConstComparison(Relations::Relop r, const std::string& rhs) override;
     virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, SymbolicVariable* rhs) const override;
 
-    virtual bool addEQ(VarWrapper* other,
+    virtual bool addEQ(const VarWrapper* other,
                        SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed) override;
     void addNEQConst(const std::string& c) override;
     void clearEQ() override;

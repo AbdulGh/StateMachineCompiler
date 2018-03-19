@@ -45,8 +45,7 @@ private:
     Relations::Relop relop();
     void expression(FunctionSymbol* fs, std::unique_ptr<VarWrapper> to);
     VariableType vtype(unsigned int* = nullptr);
-    std::unique_ptr<VarWrapper> identGetter(AccessType* at = nullptr);
-    std::unique_ptr<VarWrapper> identSetter(AccessType* at = nullptr);
+    std::unique_ptr<VarWrapper> wrappedIdent(AccessType *at = nullptr);
     std::string identPlain();
 
     //code generation

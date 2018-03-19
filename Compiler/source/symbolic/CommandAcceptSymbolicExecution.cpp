@@ -3,7 +3,7 @@
 //
 #include "../Command.h"
 #include "SymbolicExecution.h"
-#include "../compile/VarWrappers.h"
+#include "VarWrappers.h"
 
 using namespace std;
 
@@ -20,30 +20,30 @@ bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symb
 
 bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
-    if (calledFunction != nullptr) sef->symbolicStack->pushState(*atom.sptr);
+    if (calledFunction != nullptr) sef->symbolicStack->pushState(*atom.getString());
 
     else switch(stringType)
     {
         case StringType::ID:
         {
-            GottenVarPtr<SymbolicVariable> found = atom.vptr->getSymbolicVariable(sef.get());
+            GottenVarPtr<SymbolicVariable> found = atom.getVarWrapper()->getSymbolicVariable(sef.get());
             if (!found->isFeasable()) throw "should be feasable";
             else if (!found->isDefined())
             {
                 sef->warn(Reporter::UNINITIALISED_USE, "'" + found->getName() + "' pushed without being defined", getLineNum());
             }
 
-            sef->symbolicStack->pushVar(found);
+            sef->symbolicStack->pushVar(move(found));
             break;
         }
         case StringType::DOUBLELIT:
         {
-            sef->symbolicStack->pushDouble(stod(*atom.sptr));
+            sef->symbolicStack->pushDouble(stod(*atom.getString()));
             break;
         }
         case StringType::STRINGLIT:
         {
-            sef->symbolicStack->pushString(*atom.sptr);
+            sef->symbolicStack->pushString(*atom.getString());
             break;
         }
         default:
@@ -93,13 +93,18 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
 
 bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
+    term1.vg->check(sef.get());
     if (op != MOD && repeat)
     {
-        if (!term2.isLit) vs->nondet(sef.get());
+        if (!term2.isLit)
+        {
+            vs->nondet(sef.get());
+            term2.vg->check(sef.get());
+        }
         else
         {
             double t2 = term2.d;
-            SymbolicDouble* sd = static_cast<SymbolicDouble*>(LHS);
+            GottenVarPtr<SymbolicDouble> sd = vs->getSymbolicDouble(sef.get());
 
             switch (op)
             {
@@ -130,6 +135,8 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 default:
                     throw runtime_error("Unsupported op");
             }
+
+            vs->setSymbolicVariable(sef.get(), sd.get());
         }
     }
     else
@@ -143,6 +150,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
         }
         else
         {
+            term1.vg->check(sef.get());
             auto t1gvp = term1.vg->getSymbolicDouble(sef.get());
             t1.become(t1gvp);
             if (!t1)
@@ -168,6 +176,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
         }
         else
         {
+            term2.vg->check(sef.get());
             auto t2gvp = term2.vg->getSymbolicDouble(sef.get());
             t2.become(t2gvp);
             if (!t2)
@@ -209,9 +218,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
             default:
                 throw runtime_error("Bitwise operations not supported");
         }
-        result->setName(LHS->getName());
-        result->define();
-        sef->symbolicVarSet->addVar(move(result));
+        vs->setSymbolicVariable(sef.get(), result.get());
     }
     return sef->isFeasable();
 }

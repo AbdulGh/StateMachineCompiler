@@ -62,7 +62,7 @@ private:
 
 public:
     CFGNode(ControlFlowGraph& p, FunctionSymbol* pf, std::string n, bool last = false);
-    bool constProp(std::unordered_map<std::string, std::string> assignments = std::unordered_map<std::string, std::string>()); //returns true if it bypassed some return
+    bool constProp(std::unordered_map<std::string, Atom> assignments = std::unordered_map<std::string, Atom>()); //returns true if it bypassed some return
     bool addParent(CFGNode*); //returns false if parent was already in
     void removeParent(CFGNode*);
     void removeParent(const std::string&);

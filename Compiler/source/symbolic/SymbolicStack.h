@@ -7,7 +7,7 @@
 
 #include <vector>
 
-#include "../compile/VarWrappers.h"
+#include "VarWrappers.h"
 #include "SymbolicVariables.h"
 
 enum class SymbolicStackMemberType {STATE, VAR};

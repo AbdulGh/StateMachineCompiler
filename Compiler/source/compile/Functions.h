@@ -8,14 +8,12 @@
 #include <memory>
 
 #include "Token.h"
+#include "../Command.h"
 
 class Compiler;
 class CFGNode;
 class ControlFlowGraph;
 class VarWrapper;
-class Atom;
-class AbstractCommand;
-class Term;
 
 struct FunctionCall;
 class FunctionSymbol : public std::enable_shared_from_this<FunctionSymbol>
@@ -86,7 +84,7 @@ public:
     //codegen (todo next convert all to use VarWrapper)
     void genNewState(std::string);
     void genEndState();
-    void genPrint(Atom& a, int linenum);
+    void genPrint(Atom a, int linenum);
     void genJump(std::string, int linenum);
     void genConditionalJump(std::string state, std::unique_ptr<VarWrapper> lh,
                             Relations::Relop r, std::unique_ptr<VarWrapper> rh, int linenum);

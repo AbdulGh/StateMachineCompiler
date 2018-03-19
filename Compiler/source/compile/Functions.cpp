@@ -3,7 +3,7 @@
 
 #include "Functions.h"
 #include "../CFGOpt/CFG.h"
-#include "VarWrappers.h"
+#include "../symbolic/VarWrappers.h"
 
 using namespace std;
 //FunctionVars
@@ -93,7 +93,7 @@ bool FunctionSymbol::mergeInto(FunctionSymbol* to)
 
             if (cinstr->getType() != CommandType::PUSH || rinstr->getType() != CommandType::POP
                 || (rinstr->getVarWrapper()
-                    && cinstr->getAtom().vptr->getFullName() != rinstr->getVarWrapper()->getFullName())) throw "should match";
+                    && cinstr->getAtom().getVarWrapper()->getFullName() != rinstr->getVarWrapper()->getFullName())) throw "should match";
             callingInstrs.erase(callingIt);
             returnIt = retInstrs.erase(returnIt);
             --localVarPushes;
@@ -249,8 +249,8 @@ void FunctionSymbol::replaceReturnState(CFGNode* going, CFGNode* replaceWith)
             {
                 AbstractCommand* ac = (*instrIt).get();
                 if (ac->getType() == CommandType::PUSH
-                    && ac->getAtom().type != StringType::ID
-                    && *ac->getAtom().sptr == going->getName())
+                    && ac->getAtom().getType() != StringType::ID
+                    && *ac->getAtom().getString() == going->getName())
                 {
                     PushCommand* pc = static_cast<PushCommand*>(ac);
                     if (pc->pushesState())
@@ -351,7 +351,7 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
                         AbstractCommand* ac = pushingInstrs[instrIndex].get();
                         if (ac->getType() == CommandType::PUSH
                             && ac->getAtom().getType() != StringType::ID
-                            && *ac->getAtom().sptr == ret)
+                            && *ac->getAtom().getString() == ret)
                         {
                             auto pc = static_cast<PushCommand*>(ac);
                             if (pc->pushesState())
@@ -425,7 +425,7 @@ void FunctionSymbol::genJump(string s, int linenum)
     currentInstrs.push_back(make_unique<JumpCommand>(s, linenum));
 }
 
-void FunctionSymbol::genPrint(Atom& s, int linenum)
+void FunctionSymbol::genPrint(Atom s, int linenum)
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(make_unique<PrintCommand>(move(s), linenum));
@@ -463,8 +463,8 @@ void FunctionSymbol::genInput(unique_ptr<VarWrapper> s, int linenum)
     currentInstrs.push_back(make_unique<InputVarCommand>(move(s), linenum));
 }
 
-void FunctionSymbol::genExpr(unique_ptr<VarWrapper> lh, Term t1,
-                             ArithOp o, Term t2, int linenum)
+void FunctionSymbol::genExpr(unique_ptr<VarWrapper> lh, Term& t1,
+                             ArithOp o, Term& t2, int linenum)
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(make_unique<EvaluateExprCommand>(move(lh), move(t1), o, move(t2), linenum));

@@ -6,7 +6,7 @@
 #include "Compiler.h"
 #include "../CFGOpt/Optimiser.h"
 #include "../CFGOpt/LengTarj.h"
-#include "VarWrappers.h"
+#include "../symbolic/VarWrappers.h"
 
 using namespace std;
 
@@ -154,16 +154,17 @@ void Compiler::findGlobalsAndMakeStates()
                 {
                     match(ASSIGN);
                     i->setDefined();
+                    auto iptr = make_unique<SVByName>(i->getUniqueID());
                     if (t == STRING && lookahead.type == STRINGLIT)
                     {
                         initialState.push_back(make_unique<AssignVarCommand>
-                                                       (i->getUniqueID(), lookahead.lexemeString, lookahead.line));
+                                                       (move(iptr), lookahead.lexemeString, lookahead.line));
                         match(STRINGLIT);
                     }
                     else if (t == DOUBLE && lookahead.type == NUMBER)
                     {
                         initialState.push_back(make_unique<AssignVarCommand>
-                                                       (i->getUniqueID(), lookahead.lexemeString, lookahead.line));
+                                                       (move(iptr), lookahead.lexemeString, lookahead.line));
                         match(NUMBER);
                     }
                     else error("Can only assign literals in global scope");

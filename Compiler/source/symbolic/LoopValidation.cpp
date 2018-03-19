@@ -7,7 +7,7 @@
 #include <functional>
 
 #include "../CFGOpt/Loop.h"
-#include "../compile/VarWrappers.h"
+#include "VarWrappers.h"
 #include "SymbolicExecution.h"
 
 //these flags are set if it is possible downstream
@@ -122,10 +122,10 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
         {
             if (sef->symbolicStack->isEmpty())
             {
-                if (!instr->getData().empty())
+                if (instr->getVarWrapper())
                 {
                     unique_ptr<SymbolicVariable> popped = thisNodeSR->popVar();
-                    popped->setName(instr->getData());
+                    popped->setName(instr->getVarWrapper()->getFullName());
                     popped->loopInit();
                     sef->symbolicVarSet->addVar(move(popped));
                 }
@@ -197,7 +197,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                 //first check if we must break a loop condition
 
                 SymbolicVariable::MeetEnum meetStat;
-                if (AbstractCommand::getStringType(condition.rhs) != StringType::ID)
+                if (getStringType(condition.rhs) != StringType::ID)
                 {
                     meetStat = varInQuestion->canMeet(condition.comp, condition.rhs);
                 }
@@ -291,14 +291,14 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
         {
             JumpOnComparisonCommand* jocc = node->getComp();
             CFGNode* succNode = node->getCompSuccess();
-            GottenVarPtr<SymbolicVariable> lhVar = jocc->term1.vptr->getSymbolicVariable(sef.get());
+            GottenVarPtr<SymbolicVariable> lhVar = jocc->term1.getVarWrapper()->getSymbolicVariable(sef.get());
             if (!lhVar) throw "not found";
 
             GottenVarPtr<SymbolicVariable> rhVar(nullptr);
             bool rhconst = true;
-            if (jocc->term2.type == StringType::ID)
+            if (jocc->term2.getType() == StringType::ID)
             {
-                auto lvalue = jocc->term2.vptr->getSymbolicVariable(sef.get());
+                auto lvalue = jocc->term2.getVarWrapper()->getSymbolicVariable(sef.get());
                 rhVar.become(lvalue);
                 if (!rhVar) throw runtime_error("Unknown var '" + string(jocc->term2) + "'");
                 rhconst = rhVar->isDetermined();
@@ -307,7 +307,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             if (rhconst)
             {
                 string RHS;
-                if (jocc->term2.type == StringType::ID) RHS = rhVar->getConstString();
+                if (jocc->term2.getType() == StringType::ID) RHS = rhVar->getConstString();
                 else RHS = string(jocc->term2);
 
                 switch (lhVar->canMeet(jocc->op, RHS))
@@ -348,7 +348,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                             }
                                             else
                                             {
-                                                jocc->term1.vptr->getSymbolicVariable(sefFailure.get())->iterateTo(RHS);
+                                                jocc->term1.getVarWrapper()->getSymbolicVariable(sefFailure.get())->iterateTo(RHS);
                                                 if (searchNode(failNode, varChanges, tags, sef, badExample))
                                                 {
                                                     mergeMaps(varChanges.at(node), varChanges.at(failNode));
@@ -397,7 +397,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                             }
                                             else
                                             {
-                                                jocc->term1.vptr->getSymbolicVariable(sefSucc.get())->iterateTo(RHS);
+                                                jocc->term1.getVarWrapper()->getSymbolicVariable(sefSucc.get())->iterateTo(RHS);
                                                 if (searchNode(succNode, varChanges, tags, sefSucc, badExample))
                                                 {
                                                     mergeMaps(varChanges.at(node), varChanges.at(succNode));

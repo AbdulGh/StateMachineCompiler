@@ -1,7 +1,8 @@
 #include <stack>
 
 #include "Compiler.h"
-#include "VarWrappers.h"
+#include "../symbolic/VarWrappers.h"
+#include "ExpressionCodeGenerator.h"
 
 #include <memory>
 
@@ -88,7 +89,7 @@ AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
 
     if (parent.lookahead.type == IDENT)
     {
-        unique_ptr<VarWrapper> vg = parent.identGetter();
+        unique_ptr<VarWrapper> vg = parent.wrappedIdent();
         return withNeg(new AtomNode(vg->getFullName(), false));
     }
     else if (parent.lookahead.type == NUMBER)

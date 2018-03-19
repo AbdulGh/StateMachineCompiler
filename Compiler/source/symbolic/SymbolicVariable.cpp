@@ -3,7 +3,7 @@
 #include <string>
 
 #include "SymbolicVariables.h"
-#include "../compile/VarWrappers.h"
+#include "VarWrappers.h"
 
 using namespace std;
 using namespace SymbolicExecution;
@@ -66,7 +66,7 @@ bool SymbolicVariable::isFeasable()
     return feasable;
 }
 
-bool SymbolicVariable::addGT(VarWrapper* vg, SymbolicExecutionFringe* sef, bool constructed)
+bool SymbolicVariable::addGT(const VarWrapper* vg, SymbolicExecutionFringe* sef, bool constructed)
 {
     GottenVarPtr<SymbolicVariable> other = vg->getSymbolicVariable(sef);
     SymbolicVariable* sv = other.get();
@@ -83,7 +83,7 @@ bool SymbolicVariable::addGT(VarWrapper* vg, SymbolicExecutionFringe* sef, bool 
     return feasable && sv->isFeasable();
 }
 
-bool SymbolicVariable::addGE(VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
+bool SymbolicVariable::addGE(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
 {
     GottenVarPtr<SymbolicVariable> other = vg->getSymbolicVariable(sef);
     SymbolicVariable* sv = other.get();
@@ -102,7 +102,7 @@ bool SymbolicVariable::addGE(VarWrapper* vg, SymbolicExecutionFringe* sef,  bool
     return feasable && sv->isFeasable();
 }
 
-bool SymbolicVariable::addLT(VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
+bool SymbolicVariable::addLT(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
 {
     GottenVarPtr<SymbolicVariable> other = vg->getSymbolicVariable(sef);
     SymbolicVariable* sv = other.get();
@@ -119,7 +119,7 @@ bool SymbolicVariable::addLT(VarWrapper* vg, SymbolicExecutionFringe* sef,  bool
     return feasable && sv->isFeasable();
 }
 
-bool SymbolicVariable::addLE(VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
+bool SymbolicVariable::addLE(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
 {
     GottenVarPtr<SymbolicVariable> other = vg->getSymbolicVariable(sef);
     SymbolicVariable* sv = other.get();
@@ -137,7 +137,7 @@ bool SymbolicVariable::addLE(VarWrapper* vg, SymbolicExecutionFringe* sef,  bool
     return feasable && sv->isFeasable();
 }
 
-bool SymbolicVariable::addEQ(VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
+bool SymbolicVariable::addEQ(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
 {
     GottenVarPtr<SymbolicVariable> other = vg->getSymbolicVariable(sef);
     SymbolicVariable* sv = other.get();
@@ -152,7 +152,7 @@ bool SymbolicVariable::addEQ(VarWrapper* vg, SymbolicExecutionFringe* sef,  bool
     return feasable && sv->isFeasable();
 }
 
-bool SymbolicVariable::addNEQ(VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
+bool SymbolicVariable::addNEQ(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
 {
     GottenVarPtr<SymbolicVariable> other = vg->getSymbolicVariable(sef);
     SymbolicVariable* sv = other.get();
@@ -452,7 +452,7 @@ void SymbolicVariableTemplate<double>::addNEQConst(const string& d)
 }
 
 template <typename T>
-bool SymbolicVariableTemplate<T>::addEQ(VarWrapper* vg,
+bool SymbolicVariableTemplate<T>::addEQ(const VarWrapper* vg,
                                         SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed)
 {
     GottenVarPtr<SymbolicVariable> other = vg->getSymbolicVariable(sef);

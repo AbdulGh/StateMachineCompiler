@@ -3,7 +3,7 @@
 #include <stack>
 
 #include "Compiler.h"
-#include "VarWrappers.h"
+#include "../symbolic/VarWrappers.h"
 #include "ExpressionCodeGenerator.h"
 
 using namespace std;
@@ -20,9 +20,9 @@ void Compiler::body()
     {
         match(FUNCTION);
 
-        unique_ptr<VarWrapper> funName = identGetter();
+        std::string funName = identPlain();
 
-        FunctionSymbol* fs = functionTable.getFunction(funName->getFullName());
+        FunctionSymbol* fs = functionTable.getFunction(funName);
 
         //get stack parameters into variables
         symbolTable.pushScope();
@@ -33,7 +33,7 @@ void Compiler::body()
             VariableType t = vtype();
             unsigned int line = lookahead.line;
             AccessType atcheck;
-            unique_ptr<VarWrapper> s = identSetter(&atcheck);
+            unique_ptr<VarWrapper> s = wrappedIdent(&atcheck);
             if (atcheck != AccessType::DIRECT) error("'" + s->getFullName() + "' is not a valid function parameter");
             Identifier* vid = symbolTable.declare(t, s->getFullName(), line);
             vid->setDefined();
@@ -103,7 +103,7 @@ bool Compiler::statement(FunctionSymbol* fs)
             }
             else
             {
-                Atom a(identGetter());
+                Atom a(wrappedIdent());
                 fs->genPrint(a,  lookahead.line);
             }
 
@@ -119,7 +119,7 @@ bool Compiler::statement(FunctionSymbol* fs)
     else if (lookahead.type == INPUT)
     {
         match(INPUT);
-        auto id = identSetter();
+        auto id = wrappedIdent();
         Identifier* idPtr = findVariable(id.get());
         if (idPtr->getType() != ARRAY) idPtr->setDefined();
         fs->genInput(move(id), lookahead.line);
@@ -129,10 +129,10 @@ bool Compiler::statement(FunctionSymbol* fs)
     {
         unsigned int size = 0;
         VariableType t = vtype(&size);
-        auto id = identGetter();
-        if (symbolTable.isInScope(id->getBaseName())) //set to '0' or '""' depending on type
+        auto id = identPlain();
+        if (symbolTable.isInScope(id)) //set to '0' or '""' depending on type
         {
-            error("Variable '" + id->getBaseName() + "' is already in scope");
+            error("Variable '" + id + "' is already in scope");
             /*string uid; VariableType vtype;
             Identifier* idPtr = findVariable(id, uid, &vtype);
             if (t != idPtr->getType()) error("'" + id + "' redeclared in same scope with different type");
@@ -162,7 +162,7 @@ bool Compiler::statement(FunctionSymbol* fs)
         }
         else
         {
-            Identifier* idPtr = symbolTable.declare(t, id->getBaseName(), lookahead.line);
+            Identifier* idPtr = symbolTable.declare(t, id, lookahead.line);
             if (t == ARRAY) fs->genArrayDecl(idPtr->getUniqueID(), size, lookahead.line);
             else fs->genVariableDecl(t, idPtr->getUniqueID(), lookahead.line);
 
@@ -197,7 +197,7 @@ bool Compiler::statement(FunctionSymbol* fs)
     }
     else if (lookahead.type == IDENT)
     {
-        std::unique_ptr<VarWrapper> setter = identSetter();
+        std::unique_ptr<VarWrapper> setter = wrappedIdent();
         Identifier* idPtr = findVariable(setter.get());
         match(ASSIGN);
         if (idPtr->getType() == VariableType::STRING)
@@ -272,10 +272,13 @@ VariableType Compiler::vtype(unsigned int* size)
     return t;
 }
 
-unique_ptr<VarWrapper> Compiler::identGetter(AccessType* at)
+unique_ptr<VarWrapper> Compiler::wrappedIdent(AccessType *at)
 {
     string s = lookahead.lexemeString;
     Compiler::match(IDENT);
+    Identifier* id = symbolTable.findIdentifier(s);
+    if (!id) throw "aaaaaaaa";
+    s = id->getUniqueID();
     if (lookahead.type == LSQPAREN)
     {
         if (at != nullptr) *at = AccessType::BYARRAY;
@@ -290,37 +293,7 @@ unique_ptr<VarWrapper> Compiler::identGetter(AccessType* at)
         }
         else
         {
-            unique_ptr<VarWrapper> indexVar = identGetter();
-            match(RSQPAREN);
-            return make_unique<SDByIndexVar>(s, move(indexVar));
-        }
-    }
-    else
-    {
-        if (at != nullptr) *at = AccessType::DIRECT;
-        return make_unique<SVByName>(s);
-    }
-}
-
-unique_ptr<VarWrapper> Compiler::identSetter(AccessType* at)
-{
-    string s = lookahead.lexemeString;
-    Compiler::match(IDENT);
-    if (lookahead.type == LSQPAREN)
-    {
-        if (at != nullptr) *at = AccessType::BYARRAY;
-        match(LSQPAREN);
-
-        if (lookahead.type == NUMBER)
-        {
-            int index = stoi(lookahead.lexemeString);
-            match(NUMBER);
-            match(RSQPAREN);
-            return make_unique<SDByArrayIndex>(s, index);
-        }
-        else
-        {
-            unique_ptr<VarWrapper> indexVar = identGetter();
+            unique_ptr<VarWrapper> indexVar = wrappedIdent();
             match(RSQPAREN);
             return make_unique<SDByIndexVar>(s, move(indexVar));
         }

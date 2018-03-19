@@ -11,20 +11,7 @@ namespace SymbolicExecution {class SymbolicExecutionFringe;}; //symbolic/Symboli
 enum class CommandType{JUMP, CONDJUMP, RETURN, DECLAREVAR, PUSH, POP, ASSIGNVAR, EXPR, PRINT, INPUTVAR};
 
 enum class StringType{ID, STRINGLIT, DOUBLELIT};
-StringType getStringType(const std::string& str)
-{
-    if (str.length() == 0) throw std::runtime_error("Asked to find StringType of empty string");
-    else if (str.length() > 1 && str[0] == '\"') return StringType::STRINGLIT;
-    else try
-    {
-        stod(str);
-        return StringType::DOUBLELIT;
-    }
-    catch (std::invalid_argument&)
-    {
-        return StringType::ID;
-    }
-}
+StringType getStringType(const std::string& str);
 
 class Atom
 {
@@ -48,6 +35,7 @@ public:
     const std::string* getString() const;
     const VarWrapper* getVarWrapper() const;
     void swap(Atom& a);
+    void become(Atom& a);
     void set(const std::string& sptr);
     void set(std::unique_ptr<VarWrapper> sptr);
     operator std::string() const;
@@ -79,8 +67,8 @@ public:
 
     virtual const std::string& getState() const {throw "no state";}
     virtual void setState(const std::string& data) {throw "no state";}
-    virtual const Atom& getAtom() const {throw "no atom";}
-    virtual void setAtom(const Atom& data) {throw "no atom";}
+    virtual Atom& getAtom() {throw "no atom";}
+    virtual void setAtom(Atom data) {throw "no atom";}
     virtual const std::unique_ptr<VarWrapper>& getVarWrapper() const {throw "doesn't set var";}
     virtual void setVarWrapper(std::unique_ptr<VarWrapper> sv) {throw "doesn't set var";}
 
@@ -111,16 +99,16 @@ protected:
     Atom atom;
 public:
     AtomHoldingCommand(Atom a, int linenum): AbstractCommand(linenum), atom(std::move(a)) {}
-    const Atom& getAtom() const override {return atom;}
-    void setAtom(const Atom& data) override {atom = data;}
+    Atom& getAtom() override {return atom;}
+    void setAtom(Atom data) override {atom = data;}
 };
 
-class VarSettingCommand : public AbstractCommand
+class WrapperHoldingCommand : public AbstractCommand
 {
 protected:
     std::unique_ptr<VarWrapper> vs;
 public:
-    VarSettingCommand(std::unique_ptr<VarWrapper> VarWrapper, int linenum);
+    WrapperHoldingCommand(std::unique_ptr<VarWrapper> VarWrapper, int linenum);
 
     const std::unique_ptr<VarWrapper>& getVarWrapper() const override {return vs;}
     void setVarWrapper(std::unique_ptr<VarWrapper> nvs) override;
@@ -129,7 +117,7 @@ public:
 class PrintCommand: public AtomHoldingCommand
 {
 public:
-    PrintCommand(const Atom& atom, int linenum) : AtomHoldingCommand(atom, linenum)
+    PrintCommand(Atom atom, int linenum) : AtomHoldingCommand(atom, linenum)
     {
         setType(CommandType::PRINT);
     }
@@ -160,7 +148,7 @@ public:
 class JumpCommand: public StateHoldingCommand
 {
 public:
-    JumpCommand(const std::string& to, int linenum): StateHoldingCommand(state, linenum)
+    JumpCommand(const std::string& to, int linenum): StateHoldingCommand(to, linenum)
     {
         setType(CommandType::JUMP);
     }
@@ -177,7 +165,7 @@ class JumpOnComparisonCommand: public StateHoldingCommand
 public:
     Atom term1;
     Atom term2;
-    
+
     Relations::Relop op;
 
     JumpOnComparisonCommand(const std::string& st, std::unique_ptr<VarWrapper> t1,
@@ -187,7 +175,7 @@ public:
                             const std::string& t2, Relations::Relop o, int linenum);
 
     JumpOnComparisonCommand(const JumpOnComparisonCommand& jocc);
-    
+
     void makeGood()
     {
         if (term1.getType() != StringType::ID
@@ -199,27 +187,27 @@ public:
         return std::make_unique<JumpOnComparisonCommand>(*this);
     }
 
-    std::string translation(const std::string& delim) const override 
+    std::string translation(const std::string& delim) const override
     {
         return "jumpif " + std::string(term1) + relEnumStrs[op] + std::string(term2) + " " + state + ";" + delim;
     }
-    std::string negatedTranslation(const std::string& delim) const 
+    std::string negatedTranslation(const std::string& delim) const
     {
         return "jumpif " + std::string(term1) +
                 relEnumStrs[Relations::negateRelop(op)] + std::string(term2) + " " + state + ";" + delim;
     }
-    std::string condition(const std::string& delim) const 
+    std::string condition(const std::string& delim) const
     {
         return std::string(term1) + relEnumStrs[op] + std::string(term2) + delim;
     }
-    std::string negatedCondition(const std::string& delim) const 
+    std::string negatedCondition(const std::string& delim) const
     {
         return std::string(term1) + relEnumStrs[Relations::negateRelop(op)] + std::string(term2) + delim;
     }
     void negate() {op = Relations::negateRelop(op);}
 };
 
-class InputVarCommand: public VarSettingCommand
+class InputVarCommand: public WrapperHoldingCommand
 {
 public:
     InputVarCommand(std::unique_ptr<VarWrapper> into, int linenum);
@@ -261,7 +249,7 @@ public:
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 };
 
-class PopCommand: public VarSettingCommand
+class PopCommand: public WrapperHoldingCommand
 {
 public:
     PopCommand(std::unique_ptr<VarWrapper> into, int linenum);
@@ -280,11 +268,11 @@ private:
     std::unique_ptr<VarWrapper> vs;
 
 public:
-    AssignVarCommand(std::unique_ptr<VarWrapper> lh, const Atom& at, int linenum);
+    AssignVarCommand(std::unique_ptr<VarWrapper> lh, Atom& at, int linenum);
     AssignVarCommand(std::unique_ptr<VarWrapper> lh, std::unique_ptr<VarWrapper> rh, int linenum);
     AssignVarCommand(std::unique_ptr<VarWrapper> lh, const std::string& rh, int linenum);
-    const Atom& getAtom() const override {return atom;}
-    void setAtom(const Atom& data) override {atom = data;}
+    Atom& getAtom() override {return atom;}
+    void setAtom(Atom data) override {atom = data;}
     const std::unique_ptr<VarWrapper>& getVarWrapper() const override {return vs;}
     void setVarWrapper(std::unique_ptr<VarWrapper> sv) override;
     std::unique_ptr<AbstractCommand> clone() override;
@@ -315,7 +303,7 @@ public:
     std::string str() const;
 };
 
-class EvaluateExprCommand: public VarSettingCommand
+class EvaluateExprCommand: public WrapperHoldingCommand
 {
 public:
     Term term1;

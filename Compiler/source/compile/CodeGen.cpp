@@ -1,5 +1,5 @@
 #include "Compiler.h"
-#include "VarWrappers.h"
+#include "../symbolic/VarWrappers.h"
 
 using namespace std;
 VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType, unique_ptr<VarWrapper> uid) //todo remember why this returns a vtype
@@ -43,7 +43,7 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expe
             }
             else
             {
-                unique_ptr<VarWrapper> vg = identGetter();
+                unique_ptr<VarWrapper> vg = wrappedIdent();
                 Identifier* idp = findVariable(vg.get());
                 paramTypes.push_back(idp->getType());
                 fromFS->genPush(vg->getFullName(), lookahead.line);

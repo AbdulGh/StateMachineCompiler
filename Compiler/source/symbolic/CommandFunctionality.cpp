@@ -3,9 +3,25 @@
 //
 
 #include "../Command.h"
-#include "../compile/VarWrappers.h"
+#include "VarWrappers.h"
 
 using namespace std;
+
+StringType getStringType(const std::string& str)
+{
+    if (str.length() == 0) throw std::runtime_error("Asked to find StringType of empty string");
+    else if (str.length() > 1 && str[0] == '\"') return StringType::STRINGLIT;
+    else
+    try
+    {
+        stod(str);
+        return StringType::DOUBLELIT;
+    }
+    catch (std::invalid_argument&)
+    {
+        return StringType::ID;
+    }
+}
 
 unique_ptr<VarWrapper> parseAccess(const string& toParse, StringType* st = nullptr)
 {
@@ -42,11 +58,10 @@ unique_ptr<VarWrapper> parseAccess(const string& toParse, StringType* st = nullp
 }
 
 //VarSetting superclass
+WrapperHoldingCommand::WrapperHoldingCommand(std::unique_ptr<VarWrapper> vw, int linenum):
+        AbstractCommand(linenum), vs(std::move(vw)) {}
 
-VarSettingCommand::VarSettingCommand(std::unique_ptr<VarWrapper> VarWrapper, int linenum):
-        AbstractCommand(linenum), vs(std::move(VarWrapper)) {}
-
-void VarSettingCommand::setVarWrapper(std::unique_ptr<VarWrapper> nvs) {vs = move(nvs);}
+void WrapperHoldingCommand::setVarWrapper(std::unique_ptr<VarWrapper> nvs) {vs = move(nvs);}
 
 Atom::Atom(const string& s): holding(false) //todo next check use of this constructor (& string set below), avoid redundant st testing
 {
@@ -124,6 +139,15 @@ void Atom::swap(Atom& a)
     }
 }
 
+void Atom::become(Atom& other)
+{
+    if (holding) delete vptr; else delete sptr;
+    type = other.type;
+    holding = other.holding;
+    if (holding) vptr = other.vptr->clone().release();
+    else sptr = new string(*other.sptr);
+}
+
 void Atom::set(const string& s)
 {
     if (holding) delete vptr;
@@ -186,31 +210,6 @@ JumpOnComparisonCommand::JumpOnComparisonCommand(const JumpOnComparisonCommand& 
     op = jocc.op;
     setType(CommandType::CONDJUMP);
 }
-
-/*
-void JumpOnComparisonCommand::resetTerm1()
-{
-    if (term1.type == StringType::ID) delete term1.vptr;
-    else delete term1.sptr;
-}
-
-void JumpOnComparisonCommand::resetTerm2()
-{
-    if (term2.type == StringType::ID) delete term2.vptr;
-    else delete term2.sptr;
-}
-
-string JumpOnComparisonCommand::t1str() const
-{
-    if (term1.type == StringType::ID) return term1.vptr->getFullName();
-    else return *term1.sptr;
-}
-
-string JumpOnComparisonCommand::t2str() const
-{
-    if (term2.type == StringType::ID) return term2.vptr->getFullName();
-    else return *term2.sptr;
-}*/
 
 //EvaluateExpressionCommand
 Term::Term(const string& toParse) : vg{}
@@ -275,13 +274,13 @@ string Term::str() const
 
 EvaluateExprCommand::EvaluateExprCommand(unique_ptr<VarWrapper> lh, Term t1,
                                          ArithOp o, Term t2, int linenum):
-        VarSettingCommand(move(lh), linenum), VarSettingCommand::vs(move(lh)), op{o}, term1{move(t1)}, term2{move(t2)} //todo brackets vs paren
+        WrapperHoldingCommand(move(lh), linenum),  op{o}, term1{move(t1)}, term2{move(t2)} //todo brackets vs paren
 {
     setType(CommandType::EXPR);
 }
 
 EvaluateExprCommand::EvaluateExprCommand(const EvaluateExprCommand& o):
-        VarSettingCommand(o.vs->clone(), o.getLineNum()), term1(o.term1), term2(o.term2), op(o.op) {}
+        WrapperHoldingCommand(o.vs->clone(), o.getLineNum()), term1(o.term1), term2(o.term2), op(o.op) {}
 
 EvaluateExprCommand::~EvaluateExprCommand()
 {
@@ -300,7 +299,7 @@ string EvaluateExprCommand::translation(const string& delim) const
 }
 
 //InputVarCommand
-InputVarCommand::InputVarCommand(unique_ptr<VarWrapper> into, int linenum) : VarSettingCommand(move(into), linenum)
+InputVarCommand::InputVarCommand(unique_ptr<VarWrapper> into, int linenum) : WrapperHoldingCommand(move(into), linenum)
 {
     setType(CommandType::INPUTVAR);
 }
@@ -328,7 +327,7 @@ AssignVarCommand::AssignVarCommand(unique_ptr<VarWrapper> lh, const string& rh, 
     setType(CommandType::ASSIGNVAR);
 }
 
-AssignVarCommand::AssignVarCommand(unique_ptr<VarWrapper> lh, const Atom& rh, int linenum):
+AssignVarCommand::AssignVarCommand(unique_ptr<VarWrapper> lh, Atom& rh, int linenum):
         AbstractCommand(linenum), vs(move(lh)), atom(move(rh))
 {
     setType(CommandType::ASSIGNVAR);
@@ -350,7 +349,7 @@ unique_ptr<AbstractCommand> AssignVarCommand::clone()
 }
 
 //PopCommand
-PopCommand::PopCommand(unique_ptr<VarWrapper> into, int linenum): VarSettingCommand(move(into), linenum)
+PopCommand::PopCommand(unique_ptr<VarWrapper> into, int linenum): WrapperHoldingCommand(move(into), linenum)
 {
     setType(CommandType::POP);
 }

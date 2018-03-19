@@ -1,7 +1,7 @@
 #include <algorithm>
 
 #include "DataFlow.h"
-#include "../compile/VarWrappers.h"
+#include "../symbolic/VarWrappers.h"
 
 using namespace std;
 using namespace DataFlow;
@@ -96,8 +96,8 @@ void AssignmentPropogationDataFlow::finish()
     {
         set<Assignment> inAss = intersectPredecessors(node, outSets);
 
-        unordered_map<string, string> mapToPass;
-        for (const Assignment& ass : inAss) mapToPass[ass.lhs] = ass.rhs;
+        unordered_map<string, Atom> mapToPass;
+        for (const Assignment& ass : inAss) mapToPass.emplace(ass.lhs, ass.rhs);
 
         node->constProp(move(mapToPass));
     }
@@ -132,26 +132,30 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
             {
                 //commands that just stop some variable being live
                 case CommandType::DECLAREVAR:
+                {
                     DeclareCommand* dc = static_cast<DeclareCommand*>(instr.get());
                     killSet.insert(dc->getBaseName());
                     break;
+                }
                 case CommandType::INPUTVAR:
                 case CommandType::POP:
+                {
                     killSet.insert(instr->getVarWrapper()->getBaseName());
                     break;
+                }
                 //simple commands that just read some variable
                 case CommandType::PUSH:
                 case CommandType::PRINT:
                 {
                     const Atom& at = instr->getAtom();
-                    if (at.type == StringType::ID) insertAndCheckUpwardExposed(at.vptr->getBaseName());
+                    if (at.getType() == StringType::ID) insertAndCheckUpwardExposed(at.getVarWrapper()->getBaseName());
                     break;
                 }
                 case CommandType::ASSIGNVAR:
                 {
                     killSet.insert(instr->getVarWrapper()->getBaseName());
                     const Atom& rhs = instr->getAtom();
-                    if (rhs.type == StringType::ID) insertAndCheckUpwardExposed(rhs.vptr->getBaseName());
+                    if (rhs.getType() == StringType::ID) insertAndCheckUpwardExposed(rhs.getVarWrapper()->getBaseName());
                     break;
                 }
                 case CommandType::EXPR:
@@ -167,13 +171,13 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
         JumpOnComparisonCommand* jocc = node->getComp();
         if (jocc != nullptr)
         {
-            if (jocc->term1.type == StringType::ID)
+            if (jocc->term1.getType() == StringType::ID)
             {
-                insertAndCheckUpwardExposed(jocc->term1.vptr->getBaseName());
+                insertAndCheckUpwardExposed(jocc->term1.getVarWrapper()->getBaseName());
             }
-            if (jocc->term2.type == StringType::ID)
+            if (jocc->term2.getType() == StringType::ID)
             {
-                insertAndCheckUpwardExposed(jocc->term2.vptr->getBaseName());
+                insertAndCheckUpwardExposed(jocc->term2.getVarWrapper()->getBaseName());
             }
         }
 
