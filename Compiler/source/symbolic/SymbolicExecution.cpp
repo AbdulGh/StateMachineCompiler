@@ -287,7 +287,7 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
         {
             unique_ptr<SymbolicVariable> poppedVar = sef->symbolicStack->popVar();
 
-            if (command->getVarSetter()) command->getVarSetter()->setSymbolicVariable(sef.get(), poppedVar.release());
+            if (command->getVarWrapper()) command->getVarWrapper()->setSymbolicVariable(sef.get(), poppedVar.release());
 
         }
         else if (!command->acceptSymbolicExecution(sef, true)) return;
@@ -653,7 +653,7 @@ void SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
 
 //branching on var comparison
 void SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe>& sef, CFGNode* n,
-                                         VarGetter* LHS, Relations::Relop op, VarGetter* RHS)
+                                         VarWrapper* LHS, Relations::Relop op, VarWrapper* RHS)
 {
     switch(op)
     {
@@ -681,7 +681,7 @@ void SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe>& se
 }
 
 void SymbolicExecutionManager::varBranchGE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                           VarGetter* lhsvar, VarGetter* rhsvar)
+                                           VarWrapper* lhsvar, VarWrapper* rhsvar)
 {
     if (!(n->isLastNode() && sef->symbolicStack->isEmpty())) 
     {
@@ -702,7 +702,7 @@ void SymbolicExecutionManager::varBranchGE(shared_ptr<SymbolicExecutionFringe> s
 
 
 void SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                              VarGetter* lhsvar, VarGetter* rhsvar)
+                                              VarWrapper* lhsvar, VarWrapper* rhsvar)
 {
     if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
     {
@@ -719,7 +719,7 @@ void SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> s
 }
 
 void SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                              VarGetter* lhsvar, VarGetter* rhsvar)
+                                              VarWrapper* lhsvar, VarWrapper* rhsvar)
 {
     if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
     {
@@ -736,7 +736,7 @@ void SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> s
 
 
 void SymbolicExecutionManager::varBranchLE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                              VarGetter* lhsvar, VarGetter* rhsvar)
+                                              VarWrapper* lhsvar, VarWrapper* rhsvar)
 {
     if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
     {
@@ -753,7 +753,7 @@ void SymbolicExecutionManager::varBranchLE(shared_ptr<SymbolicExecutionFringe> s
 
 
 void SymbolicExecutionManager::varBranchNE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                           VarGetter* lhsvar, VarGetter* rhsvar)
+                                           VarWrapper* lhsvar, VarWrapper* rhsvar)
 {
     if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
     {
@@ -776,7 +776,7 @@ void SymbolicExecutionManager::varBranchNE(shared_ptr<SymbolicExecutionFringe> s
 
 
 void SymbolicExecutionManager::varBranchEQ(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                           VarGetter* lhsvar, VarGetter* rhsvar)
+                                           VarWrapper* lhsvar, VarWrapper* rhsvar)
 {
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
     CFGNode* failNode = getFailNode(sefeq, n);

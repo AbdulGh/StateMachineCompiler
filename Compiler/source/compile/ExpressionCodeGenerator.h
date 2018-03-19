@@ -76,13 +76,13 @@ private:
     AbstractExprNode* expression(FunctionSymbol*);
     AbstractExprNode* term(FunctionSymbol*);
     AbstractExprNode* factor(FunctionSymbol*);
-    std::unique_ptr<VarSetter> genTemp(FunctionSymbol*, unsigned int i);
-    std::unique_ptr<VarSetter> genUnique(FunctionSymbol*);
+    std::unique_ptr<VarWrapper> genTemp(FunctionSymbol*, unsigned int i);
+    std::unique_ptr<VarWrapper> genUnique(FunctionSymbol*);
     bool translateTree(AbstractExprNode*, FunctionSymbol*, unsigned int, double&);
-    std::unique_ptr<VarSetter> goingto;
+    std::unique_ptr<VarWrapper> goingto;
     
 public:
-    ExpressionCodeGenerator(Compiler& parent, std::unique_ptr<VarSetter> assignee);
+    ExpressionCodeGenerator(Compiler& parent, std::unique_ptr<VarWrapper> assignee);
     void compileExpression(FunctionSymbol *fs);
 };
 

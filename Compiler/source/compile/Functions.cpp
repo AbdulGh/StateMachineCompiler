@@ -9,7 +9,7 @@ using namespace std;
 //FunctionVars
 FunctionSymbol::FunctionVars::FunctionVars(unique_ptr<FunctionVars> p): parent(move(p)) {}
 
-void FunctionSymbol::FunctionVars::addVar(VarSetter* varN) {vars.insert(varN);}
+void FunctionSymbol::FunctionVars::addVar(VarWrapper* varN) {vars.insert(varN);}
 
 unique_ptr<FunctionSymbol::FunctionVars> FunctionSymbol::FunctionVars::moveScope()
 {
@@ -19,15 +19,15 @@ unique_ptr<FunctionSymbol::FunctionVars> FunctionSymbol::FunctionVars::moveScope
 
 FunctionSymbol::FunctionVars::~FunctionVars()
 {
-    for (VarSetter* vw : vars) delete vw;
+    for (VarWrapper* vw : vars) delete vw;
 }
 
-const set<VarSetter*> FunctionSymbol::FunctionVars::getVarSet()
+const set<VarWrapper*> FunctionSymbol::FunctionVars::getVarSet()
 {
     if (parent == nullptr) return vars;
     else
     {
-        set<VarSetter*> pvars = parent->getVarSet();
+        set<VarWrapper*> pvars = parent->getVarSet();
         pvars.insert(vars.begin(), vars.end());
         return pvars;
     }
@@ -70,7 +70,7 @@ bool FunctionSymbol::mergeInto(FunctionSymbol* to)
             ++firstIt; //will be optimised by assignment propogation later
             if ((*firstIt)->getType() != CommandType::POP) throw "should declare and pop";
             else if ((*callingIt)->getType() != CommandType::PUSH) throw "pushes and pops should match";
-            unique_ptr<AbstractCommand> ac(new AssignVarCommand((*firstIt)->getVarSetter()->clone(), (*callingIt)->getAtom(), (*firstIt)->getLineNum()));
+            unique_ptr<AbstractCommand> ac(new AssignVarCommand((*firstIt)->getVarWrapper()->clone(), (*callingIt)->getAtom(), (*firstIt)->getLineNum()));
             (*firstIt) = move(ac);
             ++firstIt;
             callingIt = callingInstrs.erase(callingIt);
@@ -92,8 +92,8 @@ bool FunctionSymbol::mergeInto(FunctionSymbol* to)
             unique_ptr<AbstractCommand>& rinstr = *returnIt;
 
             if (cinstr->getType() != CommandType::PUSH || rinstr->getType() != CommandType::POP
-                || (rinstr->getVarSetter()
-                    && cinstr->getAtom().vptr->getFullName() != rinstr->getVarSetter()->getFullName())) throw "should match";
+                || (rinstr->getVarWrapper()
+                    && cinstr->getAtom().vptr->getFullName() != rinstr->getVarWrapper()->getFullName())) throw "should match";
             callingInstrs.erase(callingIt);
             returnIt = retInstrs.erase(returnIt);
             --localVarPushes;
@@ -157,7 +157,7 @@ CFGNode* FunctionSymbol::getCurrentNode() const
     return currentNode;
 }
 
-const set<VarSetter*> FunctionSymbol::getVars()
+const set<VarWrapper*> FunctionSymbol::getVars()
 {
     return currentVarScope->getVarSet();
 }
@@ -173,7 +173,7 @@ void FunctionSymbol::popScope()
     currentVarScope = move(currentVarScope->moveScope());
 }
 
-void FunctionSymbol::addVar(VarSetter* s)
+void FunctionSymbol::addVar(VarWrapper* s)
 {
     currentVarScope->addVar(s);
 }
@@ -350,7 +350,7 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
                     {
                         AbstractCommand* ac = pushingInstrs[instrIndex].get();
                         if (ac->getType() == CommandType::PUSH
-                            && ac->getAtom().type != StringType::ID
+                            && ac->getAtom().getType() != StringType::ID
                             && *ac->getAtom().sptr == ret)
                         {
                             auto pc = static_cast<PushCommand*>(ac);
@@ -425,20 +425,20 @@ void FunctionSymbol::genJump(string s, int linenum)
     currentInstrs.push_back(make_unique<JumpCommand>(s, linenum));
 }
 
-void FunctionSymbol::genPrint(Atom s, int linenum)
+void FunctionSymbol::genPrint(Atom& s, int linenum)
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(make_unique<PrintCommand>(move(s), linenum));
 }
 
-void FunctionSymbol::genConditionalJump(string state, unique_ptr<VarGetter> lh, Relations::Relop r,
-                                        unique_ptr<VarGetter> rh, int linenum)
+void FunctionSymbol::genConditionalJump(string state, unique_ptr<VarWrapper> lh, Relations::Relop r,
+                                        unique_ptr<VarWrapper> rh, int linenum)
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(make_unique<JumpOnComparisonCommand>(state, move(lh), move(rh), r, linenum));
 }
 
-void FunctionSymbol::genPop(unique_ptr<VarSetter> s, int linenum)
+void FunctionSymbol::genPop(unique_ptr<VarWrapper> s, int linenum)
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(make_unique<PopCommand>(move(s), linenum));
@@ -457,14 +457,14 @@ void FunctionSymbol::genPush(std::string s, int linenum, FunctionSymbol* calledF
     currentInstrs.push_back(make_unique<PushCommand>(move(s), linenum, calledFunction));
 }
 
-void FunctionSymbol::genInput(unique_ptr<VarSetter> s, int linenum)
+void FunctionSymbol::genInput(unique_ptr<VarWrapper> s, int linenum)
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(make_unique<InputVarCommand>(move(s), linenum));
 }
 
-void FunctionSymbol::genExpr(unique_ptr<VarSetter> lh, EvaluateExprCommand::Term t1,
-                             ArithOp o, EvaluateExprCommand::Term t2, int linenum)
+void FunctionSymbol::genExpr(unique_ptr<VarWrapper> lh, Term t1,
+                             ArithOp o, Term t2, int linenum)
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(make_unique<EvaluateExprCommand>(move(lh), move(t1), o, move(t2), linenum));
@@ -476,7 +476,7 @@ void FunctionSymbol::genVariableDecl(VariableType t, string n, int linenum)
     currentInstrs.push_back(make_unique<DeclareVarCommand>(t, n, linenum));
 
     //find wont work for whatever reason
-    currentVarScope->addVar(new SetSVByName(n));
+    currentVarScope->addVar(new SVByName(n));
 }
 
 void FunctionSymbol::genArrayDecl(string name, unsigned long int size, int linenum)
@@ -491,14 +491,14 @@ void FunctionSymbol::addCommand(unique_ptr<AbstractCommand> ac)
     currentInstrs.push_back(move(ac));
 }
 
-void FunctionSymbol::genAssignment(unique_ptr<VarSetter> LHS, string RHS, int linenum)
+void FunctionSymbol::genAssignment(unique_ptr<VarWrapper> LHS, string RHS, int linenum)
 {
     if (endedState) throw "No state to add to";
     else if(getStringType(RHS) == StringType::ID) throw "use other constructor";
     currentInstrs.push_back(make_unique<AssignVarCommand>(move(LHS), move(RHS), linenum));
 }
 
-void FunctionSymbol::genAssignment(unique_ptr<VarSetter> LHS, unique_ptr<VarGetter> RHS, int linenum)
+void FunctionSymbol::genAssignment(unique_ptr<VarWrapper> LHS, unique_ptr<VarWrapper> RHS, int linenum)
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(make_unique<AssignVarCommand>(move(LHS), move(RHS), linenum));

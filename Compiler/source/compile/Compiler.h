@@ -2,15 +2,13 @@
 #define PROJECT_COMPILER_H
 
 #include <unordered_map>
+#include <vector>
 
-#include "Lexer.h"
 #include "Token.h"
 #include "SymbolTable.h"
-#include "Functions.h"
-#include "ExpressionCodeGenerator.h"
-#include "Functions.h"
 #include "Reporter.h"
-#include "../symbolic/SymbolicExecution.h"
+#include "Functions.h"
+#include "../CFGOpt/CFG.h"
 
 enum class AccessType;
 class VarWrapper;
@@ -45,14 +43,14 @@ private:
     void body();
     bool statement(FunctionSymbol* fs); //returns true if the state has been ended
     Relations::Relop relop();
-    void expression(FunctionSymbol* fs, std::unique_ptr<VarSetter> to);
+    void expression(FunctionSymbol* fs, std::unique_ptr<VarWrapper> to);
     VariableType vtype(unsigned int* = nullptr);
-    std::unique_ptr<VarGetter> identGetter(AccessType* at = nullptr);
-    std::unique_ptr<VarSetter> identSetter(AccessType* at = nullptr);
+    std::unique_ptr<VarWrapper> identGetter(AccessType* at = nullptr);
+    std::unique_ptr<VarWrapper> identSetter(AccessType* at = nullptr);
     std::string identPlain();
 
     //code generation
-    VariableType genFunctionCall(FunctionSymbol*, VariableType expectedType, std::unique_ptr<VarSetter> vs = nullptr);
+    VariableType genFunctionCall(FunctionSymbol*, VariableType expectedType, std::unique_ptr<VarWrapper> vs = nullptr);
     void genIf(FunctionSymbol*);
     void genWhile(FunctionSymbol*);
     void ands(FunctionSymbol* fs, std::string success, std::string fail);

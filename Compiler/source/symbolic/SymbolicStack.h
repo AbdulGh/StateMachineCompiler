@@ -7,8 +7,8 @@
 
 #include <vector>
 
-#include "SymbolicVariables.h"
 #include "../compile/VarWrappers.h"
+#include "SymbolicVariables.h"
 
 enum class SymbolicStackMemberType {STATE, VAR};
 
@@ -48,13 +48,12 @@ public:
     explicit SymVarStackMember(GottenVarPtr<SymbolicVariable> toPush)
     {
         setType(SymbolicStackMemberType::VAR);
-        if (toPush.constructed()) varptr = move(toPush.up);
+        if (toPush.constructed()) varptr = move(toPush.release());
         else varptr = toPush->clone();
     }
 
     explicit SymVarStackMember(double toPush, Reporter& r)
     {
-        //execution defined vars shouldnt throw errors (so nullptr is okay)
         std::unique_ptr<SymbolicDouble> sd = std::make_unique<SymbolicDouble>("constDouble", r);
         sd->setTConstValue(toPush);
         varptr = std::move(sd);

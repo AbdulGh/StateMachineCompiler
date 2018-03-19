@@ -5,13 +5,17 @@
 #include <sstream>
 #include <set>
 #include <unordered_map>
+#include <memory>
 
 #include "Token.h"
-#include "../Command.h"
 
 class Compiler;
 class CFGNode;
 class ControlFlowGraph;
+class VarWrapper;
+class Atom;
+class AbstractCommand;
+class Term;
 
 struct FunctionCall;
 class FunctionSymbol : public std::enable_shared_from_this<FunctionSymbol>
@@ -21,14 +25,14 @@ private:
     {
     private:
         std::unique_ptr<FunctionVars> parent;
-        std::set<VarSetter*> vars;
+        std::set<VarWrapper*> vars;
 
     public:
         explicit FunctionVars(std::unique_ptr<FunctionVars> p = nullptr);
         ~FunctionVars();
-        const std::set<VarSetter*> getVarSet();
+        const std::set<VarWrapper*> getVarSet();
         std::unique_ptr<FunctionVars> moveScope();
-        void addVar(VarSetter* varN);
+        void addVar(VarWrapper* varN);
     };
 
     VariableType returnType;
@@ -58,8 +62,8 @@ public:
     CFGNode* getFirstNode();
     void setFirstNode(CFGNode* firstNode);
     CFGNode* getCurrentNode() const;
-    const std::set<VarSetter*> getVars();
-    void addVar(VarSetter* id);
+    const std::set<VarWrapper*> getVars();
+    void addVar(VarWrapper* id);
     unsigned int numParams();
     unsigned int numCalls();
 
@@ -79,22 +83,22 @@ public:
     std::vector<CFGNode*> getNodesReturnedTo();
     FunctionCall* getOnlyFunctionCall();
 
-    //codegen (todo next convert all to use vargetter/setter)
+    //codegen (todo next convert all to use VarWrapper)
     void genNewState(std::string);
     void genEndState();
-    void genPrint(Atom a, int linenum);
+    void genPrint(Atom& a, int linenum);
     void genJump(std::string, int linenum);
-    void genConditionalJump(std::string state, std::unique_ptr<VarGetter> lh,
-                            Relations::Relop r, std::unique_ptr<VarGetter> rh, int linenum);
+    void genConditionalJump(std::string state, std::unique_ptr<VarWrapper> lh,
+                            Relations::Relop r, std::unique_ptr<VarWrapper> rh, int linenum);
     void genPush(std::string toPush, int, FunctionSymbol* calledFuntion = nullptr);
-    void genPop(std::unique_ptr<VarSetter> vs, int linenum);
+    void genPop(std::unique_ptr<VarWrapper> vs, int linenum);
     void genReturn(int linenum);
-    void genInput(std::unique_ptr<VarSetter>, int linenum);
-    void genExpr(std::unique_ptr<VarSetter> lh, EvaluateExprCommand::Term t1, ArithOp o, EvaluateExprCommand::Term t2, int linenum);
+    void genInput(std::unique_ptr<VarWrapper>, int linenum);
+    void genExpr(std::unique_ptr<VarWrapper> lh, Term& t1, ArithOp o, Term& t2, int linenum);
     void genVariableDecl(VariableType t, std::string n, int linenum);
     void genArrayDecl(std::string name, unsigned long int size, int linenum);
-    void genAssignment(std::unique_ptr<VarSetter> LHS, std::string RHS, int linenum);
-    void genAssignment(std::unique_ptr<VarSetter> LHS, std::unique_ptr<VarGetter> RHS, int linenum);
+    void genAssignment(std::unique_ptr<VarWrapper> LHS, std::string RHS, int linenum);
+    void genAssignment(std::unique_ptr<VarWrapper> LHS, std::unique_ptr<VarWrapper> RHS, int linenum);
     void addCommand(std::unique_ptr<AbstractCommand> ac);
     void addCommands(std::vector<std::unique_ptr<AbstractCommand>>& acs);
 };

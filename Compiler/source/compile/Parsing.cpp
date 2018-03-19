@@ -4,6 +4,7 @@
 
 #include "Compiler.h"
 #include "VarWrappers.h"
+#include "ExpressionCodeGenerator.h"
 
 using namespace std;
 
@@ -19,7 +20,7 @@ void Compiler::body()
     {
         match(FUNCTION);
 
-        unique_ptr<VarGetter> funName = identGetter();
+        unique_ptr<VarWrapper> funName = identGetter();
 
         FunctionSymbol* fs = functionTable.getFunction(funName->getFullName());
 
@@ -32,7 +33,7 @@ void Compiler::body()
             VariableType t = vtype();
             unsigned int line = lookahead.line;
             AccessType atcheck;
-            unique_ptr<VarSetter> s = identSetter(&atcheck);
+            unique_ptr<VarWrapper> s = identSetter(&atcheck);
             if (atcheck != AccessType::DIRECT) error("'" + s->getFullName() + "' is not a valid function parameter");
             Identifier* vid = symbolTable.declare(t, s->getFullName(), line);
             vid->setDefined();
@@ -90,15 +91,21 @@ bool Compiler::statement(FunctionSymbol* fs)
         {
             if (lookahead.type == STRINGLIT)
             {
-                fs->genPrint(Atom(quoteString(lookahead.lexemeString)), lookahead.line);
+                Atom a(quoteString(lookahead.lexemeString));
+                fs->genPrint(a, lookahead.line);
                 match(STRINGLIT);
             }
             else if (lookahead.type == NUMBER)
             {
-                fs->genPrint(Atom(lookahead.lexemeString), lookahead.line);
+                Atom a(lookahead.lexemeString);
+                fs->genPrint(a, lookahead.line);
                 match(NUMBER);
             }
-            else fs->genPrint(Atom(identGetter()),  lookahead.line);
+            else
+            {
+                Atom a(identGetter());
+                fs->genPrint(a,  lookahead.line);
+            }
 
             if (lookahead.type == COMMA)
             {
@@ -163,7 +170,7 @@ bool Compiler::statement(FunctionSymbol* fs)
             {
                 if (t == ARRAY) error("Cannot assign into entire array");
                 match(ASSIGN);
-                unique_ptr<VarSetter> vs = make_unique<SetSVByName>(idPtr->getUniqueID());
+                unique_ptr<VarWrapper> vs = make_unique<SVByName>(idPtr->getUniqueID());
 
                 if (t == VariableType::STRING)
                 {
@@ -190,7 +197,7 @@ bool Compiler::statement(FunctionSymbol* fs)
     }
     else if (lookahead.type == IDENT)
     {
-        std::unique_ptr<VarSetter> setter = identSetter();
+        std::unique_ptr<VarWrapper> setter = identSetter();
         Identifier* idPtr = findVariable(setter.get());
         match(ASSIGN);
         if (idPtr->getType() == VariableType::STRING)
@@ -223,10 +230,10 @@ bool Compiler::statement(FunctionSymbol* fs)
             if (lookahead.type == STRINGLIT)
             {
                 if (fs->getReturnType() != STRING) error("Cannot return string in function of type " + fs->getReturnType());
-                fs->genAssignment(make_unique<SetSVByName>("retS"), quoteString(lookahead.lexemeString), lookahead.line);
+                fs->genAssignment(make_unique<SVByName>("retS"), quoteString(lookahead.lexemeString), lookahead.line);
                 match(STRINGLIT);
             }
-            else ExpressionCodeGenerator(*this, make_unique<SetSVByName>("retD")).compileExpression(fs);
+            else ExpressionCodeGenerator(*this, make_unique<SVByName>("retD")).compileExpression(fs);
         }
         else if (fs->getReturnType() != VOID) error("Void function '" + fs->getIdent() + "' returns some value");
         match(SEMIC);
@@ -243,7 +250,7 @@ Relations::Relop Compiler::relop()
     return r;
 }
 
-void Compiler::expression(FunctionSymbol* fs, unique_ptr<VarSetter> to)
+void Compiler::expression(FunctionSymbol* fs, unique_ptr<VarWrapper> to)
 {
     ExpressionCodeGenerator gen(*this, move(to));
     gen.compileExpression(fs);
@@ -265,7 +272,7 @@ VariableType Compiler::vtype(unsigned int* size)
     return t;
 }
 
-unique_ptr<VarGetter> Compiler::identGetter(AccessType* at)
+unique_ptr<VarWrapper> Compiler::identGetter(AccessType* at)
 {
     string s = lookahead.lexemeString;
     Compiler::match(IDENT);
@@ -279,23 +286,23 @@ unique_ptr<VarGetter> Compiler::identGetter(AccessType* at)
             int index = stoi(lookahead.lexemeString);
             match(NUMBER);
             match(RSQPAREN);
-            return make_unique<GetSDByArrayIndex>(s, index);
+            return make_unique<SDByArrayIndex>(s, index);
         }
         else
         {
-            unique_ptr<VarGetter> indexVar = identGetter();
+            unique_ptr<VarWrapper> indexVar = identGetter();
             match(RSQPAREN);
-            return make_unique<GetSDByIndexVar>(s, move(indexVar));
+            return make_unique<SDByIndexVar>(s, move(indexVar));
         }
     }
     else
     {
         if (at != nullptr) *at = AccessType::DIRECT;
-        return make_unique<GetSVByName>(s);
+        return make_unique<SVByName>(s);
     }
 }
 
-unique_ptr<VarSetter> Compiler::identSetter(AccessType* at)
+unique_ptr<VarWrapper> Compiler::identSetter(AccessType* at)
 {
     string s = lookahead.lexemeString;
     Compiler::match(IDENT);
@@ -309,19 +316,19 @@ unique_ptr<VarSetter> Compiler::identSetter(AccessType* at)
             int index = stoi(lookahead.lexemeString);
             match(NUMBER);
             match(RSQPAREN);
-            return make_unique<SetArraySDByIndex>(s, index);
+            return make_unique<SDByArrayIndex>(s, index);
         }
         else
         {
-            unique_ptr<VarGetter> indexVar = identGetter();
+            unique_ptr<VarWrapper> indexVar = identGetter();
             match(RSQPAREN);
-            return make_unique<SetArrayByVar>(s, move(indexVar));
+            return make_unique<SDByIndexVar>(s, move(indexVar));
         }
     }
     else
     {
         if (at != nullptr) *at = AccessType::DIRECT;
-        return make_unique<SetSVByName>(s);
+        return make_unique<SVByName>(s);
     }
 }
 

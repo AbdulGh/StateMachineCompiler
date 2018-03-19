@@ -82,11 +82,11 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
 {
     if (atom.isHolding())
     {
-        GottenVarPtr<SymbolicVariable> svp = atom.getVarGetter()->getSymbolicVariable(sef.get());
+        GottenVarPtr<SymbolicVariable> svp = atom.getVarWrapper()->getSymbolicVariable(sef.get());
         if (svp->isFeasable()) return false;
         vs->setSymbolicVariable(sef.get(), svp.get());
     }
-    else atom.getVarGetter()->getSymbolicVariable(sef.get())->setConstValue(*atom.getString()); //aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    else atom.getVarWrapper()->getSymbolicVariable(sef.get())->setConstValue(*atom.getString()); //aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
     return true;
 }

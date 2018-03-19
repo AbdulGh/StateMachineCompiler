@@ -34,7 +34,7 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
                 case CommandType::EXPR:
                 case CommandType::POP:
                 {
-                    const std::string& data = instr->getVarSetter()->getBaseName();
+                    const std::string& data = instr->getVarWrapper()->getBaseName();
                     auto it = find_if(genSet.begin(), genSet.end(),
                                       [&, data](const Assignment& ass)
                                       { return ass.lhs == data; });
@@ -44,7 +44,7 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
                 }
                 case CommandType::ASSIGNVAR:
                 {
-                    const string& lhs = instr->getVarSetter()->getFullName();
+                    const string& lhs = instr->getVarWrapper()->getFullName();
                     auto it = find_if(genSet.begin(), genSet.end(),
                                       [&, lhs](const Assignment& ass)
                                       { return ass.lhs == lhs; });
@@ -137,7 +137,7 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                     break;
                 case CommandType::INPUTVAR:
                 case CommandType::POP:
-                    killSet.insert(instr->getVarSetter()->getBaseName());
+                    killSet.insert(instr->getVarWrapper()->getBaseName());
                     break;
                 //simple commands that just read some variable
                 case CommandType::PUSH:
@@ -149,7 +149,7 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 }
                 case CommandType::ASSIGNVAR:
                 {
-                    killSet.insert(instr->getVarSetter()->getBaseName());
+                    killSet.insert(instr->getVarWrapper()->getBaseName());
                     const Atom& rhs = instr->getAtom();
                     if (rhs.type == StringType::ID) insertAndCheckUpwardExposed(rhs.vptr->getBaseName());
                     break;
@@ -157,7 +157,7 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 case CommandType::EXPR:
                 {
                     EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(instr.get());
-                    killSet.insert(eec->getVarSetter()->getBaseName());
+                    killSet.insert(eec->getVarWrapper()->getBaseName());
                     if (!eec->term1.isLit) insertAndCheckUpwardExposed(eec->term1.vg->getBaseName());
                     if (!eec->term2.isLit) insertAndCheckUpwardExposed(eec->term2.vg->getBaseName());
                 }
@@ -211,7 +211,7 @@ void LiveVariableDataFlow::finish()
             
             if (acType == CommandType::ASSIGNVAR
                 || acType == CommandType::EXPR
-                || acType == CommandType::INPUTVAR) name = ac->getVarSetter()->getBaseName();
+                || acType == CommandType::INPUTVAR) name = ac->getVarWrapper()->getBaseName();
             
             else if (acType == CommandType::DECLAREVAR)
             {
@@ -231,7 +231,7 @@ void LiveVariableDataFlow::finish()
 
             else
             {
-                if (ac->getType() == CommandType::POP && isDead(ac->getVarSetter()->getBaseName()))
+                if (ac->getType() == CommandType::POP && isDead(ac->getVarWrapper()->getBaseName()))
                 {
                     PopCommand* pc = static_cast<PopCommand*>(ac.get());
                     pc->clear();

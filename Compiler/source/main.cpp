@@ -1,6 +1,6 @@
 #include <iostream>
 #include "compile/Compiler.h"
-#include "Command.h"
+#include "compile/Lexer.h"
 
 using namespace std;
 

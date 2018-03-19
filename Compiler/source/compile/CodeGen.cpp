@@ -2,7 +2,7 @@
 #include "VarWrappers.h"
 
 using namespace std;
-VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType, unique_ptr<VarSetter> uid) //todo remember why this returns a vtype
+VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType, unique_ptr<VarWrapper> uid) //todo remember why this returns a vtype
 {
     match(Type::CALL);
     string fid = identPlain();
@@ -15,7 +15,7 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expe
     }
 
     //push all vars
-    const set<VarSetter*>& fromVars = fromFS->getVars(); //sets are ordered
+    const set<VarWrapper*>& fromVars = fromFS->getVars(); //sets are ordered
     for (auto& s : fromVars) fromFS->genPush(s->getFullName(), lookahead.line);
 
     string nextState = fromFS->newStateName();
@@ -43,7 +43,7 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expe
             }
             else
             {
-                unique_ptr<VarGetter> vg = identGetter();
+                unique_ptr<VarWrapper> vg = identGetter();
                 Identifier* idp = findVariable(vg.get());
                 paramTypes.push_back(idp->getType());
                 fromFS->genPush(vg->getFullName(), lookahead.line);
@@ -235,11 +235,11 @@ void Compiler::ands(FunctionSymbol* fs, string success, string fail)
 
 void Compiler::condition(FunctionSymbol* fs, string success, string fail)
 {
-    expression(fs, make_unique<SetSVByName>("LHS"));
+    expression(fs, make_unique<SVByName>("LHS"));
     Relations::Relop r = relop();
-    expression(fs, make_unique<SetSVByName>("rhs"));
+    expression(fs, make_unique<SVByName>("rhs"));
 
-    fs->genConditionalJump(move(success), make_unique<GetSVByName>("LHS"), r, make_unique<GetSVByName>("LHS"), lookahead.line);
+    fs->genConditionalJump(move(success), make_unique<SVByName>("LHS"), r, make_unique<SVByName>("LHS"), lookahead.line);
     fs->genJump(move(fail), lookahead.line);
     fs->genEndState();
 }

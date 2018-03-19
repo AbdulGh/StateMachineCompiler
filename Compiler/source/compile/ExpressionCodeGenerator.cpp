@@ -7,7 +7,7 @@
 
 using namespace std;
 
-ExpressionCodeGenerator::ExpressionCodeGenerator(Compiler &p, std::unique_ptr<VarSetter> asignee):
+ExpressionCodeGenerator::ExpressionCodeGenerator(Compiler &p, std::unique_ptr<VarWrapper> asignee):
         parent(p),
         currentUnique(0),
         goingto(move(asignee)){}
@@ -88,7 +88,7 @@ AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
 
     if (parent.lookahead.type == IDENT)
     {
-        unique_ptr<VarGetter> vg = parent.identGetter();
+        unique_ptr<VarWrapper> vg = parent.identGetter();
         return withNeg(new AtomNode(vg->getFullName(), false));
     }
     else if (parent.lookahead.type == NUMBER)
@@ -108,7 +108,7 @@ AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
     else if (parent.lookahead.type == CALL)
     {
         parent.genFunctionCall(fs, DOUBLE);
-        unique_ptr<VarSetter> uni = genUnique(fs);
+        unique_ptr<VarWrapper> uni = genUnique(fs);
         std::string name = uni->getFullName();
         fs->genAssignment(move(uni), "retD", parent.lookahead.line);
         return withNeg(new AtomNode(name, false));
@@ -116,8 +116,8 @@ AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
     else parent.error("Expected identifier or double in expression");
 }
 
-unsigned int ExpressionCodeGenerator::nextTemp = 0; //todo quick make next two return SetSVByName
-std::unique_ptr<VarSetter> ExpressionCodeGenerator::genTemp(FunctionSymbol* fs, unsigned int i)
+unsigned int ExpressionCodeGenerator::nextTemp = 0; //todo quick make next two return SVByName
+std::unique_ptr<VarWrapper> ExpressionCodeGenerator::genTemp(FunctionSymbol* fs, unsigned int i)
 {
     if (i == 0) return goingto->clone();
     i -= 1;
@@ -125,24 +125,24 @@ std::unique_ptr<VarSetter> ExpressionCodeGenerator::genTemp(FunctionSymbol* fs, 
     {
         string s = "temp" + to_string(nextTemp++);
         fs->genVariableDecl(DOUBLE, s, parent.lookahead.line);
-        return make_unique<SetSVByName>(s);
+        return make_unique<SVByName>(s);
     }
     if (i > nextTemp) throw "Something went wrong somehow";
-    return make_unique<SetSVByName>("temp" + to_string(i));
+    return make_unique<SVByName>("temp" + to_string(i));
 }
 
 unsigned int ExpressionCodeGenerator::nextUnique = 0;
-std::unique_ptr<VarSetter> ExpressionCodeGenerator::genUnique(FunctionSymbol* fs)
+std::unique_ptr<VarWrapper> ExpressionCodeGenerator::genUnique(FunctionSymbol* fs)
 {
     if (currentUnique == nextUnique)
     {
         string s = "unique" + to_string(nextUnique++);
         ++currentUnique;
         fs->genVariableDecl(DOUBLE, s, parent.lookahead.line);
-        return make_unique<SetSVByName>(s);
+        return make_unique<SVByName>(s);
     }
     else if (currentUnique > nextUnique) throw "Something went wrong somehow";
-    return make_unique<SetSVByName>("unique" + to_string(currentUnique++));
+    return make_unique<SVByName>("unique" + to_string(currentUnique++));
 }
 
 bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol* fs, unsigned int reg, double& ret)
@@ -175,7 +175,7 @@ bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol*
     {
         if (leftp->isAtom()) left = leftp->getData();
         else if (leftlit = translateTree(leftp, fs, reg, dl)) left = to_string(dl);
-        else left = genTemp(fs, reg)->getFullName(); //todo varsetter -> term
+        else left = genTemp(fs, reg)->getFullName(); //todo VarWrapper -> term
         
         if (rightp->isAtom()) right = rightp->getData();
         else if (rightlit = translateTree(rightp, fs, reg + 1, dr)) right = to_string(dr);
@@ -189,8 +189,8 @@ bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol*
     }
     else
     {
-        auto debug1 = EvaluateExprCommand::Term(left);
-        auto debug2 = EvaluateExprCommand::Term(right);
+        auto debug1 = Term(left);
+        auto debug2 = Term(right);
         auto debug3 = p;
         fs->genExpr(genTemp(fs, reg), debug1, p->getOp(), debug2, parent.lookahead.line);
         return false;

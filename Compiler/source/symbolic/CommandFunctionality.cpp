@@ -7,7 +7,7 @@
 
 using namespace std;
 
-unique_ptr<VarGetter> parseAccess(const string& toParse, StringType* st = nullptr)
+unique_ptr<VarWrapper> parseAccess(const string& toParse, StringType* st = nullptr)
 {
     if (toParse.empty()) throw "Can't parse an empty string";
     if (toParse[0] == '\"')
@@ -25,28 +25,28 @@ unique_ptr<VarGetter> parseAccess(const string& toParse, StringType* st = nullpt
     {
         if (st) *st = StringType::ID;
         size_t first = toParse.find('[');
-        if (first == -1) return make_unique<GetSVByName>(toParse);
+        if (first == -1) return make_unique<SVByName>(toParse);
         string index = toParse.substr(first + 1, toParse.size() - first - 2);
         try
         {
             double dAttempt = stod(index);
-            return make_unique<GetSDByArrayIndex>(toParse.substr(0, first), dAttempt);
+            return make_unique<SDByArrayIndex>(toParse.substr(0, first), dAttempt);
         }
         catch (invalid_argument&)
         {
-            unique_ptr<VarGetter> indexWrapper = parseAccess(index);
+            unique_ptr<VarWrapper> indexWrapper = parseAccess(index);
             if (!indexWrapper) throw "went wrong";
-            return make_unique<GetSDByIndexVar>(toParse.substr(0, first), move(indexWrapper));
+            return make_unique<SDByIndexVar>(toParse.substr(0, first), move(indexWrapper));
         }
     }
 }
 
 //VarSetting superclass
 
-VarSettingCommand::VarSettingCommand(std::unique_ptr<VarSetter> varSetter, int linenum):
-        AbstractCommand(linenum), vs(std::move(varSetter)) {}
+VarSettingCommand::VarSettingCommand(std::unique_ptr<VarWrapper> VarWrapper, int linenum):
+        AbstractCommand(linenum), vs(std::move(VarWrapper)) {}
 
-void VarSettingCommand::setVarSetter(std::unique_ptr<VarSetter> nvs) {vs = move(nvs);}
+void VarSettingCommand::setVarWrapper(std::unique_ptr<VarWrapper> nvs) {vs = move(nvs);}
 
 Atom::Atom(const string& s): holding(false) //todo next check use of this constructor (& string set below), avoid redundant st testing
 {
@@ -55,7 +55,7 @@ Atom::Atom(const string& s): holding(false) //todo next check use of this constr
     sptr = new string(s);
 }
 
-Atom::Atom(unique_ptr<VarGetter> vg): holding(true)
+Atom::Atom(unique_ptr<VarWrapper> vg): holding(true)
 {
     type = StringType::ID;
     vptr = vg.release();
@@ -81,6 +81,49 @@ Atom::Atom(const Atom& o): type(o.type)
     }
 }
 
+void Atom::swap(Atom& a)
+{
+    if (holding)
+    {
+        VarWrapper* vw = vptr;
+        if (a.holding)
+        {
+            vptr = a.vptr;
+            a.vptr = vw;
+        }
+        else
+        {
+            type = a.type;
+            sptr = a.sptr;
+            holding = false;
+            a.type = StringType::ID;
+            a.vptr = vw;
+            a.holding = true;
+        }
+    }
+    else
+    {
+        string* s = sptr;
+        if (a.holding)
+        {
+            a.type = type;
+            type = StringType::ID;
+            holding = true;
+            a.holding = false;
+            vptr = a.vptr;
+            a.sptr = s;
+        }
+        else
+        {
+            StringType t = type;
+            type = a.type;
+            a.type = t;
+            sptr = a.sptr;
+            a.sptr = s;
+        }
+    }
+}
+
 void Atom::set(const string& s)
 {
     if (holding) delete vptr;
@@ -91,7 +134,7 @@ void Atom::set(const string& s)
     holding = false;
 }
 
-void Atom::set(unique_ptr<VarGetter> vg)
+void Atom::set(unique_ptr<VarWrapper> vg)
 {
     if (holding) delete vptr;
     else delete sptr;
@@ -100,19 +143,19 @@ void Atom::set(unique_ptr<VarGetter> vg)
     holding = true;
 }
 
-bool Atom::isHolding() {return holding;}
+bool Atom::isHolding() const {return holding;}
 
-const std::string* Atom::getString()
+const std::string* Atom::getString() const
 {
     return sptr;
 }
 
-const VarGetter* Atom::getVarGetter()
+const VarWrapper* Atom::getVarWrapper() const
 {
     return vptr;
 }
 
-StringType Atom::getType() {return type;}
+StringType Atom::getType() const {return type;}
 
 Atom::operator std::string() const
 {
@@ -121,15 +164,15 @@ Atom::operator std::string() const
 }
 
 //JumpOnComparisonCommand
-JumpOnComparisonCommand::JumpOnComparisonCommand(const string& st, unique_ptr<VarGetter> t1,
-                                                 unique_ptr<VarGetter> t2, Relations::Relop o, int linenum)
+JumpOnComparisonCommand::JumpOnComparisonCommand(const string& st, unique_ptr<VarWrapper> t1,
+                                                 unique_ptr<VarWrapper> t2, Relations::Relop o, int linenum)
     :StateHoldingCommand(st, linenum), term1(move(t1)), term2(move(t2))
 {
     op = o;
     setType(CommandType::CONDJUMP);
 }
 
-JumpOnComparisonCommand::JumpOnComparisonCommand(const string& st, unique_ptr<VarGetter> t1,
+JumpOnComparisonCommand::JumpOnComparisonCommand(const string& st, unique_ptr<VarWrapper> t1,
                                                  const string& t2, Relations::Relop o, int linenum)
     :StateHoldingCommand(st, linenum), term1(move(t1)), term2(t2)
 {
@@ -170,12 +213,12 @@ string JumpOnComparisonCommand::t2str() const
 }*/
 
 //EvaluateExpressionCommand
-EvaluateExprCommand::Term::Term(const string& toParse) : vg{}
+Term::Term(const string& toParse) : vg{}
 {
     parse(toParse);
 }
 
-void EvaluateExprCommand::Term::parse(const string& toParse)
+void Term::parse(const string& toParse)
 {
     StringType st;
     auto up = parseAccess(toParse, &st);
@@ -194,21 +237,21 @@ void EvaluateExprCommand::Term::parse(const string& toParse)
     }
 }
 
-EvaluateExprCommand::Term::Term(const Term& other) : vg{}
+Term::Term(const Term& other) : vg{}
 {
     isLit = other.isLit;
     if (isLit) d = other.d;
     else vg = other.vg->clone();
 }
 
-EvaluateExprCommand::Term::Term(Term&& other) : vg{}
+Term::Term(Term&& other) : vg{}
 {
     isLit = other.isLit;
     if (isLit) d = other.d;
     else vg = move(other.vg);
 }
 
-bool EvaluateExprCommand::Term::operator==(Term& o)
+bool Term::operator==(Term& o)
 {
     if (isLit)
     {
@@ -222,15 +265,15 @@ bool EvaluateExprCommand::Term::operator==(Term& o)
     }
 }
 
-EvaluateExprCommand::Term::~Term() {if (!isLit) vg.reset();}
+Term::~Term() {if (!isLit) vg.reset();}
 
-string EvaluateExprCommand::Term::str() const
+string Term::str() const
 {
     if (isLit) return to_string(d);
     else return vg->getFullName();
 }
 
-EvaluateExprCommand::EvaluateExprCommand(unique_ptr<VarSetter> lh, Term t1,
+EvaluateExprCommand::EvaluateExprCommand(unique_ptr<VarWrapper> lh, Term t1,
                                          ArithOp o, Term t2, int linenum):
         VarSettingCommand(move(lh), linenum), VarSettingCommand::vs(move(lh)), op{o}, term1{move(t1)}, term2{move(t2)} //todo brackets vs paren
 {
@@ -257,7 +300,7 @@ string EvaluateExprCommand::translation(const string& delim) const
 }
 
 //InputVarCommand
-InputVarCommand::InputVarCommand(unique_ptr<VarSetter> into, int linenum) : VarSettingCommand(move(into), linenum)
+InputVarCommand::InputVarCommand(unique_ptr<VarWrapper> into, int linenum) : VarSettingCommand(move(into), linenum)
 {
     setType(CommandType::INPUTVAR);
 }
@@ -273,25 +316,25 @@ unique_ptr<AbstractCommand> InputVarCommand::clone()
 }
 
 //AssignVarCommand
-AssignVarCommand::AssignVarCommand(unique_ptr<VarSetter> lh, unique_ptr<VarGetter> rh, int linenum):
+AssignVarCommand::AssignVarCommand(unique_ptr<VarWrapper> lh, unique_ptr<VarWrapper> rh, int linenum):
         AbstractCommand(linenum), vs(move(lh)), atom(move(rh))
 {
     setType(CommandType::ASSIGNVAR);
 }
 
-AssignVarCommand::AssignVarCommand(unique_ptr<VarSetter> lh, const string& rh, int linenum):
+AssignVarCommand::AssignVarCommand(unique_ptr<VarWrapper> lh, const string& rh, int linenum):
         AbstractCommand(linenum), vs(move(lh)), atom(move(rh))
 {
     setType(CommandType::ASSIGNVAR);
 }
 
-AssignVarCommand::AssignVarCommand(unique_ptr<VarSetter> lh, const Atom& rh, int linenum):
+AssignVarCommand::AssignVarCommand(unique_ptr<VarWrapper> lh, const Atom& rh, int linenum):
         AbstractCommand(linenum), vs(move(lh)), atom(move(rh))
 {
     setType(CommandType::ASSIGNVAR);
 }
 
-void AssignVarCommand::setVarSetter(std::unique_ptr<VarSetter> sv)
+void AssignVarCommand::setVarWrapper(std::unique_ptr<VarWrapper> sv)
 {
     vs = move(sv);
 }
@@ -307,7 +350,7 @@ unique_ptr<AbstractCommand> AssignVarCommand::clone()
 }
 
 //PopCommand
-PopCommand::PopCommand(unique_ptr<VarSetter> into, int linenum): VarSettingCommand(move(into), linenum)
+PopCommand::PopCommand(unique_ptr<VarWrapper> into, int linenum): VarSettingCommand(move(into), linenum)
 {
     setType(CommandType::POP);
 }
