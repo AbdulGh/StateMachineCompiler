@@ -124,7 +124,7 @@ GottenVarPtr<SymbolicDouble> SDByIndexVar::getSymbolicDouble(SymbolicExecution::
     return GottenVarPtr<SymbolicDouble>(sa->operator[](sv.get()));
 }
 
-bool SDByIndexVar::check(SymbolicExecution::SymbolicExecutionFringe* sef)
+bool SDByIndexVar::check(SymbolicExecution::SymbolicExecutionFringe* sef) const
 {
     SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
     if (sa == nullptr)
@@ -167,7 +167,7 @@ void SDByIndexVar::nondet(SymbolicExecution::SymbolicExecutionFringe* sef)
     sa->nondet(index->getSymbolicDouble(sef).get());
 }
 
-VariableType SDByIndexVar::getVariableType(SymbolicExecution::SymbolicExecutionFringe *sef) const
+VariableType SDByIndexVar::getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const
 {
     return DOUBLE;
 }

@@ -116,7 +116,6 @@ public:
     virtual void setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv) = 0;
     virtual void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv) = 0;
     virtual void nondet(SymbolicExecution::SymbolicExecutionFringe* sef) = 0;
-    virtual bool check(SymbolicExecution::SymbolicExecutionFringe* sef) {return true;}
 };
 
 
@@ -193,7 +192,7 @@ public:
 
     GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
-    bool check(SymbolicExecution::SymbolicExecutionFringe* sef) override;
+    bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     void setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv) override;
     void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv) override;
     void nondet(SymbolicExecution::SymbolicExecutionFringe* sef) override;

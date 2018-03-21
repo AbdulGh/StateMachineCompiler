@@ -14,8 +14,12 @@ bool AbstractCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symb
 
 bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
-    vs->nondet(sef.get());
-    return true;
+    if (vs->check(sef.get()))
+    {
+        vs->nondet(sef.get());
+        return true;
+    }
+    else return false;
 }
 
 bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
@@ -26,14 +30,18 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
     {
         case StringType::ID:
         {
-            GottenVarPtr<SymbolicVariable> found = atom.getVarWrapper()->getSymbolicVariable(sef.get());
-            if (!found->isFeasable()) throw "should be feasable";
-            else if (!found->isDefined())
+            if (atom.getVarWrapper()->check(sef.get()))
             {
-                sef->warn(Reporter::UNINITIALISED_USE, "'" + found->getName() + "' pushed without being defined", getLineNum());
-            }
+                GottenVarPtr<SymbolicVariable> found = atom.getVarWrapper()->getSymbolicVariable(sef.get());
+                if (!found->isFeasable()) throw "should be feasable";
+                else if (!found->isDefined())
+                {
+                    sef->warn(Reporter::UNINITIALISED_USE, "'" + found->getName() + "' pushed without being defined", getLineNum());
+                }
 
-            sef->symbolicStack->pushVar(move(found));
+                sef->symbolicStack->pushVar(move(found));
+            }
+            else return false;
             break;
         }
         case StringType::DOUBLELIT:
@@ -72,21 +80,26 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
         return false;
     }
 
-
     unique_ptr<SymbolicVariable> popped = sef->symbolicStack->popVar();
-    vs->setSymbolicVariable(sef.get(), popped.release());
-    return true;
+    if (vs->check(sef.get()))
+    {
+        vs->setSymbolicVariable(sef.get(), popped.release());
+        return true;
+    }
+    else return false;
 }
 
 bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
+    if (vs->check(sef.get())) return false;
     if (atom.isHolding())
     {
+        if (!atom.getVarWrapper()->check(sef.get())) return false;
         GottenVarPtr<SymbolicVariable> svp = atom.getVarWrapper()->getSymbolicVariable(sef.get());
         if (svp->isFeasable()) return false;
         vs->setSymbolicVariable(sef.get(), svp.get());
     }
-    else atom.getVarWrapper()->getSymbolicVariable(sef.get())->setConstValue(*atom.getString()); //aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    else vs->getSymbolicVariable(sef.get())->setConstValue(*atom.getString());
 
     return true;
 }
