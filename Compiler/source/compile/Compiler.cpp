@@ -46,6 +46,10 @@ void Compiler::compile(stringstream& out)
     cfg.setLast(mainFuncSym->getLastNode()->getName());
 
     Optimise::optimise(symbolTable, functionTable, cfg);
+    cout << cfg.getStructuredSource() << endl;
+    return;
+
+
 
     SymbolicExecution::SymbolicExecutionManager symbolicExecutionManager
             = SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter);
@@ -55,7 +59,6 @@ void Compiler::compile(stringstream& out)
     vector<Loop> loops = LengTarj(cfg).findLoops();
     for (Loop& loop : loops) cout << loop.getInfo() << endl;
 
-    cout << cfg.getStructuredSource() << endl;
     return;
     for (Loop& loop : loops) loop.validate(tags);
 
@@ -69,7 +72,7 @@ Token Compiler::nextToken()
     return *(tp++);
 }
 
-Identifier* Compiler::findVariable(VarWrapper* vg, VariableType* vtype)
+Identifier* Compiler::findVariable(VarWrapper* vg, VariableType* vtype) //todo check usage of this (should be redundant)
 {
     Identifier* ret = symbolTable.findIdentifier(vg->getBaseName());
     if (ret == nullptr) error("Undeclared variable '" + vg->getBaseName() + "'");
@@ -146,7 +149,7 @@ void Compiler::findGlobalsAndMakeStates()
             else //must be a global variable declaration
             {
                 VariableType t = vtype();
-                string id = identPlain();
+                string id = plainIdent();
 
                 Identifier* i = symbolTable.declare(t, id, lookahead.line);
                 initialState.push_back(make_unique<DeclareVarCommand>(t, i->getUniqueID(), lookahead.line));

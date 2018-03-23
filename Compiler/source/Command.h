@@ -27,18 +27,21 @@ private:
 
 
 public:
-    Atom(const std::string&);
-    Atom(std::unique_ptr<VarWrapper>);
+    explicit Atom(const std::string&, bool allowEmpty = false);
+    explicit Atom(std::unique_ptr<VarWrapper>);
     Atom(const Atom& o);
     bool isHolding() const;
     StringType getType() const;
     const std::string* getString() const;
     const VarWrapper* getVarWrapper() const;
     void swap(Atom& a);
-    void become(Atom& a);
+    void become(const Atom& a);
     void set(const std::string& sptr);
     void set(std::unique_ptr<VarWrapper> sptr);
     operator std::string() const;
+    //used to put assignments in maps in dataflow
+    bool operator<(const Atom& right) const;
+    bool operator==(const Atom& right) const;
     ~Atom();
 };
 
@@ -100,7 +103,7 @@ protected:
 public:
     AtomHoldingCommand(Atom a, int linenum): AbstractCommand(linenum), atom(std::move(a)) {}
     Atom& getAtom() override {return atom;}
-    void setAtom(Atom data) override {atom = data;}
+    void setAtom(Atom data) override {atom = std::move(data);}
 };
 
 class WrapperHoldingCommand : public AbstractCommand
@@ -217,18 +220,28 @@ public:
 };
 
 class FunctionSymbol;
-class PushCommand: public AtomHoldingCommand
+class PushCommand: public AbstractCommand
 {
+private:
+    std::unique_ptr<Atom> atom;
+    std::string state;
+
 public:
     StringType stringType;
     FunctionSymbol* calledFunction;
     unsigned int pushedVars;
 
     PushCommand(const std::string& in, int linenum, FunctionSymbol* cf = nullptr, unsigned int numPushedLocalVars = 0):
-    AtomHoldingCommand(Atom(in), linenum), calledFunction(cf), pushedVars(numPushedLocalVars), stringType(getStringType(in))
+            AbstractCommand(linenum), calledFunction(cf), pushedVars(numPushedLocalVars), stringType(getStringType(in))
     {
+        if (!calledFunction) atom = std::make_unique<Atom>(in);
+        else state = in;
         setType(CommandType::PUSH);
     }
+
+    PushCommand(std::unique_ptr<VarWrapper> in, int linenum);
+    std::unique_ptr<AbstractCommand> clone() override;
+    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 
     inline bool pushesState() const
     {
@@ -237,16 +250,24 @@ public:
 
     std::string translation(const std::string& delim) const override
     {
-        if (pushesState()) return "push state " + std::string(atom) + ";" + delim;
-        else return "push " + std::string(atom) + ";" + delim;
+        if (pushesState()) return "push state " + state + ";" + delim;
+        else return "push " + std::string(*atom) + ";" + delim;
     }
 
-    std::unique_ptr<AbstractCommand> clone() override
+    const std::string& getState() const override
     {
-        return std::make_unique<PushCommand>(atom, getLineNum(), calledFunction);
+        if (!pushesState()) throw "doesn't push state";
+        return state;
     }
 
-    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
+    Atom& getAtom() override
+    {
+        if (pushesState()) throw "doesn't push atom";
+        return *atom;
+    }
+
+    void setAtom(Atom data) override {atom = std::make_unique<Atom>(data);}
+
 };
 
 class PopCommand: public WrapperHoldingCommand
@@ -272,7 +293,7 @@ public:
     AssignVarCommand(std::unique_ptr<VarWrapper> lh, std::unique_ptr<VarWrapper> rh, int linenum);
     AssignVarCommand(std::unique_ptr<VarWrapper> lh, const std::string& rh, int linenum);
     Atom& getAtom() override {return atom;}
-    void setAtom(Atom data) override {atom = data;}
+    void setAtom(Atom data) override {atom = std::move(data);}
     const std::unique_ptr<VarWrapper>& getVarWrapper() const override {return vs;}
     void setVarWrapper(std::unique_ptr<VarWrapper> sv) override;
     std::unique_ptr<AbstractCommand> clone() override;
@@ -292,7 +313,9 @@ public:
     };
 
     Term(const std::string& toParse);
+    Term(double doub);
     Term(const Term& other);
+    Term(std::unique_ptr<VarWrapper> vg);
     Term(Term&& other);
     ~Term();
 

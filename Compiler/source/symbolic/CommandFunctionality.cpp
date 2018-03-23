@@ -63,9 +63,10 @@ WrapperHoldingCommand::WrapperHoldingCommand(std::unique_ptr<VarWrapper> vw, int
 
 void WrapperHoldingCommand::setVarWrapper(std::unique_ptr<VarWrapper> nvs) {vs = move(nvs);}
 
-Atom::Atom(const string& s): holding(false) //todo next check use of this constructor (& string set below), avoid redundant st testing
+Atom::Atom(const string& s, bool allowEmpty): holding(false)
 {
-    type = getStringType(s);
+    if (allowEmpty && s.empty()) type = StringType::STRINGLIT;
+    else type = getStringType(s);
     if (type == StringType::ID) throw runtime_error("bad");
     sptr = new string(s);
 }
@@ -139,7 +140,7 @@ void Atom::swap(Atom& a)
     }
 }
 
-void Atom::become(Atom& other)
+void Atom::become(const Atom& other)
 {
     if (holding) delete vptr; else delete sptr;
     type = other.type;
@@ -167,9 +168,24 @@ void Atom::set(unique_ptr<VarWrapper> vg)
     holding = true;
 }
 
+bool Atom::operator<(const Atom& right) const
+{
+    if (holding != right.holding) return holding;
+    else if (holding) return vptr->getFullName() < right.vptr->getFullName();
+    else return (*sptr) < *(right.sptr);
+}
+
+bool Atom::operator==(const Atom& right) const
+{
+    if (holding != right.holding) return false;
+    else if (holding) return vptr->getFullName() == right.vptr->getFullName();
+    else return (*sptr) == *(right.sptr);
+}
+
+
 bool Atom::isHolding() const {return holding;}
 
-const std::string* Atom::getString() const
+const std::string* Atom::getString() const //todo make this return string ref directly
 {
     return sptr;
 }
@@ -183,7 +199,7 @@ StringType Atom::getType() const {return type;}
 
 Atom::operator std::string() const
 {
-    if (type == StringType::ID) return vptr->getFullName();
+    if (holding) return vptr->getFullName();
     else return *sptr;
 }
 
@@ -242,6 +258,14 @@ Term::Term(const Term& other) : vg{}
     if (isLit) d = other.d;
     else vg = other.vg->clone();
 }
+
+Term::Term(double doub) : vg{}
+{
+    isLit = true;
+    d = doub;
+}
+
+Term::Term(std::unique_ptr<VarWrapper> itmoveit): vg(move(itmoveit)), isLit(false) {}
 
 Term::Term(Term&& other) : vg{}
 {
@@ -368,5 +392,20 @@ string PopCommand::translation(const string& delim) const
 unique_ptr<AbstractCommand> PopCommand::clone()
 {
     return make_unique<PopCommand>(vs->clone(), getLineNum());
+}
+
+//PushCommand
+PushCommand::PushCommand(std::unique_ptr<VarWrapper> in, int linenum):
+        AbstractCommand(linenum), calledFunction(nullptr),pushedVars(0), stringType(StringType::ID)
+{
+    atom = make_unique<Atom>(move(in));
+    setType(CommandType::PUSH);
+}
+
+std::unique_ptr<AbstractCommand> PushCommand::clone()
+{
+    if (pushesState()) return std::make_unique<PushCommand>(state, getLineNum(), calledFunction);
+    else if (atom->isHolding()) return std::make_unique<PushCommand>(atom->getVarWrapper()->clone(), getLineNum());
+    else return std::make_unique<PushCommand>(*(atom->getString()), getLineNum(), nullptr);
 }
 

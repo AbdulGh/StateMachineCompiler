@@ -20,7 +20,7 @@ void Compiler::body()
     {
         match(FUNCTION);
 
-        std::string funName = identPlain();
+        std::string funName = plainIdent();
 
         FunctionSymbol* fs = functionTable.getFunction(funName);
 
@@ -32,15 +32,14 @@ void Compiler::body()
         {
             VariableType t = vtype();
             unsigned int line = lookahead.line;
-            AccessType atcheck;
-            unique_ptr<VarWrapper> s = wrappedIdent(&atcheck);
-            if (atcheck != AccessType::DIRECT) error("'" + s->getFullName() + "' is not a valid function parameter");
-            Identifier* vid = symbolTable.declare(t, s->getFullName(), line);
+            string s = plainIdent();
+            if (lookahead.type != COMMA && lookahead.type != RPAREN) error("'" + s + "' is not a valid function parameter");
+            Identifier* vid = symbolTable.declare(t, s, line);
             vid->setDefined();
             const string& vidName = vid->getUniqueID();
-            argumentStack.push(make_unique<PopCommand>(move(s), lookahead.line));
+            argumentStack.push(make_unique<PopCommand>(make_unique<SVByName>(s), lookahead.line));
             argumentStack.push(make_unique<DeclareVarCommand>(t, vidName, lookahead.line));
-            fs->addVar(s->clone().release());
+            fs->addVar(new SVByName(s));
             if (lookahead.type == COMMA)
             {
                 match(COMMA);
@@ -129,7 +128,7 @@ bool Compiler::statement(FunctionSymbol* fs)
     {
         unsigned int size = 0;
         VariableType t = vtype(&size);
-        auto id = identPlain();
+        auto id = plainIdent();
         if (symbolTable.isInScope(id)) //set to '0' or '""' depending on type
         {
             error("Variable '" + id + "' is already in scope");
@@ -197,8 +196,8 @@ bool Compiler::statement(FunctionSymbol* fs)
     }
     else if (lookahead.type == IDENT)
     {
-        std::unique_ptr<VarWrapper> setter = wrappedIdent();
-        Identifier* idPtr = findVariable(setter.get());
+        Identifier* idPtr;
+        std::unique_ptr<VarWrapper> setter = wrappedIdent(&idPtr);
         match(ASSIGN);
         if (idPtr->getType() == VariableType::STRING)
         {
@@ -272,16 +271,16 @@ VariableType Compiler::vtype(unsigned int* size)
     return t;
 }
 
-unique_ptr<VarWrapper> Compiler::wrappedIdent(AccessType *at)
+unique_ptr<VarWrapper> Compiler::wrappedIdent(Identifier** idp)
 {
     string s = lookahead.lexemeString;
     Compiler::match(IDENT);
     Identifier* id = symbolTable.findIdentifier(s);
     if (!id) throw "aaaaaaaa";
+    if (idp) *idp = id;
     s = id->getUniqueID();
     if (lookahead.type == LSQPAREN)
     {
-        if (at != nullptr) *at = AccessType::BYARRAY;
         match(LSQPAREN);
 
         if (lookahead.type == NUMBER)
@@ -298,14 +297,10 @@ unique_ptr<VarWrapper> Compiler::wrappedIdent(AccessType *at)
             return make_unique<SDByIndexVar>(s, move(indexVar));
         }
     }
-    else
-    {
-        if (at != nullptr) *at = AccessType::DIRECT;
-        return make_unique<SVByName>(s);
-    }
+    else return make_unique<SVByName>(s);
 }
 
-std::string Compiler::identPlain()
+std::string Compiler::plainIdent()
 {
     string s = lookahead.lexemeString;
     Compiler::match(IDENT);

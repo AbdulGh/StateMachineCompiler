@@ -298,6 +298,8 @@ FunctionCall* FunctionSymbol::getOnlyFunctionCall()
 
 void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret, bool fixCalling)
 {
+    //if (calling == "F1_ack_10" || ret == "F1_ack_10" || )
+
     // FIRST STATE:
     // first push the function vars used so far
     // push the return state
@@ -312,9 +314,6 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
     // RETURNED TO STATE:
     // first pop function local vars
     // if the function return value is being assigned to something, copy it over
-
-
-
 
     //find if we can find this specific call, and if this is the only time this node is returned to
     unsigned int numRet = 0;
@@ -455,6 +454,12 @@ void FunctionSymbol::genPush(std::string s, int linenum, FunctionSymbol* calledF
 {
     if (endedState) throw "No state to add to";
     currentInstrs.push_back(make_unique<PushCommand>(move(s), linenum, calledFunction));
+}
+
+void FunctionSymbol::genPush(unique_ptr<VarWrapper> vw, int linenum)
+{
+    if (endedState) throw "No state to add to";
+    currentInstrs.push_back(make_unique<PushCommand>(move(vw), linenum));
 }
 
 void FunctionSymbol::genInput(unique_ptr<VarWrapper> s, int linenum)

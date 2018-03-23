@@ -23,7 +23,7 @@ protected:
 public:
     virtual ~AbstractExprNode() = default;
     virtual void addNode(AbstractExprNode*) = 0;
-    virtual const std::string& getData() const {throw std::runtime_error("no data");}
+    virtual const std::unique_ptr<VarWrapper>& getVarWrapper() const {throw std::runtime_error("no var");}
     NodeType getType() const;
     bool isAtom();
     virtual AbstractExprNode* getLeft() = 0;
@@ -52,17 +52,19 @@ public:
 class AtomNode : public AbstractExprNode
 {
 private:
-    std::string data;
-    int varsRequired;
+    std::unique_ptr<VarWrapper> data;
     double doub;
+    int varsRequired;
 public:
     AbstractExprNode* getLeft() override;
     AbstractExprNode* getRight() override;
 
-    AtomNode(std::string, bool);
+    AtomNode(std::unique_ptr<VarWrapper>);
+    AtomNode(double d);
     double getDouble() override {return doub;}
-    const std::string& getData() const override;
-    void setData(std::string);
+    const std::unique_ptr<VarWrapper>& getVarWrapper() const override;
+    void setData(std::unique_ptr<VarWrapper> vw);
+    void setData(double d);
     void addNode(AbstractExprNode*) override;
 };
 

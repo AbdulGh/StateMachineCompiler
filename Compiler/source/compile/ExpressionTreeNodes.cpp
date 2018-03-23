@@ -1,4 +1,5 @@
 #include "ExpressionCodeGenerator.h"
+#include "../symbolic/VarWrappers.h"
 
 using namespace std;
 
@@ -108,15 +109,16 @@ AbstractExprNode* OperatorNode::getRight()
     return right;
 }
 
-AtomNode::AtomNode(string in, bool num):
-        varsRequired(0), data(in)
+AtomNode::AtomNode(std::unique_ptr<VarWrapper> vw):
+        varsRequired(0), data(move(vw))
 {
-    if (num)
-    {
-        setType(LITERAL);
-        doub = stod(in);
-    }
-    else setType(IDENTIFIER);
+    setType(IDENTIFIER);
+}
+
+AtomNode::AtomNode(double d):
+    varsRequired(0), doub(d)
+{
+    setType(LITERAL);
 }
 
 AbstractExprNode* AtomNode::getLeft()
@@ -134,12 +136,19 @@ void AtomNode::addNode(AbstractExprNode*)
     throw "Atoms have no children";
 }
 
-const string& AtomNode::getData() const
+const unique_ptr<VarWrapper>& AtomNode::getVarWrapper() const
 {
     return data;
 }
 
-void AtomNode::setData(std::string s)
+void AtomNode::setData(unique_ptr<VarWrapper> s)
 {
     data = move(s);
+    setType(IDENTIFIER);
+}
+
+void AtomNode::setData(double d)
+{
+    doub = d;
+    setType(LITERAL);
 }

@@ -71,10 +71,7 @@ public:
     std::unique_ptr<T> release()
     {
         if (constructed()) return move(up);
-        else
-        {
-            return std::unique_ptr<T>(rp);
-        }
+        else return std::unique_ptr<T>(rp);
     }
 
     T& operator*()

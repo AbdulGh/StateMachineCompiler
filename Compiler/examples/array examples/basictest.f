@@ -1,6 +1,6 @@
 function main() void
 {
     double[4] array;
-    double x = array[5] + 2;
+    double x = array[4] + 2;
     print(x);
 }

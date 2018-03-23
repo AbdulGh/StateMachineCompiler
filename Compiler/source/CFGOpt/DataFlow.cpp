@@ -49,7 +49,7 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
                                       [&, lhs](const Assignment& ass)
                                       { return ass.lhs == lhs; });
                     if (it != genSet.end()) genSet.erase(it);
-                    genSet.insert(Assignment(lhs, string(instr->getAtom())));
+                    genSet.insert(Assignment(lhs, instr->getAtom()));
                     killSet.erase(lhs);
                     break;
                 }
@@ -64,7 +64,7 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
                                       { return ass.lhs == lhs; });
                     if (it != genSet.end()) genSet.erase(it);
                     string defaultStr = dvc->vt == DOUBLE ? "0" : "";
-                    genSet.insert(Assignment(lhs, move(defaultStr)));
+                    genSet.insert(Assignment(lhs, Atom(defaultStr, true)));
                     killSet.erase(lhs);
                     break;
                 }
@@ -98,7 +98,6 @@ void AssignmentPropogationDataFlow::finish()
 
         unordered_map<string, Atom> mapToPass;
         for (const Assignment& ass : inAss) mapToPass.emplace(ass.lhs, ass.rhs);
-
         node->constProp(move(mapToPass));
     }
 }
@@ -145,6 +144,10 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 }
                 //simple commands that just read some variable
                 case CommandType::PUSH:
+                {
+                    PushCommand* pc = static_cast<PushCommand*>(instr.get());
+                    if (pc->pushesState()) continue;
+                }
                 case CommandType::PRINT:
                 {
                     const Atom& at = instr->getAtom();
@@ -212,15 +215,24 @@ void LiveVariableDataFlow::finish()
         {
             std::string name;
             CommandType acType = ac->getType();
-            
-            if (acType == CommandType::ASSIGNVAR
-                || acType == CommandType::EXPR
-                || acType == CommandType::INPUTVAR) name = ac->getVarWrapper()->getBaseName();
-            
-            else if (acType == CommandType::DECLAREVAR)
+
+            switch (ac->getType())
             {
-                DeclareCommand* dvc = static_cast<DeclareVarCommand*>(ac.get());
-                name = dvc->getBaseName();
+                case CommandType::ASSIGNVAR:
+                case CommandType::EXPR:
+                case CommandType::INPUTVAR:
+                    name = ac->getVarWrapper()->getBaseName();
+                    break;
+
+                case CommandType::DECLAREVAR:
+                {
+                    DeclareCommand *dvc = static_cast<DeclareVarCommand *>(ac.get());
+                    name = dvc->getBaseName();
+                    break;
+                }
+                default:
+                    newInstrs.push_back(move(ac));
+                    continue;
             }
             
             if (isDead(name))

@@ -81,21 +81,18 @@ AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
         {
             AbstractExprNode* negateMul = new OperatorNode(MULT);
             negateMul->addNode(ep);
-            negateMul->addNode(new AtomNode("-1", true));
+            negateMul->addNode(new AtomNode(-1));
             return negateMul;
         }
         else return ep;
     };
 
-    if (parent.lookahead.type == IDENT)
-    {
-        unique_ptr<VarWrapper> vg = parent.wrappedIdent();
-        return withNeg(new AtomNode(vg->getFullName(), false));
-    }
+    if (parent.lookahead.type == IDENT) return withNeg(new AtomNode(parent.wrappedIdent()));
     else if (parent.lookahead.type == NUMBER)
     {
-        AbstractExprNode* ref = new AtomNode(toNegate ? "-" +parent.lookahead.lexemeString :
-                                                    parent.lookahead.lexemeString, true);
+        double d = stod(parent.lookahead.lexemeString);
+        if (toNegate) d *= -1;
+        AbstractExprNode* ref = new AtomNode(d);
         parent.match(NUMBER);
         return ref;
     }
@@ -110,9 +107,8 @@ AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
     {
         parent.genFunctionCall(fs, DOUBLE);
         unique_ptr<VarWrapper> uni = genUnique(fs);
-        std::string name = uni->getFullName();
-        fs->genAssignment(move(uni), "retD", parent.lookahead.line);
-        return withNeg(new AtomNode(name, false));
+        fs->genAssignment(uni->clone(), make_unique<SVByName>("retD"), parent.lookahead.line);
+        return withNeg(new AtomNode(move(uni)));
     }
     else parent.error("Expected identifier or double in expression");
 }
@@ -152,12 +148,12 @@ bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol*
     {
         if (p->getType() == LITERAL)
         {
-            ret = stod(p->getData());
+            ret = p->getDouble();
             return true;
         }
         else
         {
-            fs->genAssignment(genTemp(fs, reg), p->getData(), parent.lookahead.line);
+            fs->genAssignment(genTemp(fs, reg), p->getVarWrapper()->clone(), parent.lookahead.line);
             return false;
         }
     }
@@ -165,22 +161,28 @@ bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol*
     AbstractExprNode* leftp = p->getLeft();
     AbstractExprNode* rightp = p->getRight();
     double dl, dr;
-    string left, right;
+    std::unique_ptr<VarWrapper> left, right;
     bool leftlit = leftp->getType() == LITERAL;
     bool rightlit = rightp->getType() == LITERAL;
 
-    if (leftlit) dl = stod(leftp->getData());
-    if (rightlit) dr = stod(rightp->getData());
+    if (leftlit) dl = leftp->getDouble();
+    if (rightlit) dr = rightp->getDouble();
 
     if (!leftlit || !rightlit)
     {
-        if (leftp->isAtom()) left = leftp->getData();
-        else if (leftlit = translateTree(leftp, fs, reg, dl)) left = to_string(dl);
-        else left = genTemp(fs, reg)->getFullName(); //todo VarWrapper -> term
-        
-        if (rightp->isAtom()) right = rightp->getData();
-        else if (rightlit = translateTree(rightp, fs, reg + 1, dr)) right = to_string(dr);
-        else right = genTemp(fs, reg + 1)->getFullName();
+        if (leftp->isAtom()) left = leftp->getVarWrapper()->clone();
+        else
+        {
+            leftlit = translateTree(leftp, fs, reg, dl);
+            if (!leftlit) left = genTemp(fs, reg); //todo VarWrapper -> term
+        }
+
+        if (rightp->isAtom()) right = leftp->getVarWrapper()->clone();
+        else
+        {
+            rightlit = translateTree(rightp, fs, reg + 1, dr);
+            if (!rightlit) right = genTemp(fs, reg + 1);
+        }
     }
 
     if (leftlit && rightlit)
@@ -190,10 +192,24 @@ bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol*
     }
     else
     {
-        auto debug1 = Term(left);
-        auto debug2 = Term(right);
-        auto debug3 = p;
-        fs->genExpr(genTemp(fs, reg), debug1, p->getOp(), debug2, parent.lookahead.line);
+        if (leftlit)
+        {
+            auto tl = Term(dl);
+            auto tr = Term(move(right));
+            fs->genExpr(genTemp(fs, reg), tl, p->getOp(), tr, parent.lookahead.line);
+        }
+        else if (rightlit)
+        {
+            auto tl = Term(move(left));
+            auto tr = Term(dr);
+            fs->genExpr(genTemp(fs, reg), tl, p->getOp(), tr, parent.lookahead.line);
+        }
+        else
+        {
+            auto tl = Term(move(left));
+            auto tr = Term(move(right));
+            fs->genExpr(genTemp(fs, reg), tl, p->getOp(), tr, parent.lookahead.line);
+        }
         return false;
     }
 }

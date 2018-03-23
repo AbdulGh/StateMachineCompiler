@@ -122,7 +122,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
             {
                 auto avc = static_cast<AssignVarCommand*>(current.get());
                 const string& lhsname = avc->getVarWrapper()->getFullName();
-                if (avc->getAtom().getType() != StringType::ID) assignments.emplace(lhsname, Atom(avc->getAtom()));
+                if (avc->getAtom().isHolding()) assignments.emplace(lhsname, Atom(avc->getAtom()));
                 else
                 {
                     const string& vname = *avc->getAtom().getString();
@@ -133,7 +133,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                         assignments.emplace(lhsname, Atom(found));
                         avc->getAtom().become(found);
                     }
-                    else assignments.emplace(lhsname, name);
+                    else assignments.emplace(lhsname, vname);
                 }
 
                 if (lhsname != string(avc->getAtom())) newInstrs.push_back(move(current));
@@ -205,7 +205,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
             case CommandType::PRINT:
             {
                 unordered_map<string, Atom>::const_iterator t1it = assignments.find(string(current->getAtom()));
-                if (t1it != assignments.end()) current->setAtom(t1it->second);
+                if (t1it != assignments.end()) current->getAtom().become(t1it->second);
                 newInstrs.push_back(move(current));
                 break;
             }
@@ -270,10 +270,22 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
 
     if (comp != nullptr)
     {
-        /*if (comp->term1.type == StringType::ID &&
-            assignments.find(string(comp->term1)) != assignments.end()) comp->setTerm1(assignments[string(comp->term1)]);
-        if (comp->term2.type == StringType::ID &&
-            assignments.find(string(comp->term2)) != assignments.end()) comp->setTerm2(assignments[string(comp->term2)]);*/
+        if (comp->term1.getType() == StringType::ID)
+        {
+            string t1str = string(comp->term1);
+            if (assignments.find(t1str) != assignments.end())
+            {
+                comp->term1.become(assignments.at(t1str));
+            }
+        }
+        if (comp->term2.getType() == StringType::ID)
+        {
+            string t2str = string(comp->term2);
+            if (assignments.find(t2str) != assignments.end())
+            {
+                comp->term2.become(assignments.at(t2str));
+            }
+        }
 
         //check for const comparison
         if (comp->term1.getType() != StringType::ID
@@ -321,6 +333,12 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
 
 bool CFGNode::swallowNode(CFGNode* other)
 {
+    if (name == "debug")
+    {
+        printf("%s swallowing %s\n", name.c_str(), other->name.c_str());
+        printf("before:\n%s\n%s\n", getSource().c_str(), other->getSource().c_str());
+    }
+
     if (other->getName() == name) throw "cant swallow self";
 
     const set<unique_ptr<FunctionCall>>& returnTo = parentFunction->getFunctionCalls();
@@ -380,6 +398,7 @@ bool CFGNode::swallowNode(CFGNode* other)
                 setCompSuccess(nullptr);
             }
 
+            if (name == "debug") printf("after 1:\n%s\n", getSource().c_str());
             return true;
         }
     }
@@ -420,7 +439,8 @@ bool CFGNode::swallowNode(CFGNode* other)
             setComp(nullptr);
             setCompSuccess(nullptr);
         }
-        
+
+        if (name == "debug") printf("after 2:\n%s\n", getSource().c_str());
         return true;
     }
     return false;
@@ -644,7 +664,12 @@ unsigned int CFGNode::getNumPushingStates()
 
 void CFGNode::addFunctionCall(CFGNode* cfgn, FunctionSymbol *fs)
 {
-    if (!pushingStates.insert({cfgn, fs}).second) throw "already in";
+    if (name == "F1_ack_10" && cfgn->getName() == "F1_ack_6")
+    {
+        int debug;
+        debug = 2;
+    }
+    if (!pushingStates.insert({cfgn, fs}).second) throw runtime_error("already in");
 }
 
 void CFGNode::removePushes()
@@ -675,7 +700,14 @@ void CFGNode::removePushes()
             }
             ++i;
         }
-        if (!done) throw "couldnt find state push";
+        if (!done)
+        {
+            //debug
+            string n = name;
+            auto b = it->first->getName();
+            cout << it->first->getSource();
+            throw runtime_error("couldnt find state push");
+        }
         it = pushingStates.erase(it);
     }
 }
@@ -683,7 +715,7 @@ void CFGNode::removePushes()
 void CFGNode::replacePushes(const std::string& other)
 {
     CFGNode* toReplaceWith = parentGraph.getNode(other);
-    if (toReplaceWith == nullptr) throw "asked to replace w/ nonexistent node";
+    if (toReplaceWith == nullptr) throw runtime_error("asked to replace w/ nonexistent node");
 
     for (const auto& ps : pushingStates)
     {

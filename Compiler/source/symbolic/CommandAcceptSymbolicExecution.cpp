@@ -24,15 +24,15 @@ bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symb
 
 bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
-    if (calledFunction != nullptr) sef->symbolicStack->pushState(*atom.getString());
+    if (calledFunction != nullptr) sef->symbolicStack->pushState(*atom->getString());
 
     else switch(stringType)
     {
         case StringType::ID:
         {
-            if (atom.getVarWrapper()->check(sef.get()))
+            if (atom->getVarWrapper()->check(sef.get()))
             {
-                GottenVarPtr<SymbolicVariable> found = atom.getVarWrapper()->getSymbolicVariable(sef.get());
+                GottenVarPtr<SymbolicVariable> found = atom->getVarWrapper()->getSymbolicVariable(sef.get());
                 if (!found->isFeasable()) throw "should be feasable";
                 else if (!found->isDefined())
                 {
@@ -46,12 +46,12 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
         }
         case StringType::DOUBLELIT:
         {
-            sef->symbolicStack->pushDouble(stod(*atom.getString()));
+            sef->symbolicStack->pushDouble(stod(*atom->getString()));
             break;
         }
         case StringType::STRINGLIT:
         {
-            sef->symbolicStack->pushString(*atom.getString());
+            sef->symbolicStack->pushString(*atom->getString());
             break;
         }
         default:

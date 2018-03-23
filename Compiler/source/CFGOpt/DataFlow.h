@@ -145,9 +145,9 @@ namespace DataFlow
     struct Assignment
     {
         std::string lhs;
-        std::string rhs;
+        Atom rhs;
 
-        Assignment(std::string l, std::string r) : lhs(move(l)), rhs(move(r))
+        Assignment(std::string l, Atom r) : lhs(move(l)), rhs(std::move(r))
         {}
 
         bool operator<(const Assignment& right) const

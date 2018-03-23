@@ -5,7 +5,7 @@ using namespace std;
 VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType, unique_ptr<VarWrapper> uid) //todo remember why this returns a vtype
 {
     match(Type::CALL);
-    string fid = identPlain();
+    string fid = plainIdent();
     FunctionSymbol *toFS = functionTable.getFunction(fid);
 
     if (expectedType != ANY && !toFS->isOfType(expectedType))
@@ -16,7 +16,7 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expe
 
     //push all vars
     const set<VarWrapper*>& fromVars = fromFS->getVars(); //sets are ordered
-    for (auto& s : fromVars) fromFS->genPush(s->getFullName(), lookahead.line);
+    for (auto& s : fromVars) fromFS->genPush(s->clone(), lookahead.line);
 
     string nextState = fromFS->newStateName();
     fromFS->genPush(nextState, lookahead.line, toFS);
@@ -43,10 +43,11 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expe
             }
             else
             {
-                unique_ptr<VarWrapper> vg = wrappedIdent();
-                Identifier* idp = findVariable(vg.get());
-                paramTypes.push_back(idp->getType());
-                fromFS->genPush(vg->getFullName(), lookahead.line);
+                Identifier* id;
+                unique_ptr<VarWrapper> vg = wrappedIdent(&id);
+                VariableType type = id->getType();
+                paramTypes.push_back(type == ARRAY ? DOUBLE : type);
+                fromFS->genPush(move(vg), lookahead.line);
             }
             if (lookahead.type == Type::COMMA)
             {
@@ -64,7 +65,6 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expe
     CFGNode* finishedState = fromFS->getCurrentNode();
     cfg.createNode(nextState, true, false, fromFS); //forward create returned to state
     fromFS->genEndState();
-
     fromFS->genNewState(nextState);
     CFGNode* created = fromFS->getCurrentNode();
     toFS->addFunctionCall(finishedState, created, fromVars.size());
@@ -73,10 +73,7 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expe
     created->addParent(toFS->getLastNode());
 
     //pop all vars back
-    for (auto rit = fromVars.rbegin(); rit != fromVars.rend(); ++rit)
-    {
-        fromFS->genPop((*rit)->clone(), lookahead.line);
-    }
+    for (auto rit = fromVars.rbegin(); rit != fromVars.rend(); ++rit) fromFS->genPop((*rit)->clone(), lookahead.line);
 
     if (uid)
     {
@@ -237,9 +234,9 @@ void Compiler::condition(FunctionSymbol* fs, string success, string fail)
 {
     expression(fs, make_unique<SVByName>("LHS"));
     Relations::Relop r = relop();
-    expression(fs, make_unique<SVByName>("rhs"));
+    expression(fs, make_unique<SVByName>("RHS"));
 
-    fs->genConditionalJump(move(success), make_unique<SVByName>("LHS"), r, make_unique<SVByName>("LHS"), lookahead.line);
+    fs->genConditionalJump(move(success), make_unique<SVByName>("LHS"), r, make_unique<SVByName>("RHS"), lookahead.line);
     fs->genJump(move(fail), lookahead.line);
     fs->genEndState();
 }
