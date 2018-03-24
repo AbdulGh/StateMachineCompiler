@@ -37,9 +37,9 @@ void Compiler::body()
             Identifier* vid = symbolTable.declare(t, s, line);
             vid->setDefined();
             const string& vidName = vid->getUniqueID();
-            argumentStack.push(make_unique<PopCommand>(make_unique<SVByName>(s), lookahead.line));
+            argumentStack.push(make_unique<PopCommand>(make_unique<SVByName>(vidName), lookahead.line));
             argumentStack.push(make_unique<DeclareVarCommand>(t, vidName, lookahead.line));
-            fs->addVar(new SVByName(s));
+            fs->addVar(new SVByName(vid->getUniqueID()));
             if (lookahead.type == COMMA)
             {
                 match(COMMA);

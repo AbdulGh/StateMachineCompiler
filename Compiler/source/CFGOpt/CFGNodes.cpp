@@ -26,7 +26,7 @@ const string &CFGNode::getName() const
     return name;
 }
 
-string CFGNode::getSource(bool makeState, std::string delim, bool escape)
+string CFGNode::getSource(bool makeState, std::string delim, bool escape) const
 {
     stringstream outs;
 
@@ -555,7 +555,11 @@ vector<CFGNode*> CFGNode::getSuccessorVector() const
     if (getCompFail() != nullptr) successors.push_back(getCompFail());
     else
     {
-        if (!isLastNode()) throw "only last node can return";
+        if (!isLastNode())
+        {
+            printf("debug\n %s\n\n", getSource().c_str());
+            throw "only last node can return";
+        }
         for (const auto& retSucc : getParentFunction()->getNodesReturnedTo()) successors.push_back(retSucc);
     }
     return successors;
@@ -751,7 +755,7 @@ void CFGNode::prepareToDie()
             auto pc = static_cast<PushCommand*>(ac.get());
             if (pc->pushesState())
             {
-                const string& nodename = string(pc->getAtom());
+                const string& nodename = pc->getState();
                 CFGNode* pushedNode = parentGraph.getNode(nodename);
                 if (!pushedNode) throw "could not find node";
                 pc->calledFunction->removeFunctionCall(name, nodename, false);

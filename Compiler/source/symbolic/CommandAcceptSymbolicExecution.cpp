@@ -24,7 +24,7 @@ bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symb
 
 bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
-    if (calledFunction != nullptr) sef->symbolicStack->pushState(*atom->getString());
+    if (calledFunction != nullptr) sef->symbolicStack->pushState(state);
 
     else switch(stringType)
     {

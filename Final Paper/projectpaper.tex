@@ -62,22 +62,20 @@
 
 \begin{abstract}
 \par
-{\bf Context/Background.} The field of program verification, although fraught with undecidability, has still seen great successes. Many techniques have been developed in order to
-cope with different paradigms and requirements - for example, automated testing of 15K lines of video game code should differ from the formal verification of 600 lines
+{\bf Context/Background.} The field of program verification, although fraught with undecidability, has still seen much success. Many techniques have been developed in order to
+cope with different requirements and standards - for example, automated testing of 15K lines of video game code should differ from the formal verification of 600 lines
 of safety-critical code.
-\emph{Symbolic execution} is one such technique. It simulates the execution of a program using symbolic (rather than concrete) values for variables.
-The development of a verifying compiler has been identified by Hoare as a `Grand Challenge for computing research' \cite{hoare}
 
 {\bf Aims.} The aim of this project is to implement graph-search algorithms in order to detect various bugs, i.e. misuse of arrays and loops that may not terminate. In particular we will focus on detecting `tired programmer errors' such as using unsanitized user input to index arrays and potential overflows.
 
 {\bf Method.} The user will write programs in a high level, procedural, C based language. This will be compiled into a Control Flow Graph (CFG) on which some standard
 optimisations will be applied. Graph-theoretic algorithms will then be used in order to find feasible paths and detect loops.
-Graph theoretic algorithms will be used in an attempt to determine the monotonicity of variables and certify termination (or 
-infinite looping). The CFG will then be translated into machine code for a state-based virtual machine.
+We will then try to determine the monotonicity of variables and certify termination (or 
+infinite looping). The CFG will finally be translated into machine code for a state-based virtual machine.
 
 {\bf Results.} We had success in verifying termination of various looping programs, including recursive functions where termination is not immediately obvious (e.g. the Ackermann function). We were also able to certify nontermination of ruined versions of those looping programs, detect potential out of bounds array accesses, potential division by zero, and potential overflows.
 
-{\bf Conclusions.} In this paper we describe a bug detection method that can be built into the compilation process. This method quickly discoveres a range of errors.
+{\bf Conclusions.} In this paper we describe a bug detection method that can be built into the compilation process. This method quickly discovers a range of errors.
 \end{abstract}
 
 \begin{keywords}
@@ -88,7 +86,7 @@ Program verification, symbolic execution.
 This paper describes the development of a compiler that attempts to verify certain desirable properties of the input during the course of the compiler.
 This has been identified by Hoare as a `A grand challenge for computing research' \cite{hoare} 
 
-Software has become one of the most inportant aspects of modern society.
+Software has become the backbone of modern society.
 The inevitable failures can be anything from annoying to costly to fatal - infamous examples are the failed Ariane 5 launch in 1996
 (costing an estimated 7 billion dollars) and the patriot missile system (costing 28 lives).
 
@@ -128,7 +126,7 @@ The solution was implemented successfully. We managed to verify the termination 
 \subsection{Ranking functions}
 A well founded partial order is a partial order where there are no infinitely decending chains. If we can find a \emph{ranking function} that maps successive loop iterations into a strictly decending chain we know that the loop must always halt. (For example, in the FizzBuzz example \cref{lst:fb} we could take the ranking function \texttt{limit - current} with the codomain being the natural numbers.) This method was popularised by Floyd \citep{assigning meanings to programs}.
 
-This method, although powerful and simple, is hard to automate. One attempt \citep{colon} begins by generalising the idea of a ranking function to strongly connected components (SCS) in a control flow graph - where now the value of the ranking function never increases and strictly decreases on at least one edge in the SCS. Every potentially infinite loop must live in an SCS, and if we succeed in finding such a ranking function we know that an infinite execution cannot use any decreasing edges. We can then remove those edges - if the remainder of the component is still strongly connected, we repeat the procedure.
+This method, although powerful and simple, is hard to automate. One attempt \citep{colon} begins by generalising the idea of a ranking function to strongly connected components (SCS) in a control flow graph - where now the ranking function is defined on the edges of the SCS, never increases on any edge, and strictly decreases on at least one edge. Every potentially infinite loop must live in an SCS, and if we succeed in finding such a ranking function we know that an infinite execution cannot use any decreasing edges. We can then remove those edges - if the remainder of the component is not acyclic, we repeat the procedure.
 
 \subsection{Term rewriting systems}
 Briefly, a \emph{term rewriting system} which transforms an `object' into another `object' by applying transformation rules to `sub-objects'. This framework is very general and touches many ideas of fundamental importance in computer science (i.e., the lambda calculus, semi-Thue systems, grammars). The termination properties of such systems has therefore been very well studied \cite{Zantema, term rewrite systems, p181}.
@@ -136,20 +134,19 @@ Briefly, a \emph{term rewriting system} which transforms an `object' into anothe
 Functional languages such as LISP and Haskell are amenable to interpretation as a rewrite system. Imperative languages, however, need more work. A method given in \citep{A Term Rewriting Approach to the Automated Termination Analysis of Imperative Programs} takes the possible states of the program (the values of variables, including the program coutner) to be the objects and transforms each basic block into a rewrite rule, possibly enriched with a condition given in some logic.
 
 \subsection{Symbolic Execution}
-Graph searching algorithms are sometimes used to detect and remove unreachable code. This method only works with jumps and ignores everything else, and so leads
-to an overapproximation of reachable code.
-
-The search can be enriched with symbolic representations of variables. Each `probe' of the search will act as a possible execution of the program. As each
+The last two methods are powerful but are not well suited to deal with arrays and function calls/stack usage. Many approaches search for bad execution paths by
+simulating program execution, substituting symbolic representations of variables instead of concrete values. Each `probe' of the search will represent a range of possible program executions. As each
 probe proceeds through the program it builds a path condition - the conjunction of conditionals it has taken. This method is named \emph{symbolic execution}.\\
 
-Anand\cite[pp.~2--3]{anand} identifies three issues with symbolic execution.\\
-
-The first is `path explosion'. At every branch we may double the number of paths we must trace. While
+\noindent
+Anand\cite[pp.~2--3]{anand} identifies three issues with symbolic execution:\\
+\begin{enumerate}
+\item \textbf{Path explosion}. At every branch we may double the number of paths we must trace. While
 nothing can be done about this combinatorial increase, I hope to lessen the damage by keeping the overhead
 for each path as low as possible, by using simple constraints and appropriate data structures.\\
 Some other possible solutions are discussed. An interesting one is first summarising each basic block by how it affects certain variables.\\
 
-The second are `complex constraints'. The path conditions generated may be intractable or even undecidable. Some more thorough program verifiers \cite{zhang, PNT}
+\item \textbf{Complex constraints}. The path conditions generated may be intractable or even undecidable. Some more thorough program verifiers \cite{zhang, PNT}
 invoke theorem provers and/or constraint solvers to try and determine the feasability of a path condition. This, while improving accuracy, will increase complexity
 and running time.\\
 In an attempt to deal with this, the intermediate language used to represent the control-flow graph will only
@@ -157,15 +154,15 @@ use conditionals with inequalities between a variable and another variable or co
 will be compiled down into these simple conditions. We will then only maintain possible ranges for each variable. If a range of
 a variable becomes empty, the path is not feasable.\\
 
-Finally he discusses `path divergence'. Innacuracies will be inevitably introduced by modelling complex software with a more simple 
+\item \textbf{Path divergence}. Innacuracies will be inevitably introduced by modelling complex software with a more simple 
 representation. Path divergence refers to the difference between the path followed by a symbolic execution of said model vs the path that
 should be followed in the code a programmer wrote. Simplifications, whilst helping with the first two issues, will cause me to pay
 dearly here. Not only will variables have different names (as the state machine has no scope, variables will be renamed) but it is very
 likely that compilation and optimisation will change the structure of the program to a significant degree. That being said, the representation
 itself can be directly executed and at least detected bugs will apply to the running program.
 
-\subsection{Similar work}
-A similar approach to the solution presented here  `lasoo' approach discussed in \citep{gupta}. It begins by symbolically executing the program and finding paths that revisit some state. It then uses a constraint solver to find states that are recurrent.
+\subsection{More similar work}
+A similar approach to the solution presented here is the `lasoo' approach discussed in \citep{gupta}. It begins by symbolically executing the program and finding paths that revisit some state. It then uses a constraint solver to find states that are recurrent.
 
 Another approach is the method discussed in \cite{loopster}. Like us, it tries to determine the monotonicity of variables in a loop execution. For each loop it builds a path-automata, where the nodes are paths and the edges possible transitions. Feasible cycles in this automaton are then executions of the loop that could run forever.
 However, they don't use a symbolic engine, and cannot work with constructs such as call stacks and arrays.
@@ -475,9 +472,8 @@ while (x > 0){
 \end{lstlisting}
 \end{wrapfigure}
 This bubblesort implementation was correctly determined as halting. The program obtained by any of the update lines, or updating either of the variables the wrong way, was correctly detected as nonterminating with an explanation given. Changing the comparitor in line $3$ from $<$ to $\leq$ results in an out of bounds access, which was successfully picked up.\\
-This example is based on \textbf{A.1} in \cite{tra}, with the superficial addition of arrays (which was not supported by their method).
 
-\subsubsection{Two variables (\cite{tra} A.8)}
+\subsubsection{Two variables (\cite[A.8]{tra})}
 
 \begin{wrapfigure}{r}{0.3\textwidth}
 \centering
@@ -494,13 +490,11 @@ We then need to use `transitivity properties' to classify this sample as halting
 and the fact that if \texttt{y} and \texttt{z} are increasing then so is \texttt{temp0}.
 Changing any of the increments in lines $4-5$ to decrements, and inverting the inequality in line $3$, are detected as infinite loops with good reasons given.
 
-\subsubsection{Relative change (\cite{tra} C.1)}
+\subsubsection{Relative change (\cite[AAAA]{tra})}
 
 \begin{wrapfigure}{r}{0.3\textwidth}
 \centering
 \begin{lstlisting}[frame=tlrb,language=myLang]
-double x; double y;
-input x; input y;
 while (x > y){
  x = x + 1;
  y = y + 2;
@@ -511,12 +505,11 @@ Both variables in this example are increasing - the loop only halts as \texttt{y
 This is noted by the program and it is classified as termiating. Inverting the condition, or swapping the constants in the addition,
 results in a nonterminating program that is detected.
 
-\subsubsection{Multiplication (\cite{tra} C.1)}
+\subsubsection{Multiplication (\cite[C.1]{tra})}
 
 \begin{wrapfigure}{r}{0.3\textwidth}
 \centering
 \begin{lstlisting}[frame=tlrb,language=myLang]
-double x; input x;
 while (x >= 0) {
  double y = 1;
  while (x > y) y = 2 * y;
@@ -528,7 +521,7 @@ In this example, the inner loop is seen to terminate (as y is increasing) and th
 Replacing the $2$ in line $4$ with a positive constant less than $1$, or inverting any of the comparisons, results in a detected nonterminating program.
 
 \subsection{Calls and recursion}
-\subsubsection{The Ackermann function}
+\subsubsection{The Ackermann function}\label{example:ack}
 \begin{wrapfigure}{r}{0.4\textwidth}
 \centering
 \begin{lstlisting}[frame=tlrb,language=myLang]
@@ -538,38 +531,44 @@ function ack(double m, double n) double
  else if (n <= 0) 
   return call ack(m-1, 1);
  else {
-  double a2 = call ack(m, n-1);
-  return call ack(m-1, a2);
+  double a = call ack(m, n-1);
+  return call ack(m-1, a);
  }
 }
 \end{lstlisting}
 \end{wrapfigure}
 This function halts, as it is always called on strictly decreasing pairs (in the lexicographic ordering).
-Changing the decrement in lines $3$ and $5$ into an an addition of a nonnegative constant is correctly seen to be nonterminating,
-however the method fails to detect the same when line $7$ is modified.
+Changing the decrement in lines $5$ and $7$ into an an addition of a nonnegative constant is correctly seen to be nonterminating,
+however the method fails to detect the same when line $8$ is modified.
 
-\iffalse
-\subsubsection{Greatest common divisor}
+\subsubsection{McCarthy's 91 function}
 \begin{wrapfigure}{r}{0.4\textwidth}
 \centering
 \begin{lstlisting}[frame=tlrb,language=myLang]
-function gcd(double m, double n)
+function mc91(double n) double
 {
- if (m == n) return m;
- else if (m > n)
-  return call gcd(m-n, n);
- else return call gcd(m, n-m);
+    if (n > 100) return n-10;
+    else{
+        n = n + 11;
+        double m1 = call mc91(n);
+        return call mc91(m1);
+    }
 }
 \end{lstlisting}
 \end{wrapfigure}
-\fi
+This function is a standard exercise for automated termination analysis methods. Changing the expression in line $5$ into subtraction of a negative constant,
+or inverting the condition in line $3$, result in nonterminating programs that are successfully detected by the method.
 \pagebreak
 \section{Evaluation}
 \subsection{Failures}
-\paragraph{The Ackermann function}
+\textbf{The Ackermann function}. As noted in \cref{example:ack} we failed to catch a nonterminating program resulting from a bad modification to line $7$.
+This is due to shortsightedness of our method and our ignoring of path dependencies.
 
+\textbf{Division and binary search}. The method 
 
 \section{Conclusions}
+
+\paragraph{Future work}
 
 
 \bibliography{projectpaper}

@@ -9,7 +9,15 @@ using namespace std;
 //FunctionVars
 FunctionSymbol::FunctionVars::FunctionVars(unique_ptr<FunctionVars> p): parent(move(p)) {}
 
-void FunctionSymbol::FunctionVars::addVar(VarWrapper* varN) {vars.insert(varN);}
+void FunctionSymbol::FunctionVars::addVar(VarWrapper* varN)
+{
+    if (varN->getFullName() == "x")
+    {
+        int debug;
+        debug = 2;
+    }
+    vars.insert(varN);
+}
 
 unique_ptr<FunctionSymbol::FunctionVars> FunctionSymbol::FunctionVars::moveScope()
 {

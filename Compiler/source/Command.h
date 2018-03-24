@@ -276,11 +276,10 @@ public:
     PopCommand(std::unique_ptr<VarWrapper> into, int linenum);
     void clear();
     std::unique_ptr<AbstractCommand> clone() override;
-    bool isEmpty() const {return vs != nullptr;}
+    bool isEmpty() const {return vs == nullptr;}
     std::string translation(const std::string& delim) const override;
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 };
-
 
 class AssignVarCommand: public AbstractCommand
 {

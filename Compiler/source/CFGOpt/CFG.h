@@ -101,7 +101,7 @@ public:
     std::vector<std::unique_ptr<AbstractCommand>>& getInstrs();
     ControlFlowGraph& getParentGraph() const;
     FunctionSymbol* getParentFunction() const;
-    std::string getSource(bool makeState = true, std::string delim = "\n", bool escape = false);
+    std::string getSource(bool makeState = true, std::string delim = "\n", bool escape = false) const;
     std::string getDotNode();
     std::string getDotEdges();
     bool isLastNode() const;
