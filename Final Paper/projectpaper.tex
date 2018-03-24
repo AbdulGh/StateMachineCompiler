@@ -1,0 +1,576 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{times}
+\usepackage{durhampaper}
+\usepackage{natbib}
+\bibliographystyle{agsm}
+
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{listings}
+\usepackage[capitalize]{cleverref}
+\crefname{lstlisting}{listing}{listings}
+\Crefname{lstlisting}{Listing}{Listings}
+\usepackage{syntax}
+\usepackage{fancyhdr}
+\usepackage{amsmath}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\newtheorem{theorem}{Theorem}
+\newtheorem{fact}{Fact}
+\newtheorem{definition}{Definition}
+\usepackage{wrapfig}
+
+\setlength{\columnsep}{25pt}
+\setlength{\intextsep}{0mm} 
+
+\lstdefinelanguage{myLang}
+{
+  % list of keywords
+  morekeywords={
+    string, double, void, call, function,
+    if, else, return, while, print, input
+  },
+  sensitive=true, % keywords are not case-sensitive
+  morecomment=[l]{//}, % l is for line comment
+  morecomment=[s]{/*}{*/}, % s is for start and end delimiter
+  morestring=[b]" % defines that strings are enclosed in double quotes
+}
+
+\lstset
+{
+    language=myLang,
+    basicstyle=\footnotesize,
+    numbers=left,
+    stepnumber=1,
+    showstringspaces=false,
+    tabsize=1,
+    breaklines=true,
+    breakatwhitespace=false,
+}
+
+
+\title{Automated bug detection}
+\author{} % leave; your name goes into \student{}
+\student{Abdul Ghani}
+\supervisor{Stefan Dantchev}
+\degree{BSc Computer Science}
+
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\par
+{\bf Context/Background.} The field of program verification, although fraught with undecidability, has still seen great successes. Many techniques have been developed in order to
+cope with different paradigms and requirements - for example, automated testing of 15K lines of video game code should differ from the formal verification of 600 lines
+of safety-critical code.
+\emph{Symbolic execution} is one such technique. It simulates the execution of a program using symbolic (rather than concrete) values for variables.
+The development of a verifying compiler has been identified by Hoare as a `Grand Challenge for computing research' \cite{hoare}
+
+{\bf Aims.} The aim of this project is to implement graph-search algorithms in order to detect various bugs, i.e. misuse of arrays and loops that may not terminate. In particular we will focus on detecting `tired programmer errors' such as using unsanitized user input to index arrays and potential overflows.
+
+{\bf Method.} The user will write programs in a high level, procedural, C based language. This will be compiled into a Control Flow Graph (CFG) on which some standard
+optimisations will be applied. Graph-theoretic algorithms will then be used in order to find feasible paths and detect loops.
+Graph theoretic algorithms will be used in an attempt to determine the monotonicity of variables and certify termination (or 
+infinite looping). The CFG will then be translated into machine code for a state-based virtual machine.
+
+{\bf Results.} We had success in verifying termination of various looping programs, including recursive functions where termination is not immediately obvious (e.g. the Ackermann function). We were also able to certify nontermination of ruined versions of those looping programs, detect potential out of bounds array accesses, potential division by zero, and potential overflows.
+
+{\bf Conclusions.} In this paper we describe a bug detection method that can be built into the compilation process. This method quickly discoveres a range of errors.
+\end{abstract}
+
+\begin{keywords}
+Program verification, symbolic execution.
+\end{keywords}
+
+\section{Introduction}
+This paper describes the development of a compiler that attempts to verify certain desirable properties of the input during the course of the compiler.
+This has been identified by Hoare as a `A grand challenge for computing research' \cite{hoare} 
+
+Software has become one of the most inportant aspects of modern society.
+The inevitable failures can be anything from annoying to costly to fatal - infamous examples are the failed Ariane 5 launch in 1996
+(costing an estimated 7 billion dollars) and the patriot missile system (costing 28 lives).
+
+Many diverse methods have been developed in order to detect them. The method of choice will depend on factors such as concurrency,
+desired level of coverage, type 1 vs. type 2 errors, the size of the program, etc.
+
+The most thorough approaches invoke constraint solvers - for example, to prove that
+a certain path can never be executed. These approaches, although successful, are computationally expensive and may be overkill for non-safety-critical applications.
+
+This project instead utilises techniques from the field of symbolic execution in order to overestimate the set of feasible paths through a program.
+The idea is to try to maintain an upper and lower bound on the possible values of each variable, as well as basic relationships between variables.
+These bounds are determined by conditions and arithmetic expressions (see~\cref{lst:ranges}).
+We will then try to find paths through loops where progress towards breaking a loop condition can be guaranteed by tracking monotonicity of variables.
+
+\begin{minipage}{\linewidth}
+\begin{lstlisting}[caption=Example of ranges.,frame=tlrb, language=myLang, label={lst:ranges},escapeinside={(*}{*)}]
+double x; (*\hfill $x = 0$ \hspace{100mm} *)
+input x; (*\hfill $min \leq x \leq max $ \hspace{81mm} *)
+double y = x % 8; (*\hspace{4mm} $ min \leq x \leq max,\quad 0 \leq y < 8$*)
+if (y < 4)
+{
+  ... (* \hspace{34mm} $min \leq x \leq max,\quad 0 \leq y < 4 $*)
+}
+else if (x >= z)
+{
+  ... (* \hspace{34mm} $ min(z) \leq x \leq max,\quad 4 \leq y < 8, \quad x \geq z $*) 
+}
+\end{lstlisting}
+\end{minipage}
+
+In giving up constraint solvers we trade off accuracy for speed and flexibility.
+We gain flexibility from the ability to symbolically simulate stacks and arrays, and speed by determining path feasibility using depth first search.
+
+The solution was implemented successfully. We managed to verify the termination of many small programs, some involving array usage and recursion.
+
+\section{Related Work}
+\subsection{Ranking functions}
+A well founded partial order is a partial order where there are no infinitely decending chains. If we can find a \emph{ranking function} that maps successive loop iterations into a strictly decending chain we know that the loop must always halt. (For example, in the FizzBuzz example \cref{lst:fb} we could take the ranking function \texttt{limit - current} with the codomain being the natural numbers.) This method was popularised by Floyd \citep{assigning meanings to programs}.
+
+This method, although powerful and simple, is hard to automate. One attempt \citep{colon} begins by generalising the idea of a ranking function to strongly connected components (SCS) in a control flow graph - where now the value of the ranking function never increases and strictly decreases on at least one edge in the SCS. Every potentially infinite loop must live in an SCS, and if we succeed in finding such a ranking function we know that an infinite execution cannot use any decreasing edges. We can then remove those edges - if the remainder of the component is still strongly connected, we repeat the procedure.
+
+\subsection{Term rewriting systems}
+Briefly, a \emph{term rewriting system} which transforms an `object' into another `object' by applying transformation rules to `sub-objects'. This framework is very general and touches many ideas of fundamental importance in computer science (i.e., the lambda calculus, semi-Thue systems, grammars). The termination properties of such systems has therefore been very well studied \cite{Zantema, term rewrite systems, p181}.
+
+Functional languages such as LISP and Haskell are amenable to interpretation as a rewrite system. Imperative languages, however, need more work. A method given in \citep{A Term Rewriting Approach to the Automated Termination Analysis of Imperative Programs} takes the possible states of the program (the values of variables, including the program coutner) to be the objects and transforms each basic block into a rewrite rule, possibly enriched with a condition given in some logic.
+
+\subsection{Symbolic Execution}
+Graph searching algorithms are sometimes used to detect and remove unreachable code. This method only works with jumps and ignores everything else, and so leads
+to an overapproximation of reachable code.
+
+The search can be enriched with symbolic representations of variables. Each `probe' of the search will act as a possible execution of the program. As each
+probe proceeds through the program it builds a path condition - the conjunction of conditionals it has taken. This method is named \emph{symbolic execution}.\\
+
+Anand\cite[pp.~2--3]{anand} identifies three issues with symbolic execution.\\
+
+The first is `path explosion'. At every branch we may double the number of paths we must trace. While
+nothing can be done about this combinatorial increase, I hope to lessen the damage by keeping the overhead
+for each path as low as possible, by using simple constraints and appropriate data structures.\\
+Some other possible solutions are discussed. An interesting one is first summarising each basic block by how it affects certain variables.\\
+
+The second are `complex constraints'. The path conditions generated may be intractable or even undecidable. Some more thorough program verifiers \cite{zhang, PNT}
+invoke theorem provers and/or constraint solvers to try and determine the feasability of a path condition. This, while improving accuracy, will increase complexity
+and running time.\\
+In an attempt to deal with this, the intermediate language used to represent the control-flow graph will only
+use conditionals with inequalities between a variable and another variable or constant value. More complicated expressions
+will be compiled down into these simple conditions. We will then only maintain possible ranges for each variable. If a range of
+a variable becomes empty, the path is not feasable.\\
+
+Finally he discusses `path divergence'. Innacuracies will be inevitably introduced by modelling complex software with a more simple 
+representation. Path divergence refers to the difference between the path followed by a symbolic execution of said model vs the path that
+should be followed in the code a programmer wrote. Simplifications, whilst helping with the first two issues, will cause me to pay
+dearly here. Not only will variables have different names (as the state machine has no scope, variables will be renamed) but it is very
+likely that compilation and optimisation will change the structure of the program to a significant degree. That being said, the representation
+itself can be directly executed and at least detected bugs will apply to the running program.
+
+\subsection{Similar work}
+A similar approach to the solution presented here  `lasoo' approach discussed in \citep{gupta}. It begins by symbolically executing the program and finding paths that revisit some state. It then uses a constraint solver to find states that are recurrent.
+
+Another approach is the method discussed in \cite{loopster}. Like us, it tries to determine the monotonicity of variables in a loop execution. For each loop it builds a path-automata, where the nodes are paths and the edges possible transitions. Feasible cycles in this automaton are then executions of the loop that could run forever.
+However, they don't use a symbolic engine, and cannot work with constructs such as call stacks and arrays.
+
+
+\section{Design}
+\subsection{The approach}
+\subsubsection{Compilation}
+Most programs are developed using some high level language. We will be compiling and verifying programs written in a language based on PL/0, with the addition
+of functions and function calls.
+
+\begin{lstlisting}[frame=tlrb,language=myLang, caption=Fizzbuzz., label={fizzbuzz}]
+while (current < limit)
+{
+ if (current % 15 == 0) print("FizzBuzz");
+ else if (current % 3 == 0) print("Fizz");
+ else if (current % 5 == 0)  print("Buzz");
+ else print(current);
+ print("\n");
+ current = current + 1;
+}
+\end{lstlisting}
+
+Programs in this form are easy for humans to read and write but harder for computers to optimise, test for bugs, and run. For this reason we will implement a small compiler that will translate the program into machine
+code for a virtual machine.\\
+Programs will be parsed in a top down predictive manner. The translation will be carried out during the parsing of the program. For this reason the parsing and translation will not be strictly context free - for example, the code generated
+for a \texttt{return} statement will depend on the type of the function we are currently parsing.\\\par
+
+ After translation the program will be held in memory as a Control Flow Graph (CFG):
+ 
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.7\textwidth]{images/fizzcfg}
+\vspace{-1cm}
+\caption{CFG for Fizzbuzz.}
+\end{figure}
+
+The nodes in the CFG are the so-called \textit{basic blocks} of the program - the sections of code that are always executed in sequence, containing no jumps.
+These basic blocks can be seen as `states' in a pushdown-automata-like machine equipped with a stack (used for function calls), scopeless variables, and various (macros for) three address commands. Once we have the CFG, it's easy to translate into the description language of such a machine:
+
+\begin{verbatim}
+...
+LHS = _2_0_current % 5;
+jumpif LHS = 0.000000 F0_main_16;
+jump F0_main_18;
+end
+
+F0_main_16
+print "Buzz\n";
+jump F0_main_1;
+end
+...
+\end{verbatim}
+
+The numbers in front of the translated variable names are to uniquely address variables in a scope free manner. See~\cref{app:spaghetti} for details of the implementation of the symbol table and the tagging of variables.
+
+The CFG representation of a program is much more workable than the stream of characters initially received from the user. For example, it allows the compiler to perform certain optimisations.
+
+\subsubsection{Dataflow and optimisation}
+The flow of control, represented by the directed edges in the CFG, is a crucial element of most optimisation techniques. \textit{Data flow analysis} involves solving a system of equalities over some lattice, usually a power set ordered by inclusion. In the sections that follow,
+$pred(n)$ denotes the incoming neighbours of a node $n$ in the CFG and $succ(n)$ its successors. $start$ will denote the entry of the CFG and $exit$ the exit.
+\paragraph{Live variables}
+ Say that a variable is \textit{live} at some point of the program if the value it is holding at that moment could be read later on (during any possible execution that passes through that point) and that it is \textit{dead} otherwise. We can remove statements using only dead variables,
+as they can have no effect on the program. For each basic block $n$ we can simply iterate through its statements and calculate the sets of variables $used(n)$ (the variables used in that block) and $kill(n)$ (the variables
+assigned and not read before the end of the block). The set of live and dead variables at each block then becomes
+\begin{align*}
+live(n)&= \left(\bigcup_{w\in succ(n)}live(w)\right) \setminus kill(n) \\
+dead(n)&= used(n) \setminus live(n)
+\end{align*}
+and $live(exit) = \{\}$.
+
+\paragraph{Assignment propagation}
+It's useful to propogate assignments as far along as possible in a program. Doing so may let us simplify expressions and possibly remove conditionals.\\
+Let $assignBasic(n)$ be the set of assignments leaving $n$ - for example, tuples of variable names and the values assigned to them. We can find variables safe to replace with the following equations:
+\begin{align*}
+assign(n)&= \left(\bigcap_{w\in pred(n)}assign(w)\right) \cup assignBasic(n) \\
+assign(start)&= assignBasic(start)
+\end{align*}
+\paragraph{General formulation and solution}\label{par:general}
+The two examples given are meant to demonstrate the similarities and differences found in data-flow problems. In the general framework introduced by Kildall~\citep{kildall} we find a least fixed point of some monotone function over a lattice.
+Generally, each node monotonically transforms some input set $in(n)$ into an output set $out(n)$. They generate a set $gen(n)$ and kill a set $kill(n)$. The whole ordeal is then 
+parameterized by the following variables:
+\begin{enumerate}
+  \item The actual `type' of the set elements - i.e., variables, expressions etc.
+  \item \textit{Forward} vs \textit{backward} analysis. This refers to whether the set assigned to each nodes depends on its predecessors or its successors, respectively.
+  \item \textit{Any} vs \textit{all} paths. This essentially dictates whether we work with unions or intersections when calculating $in(n)$.
+  \item The initial output set $initOut(n)$ assigned to each node.
+  \item The functions $gen(n)$ and $kill(n)$.
+  \item The \textit{transfer function} $T_n$ at for each node $n$, which relates $in(n)$ and $out(n)$ \\(that is, $out(n) = T_n(in(n))$).
+\end{enumerate}
+This insight makes it possible to implement a general algorithm to solve a range of different dataflow problems.\par
+A simple solution to this general formulation is the \textit{worklist algorithm}. We maintain a stack of nodes waiting to be processed. We pop nodes off this stack
+and run their transfer function - if there is a change, we push the successors of that node onto the stack (`successors' here might be predecessors in the case of
+backwards analysis).
+
+\subsubsection{Symbolic execution}
+Symbolic execution is an umbrella term encompassing many different techniques. The most careful maintain sets of symbolic equations of relationships between variables and employ solvers to see if the set is feasable. To reduce the running time of our program, and to ease implementation, we will instead maintain only simple relationships between variables (equalities and inequalities) as well as upper/lower bounds. Statements will then be allowed to manipulate this data. By a \textit{symbolic variable} we mean one of these indeterminate variables.
+
+A symbolic execution of the program will be a search through the CFG. During the search we will maintain a \textit{state} which is just a set of symbolic variables and a symbolic stack. As we progress through a basic block we will affect the state as appropriate. 
+When we reach a branch - which are the edges leaving a node - we may have to clone the state. This is because we cannot allow searches down independent paths to influence each other. Cloning the entire state on every branch would be wasteful and instead we adopt a `copy-on-write' approach discussed in~\cref{app:spaghetti}.
+
+The verification procedure will consist of two searches. The first ignores how variables change and simply tracks the possible ranges of variables at each basic block of the CFG. A non-idempotent operation will affect the state as if it could be executed an arbitrary number of times. Similarly to data-flow analysis, we will carry on a search to the successors of some node $n$ only if we learn something new whilst searching $n$. Each node is tagged with the union of the ranges of variables in each visit. (For example, if a variable always happens to be nonnegative in a basic block this will be known.) Nodes that are never visited are then removed. After this stage, we carry out a more detailed
+search through detected loops in order to produce certificates of termination/non-termination.
+
+\paragraph{*Improving variable-variable comparisons}
+Say we encounter the condition \texttt{if} $(x < y)$. If we only restict the upper bound of $x$ so that it is less than the upper bound of $y$, we lose the potentially useful information that $x < y$.
+We maintain this information by linking together symbolic variables with edges. We then retain those simple relationships between variables, and we also gain the ability to infer new relationships via transitivity.
+As an example, if we hit the condition \texttt{if} $(x < y)$, but we have previously seen the conditions \texttt{if} $(x \geq z)$ and \texttt{if} $(z > y)$ we know we cannot enter.
+If later we increase $x$ by a strictly positive amount, we forget all the less-than, less-than-or-equal-to, and equality edges leaving $x$ but keep the remaining.
+
+\paragraph{Certifying termination of unnested while loops}\label{par:loops}
+By a path through a loop we mean a simple path beginning with the loop header and ending with the exit. The path is essentially described by which conditions
+in the loop body it passes and fails. For example, in \cref{fizzbuzz} there are $4$ paths, one for each \texttt{if/else} condition. We only inspect the first iteration, so there are only finitely many such paths.
+
+We break each loop up into all possible paths from the entry to the exit. We will call a path \emph{good} if it makes progress towards leaving the loop,
+possibly depending on user input, and \emph{bad} if it can repeatedly execute without making progress towards leaving the loop, independent of user input.
+Essentially, we want to make sure no bad paths are ever executed, and we want to inform the user if we find this not to be the case.
+This will involve producing a certificate showing the conditions taken at each branch.
+
+\paragraph{Characterisation and extrapolation of the motion of variables}
+As we search down one execution path of the loop we will try to find the most positive and most negative possible change of each variable. If both of these values
+are positive (negative) we will guess that the variable increases (decreases) with every execution of the loop. After reaching the end of a path, we examine the 
+variable involved in each loop condition encountered on that path and try to check that it moves towards that condition. (By `a loop condition' I mean any condition that leaves a 
+node in the loop.) The path is called `good' if it moves towards any such loop condition.
+
+It may be the case that for some number of loop iterations all relevant variables may be moving \textit{away} from the 
+condition but eventually meet some \texttt{if} condition that kicks us out of the loop:
+\begin{lstlisting}[frame=tlrb,language=myLang,label={lst:trickloop}, mathescape=true]
+double n = 9;
+while (n < 10)
+{
+  n = n - 1;
+  if (n $\leq$ 0) n = 11;
+}
+\end{lstlisting}
+This will be combatted by attempting to extrapolate the current motion of variables into the future. During a search we may encounter some condition
+which the variable ranges forbid us from taking. So we first visit the second branch. If any execution of this branch always moves us towards meeting
+this condition, we will go ahead and take it.
+
+\paragraph{*Nested loops and laminar sets}
+It may be that one loop is nested inside another. We form an `inclusion tree', where the nodes are loops and an edge represents proper nesting. When we come to verify a loop in this tree we first recursively verify its children.
+If we decide that they're bug-free we then verify the outer loop, treating the nodes in nested loops as if they may be executed an arbitrary number of times.
+
+Now we describe the method used to build the inclusion tree. A family of subsets is called \emph{laminar} if every pair is either disjoint,
+or one is a superset of another. Loops are an example - either two loops are disjoint, or one is nested inside
+the other. We can adapt a bioinformatical algorithm usually used to find perfect phylogenies\cite{gusfield}:
+
+\begin{enumerate}
+\item Assign each loop a bitvector, where the $i$th bit is $1$ iff the $i$th node appears in this loop.
+\item Sort these bitvectors using radix sort.
+\item For each loop, find any index set to $1$ and add that loop as the child of the next highest loop with a $1$ in that position (if it exists).
+\end{enumerate}
+
+\subsection{Symbol tables and spaghetti stacks} \label{app:spaghetti}
+\subsubsection{The symbol table}
+An easy way of handling scoped variables is to use a so-called \textit{spaghetti stack} \citep{dragon}. A spaghetti stack is usually a set of linked lists of hashtables (scopes), but during parsing we discard old scopes and only need a single linked list.\\
+When a new scope is entered - which is marked by a \texttt{\{} - we create a new hash table and set it up to point to the previous one. New variable declarations are put in this table. If we declare a variable with the same name multiple times in the same scope, we will find that variable in the current scope and raise an error.\\
+When we search for a variable, we first check the present scope. If it is not found there, we recursively search for it in the parent scope. If we end up running into a \texttt{nullptr}, we are trying to find a variable that has not been declared. Otherwise we will find and return the `most recent' declaration of that variable. Variables can be tagged with various data - some necessary for finding errors (i.e. type) and some useful for warnings (i.e. whether or not that variable has been defined).\\
+When leaving a scope we delete the head of the spaghetti stack and forget every declaration that was inside. The symbol table keeps track of its current depth and the number of scopes it has processed in that depth in order to uniquely name each variable.
+
+\subsubsection{Adapting the spaghetti stack for symbolic execution}
+A small modification adapts the spaghetti stack into a structure useful for reducing memory used during symbolic execution.\\
+During symbolic execution we will encounter conditions which may be true or false according to the information we currently hold. For example, we might be sure that $0 \leq i \leq 5$ and encounter the command \texttt{jumpif i >= 2 state}. We search the two different paths, one with $0 \leq i < 2$ and the other $2 \leq i \leq 5$. These two different branches must be independent in the sense that they cannot affect each other or future searches. One way of ensuring this would be to clone the entire state - duplicating every variable met so far. This is very wasteful, as the only difference at the moment is the single variable $i$.\par
+
+A better way is to take advantage of the `most recent' property of searching through a spaghetti stack. Suppose we are using hash tables to map variable names to a \texttt{SymbolicVariable} object. Instead of duplicating that hash table for independent branches, we just set up two new hash tables with pointers to their parent. If we read a variable, we search up the spaghetti stack looking for the closest occurrence of that variable. If we change that variable in some way, we first copy it into the present table so that we don't affect other branches. This method has been used before (for example in KLEE - see \cite{klee}, Section 3.2).
+
+\subsection{Finding loops in a CFG} \label{app:loops}
+\subsubsection{What is a loop?}
+\begin{figure}\label{fig:loops}
+\begin{minipage}{.45\textwidth}
+\begin{lstlisting}[caption=A loop.,frame=tlrb, language=myLang, label={isloop}]
+function main() void 
+{call loopheader();}
+
+function loopheader() void
+{if (x < 10) call loopbod();}
+
+function loopbod() void {
+  print(x, "\n");
+  x = x + 1;
+  call loopheader();
+}
+\end{lstlisting}
+\end{minipage}\hfill
+\begin{minipage}{.45\textwidth}
+\begin{lstlisting}[caption=Not a loop.,frame=tlrb, language=myLang, label={isnloop}]
+while (1==1)
+{
+  return -1;
+}
+\end{lstlisting}
+\end{minipage}
+\end{figure}
+
+We don't keep information about high level loop constructs when we move to the CFG representation, as not all `loops' are while loops and not all `while loops' are loops (see Listings \ref{isloop} and \ref{isnloop}). A tempting definition of a loop would just be a cycle, however this would be confused by branches within loops.\\
+So how do we define a loop? We start by declaring that every valid execution that passes through a basic block in a loop must have passed through 
+a `header' and will eventually pass out of some exit block.\par
+
+\begin{definition}\label{def:dominator}
+A node $a$ \emph{dominates} a node $b$ if every execution that passes through $b$ must have first passed through $a$.
+\end{definition}
+
+\begin{definition}\label{def:immediatedominator}
+A node $a$ \emph{immediately dominates} a node $b$ if $a$ dominates $b$ and every node $n$ dominaiting $b$ also dominates $a$. Clearly it is unique, and we denote
+the unique immediate dominator of $a$ as $idom(a)$.
+\end{definition}
+
+As the domination relation is antisymmetric and transitive it can be used to form the \emph{dominator tree} in which a node has as its children the nodes it
+immediately dominates. The node then dominates everything in its rooted subtree.
+
+\begin{definition}\label{def:backedge}
+An edge in a CFG is a \em{backedge} if its head dominates its tail.
+\end{definition}
+
+This is the normal definition of `back edge' in the dominator tree.
+
+\begin{definition}\label{def:naturalloop}
+The \emph{natural loop} of a backedge $n \to d$ is the set of all nodes that can reach $n$ without going through $d$. $d$ is the \emph{entry point} and $n$ the \emph{exit point}.
+\end{definition}
+
+Once we find dominators, we can easilly find natural loops by searching backwards from the exit point.
+
+\subsubsection{Finding dominators}
+We could compute the nodes that a node $n$ dominates by removing it and seeing which nodes become unreachable. We could also use an iterative approach, as the dominators of a node are  just the intersection of the dominators of its predecessors. However these algorithms are fairly slow and requires further work to find the immediate dominators.
+The following algorithm, by Lengauer and Tarjan~\citep{lengtarj} is a better approach.\\
+The algorithm begins by constructing a DFS tree of the CFG. As it does so, it labels the verticies in the order of arrival (i.e. preorder). Let $pre(n)$ denote the label given to node $n$, and $parent(n)$ its parent in the DFS tree.\\
+After the nodes are labled, it computes `semidominators':
+
+\begin{definition}\label{def:semidominator}
+The \emph{semidominator} of $a$ is 
+\[
+\argmin\{pre(v) | v \to n_0 \to n_1 \to ... \to a, pre(n_i) > pre(a)\}
+\]
+That is, the semidominator is the least numbered node with a path to $a$
+consisting of only higher labled nodes. Such a path is called a \emph{semidominator path}.
+\end{definition}
+We denote the semidominator of a node $n$ as $S_n$.
+Semidominator paths can be used as counterexamples to one node dominating another. Intuitively, they `sneak around the right' of nodes in the DFS tree and prevent them from dominating nodes below. The semidominator can be thought of as the best possible counterexample.
+
+We will need the following fact:
+\begin{fact}\label{thm:semidominator}
+If $semiNum(n)$ (the \emph{semidominator number} of $n$) is the label of the semidominator of $n$, then
+\begin{align*}
+semiNum(n) = \min(&\{pre(v) | V \text{ is a predecessor of $n$ with } pre(v) < pre(n)\}\\
+\cup &\{semiNum(u) | u \text{ is a predecessor of $n$ with } pre(u) > pre(n)\})
+\end{align*}
+\end{fact}
+Roughly, all of the immediate predecessors of $n$ are potential semidominators, with the higher labled ones being potential ends of semidominator paths. The semidominators of higher labled predecessors are also semidominators of the node itself. As the calculation of the semidominator depends only on the semidominators of higher labled nodes, we can start with the highest labled node and work downwards.\\
+After calculating semidominators, we calculate the immediate dominators using the following fact:
+\begin{fact}[\cite{lengtarj} Corollary 1]\label{thm:imdominators}
+Let $n \neq start$ and let $u$ be the node which minimises $pre(S_u)$ among all nodes $x$ satisfying $S_x \xrightarrow{+} x \xrightarrow{*} n$. Then:
+\[
+  idom(n) =
+  \begin{cases}
+  S_n & \text{if } S_n = S_u\\
+  S_u & \text{otherwise}
+  \end{cases}
+\]
+\end{fact}
+
+\subsubsection{Implementation details}
+As mentioned above we first process the nodes in decreasing DF order in order to calculate semidominators. We maintain for each node $n$ the set $bucket(n)$ of nodes
+than $n$ semidominates.\\
+The algorithm calculates semidominators using a union-find-like data structure. The trees in this structure will be fragments of the DFS tree formed earlier. It comes equipped with two functions:
+\begin{align*}
+link(v): &\text{ Connect $parent(v)$ with $v$ in the forest.}\\
+eval(v): &\text{ If $v$ is the root of it's connected component, return $v$.}\\
+   &\text{ Otherwise return a node $n$ with minimum semidominator number,}\\
+   &\text{ such that $n \xrightarrow{*} v$,  not including the root.}
+\end{align*}
+Now $S_w$ is $\argmin\{semiNum(eval(n)) |n \to w\}$.\\
+ After finding $S_w$ we place $w$ in $bucket(S_w)$. We then call $link(w)$ and link $w$ with its parent $parent(w)$ in the forest. Now we can implicitly find the immediate dominators of unprocessed nodes semidominated by $parent(w)$ (the nodes currently in its bucket) using~\cref{thm:imdominators}. 
+ For each such node $v$ we calculate $u = eval(v)$. If $S_u = S_v$ then $idom(v) = parent(w)$. Otherwise, $idom(v) = idom(u)$. Note that in the second case we have only calculated $idom(v)$ \textit{implicitly} as we have not yet found $idom(u)$. 
+ The bucket is then emptied.\\
+Finally, after all the semidominators have been computed and the immediate dominators implicitly computed, we process the nodes in increacing DF order to fill in the blanks.\par
+
+\paragraph{Bug detection for arrays}
+Arrays could be `symbolically simulated' by creating a symbolic variable for each cell - however this is obviously very wasteful. We instead maintain two lists - 
+the first a list of indicies pointing to contiguous ranges which (as far as we can tell) have the same value, and the second a list of pointers to symbolic variables corresponding to those ranges.\\
+For example, say the user creates an array of $10,000$ doubles. This array is represented
+by a single symbolic double $init$ set to 0. Now the user adds $10$ to the cell with index $x$, $20 \leq x \leq 100$. We create a new symbolic double $nd$ with possible values $0 \leq nd \leq 10$.
+The index list becomes $(20, 100)$ and the value list $(init, nd, init)$.
+
+*Given a undetermined index $i$ this symbolic array can then build a symbolic variable which overestimates the range of values present in the indicies spanned by $i$. It
+can also emit a warning in the cases of potential out of bounds accesses and indexing by an increasing/decreasing variable.
+
+\newpage
+\section{*Results}
+The solution was exercised on various examples from the literature. Some of the examples have been reformatted to save lines and improve readability.
+
+\subsection{No functions}
+Most of the following examples are taken from the appendix of \citep{A Term Rewriting Approach to the Automated Termination Analysis of Imperative Programs}, itself a collection of examples from other papers.  All the examples given in this paper terminate, so we also introduced mistakes in order to test detection of nontermination.
+
+\subsubsection{Bubblesort}
+\begin{wrapfigure}{r}{0.4\textwidth}
+\centering
+\begin{lstlisting}[frame=tlrb,language=myLang]
+while (x > 0){
+ double y = 0;
+ while (y < x){
+  if (a[y] > a[y+1])
+    swap (a[y], a[y+1])
+  y = y + 1;
+ }
+ x = x - 1;
+}
+\end{lstlisting}
+\end{wrapfigure}
+This bubblesort implementation was correctly determined as halting. The program obtained by any of the update lines, or updating either of the variables the wrong way, was correctly detected as nonterminating with an explanation given. Changing the comparitor in line $3$ from $<$ to $\leq$ results in an out of bounds access, which was successfully picked up.\\
+This example is based on \textbf{A.1} in \cite{tra}, with the superficial addition of arrays (which was not supported by their method).
+
+\subsubsection{Two variables (\cite{tra} A.8)}
+
+\begin{wrapfigure}{r}{0.3\textwidth}
+\centering
+\begin{lstlisting}[frame=tlrb,language=myLang]
+while (x > y + z){
+ y = y + 1;
+ z = z + 1;
+}
+\end{lstlisting}
+\end{wrapfigure}
+This example was correctly detected as terminating.
+The comparison in line $3$ is compiled into the three-address-code \texttt{temp0 = y + z, jumpif x > temp0 ...}
+We then need to use `transitivity properties' to classify this sample as halting - the inequalities \texttt{x > temp0 = y + z},
+and the fact that if \texttt{y} and \texttt{z} are increasing then so is \texttt{temp0}.
+Changing any of the increments in lines $4-5$ to decrements, and inverting the inequality in line $3$, are detected as infinite loops with good reasons given.
+
+\subsubsection{Relative change (\cite{tra} C.1)}
+
+\begin{wrapfigure}{r}{0.3\textwidth}
+\centering
+\begin{lstlisting}[frame=tlrb,language=myLang]
+double x; double y;
+input x; input y;
+while (x > y){
+ x = x + 1;
+ y = y + 2;
+}
+\end{lstlisting}
+\end{wrapfigure}
+Both variables in this example are increasing - the loop only halts as \texttt{y} is increasing faster than \texttt{x}.
+This is noted by the program and it is classified as termiating. Inverting the condition, or swapping the constants in the addition,
+results in a nonterminating program that is detected.
+
+\subsubsection{Multiplication (\cite{tra} C.1)}
+
+\begin{wrapfigure}{r}{0.3\textwidth}
+\centering
+\begin{lstlisting}[frame=tlrb,language=myLang]
+double x; input x;
+while (x >= 0) {
+ double y = 1;
+ while (x > y) y = 2 * y;
+ x = x - 1;
+}
+\end{lstlisting}
+\end{wrapfigure}
+In this example, the inner loop is seen to terminate (as y is increasing) and then the outer loop follows (as x is decreasing).
+Replacing the $2$ in line $4$ with a positive constant less than $1$, or inverting any of the comparisons, results in a detected nonterminating program.
+
+\subsection{Calls and recursion}
+\subsubsection{The Ackermann function}
+\begin{wrapfigure}{r}{0.4\textwidth}
+\centering
+\begin{lstlisting}[frame=tlrb,language=myLang]
+function ack(double m, double n) double
+{
+ if (m <= 0) return n + 1;
+ else if (n <= 0) 
+  return call ack(m-1, 1);
+ else {
+  double a2 = call ack(m, n-1);
+  return call ack(m-1, a2);
+ }
+}
+\end{lstlisting}
+\end{wrapfigure}
+This function halts, as it is always called on strictly decreasing pairs (in the lexicographic ordering).
+Changing the decrement in lines $3$ and $5$ into an an addition of a nonnegative constant is correctly seen to be nonterminating,
+however the method fails to detect the same when line $7$ is modified.
+
+\iffalse
+\subsubsection{Greatest common divisor}
+\begin{wrapfigure}{r}{0.4\textwidth}
+\centering
+\begin{lstlisting}[frame=tlrb,language=myLang]
+function gcd(double m, double n)
+{
+ if (m == n) return m;
+ else if (m > n)
+  return call gcd(m-n, n);
+ else return call gcd(m, n-m);
+}
+\end{lstlisting}
+\end{wrapfigure}
+\fi
+\pagebreak
+\section{Evaluation}
+\subsection{Failures}
+\paragraph{The Ackermann function}
+
+
+\section{Conclusions}
+
+
+\bibliography{projectpaper}
+\end{document}
