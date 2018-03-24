@@ -398,11 +398,6 @@ unique_ptr<AbstractCommand> PopCommand::clone()
 PushCommand::PushCommand(std::unique_ptr<VarWrapper> in, int linenum):
         AbstractCommand(linenum), calledFunction(nullptr),pushedVars(0), stringType(StringType::ID)
 {
-    if (in->getFullName() == "x")
-    {
-        int debug;
-        debug = 2;
-    }
     atom = make_unique<Atom>(move(in));
     setType(CommandType::PUSH);
 }

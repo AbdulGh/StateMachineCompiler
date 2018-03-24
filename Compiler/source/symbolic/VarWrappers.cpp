@@ -29,7 +29,7 @@ VariableType SVByName::getVariableType(SymbolicExecution::SymbolicExecutionFring
     return sv->getType();
 }
 
-void SVByName::setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable *sv)
+void SVByName::setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv)
 {
     sv->setName(name);
     sef->symbolicVarSet->addVar(sv->clone());
@@ -47,6 +47,12 @@ void SVByName::nondet(SymbolicExecution::SymbolicExecutionFringe* sef)
     auto var = sef->symbolicVarSet->findVar(name);
     if (!var) throw std::runtime_error("Undefined variable '" + name + "'");
     var->userInput();
+}
+
+bool SVByName::check(SymbolicExecution::SymbolicExecutionFringe *sef) const
+{
+    auto var = sef->symbolicVarSet->findVar(name);
+    return var != nullptr;
 }
 
 std::string SVByName::getFullName() const
@@ -78,7 +84,7 @@ bool SDByArrayIndex::check(SymbolicExecution::SymbolicExecutionFringe* sef) cons
     sa->checkIndex(index);
 }
 
-void SDByArrayIndex::setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable *sv)
+void SDByArrayIndex::setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv)
 {
     if (sv->getType() != DOUBLE) throw "should be double";
     SymbolicDouble* sd = static_cast<SymbolicDouble*>(sv);
@@ -138,7 +144,7 @@ bool SDByIndexVar::check(SymbolicExecution::SymbolicExecutionFringe* sef) const
     else return sa->checkBounds(sv->getTLowerBound(), sv->getTUpperBound());
 }
 
-void SDByIndexVar::setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable *sv)
+void SDByIndexVar::setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv)
 {
     if (sv->getType() != DOUBLE) throw "should be double";
     SymbolicDouble* sd = static_cast<SymbolicDouble*>(sv);

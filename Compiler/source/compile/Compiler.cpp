@@ -52,7 +52,7 @@ void Compiler::compile(stringstream& out)
     unordered_map<string, SRPointer>& tags
             = symbolicExecutionManager.search();
 
-
+    return;
 
     vector<Loop> loops = LengTarj(cfg).findLoops();
     for (Loop& loop : loops) cout << loop.getInfo() << endl;

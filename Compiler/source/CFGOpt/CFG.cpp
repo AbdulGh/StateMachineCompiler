@@ -38,6 +38,13 @@ NodeMapIterator ControlFlowGraph::removeNode(string name)
     return removeNode(it);
 }
 
+const FunctionSymbol& ControlFlowGraph::getMain() const
+{
+    const FunctionSymbol* fs = functionTable.getFunction("main");
+    if (!fs) throw runtime_error("main should be defined");
+    return *fs;
+}
+
 CFGNode* ControlFlowGraph::createNode(const string &name, bool overwrite, bool isLast, FunctionSymbol* parentFunc)
 {
     CFGNode* introducing;

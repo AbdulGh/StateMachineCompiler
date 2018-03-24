@@ -1,6 +1,0 @@
-OPTIMISATION : DEAD CODE : State 'F1_ack_10' is unreachable and will be removed
-OPTIMISATION : DEAD CODE : State 'F1_ack_11' is unreachable and will be removed
-OPTIMISATION : DEAD CODE : State 'F1_ack_9' is unreachable and will be removed
-OPTIMISATION : DEAD CODE : State 'F1_ack_2' is unreachable and will be removed
-OPTIMISATION : DEAD CODE : State 'F1_ack_5' is unreachable and will be removed
-OPTIMISATION : DEAD CODE : State 'F1_ack_6' is unreachable and will be removed

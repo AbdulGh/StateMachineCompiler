@@ -26,6 +26,7 @@ private:
 
 public:
     ControlFlowGraph(Reporter& r, FunctionTable& fc, SymbolTable& st) : reporter(r), functionTable(fc), symbolTable(st) {};
+    const FunctionSymbol& getMain() const;
     CFGNode* createNode(const std::string& name, bool overwrite, bool last, FunctionSymbol* parentFunc);
     CFGNode* createNode(const std::string& name, bool overwrite, bool last);
     CFGNode* getNode(const std::string& name);

@@ -333,12 +333,6 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
 
 bool CFGNode::swallowNode(CFGNode* other)
 {
-    if (name == "debug")
-    {
-        printf("%s swallowing %s\n", name.c_str(), other->name.c_str());
-        printf("before:\n%s\n%s\n", getSource().c_str(), other->getSource().c_str());
-    }
-
     if (other->getName() == name) throw "cant swallow self";
 
     const set<unique_ptr<FunctionCall>>& returnTo = parentFunction->getFunctionCalls();
@@ -398,7 +392,6 @@ bool CFGNode::swallowNode(CFGNode* other)
                 setCompSuccess(nullptr);
             }
 
-            if (name == "debug") printf("after 1:\n%s\n", getSource().c_str());
             return true;
         }
     }
@@ -440,7 +433,6 @@ bool CFGNode::swallowNode(CFGNode* other)
             setCompSuccess(nullptr);
         }
 
-        if (name == "debug") printf("after 2:\n%s\n", getSource().c_str());
         return true;
     }
     return false;
@@ -555,11 +547,7 @@ vector<CFGNode*> CFGNode::getSuccessorVector() const
     if (getCompFail() != nullptr) successors.push_back(getCompFail());
     else
     {
-        if (!isLastNode())
-        {
-            printf("debug\n %s\n\n", getSource().c_str());
-            throw "only last node can return";
-        }
+        if (!isLastNode()) throw "only last node can return";
         for (const auto& retSucc : getParentFunction()->getNodesReturnedTo()) successors.push_back(retSucc);
     }
     return successors;
@@ -668,11 +656,6 @@ unsigned int CFGNode::getNumPushingStates()
 
 void CFGNode::addFunctionCall(CFGNode* cfgn, FunctionSymbol *fs)
 {
-    if (name == "F1_ack_10" && cfgn->getName() == "F1_ack_6")
-    {
-        int debug;
-        debug = 2;
-    }
     if (!pushingStates.insert({cfgn, fs}).second) throw runtime_error("already in");
 }
 
@@ -704,14 +687,7 @@ void CFGNode::removePushes()
             }
             ++i;
         }
-        if (!done)
-        {
-            //debug
-            string n = name;
-            auto b = it->first->getName();
-            cout << it->first->getSource();
-            throw runtime_error("couldnt find state push");
-        }
+        if (!done) throw runtime_error("couldnt find state push");
         it = pushingStates.erase(it);
     }
 }

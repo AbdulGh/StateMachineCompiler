@@ -107,7 +107,7 @@ public:
     const AccessType& getAccessType() {return accessType;}
     virtual GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const = 0;
     virtual GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const  = 0;
-    virtual bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const {return true;};
+    virtual bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const = 0;
     virtual std::unique_ptr<VarWrapper> clone() const  = 0;
     virtual VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const = 0;
     virtual void setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv) = 0;
@@ -131,6 +131,7 @@ public:
     void setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv) override;
     void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv);
     void nondet(SymbolicExecution::SymbolicExecutionFringe* sef);
+    bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const;
     std::string getFullName() const override;
     std::unique_ptr<VarWrapper> clone() const override;
 };

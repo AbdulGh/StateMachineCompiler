@@ -124,7 +124,7 @@ bool SymbolicString::unionUpperBound(const string& ub, bool closed)
     return unionTUpperBound(ub);
 }
 
-bool SymbolicString::unionVar(SymbolicVariable *other)
+bool SymbolicString::unionVar(SymbolicVariable* other)
 {
     if (other->getType() != STRING) throw "wrong";
     SymbolicString* sd = static_cast<SymbolicString*>(other);

@@ -91,12 +91,12 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
 
 bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
-    if (vs->check(sef.get())) return false;
+    if (!vs->check(sef.get())) return false;
     if (atom.isHolding())
     {
         if (!atom.getVarWrapper()->check(sef.get())) return false;
         GottenVarPtr<SymbolicVariable> svp = atom.getVarWrapper()->getSymbolicVariable(sef.get());
-        if (svp->isFeasable()) return false;
+        if (!svp->isFeasable()) return false;
         vs->setSymbolicVariable(sef.get(), svp.get());
     }
     else vs->getSymbolicVariable(sef.get())->setConstValue(*atom.getString());

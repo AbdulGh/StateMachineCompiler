@@ -11,11 +11,6 @@ FunctionSymbol::FunctionVars::FunctionVars(unique_ptr<FunctionVars> p): parent(m
 
 void FunctionSymbol::FunctionVars::addVar(VarWrapper* varN)
 {
-    if (varN->getFullName() == "x")
-    {
-        int debug;
-        debug = 2;
-    }
     vars.insert(varN);
 }
 
@@ -45,7 +40,10 @@ const set<VarWrapper*> FunctionSymbol::FunctionVars::getVarSet()
 FunctionSymbol::FunctionSymbol(VariableType rt, vector<VariableType> types, string id, string p, ControlFlowGraph& c):
     returnType(rt), paramTypes(move(types)), ident(move(id)), prefix(move(p)),
     currentStateNum(1), endedState(false), cfg(c), lastNode{nullptr}, currentVarScope(make_unique<FunctionVars>())
-    {currentNode = cfg.createNode(prefix + "0", false, false, this); firstNode = currentNode;}
+    {
+        currentNode = cfg.createNode(prefix + "0", false, false, this); firstNode = currentNode;
+        if (ident == "main") cfg.setFirst(prefix + "0");
+    }
 
 bool FunctionSymbol::mergeInto(FunctionSymbol* to)
 {

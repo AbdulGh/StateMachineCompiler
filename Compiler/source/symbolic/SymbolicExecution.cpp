@@ -31,7 +31,7 @@ bool SymbolicExecutionManager::SearchResult::unionStack(SymbolicStack* other)
                 pseudoStack.pop_back();
             }
 
-            for (auto tempIt = currentCopyFrom->currentStack.rbegin();;)
+            for (auto tempIt = currentCopyFrom->currentStack.rbegin();;) //???
             {
                 while (tempIt == currentCopyFrom->currentStack.rend())
                 {
@@ -274,6 +274,7 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
 {
     if (!osef->isFeasable()) return;
 
+
     unique_ptr<SearchResult>& thisNodeSR = tags[n->getName()];
     bool change = thisNodeSR->unionSVS(osef->symbolicVarSet.get());
     if (thisNodeSR->unionStack(osef->symbolicStack.get())) change = true;
@@ -283,12 +284,10 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
 
     for (const auto& command : n->getInstrs())
     {
-        if (command->getType() == CommandType::POP)  //todo do I need this?
+        if (command->getType() == CommandType::POP)
         {
-            unique_ptr<SymbolicVariable> poppedVar = sef->symbolicStack->popVar();
-
-            if (command->getVarWrapper()) command->getVarWrapper()->setSymbolicVariable(sef.get(), poppedVar.release());
-
+            sef->symbolicStack->popVar();
+            if (command->getVarWrapper()) command->getVarWrapper()->nondet(sef.get());
         }
         else if (!command->acceptSymbolicExecution(sef, true)) return;
     }
