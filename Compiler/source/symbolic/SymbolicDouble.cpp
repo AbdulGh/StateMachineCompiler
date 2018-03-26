@@ -12,42 +12,41 @@ enum ArithResult{OVER, UNDER, FINE};
 SymbolicDouble::SymbolicDouble(string name, Reporter& r):
         SymbolicVariableTemplate(move(name), 0, 0, r, DOUBLE, true, true) {}
 
-SymbolicDouble::SymbolicDouble(SymbolicDouble* other):
+SymbolicDouble::SymbolicDouble(SymbolicDouble& o):
         SymbolicVariableTemplate
-                (other->getName(), other->getTLowerBound(), other->getTUpperBound(), other->reporter, DOUBLE, other->defined, true),
-                minChange(other->minChange), maxChange(other->maxChange), uniformlyChanging(other->uniformlyChanging)
-{}
+                (o.getName(), o.getTLowerBound(), o.getTUpperBound(), o.reporter, DOUBLE, o.defined, true),
+        minChange(o.minChange), maxChange(o.maxChange), uniformlyChanging(o.uniformlyChanging) {}
 
-SymbolicDouble::SymbolicDouble(SymbolicVariable* other):
-    SymbolicDouble(static_cast<SymbolicDouble*>(other)) {}//watch out!
+SymbolicDouble::SymbolicDouble(SymbolicVariable* other): SymbolicDouble(*static_cast<SymbolicDouble*>(other)) {}
 
 unique_ptr<SymbolicVariable> SymbolicDouble::clone()
 {
-    return make_unique<SymbolicDouble>(*this);
+    return make_unique<SymbolicDouble>(this);
 }
 
 unique_ptr<SymbolicDouble> SymbolicDouble::cloneSD()
 {
-    return make_unique<SymbolicDouble>(*this);
+    return make_unique<SymbolicDouble>(this);
 }
 
 SymbolicVariable* SymbolicDouble::cloneRaw()
 {
-    return new SymbolicDouble(*this);
-}
-
-shared_ptr<SymbolicDouble> SymbolicDouble::cloneSP()
-{
-    return make_shared<SymbolicDouble>(this);
+    return new SymbolicDouble(this);
 }
 
 void SymbolicDouble::userInput()
 {
-    SymbolicVariable::userInput();
     upperBound = numeric_limits<double>::max();
     lowerBound = numeric_limits<double>::lowest();
     define();
     uniformlyChanging = false;
+}
+
+void SymbolicDouble::nondet()
+{
+    upperBound = numeric_limits<double>::max();
+    lowerBound = numeric_limits<double>::lowest();
+    define();
 }
 
 void SymbolicDouble::loopInit()
@@ -138,6 +137,12 @@ bool SymbolicDouble::setLowerBound(const std::string& lb, bool closed)
 
 bool SymbolicDouble::setTUpperBound(const double& d, bool closed)
 {
+    if (d == 0)
+    {
+        int debug;
+        debug = 2;
+    }
+
     if (d > upperBound) clearLess();
     if (!closed && d != numeric_limits<double>::max()) upperBound = nextafter(d, numeric_limits<double>::max());
     else upperBound = d;

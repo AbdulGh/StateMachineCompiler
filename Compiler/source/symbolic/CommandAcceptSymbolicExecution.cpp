@@ -33,6 +33,7 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
             if (atom->getVarWrapper()->check(sef.get()))
             {
                 GottenVarPtr<SymbolicVariable> found = atom->getVarWrapper()->getSymbolicVariable(sef.get());
+
                 if (!found->isFeasable()) throw "should be feasable";
                 else if (!found->isDefined())
                 {
@@ -83,7 +84,7 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
     unique_ptr<SymbolicVariable> popped = sef->symbolicStack->popVar();
     if (vs->check(sef.get()))
     {
-        vs->setSymbolicVariable(sef.get(), popped.release());
+        vs->setSymbolicVariable(sef.get(), popped.get());
         return true;
     }
     else return false;
@@ -117,7 +118,16 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
         else
         {
             double t2 = term2.d;
-            GottenVarPtr<SymbolicDouble> sd = vs->getSymbolicDouble(sef.get());
+
+            unique_ptr<SymbolicDouble> sd = term1.vg->getSymbolicDouble(sef.get())->cloneSD();
+
+            if (vs->getFullName() == "retD")
+            {
+                auto debug = sd.get();
+                auto debug2 = sef.get()->symbolicVarSet->findVar("_1_1_n");
+                int debug3;
+                debug3 = 2;
+            }
 
             switch (op)
             {
@@ -128,7 +138,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                     else if (t2 < 0) sd->removeLowerBound();
                     break;
 
-                case ArithOp::DIV:
+                case ArithOp::DIV: //todo this
                     if (t2 == 0) throw runtime_error("divide by 0");
                     else t2 = 1/t2;
                 case ArithOp::MULT:
@@ -148,7 +158,6 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 default:
                     throw runtime_error("Unsupported op");
             }
-
             vs->setSymbolicVariable(sef.get(), sd.get());
         }
     }
@@ -231,6 +240,9 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
             default:
                 throw runtime_error("Bitwise operations not supported");
         }
+
+        auto debug = result.get();
+
         vs->setSymbolicVariable(sef.get(), result.get());
     }
     return sef->isFeasable();

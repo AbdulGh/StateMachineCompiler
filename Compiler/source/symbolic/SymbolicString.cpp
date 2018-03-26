@@ -8,23 +8,22 @@ SymbolicString::SymbolicString(string name, Reporter& reporter):
     SymbolicVariableTemplate(move(name), "", "", reporter, STRING, false, false),
     boundedLower(true), boundedUpper(true) {}
 
-SymbolicString::SymbolicString(SymbolicString* other):
-        SymbolicVariableTemplate(other->varN, other->lowerBound, other->upperBound,
-                                 other->reporter, STRING, other->isDefined() ,other->isIncrementable()),
-        boundedLower(other->isBoundedBelow()), boundedUpper(other->isBoundedAbove()){}
-
+SymbolicString::SymbolicString(SymbolicString& o):
+        SymbolicVariableTemplate(o.varN, o.lowerBound, o.upperBound,
+                                 o.reporter, STRING, o.isDefined() ,o.isIncrementable()),
+        boundedLower(o.isBoundedBelow()), boundedUpper(o.isBoundedAbove()){}
 
 SymbolicString::SymbolicString(SymbolicVariable* other):
-        SymbolicString(static_cast<SymbolicString*>(other)) {}
+        SymbolicString(*static_cast<SymbolicString*>(other)) {}
 
 unique_ptr<SymbolicVariable> SymbolicString::clone()
 {
-    return make_unique<SymbolicString>(*this);
+    return make_unique<SymbolicString>(this);
 }
 
 SymbolicVariable* SymbolicString::cloneRaw()
 {
-    return new SymbolicString(*this);
+    return new SymbolicString(this);
 }
 
 void SymbolicString::setTConstValue(const string& cv)
@@ -139,6 +138,11 @@ void SymbolicString::userInput()
     boundedLower = boundedUpper = false;
     lowerBound = upperBound = "";
     define();
+}
+
+void SymbolicString::nondet()
+{
+    userInput();
 }
 
 bool SymbolicString::isBoundedBelow() const

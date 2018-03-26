@@ -139,6 +139,7 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 case CommandType::INPUTVAR:
                 case CommandType::POP:
                 {
+                    usedVars.insert(instr->getVarWrapper()->getBaseName());
                     killSet.insert(instr->getVarWrapper()->getBaseName());
                     break;
                 }

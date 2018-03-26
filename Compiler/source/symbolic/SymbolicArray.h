@@ -289,15 +289,15 @@ public:
 
     void nondet(unsigned int i)
     {
-        SymbolicDouble undet(undet);
-        undet.userInput();
+        SymbolicDouble undet("undet", reporter);
+        undet.nondet();
         set(i, &undet);
     }
 
     void nondet(SymbolicDouble* index)
     {
-        SymbolicDouble undet(undet);
-        undet.userInput();
+        SymbolicDouble undet("undet", reporter);
+        undet.nondet();
         set(index, &undet);
     }
 };

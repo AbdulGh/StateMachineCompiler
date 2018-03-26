@@ -2,6 +2,8 @@
 // Created by abdul on 19/03/18.
 //
 
+#include <memory>
+
 #include "VarWrappers.h"
 #include "SymbolicExecution.h"
 
@@ -31,8 +33,9 @@ VariableType SVByName::getVariableType(SymbolicExecution::SymbolicExecutionFring
 
 void SVByName::setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv)
 {
-    sv->setName(name);
-    sef->symbolicVarSet->addVar(sv->clone());
+    std::unique_ptr<SymbolicVariable> sv2 = sv->clone();
+    sv2->setName(name);
+    sef->symbolicVarSet->addVar(move(sv2));
 }
 
 void SVByName::setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv)
@@ -46,7 +49,7 @@ void SVByName::nondet(SymbolicExecution::SymbolicExecutionFringe* sef)
 {
     auto var = sef->symbolicVarSet->findVar(name);
     if (!var) throw std::runtime_error("Undefined variable '" + name + "'");
-    var->userInput();
+    var->nondet();
 }
 
 bool SVByName::check(SymbolicExecution::SymbolicExecutionFringe *sef) const

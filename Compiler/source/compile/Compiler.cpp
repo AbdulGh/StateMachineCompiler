@@ -54,9 +54,10 @@ void Compiler::compile(stringstream& out)
 
     return;
 
+
     vector<Loop> loops = LengTarj(cfg).findLoops();
-    for (Loop& loop : loops) cout << loop.getInfo() << endl;
     for (Loop& loop : loops) loop.validate(tags);
+    return;
     cout << cfg.getStructuredSource() << endl;
     return;
 
@@ -70,7 +71,7 @@ Token Compiler::nextToken()
     return *(tp++);
 }
 
-Identifier* Compiler::findVariable(VarWrapper* vg, VariableType* vtype) //todo check usage of this (should be redundant)
+Identifier* Compiler::findVariable(VarWrapper* vg, VariableType* vtype)
 {
     Identifier* ret = symbolTable.findIdentifier(vg->getBaseName());
     if (ret == nullptr) error("Undeclared variable '" + vg->getBaseName() + "'");
@@ -82,7 +83,7 @@ Identifier* Compiler::findVariable(VarWrapper* vg, VariableType* vtype) //todo c
 void Compiler::findGlobalsAndMakeStates()
 {
     vector<unique_ptr<AbstractCommand>> initialState;
-    string initialNames[NUM_INITIAL] = {"LHS", "rhs", "retD", "retS"};
+    string initialNames[NUM_INITIAL] = {"LHS", "RHS", "retD", "retS"};
     VariableType initialTypes[NUM_INITIAL] = {DOUBLE, DOUBLE, DOUBLE, STRING};
 
     for (int i = 0; i < NUM_INITIAL; ++i)

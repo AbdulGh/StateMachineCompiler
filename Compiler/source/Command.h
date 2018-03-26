@@ -30,6 +30,9 @@ public:
     explicit Atom(const std::string&, bool allowEmpty = false);
     explicit Atom(std::unique_ptr<VarWrapper>);
     Atom(const Atom& o);
+    Atom(Atom&& o);
+    Atom& operator=(Atom& o) = delete;
+    Atom& operator=(Atom&& o);
     bool isHolding() const;
     StringType getType() const;
     const std::string* getString() const;
@@ -317,6 +320,8 @@ public:
     Term(std::unique_ptr<VarWrapper> vg);
     Term(Term&& other);
     ~Term();
+    Term& operator=(Term& o) = delete;
+    Term& operator=(Term&& o) = delete;
 
     void parse(const std::string& toParse);
 
@@ -335,7 +340,10 @@ public:
 
     EvaluateExprCommand(std::unique_ptr<VarWrapper> lh, Term t1, ArithOp o, Term t2, int linenum);
     EvaluateExprCommand(const EvaluateExprCommand& o);
-    ~EvaluateExprCommand();
+    ~EvaluateExprCommand() override;
+    EvaluateExprCommand(EvaluateExprCommand&& o) = delete;
+    EvaluateExprCommand& operator=(EvaluateExprCommand& o) = delete;
+    EvaluateExprCommand& operator=(EvaluateExprCommand&& o) = delete;
     std::unique_ptr<AbstractCommand> clone() override;
     std::string translation(const std::string& delim) const override;
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat) override;

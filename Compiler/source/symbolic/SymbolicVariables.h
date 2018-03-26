@@ -37,6 +37,8 @@ public:
     enum MeetEnum {CANT, MAY, MUST};
 
     SymbolicVariable(std::string name, VariableType t, Reporter& r, bool defined, bool feasable, bool incrementable);
+    SymbolicVariable(const SymbolicVariable& other) = delete;
+    SymbolicVariable(const SymbolicVariable&& other) = delete;
     ~SymbolicVariable();
     Reporter& getReporter() const {return reporter;}
 
@@ -72,6 +74,7 @@ public:
     virtual SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, SymbolicVariable* rhs) const = 0;
     virtual const std::string getConstString() = 0;
     virtual void userInput() = 0;
+    virtual void nondet() = 0;
     virtual void loopInit() {}
     virtual bool isBoundedBelow() const = 0;
     virtual bool isBoundedAbove() const = 0;
@@ -149,14 +152,13 @@ private:
     void addConstToUpper(const double d);
 
 public:
+    SymbolicDouble(SymbolicDouble& o);
+    SymbolicDouble(SymbolicVariable* o);
     SymbolicDouble(std::string name, Reporter& reporter);
-    SymbolicDouble(SymbolicDouble* other);
-    SymbolicDouble(SymbolicVariable* other);
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
     SymbolicVariable::MeetEnum canMeet(Relations::Relop rel, SymbolicVariable* rhs) const override;
     std::unique_ptr<SymbolicVariable> clone() override;
     std::unique_ptr<SymbolicDouble> cloneSD();
-    std::shared_ptr<SymbolicDouble> cloneSP();
     SymbolicVariable* cloneRaw() override;
 
     void removeUpperBound();
@@ -182,6 +184,8 @@ public:
     virtual void iterateTo(SymbolicVariable* to, bool closed=true);
 
     void userInput() override;
+    void nondet() override;
+
     void loopInit() override;
     bool isBoundedBelow() const override;
     bool isBoundedAbove() const override;
@@ -208,8 +212,8 @@ private:
 
 public:
     SymbolicString(std::string name, Reporter& reporter);
+    SymbolicString(SymbolicString& other);
     SymbolicString(SymbolicVariable* other);
-    SymbolicString(SymbolicString* other);
     MeetEnum canMeet(Relations::Relop rel, const std::string& rhs) const override;
     MonotoneEnum getMonotonicity() const override {return NONE;}
     std::unique_ptr<SymbolicVariable> clone() override;
@@ -235,6 +239,8 @@ public:
     void iterateTo(SymbolicVariable* sv, bool closed) {throw "not changing";}
 
     void userInput() override;
+    void nondet() override;
+
     bool isBoundedBelow() const override;
     bool isBoundedAbove() const override;
 };

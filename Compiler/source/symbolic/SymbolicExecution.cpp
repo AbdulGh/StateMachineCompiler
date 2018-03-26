@@ -274,23 +274,22 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
 {
     if (!osef->isFeasable()) return;
 
-
     unique_ptr<SearchResult>& thisNodeSR = tags[n->getName()];
     bool change = thisNodeSR->unionSVS(osef->symbolicVarSet.get());
+
     if (thisNodeSR->unionStack(osef->symbolicStack.get())) change = true;
     if (!visitedNodes.insert(n->getName()).second && !change) return; //seen before
 
-    shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(osef);
 
-    for (const auto& command : n->getInstrs())
+    shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(osef);
+    if (n->getName() == "F1_mc91_5")
     {
-        if (command->getType() == CommandType::POP)
-        {
-            sef->symbolicStack->popVar();
-            if (command->getVarWrapper()) command->getVarWrapper()->nondet(sef.get());
-        }
-        else if (!command->acceptSymbolicExecution(sef, true)) return;
+        auto debug = sef->symbolicVarSet->findVar("retD");
+        int debug2;
+        debug2 = 3;
     }
+
+    for (const auto& command : n->getInstrs()) if (!command->acceptSymbolicExecution(sef, true));
 
     JumpOnComparisonCommand* jocc = n->getComp();
     if (jocc != nullptr) //is a conditional jump

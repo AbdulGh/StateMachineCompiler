@@ -35,6 +35,9 @@ public:
     explicit GottenVarPtr(T* pointTo) : rp(pointTo), owns(false) {}
     explicit GottenVarPtr(std::unique_ptr<T> sv) : up(move(sv)), owns(true) {}
     ~GottenVarPtr() {if (owns) up.reset();}
+    GottenVarPtr(GottenVarPtr& o) = delete;
+    GottenVarPtr& operator=(GottenVarPtr<T> rhs) = delete;
+    GottenVarPtr& operator=(GottenVarPtr<T>&& rhs) = delete;
 
     void reset(T* pointTo)
     {
@@ -129,9 +132,9 @@ public:
     GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     void setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv) override;
-    void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv);
-    void nondet(SymbolicExecution::SymbolicExecutionFringe* sef);
-    bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const;
+    void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv) override;
+    void nondet(SymbolicExecution::SymbolicExecutionFringe* sef) override;
+    bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     std::string getFullName() const override;
     std::unique_ptr<VarWrapper> clone() const override;
 };

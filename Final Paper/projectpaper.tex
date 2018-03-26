@@ -160,6 +160,7 @@ should be followed in the code a programmer wrote. Simplifications, whilst helpi
 dearly here. Not only will variables have different names (as the state machine has no scope, variables will be renamed) but it is very
 likely that compilation and optimisation will change the structure of the program to a significant degree. That being said, the representation
 itself can be directly executed and at least detected bugs will apply to the running program.
+\end{enumerate}
 
 \subsection{More similar work}
 A similar approach to the solution presented here is the `lasoo' approach discussed in \citep{gupta}. It begins by symbolically executing the program and finding paths that revisit some state. It then uses a constraint solver to find states that are recurrent.
@@ -374,7 +375,7 @@ As the domination relation is antisymmetric and transitive it can be used to for
 immediately dominates. The node then dominates everything in its rooted subtree.
 
 \begin{definition}\label{def:backedge}
-An edge in a CFG is a \em{backedge} if its head dominates its tail.
+An edge in a CFG is a \emph{backedge} if its head dominates its tail.
 \end{definition}
 
 This is the normal definition of `back edge' in the dominator tree.
@@ -545,13 +546,12 @@ however the method fails to detect the same when line $8$ is modified.
 \begin{wrapfigure}{r}{0.4\textwidth}
 \centering
 \begin{lstlisting}[frame=tlrb,language=myLang]
-function mc91(double n) double
+function m(double n) double
 {
     if (n > 100) return n-10;
     else{
         n = n + 11;
-        double m1 = call mc91(n);
-        return call mc91(m1);
+        return call m(call m(n));
     }
 }
 \end{lstlisting}
@@ -560,11 +560,15 @@ This function is a standard exercise for automated termination analysis methods.
 or inverting the condition in line $3$, result in nonterminating programs that are successfully detected by the method.
 \pagebreak
 \section{Evaluation}
+\subsection{Successes}
+As shown in the previous section the solution successfully verified a diverse range of programs, and did not struggle with array usage and/or function calls.
+We also managed to detect a variety of bugs.
+
 \subsection{Failures}
 \textbf{The Ackermann function}. As noted in \cref{example:ack} we failed to catch a nonterminating program resulting from a bad modification to line $7$.
 This is due to shortsightedness of our method and our ignoring of path dependencies.
 
-\textbf{Division and binary search}. The method 
+\textbf{Division, multiplication, and binary search}. The solution 
 
 \section{Conclusions}
 

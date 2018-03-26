@@ -57,7 +57,7 @@ void SymbolicVarSet::setLoopInit()
 
 void SymbolicVarSet::addVar(SymbolicVariablePointer newvar)
 {
-    variables.insert({newvar->getName(), move(newvar)});
+    variables[newvar->getName()] = move(newvar);
 }
 
 void SymbolicVarSet::addArray(const std::string& name, SymbolicArrayPointer p)

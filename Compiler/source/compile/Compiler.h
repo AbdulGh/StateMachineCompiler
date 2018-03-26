@@ -35,7 +35,7 @@ private:
     void warning(std::string);
     Token nextToken();
     void findGlobalsAndMakeStates();
-    Identifier* findVariable(VarWrapper* varGetter, VariableType* vtype = nullptr);
+    Identifier* findVariable(VarWrapper* varGetter, VariableType* vtype = nullptr); //redundant
     std::string quoteString(std::string& s);
 
     //parsing

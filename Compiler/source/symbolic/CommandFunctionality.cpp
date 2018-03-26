@@ -97,6 +97,40 @@ Atom::Atom(const Atom& o): type(o.type)
     }
 }
 
+Atom::Atom(Atom&& o): type(o.type)
+{
+    if (o.holding)
+    {
+        vptr = o.vptr;
+        o.vptr = nullptr;
+        holding = true;
+    }
+    else
+    {
+        sptr = o.sptr;
+        o.sptr = nullptr;
+        holding = false;
+    }
+}
+
+Atom& Atom::operator=(Atom&& o)
+{
+    type = o.type;
+    if (o.holding)
+    {
+        vptr = o.vptr;
+        o.vptr = nullptr;
+        holding = true;
+    }
+    else
+    {
+        sptr = o.sptr;
+        o.sptr = nullptr;
+        holding = false;
+    }
+    return *this;
+}
+
 void Atom::swap(Atom& a)
 {
     if (holding)

@@ -109,6 +109,8 @@ inline void mergeMaps(NodeChangeMap& intoMap, NodeChangeMap& fromMap)
     }
 }
 
+string lastNode;
+
 bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string, unique_ptr<SearchResult>>& tags,
                       SEFPointer sef, string& badExample, bool headerSeen)
 {
@@ -118,17 +120,13 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
 
     for (auto& instr : node->getInstrs())
     {
-        if (instr->getType() == CommandType::POP)
+        if (instr->getType() == CommandType::POP && instr->getVarWrapper())
         {
             if (sef->symbolicStack->isEmpty())
             {
-                if (instr->getVarWrapper())
-                {
-                    unique_ptr<SymbolicVariable> popped = thisNodeSR->popVar();
-                    popped->setName(instr->getVarWrapper()->getFullName());
-                    popped->loopInit();
-                    sef->symbolicVarSet->addVar(move(popped));
-                }
+                unique_ptr<SymbolicVariable> popped = thisNodeSR->popVar();
+                popped->setName(instr->getVarWrapper()->getFullName());
+                sef->symbolicVarSet->addVar(move(popped));
             }
             else
             {

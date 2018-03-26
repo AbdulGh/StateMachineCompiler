@@ -41,14 +41,14 @@ public:
 
     explicit SymVarStackMember(SymbolicVariable* toPush)
     {
-        varptr = toPush->clone();
+        varptr = move(toPush->clone());
         setType(SymbolicStackMemberType::VAR);
     }
 
     explicit SymVarStackMember(GottenVarPtr<SymbolicVariable> toPush)
     {
         setType(SymbolicStackMemberType::VAR);
-        if (toPush.constructed()) varptr = move(toPush.release());
+        if (toPush.constructed()) varptr = toPush.get()->clone();
         else varptr = toPush->clone();
     }
 
@@ -84,20 +84,17 @@ public:
         if (other->getType() != SymbolicStackMemberType::VAR) throw "merged incompatable types";
         bool change = false;
         SymVarStackMember* o = static_cast<SymVarStackMember*>(other.get());
+
         if (varptr->unionUpperBound(o->varptr->getUpperBound())) change = true;
         if (varptr->unionLowerBound(o->varptr->getLowerBound())) change = true;
         if (!varptr->isDetermined()) setType(SymbolicStackMemberType::VAR);
         return change;
     }
-
-    void mergeVar(SymbolicVariable& ovarptr)
-    {
-        varptr->unionUpperBound(ovarptr.getUpperBound());
-        varptr->unionLowerBound(ovarptr.getLowerBound());
-        if (!varptr->isDetermined()) setType(SymbolicStackMemberType::VAR);
-    }
     
-    std::string diagString() override {return "var " + varptr->getName();}
+    std::string diagString() override
+    {
+        return "var " + varptr->getLowerBound() + " - " + varptr->getUpperBound() + " " + varptr->getName();
+    }
     const std::string& getName() override {return varptr->getName();}
 };
 
