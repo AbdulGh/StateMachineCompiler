@@ -280,14 +280,7 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
     if (thisNodeSR->unionStack(osef->symbolicStack.get())) change = true;
     if (!visitedNodes.insert(n->getName()).second && !change) return; //seen before
 
-
     shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(osef);
-    if (n->getName() == "F1_mc91_5")
-    {
-        auto debug = sef->symbolicVarSet->findVar("retD");
-        int debug2;
-        debug2 = 3;
-    }
 
     for (const auto& command : n->getInstrs()) if (!command->acceptSymbolicExecution(sef, true));
 
@@ -330,6 +323,7 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
             {
                 case SymbolicVariable::CANT:
                 {
+                    auto debug = LHS.get();
                     CFGNode* nextNode = getFailNode(sef, n);
                     if (nextNode != nullptr) visitNode(sef, nextNode);
                     return;

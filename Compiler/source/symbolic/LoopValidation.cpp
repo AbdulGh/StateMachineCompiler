@@ -19,9 +19,10 @@
 
 using namespace std;
 
-Loop::Loop(CFGNode* entry, CFGNode* last, std::map<CFGNode*, unsigned long> nodeSet,
+Loop::Loop(CFGNode* entry, CFGNode* last, std::map<CFGNode*, bool> nodeSet,
            unsigned long tailNumber, ControlFlowGraph& controlFlowGraph):
-           headerNode(entry), nodes(move(nodeSet)), cfg(controlFlowGraph), domNum(tailNumber)
+           headerNode(entry), nodes(move(nodeSet)), cfg(controlFlowGraph),
+           domNum(tailNumber), invalid(false)
 {
     if (headerNode->getCompSuccess() != nullptr) comparisonNode = headerNode;
     else if (last->getCompSuccess() != nullptr) comparisonNode = last;
@@ -35,7 +36,7 @@ Loop::Loop(CFGNode* entry, CFGNode* last, std::map<CFGNode*, unsigned long> node
         comparisonNode = last;
         stackBased = true;
     }
-    else throw "comparison must be at head or exit";
+    else invalid = true;
 }
 
 string Loop::getInfo()
@@ -52,6 +53,15 @@ string Loop::getInfo()
 
 void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
 {
+    if (invalid)
+    {
+        string report;
+        report = "Could not find any good path through the following loop:\n";
+        report += getInfo() + "\n";
+        cfg.getReporter().addText(report);
+        return;
+    }
+
     ChangeMap varChanges; //node->varname->known path through that node where the specified change happens
     SEFPointer sef = make_shared<SymbolicExecution::SymbolicExecutionFringe>(cfg.getReporter());
     unique_ptr<SearchResult>& headerSR = tags[headerNode->getName()];

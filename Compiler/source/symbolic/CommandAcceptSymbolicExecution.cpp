@@ -121,14 +121,6 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
 
             unique_ptr<SymbolicDouble> sd = term1.vg->getSymbolicDouble(sef.get())->cloneSD();
 
-            if (vs->getFullName() == "retD")
-            {
-                auto debug = sd.get();
-                auto debug2 = sef.get()->symbolicVarSet->findVar("_1_1_n");
-                int debug3;
-                debug3 = 2;
-            }
-
             switch (op)
             {
                 case ArithOp::MINUS:
@@ -240,9 +232,6 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
             default:
                 throw runtime_error("Bitwise operations not supported");
         }
-
-        auto debug = result.get();
-
         vs->setSymbolicVariable(sef.get(), result.get());
     }
     return sef->isFeasable();

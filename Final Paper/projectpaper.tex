@@ -91,10 +91,7 @@ The inevitable failures can be anything from annoying to costly to fatal - infam
 (costing an estimated 7 billion dollars) and the patriot missile system (costing 28 lives).
 
 Many diverse methods have been developed in order to detect them. The method of choice will depend on factors such as concurrency,
-desired level of coverage, type 1 vs. type 2 errors, the size of the program, etc.
-
-The most thorough approaches invoke constraint solvers - for example, to prove that
-a certain path can never be executed. These approaches, although successful, are computationally expensive and may be overkill for non-safety-critical applications.
+desired level of coverage, type 1 vs. type 2 errors, the size of the program, etc. The most thorough approaches invoke constraint solvers or satisfiability modulo theories engines. These approaches, although successful, are computationally expensive and may be overkill for non-safety-critical applications.
 
 This project instead utilises techniques from the field of symbolic execution in order to overestimate the set of feasible paths through a program.
 The idea is to try to maintain an upper and lower bound on the possible values of each variable, as well as basic relationships between variables.
@@ -133,7 +130,7 @@ Briefly, a \emph{term rewriting system} which transforms an `object' into anothe
 
 Functional languages such as LISP and Haskell are amenable to interpretation as a rewrite system. Imperative languages, however, need more work. A method given in \citep{A Term Rewriting Approach to the Automated Termination Analysis of Imperative Programs} takes the possible states of the program (the values of variables, including the program coutner) to be the objects and transforms each basic block into a rewrite rule, possibly enriched with a condition given in some logic.
 
-\subsection{Symbolic Execution}
+\subsection{Symbolic Execution}\label{revSymEx}
 The last two methods are powerful but are not well suited to deal with arrays and function calls/stack usage. Many approaches search for bad execution paths by
 simulating program execution, substituting symbolic representations of variables instead of concrete values. Each `probe' of the search will represent a range of possible program executions. As each
 probe proceeds through the program it builds a path condition - the conjunction of conditionals it has taken. This method is named \emph{symbolic execution}.\\
@@ -268,7 +265,7 @@ When we reach a branch - which are the edges leaving a node - we may have to clo
 The verification procedure will consist of two searches. The first ignores how variables change and simply tracks the possible ranges of variables at each basic block of the CFG. A non-idempotent operation will affect the state as if it could be executed an arbitrary number of times. Similarly to data-flow analysis, we will carry on a search to the successors of some node $n$ only if we learn something new whilst searching $n$. Each node is tagged with the union of the ranges of variables in each visit. (For example, if a variable always happens to be nonnegative in a basic block this will be known.) Nodes that are never visited are then removed. After this stage, we carry out a more detailed
 search through detected loops in order to produce certificates of termination/non-termination.
 
-\paragraph{*Improving variable-variable comparisons}
+\paragraph{Improving variable-variable comparisons}
 Say we encounter the condition \texttt{if} $(x < y)$. If we only restict the upper bound of $x$ so that it is less than the upper bound of $y$, we lose the potentially useful information that $x < y$.
 We maintain this information by linking together symbolic variables with edges. We then retain those simple relationships between variables, and we also gain the ability to infer new relationships via transitivity.
 As an example, if we hit the condition \texttt{if} $(x < y)$, but we have previously seen the conditions \texttt{if} $(x \geq z)$ and \texttt{if} $(z > y)$ we know we cannot enter.
@@ -303,7 +300,7 @@ This will be combatted by attempting to extrapolate the current motion of variab
 which the variable ranges forbid us from taking. So we first visit the second branch. If any execution of this branch always moves us towards meeting
 this condition, we will go ahead and take it.
 
-\paragraph{*Nested loops and laminar sets}
+\paragraph{Nested loops and laminar sets}
 It may be that one loop is nested inside another. We form an `inclusion tree', where the nodes are loops and an edge represents proper nesting. When we come to verify a loop in this tree we first recursively verify its children.
 If we decide that they're bug-free we then verify the outer loop, treating the nodes in nested loops as if they may be executed an arbitrary number of times.
 
@@ -316,6 +313,16 @@ the other. We can adapt a bioinformatical algorithm usually used to find perfect
 \item Sort these bitvectors using radix sort.
 \item For each loop, find any index set to $1$ and add that loop as the child of the next highest loop with a $1$ in that position (if it exists).
 \end{enumerate}
+
+\paragraph{Bug detection for arrays}
+Arrays could be `symbolically simulated' by creating a symbolic variable for each cell - however this is obviously very wasteful. We instead maintain two lists - 
+the first a list of indicies pointing to contiguous ranges which (as far as we can tell) have the same value, and the second a list of pointers to symbolic variables corresponding to those ranges.\\
+For example, say the user creates an array of $10,000$ doubles. This array is represented
+by a single symbolic double $init$ set to 0. Now the user adds $10$ to the cell with index $x$, $20 \leq x \leq 100$. We create a new symbolic double $nd$ with possible values $0 \leq nd \leq 10$.
+The index list becomes $(20, 100)$ and the value list $(init, nd, init)$.
+
+Given a undetermined index $i$ this symbolic array can then build a symbolic variable which overestimates the range of values present in the indicies spanned by $i$. It
+can also emit a warning in the cases of potential out of bounds accesses and indexing by an increasing/decreasing variable.
 
 \subsection{Symbol tables and spaghetti stacks} \label{app:spaghetti}
 \subsubsection{The symbol table}
@@ -440,19 +447,21 @@ Now $S_w$ is $\argmin\{semiNum(eval(n)) |n \to w\}$.\\
  The bucket is then emptied.\\
 Finally, after all the semidominators have been computed and the immediate dominators implicitly computed, we process the nodes in increacing DF order to fill in the blanks.\par
 
-\paragraph{Bug detection for arrays}
-Arrays could be `symbolically simulated' by creating a symbolic variable for each cell - however this is obviously very wasteful. We instead maintain two lists - 
-the first a list of indicies pointing to contiguous ranges which (as far as we can tell) have the same value, and the second a list of pointers to symbolic variables corresponding to those ranges.\\
-For example, say the user creates an array of $10,000$ doubles. This array is represented
-by a single symbolic double $init$ set to 0. Now the user adds $10$ to the cell with index $x$, $20 \leq x \leq 100$. We create a new symbolic double $nd$ with possible values $0 \leq nd \leq 10$.
-The index list becomes $(20, 100)$ and the value list $(init, nd, init)$.
+\subsection{Testing}
+The purpose of writing a virtual machine for the produced machine code is twofold. The first is to combat the path divergence problem discussed in \cref{revSymEx}.
+It also allows us to expect the execution of the produced code and check that is runs as expected. The compiler was tested `by inspection' - the produced CFG and the
+outputs of the compiled programs were checked manually for correctness.
 
-*Given a undetermined index $i$ this symbolic array can then build a symbolic variable which overestimates the range of values present in the indicies spanned by $i$. It
-can also emit a warning in the cases of potential out of bounds accesses and indexing by an increasing/decreasing variable.
+Most of the testing of the verification software happened during collection of the results given in the next section. The examples were chosen so as to demonstrate all features of the solution,
+and in doing so these tests achieve very high code coverage. In addition, the same examples were ran using the Valgrind debugging tool. This tool helps to detect memory leaks. More importantly, it an detect bugs that lead to undefined behaviour (these bugs might not have immediate obvious effects, but lead to problems down the line).
+
+Finally, unit tests were carried out on sufficiently moduar parts of the code - i.e., finding loops, radix sort, building symbolic variables that represent our beliefs,
+etc.
 
 \newpage
-\section{*Results}
-The solution was exercised on various examples from the literature. Some of the examples have been reformatted to save lines and improve readability.
+\section{Results}
+The solution was exercised on various examples from the literature. Some of the examples have been reformatted (in superficial ways only)
+ for brevity and readability.
 
 \subsection{No functions}
 Most of the following examples are taken from the appendix of \citep{A Term Rewriting Approach to the Automated Termination Analysis of Imperative Programs}, itself a collection of examples from other papers.  All the examples given in this paper terminate, so we also introduced mistakes in order to test detection of nontermination.
@@ -560,20 +569,28 @@ This function is a standard exercise for automated termination analysis methods.
 or inverting the condition in line $3$, result in nonterminating programs that are successfully detected by the method.
 \pagebreak
 \section{Evaluation}
-\subsection{Successes}
+\subsection{Pluses}
 As shown in the previous section the solution successfully verified a diverse range of programs, and did not struggle with array usage and/or function calls.
 We also managed to detect a variety of bugs.
 
-\subsection{Failures}
+\subsection{Minuses}
 \textbf{The Ackermann function}. As noted in \cref{example:ack} we failed to catch a nonterminating program resulting from a bad modification to line $7$.
-This is due to shortsightedness of our method and our ignoring of path dependencies.
-
-\textbf{Division, multiplication, and binary search}. The solution 
+This is due to shortsightedness of our method and our ignoring of path dependencies. 
 
 \section{Conclusions}
 
-\paragraph{Future work}
+\subsection{Future work}
+\textbf{Extention to other programming paradigms}. The solution as described works with imperative languages only - we affect some global state as we proceed through
+the program and through loops. The principles underlying the technique given here could be extended to stateless paradigms, such as functional and logic programming.\\
 
+\textbf{Assertions}. Assert statements are statements inserted into code that give an invariant condition that is expected to hold at that line - i.e., $x \geq 0$.
+During the execution of the program these statements are checked for their validity - if an assertion is found to not hold the program is halted. It would not be hard
+to use this method, or symbolic execution in general, to automatically search for program executions where an assertion does not hold.\\
+
+\textbf{Constraint solvers}. We avoided the use of constraint solvers for speed and flexibility. There are, however, many cases where speed can be sold in
+exchange for accuracy and thoroughness. In these cases it may be profitable to combine the method given here with constraint solvers - doing so would retain the flexibility
+afforded by symbolic execution (i.e. the simulation of stacks and memory) but give us much more power to detect feasible/infeasible paths and monotonically changing variables. The assertions just discussed could be enriched with the constraint language chosen, and we would be able to check additional, custom properties (such as
+`Bubblesort actually sorts').
 
 \bibliography{projectpaper}
 \end{document}

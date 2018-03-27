@@ -9,7 +9,7 @@ function ack(double x, double y) double
     if (x <= 0) return y+1;
     else if (y <= 0)
     {
-        double xMinus1 = x;
+        double xMinus1 = x-1;
         return call ack(xMinus1, 1);
     }
     else

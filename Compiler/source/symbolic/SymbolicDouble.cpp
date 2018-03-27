@@ -137,12 +137,6 @@ bool SymbolicDouble::setLowerBound(const std::string& lb, bool closed)
 
 bool SymbolicDouble::setTUpperBound(const double& d, bool closed)
 {
-    if (d == 0)
-    {
-        int debug;
-        debug = 2;
-    }
-
     if (d > upperBound) clearLess();
     if (!closed && d != numeric_limits<double>::max()) upperBound = nextafter(d, numeric_limits<double>::max());
     else upperBound = d;

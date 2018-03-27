@@ -26,9 +26,10 @@ private:
     ControlFlowGraph& cfg;
     CFGNode* headerNode;
     CFGNode* comparisonNode;
-    std::map<CFGNode*, unsigned long> nodes;
+    std::map<CFGNode*, bool> nodes;
     bool stackBased = false;
     bool goodPathFound = false;
+    bool invalid;
     const unsigned long domNum;
 
     //returns true if it was a node in the loop on a path to the loop exit
@@ -37,8 +38,8 @@ private:
 
 
 public:
-    Loop(CFGNode* entry, CFGNode* last, std::map<CFGNode*,
-            unsigned long> nodeSet, unsigned long tailNumber, ControlFlowGraph& cfg);
+    Loop(CFGNode* entry, CFGNode* last, std::map<CFGNode*, bool> nodeSet, unsigned long tailNumber, ControlFlowGraph& cfg);
+    const std::map<CFGNode*, bool>& getNodes() {return nodes;}
     std::string getInfo();
     void validate(std::unordered_map<std::string, std::unique_ptr<SearchResult>>& tags);
 };

@@ -39,15 +39,17 @@ private:
     //forest stuff
     unsigned long* forestAncestors;
     unsigned long* forestMinimums;
+    std::map<CFGNode*, unsigned long> labels;
     unsigned long compress(unsigned long node);
     unsigned long eval(unsigned long node);
     std::map<unsigned long, std::vector<unsigned long>> buckets;
 
     void labelNodes();
     void calculateSemidominators();
+    std::vector<Loop> findNesting(std::vector<std::unique_ptr<Loop>>& loops);
 public:
     LengTarj(ControlFlowGraph& cfg);
-    std::vector<Loop> findLoops();
+    std::vector<std::unique_ptr<Loop>> findLoops();
     ~LengTarj();
 };
 

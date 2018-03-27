@@ -33,10 +33,9 @@ LengTarj::~LengTarj()
 
 void LengTarj::labelNodes()
 {
-    std::map<CFGNode*, unsigned long> labels;
     unsigned long n = 0;
     function<void(CFGNode*, unsigned long)> DFS =
-    [this, &labels, &DFS, &n](CFGNode* node, unsigned long parent) -> void
+    [this, &DFS, &n](CFGNode* node, unsigned long parent) -> void
     {
         ++n;
         labels[node] = n;
@@ -115,6 +114,56 @@ void LengTarj::calculateSemidominators()
     }
 }
 
+vector<Loop> LengTarj::findNesting(std::vector<unique_ptr<Loop>>& loops)
+{
+    bool** bitVectors = new bool*[loops.size()];
+    for (int i = 0; i < loops.size(); ++i)
+    {
+        bitVectors[i] = new bool[numNodes]();
+        for (auto pair : loops[i]->getNodes())
+        {
+            CFGNode* node = pair.first;
+            bitVectors[i][labels[node]] = true;
+        }
+    }
+
+    auto radixSort = //[l, r)
+    [&, this, bitVectors](const auto& recurse, unsigned int digit, unsigned int l, unsigned int r) -> void
+    {
+        if (digit >= numNodes || l == r) return;
+        unsigned int firstZero = l;
+
+        for (unsigned int i = l; i < r; ++i)
+        {
+            if (bitVectors[i][digit] == false)
+            {
+                firstZero = i;
+                break;
+            }
+        }
+
+        unsigned int probe = firstZero + 1;
+        while (probe < r)
+        {
+            if (bitVectors[probe][digit] == true)
+            {
+                bool* temp = bitVectors[probe];
+                bitVectors[probe] = bitVectors[firstZero];
+                bitVectors[firstZero] = temp;
+                ++firstZero;
+                loops[probe].swap(loops[firstZero]);
+            }
+            ++probe;
+        }
+
+        ++digit;
+        recurse(recurse, digit, l, firstZero);
+        recurse(recurse, digit, firstZero, r);
+    };
+
+    radixSort(radixSort, 0, loops.size(), 0);
+}
+
 unsigned long LengTarj::eval(unsigned long node)
 {
     if (forestAncestors[node] == 0) return node;
@@ -133,13 +182,13 @@ unsigned long LengTarj::compress(unsigned long node)
     return forestMinimums[node];
 }
 
-vector<Loop> LengTarj::findLoops()
+vector<unique_ptr<Loop>> LengTarj::findLoops()
 {
     labelNodes();
     calculateSemidominators();
 
     //calculate dominators and find `natural loops'
-    vector<Loop> loops;
+    vector<unique_ptr<Loop>> loops;
     for (unsigned long i = 2; i <= numNodes; ++i)
     {
         if (domNums[i] != semiDomNums[i]) domNums[i] = domNums[domNums[i]];
@@ -159,7 +208,7 @@ vector<Loop> LengTarj::findLoops()
         {
             stack<unsigned long> toProcess({i});
 
-            std::map<CFGNode*, unsigned long> nodeMap({{verticies[i]->node, domNums[i]}});
+            std::map<CFGNode*, bool> nodeMap({{verticies[i]->node, false}});
             while (!toProcess.empty()) //search upwards
             {
                 unsigned long processingIndex = toProcess.top();
@@ -169,10 +218,10 @@ vector<Loop> LengTarj::findLoops()
                 for (unsigned long pred : processing->predecessors)
                 {
                     unique_ptr<NodeWrapper>& predNode = verticies[pred];
-                    if (nodeMap.insert({predNode->node, domNums[pred]}).second) toProcess.push(pred);
+                    if (nodeMap.insert({predNode->node, false}).second) toProcess.push(pred);
                 }
             }
-            loops.emplace_back(Loop(verticies[succNum]->node, verticies[i]->node, move(nodeMap), succNum, controlFlowGraph));
+            loops.push_back(make_unique<Loop>(verticies[succNum]->node, verticies[i]->node, move(nodeMap), succNum, controlFlowGraph));
         }
     }
     return loops;
