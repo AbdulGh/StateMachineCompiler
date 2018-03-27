@@ -60,11 +60,14 @@ public:
     bool checkIndex(long index)
     {
         if (index < 0) reporter.error(Reporter::ARRAY_BOUNDS, "Asked for negative index from array");
-        else if (index >= size) reporter.error(Reporter::ARRAY_BOUNDS,
-                                               "Asked to get index " + std::to_string(index) + " in array of size " + std::to_string(size));
+        else if (index >= size)
+        {
+            reporter.error(Reporter::ARRAY_BOUNDS,
+                           "Asked to get index " + std::to_string(index) + " in array of size " + std::to_string(size));
+        }
     }
     
-    bool checkBounds(double lbd, double ubd, int& lb, int& ub)
+    bool checkBounds(double lbd, double ubd, double& lb, double& ub)
     {
         lb = ceil(lbd);
         ub = floor(ubd);
@@ -151,7 +154,7 @@ public:
 
     std::unique_ptr<SymbolicDouble> operator[](SymbolicDouble* index)
     {
-        int lb, ub;
+        double lb, ub;
 
         if (!checkBounds(index->getTLowerBound(), index->getTUpperBound(), lb, ub)) return nullptr;
 
@@ -162,7 +165,7 @@ public:
         {
             ++it;
             ++varit;
-            if (it == indicies.end() || varit == indexVars.end()) throw "bad";
+            if (it == indicies.end() || varit == indexVars.end()) throw std::runtime_error("bad");
         }
 
         std::unique_ptr<SymbolicDouble> cp = (*varit)->cloneSD();

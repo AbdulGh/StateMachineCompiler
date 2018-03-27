@@ -150,17 +150,14 @@ public:
         setName(move(n));
     };
 
-    GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const override
-    {
-        throw "bad!";
-    }
-
     std::string getFullName() const override
     {
         return name + "[" + std::to_string(index) + "]";
     }
 
     VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
+
+    GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     void setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv) override;
@@ -181,16 +178,12 @@ public:
         setAccessType(AccessType::DIRECT);
     }
 
-    GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const override
-    {
-        throw "accesses array";
-    }
-
     std::string getFullName() const override
     {
         return name + "[" + index->getFullName() + "]";
     }
 
+    GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const override;

@@ -369,7 +369,8 @@ private:
     std::string name;
 public:
     DeclareVarCommand(VariableType t, std::string n, int linenum)
-            :DeclareCommand(DeclareType::VAR, t, linenum), name(move(n)) {}
+            :DeclareCommand(DeclareType::VAR, t, linenum), name(move(n))
+    {}
 
     std::unique_ptr<AbstractCommand> clone() override
     {

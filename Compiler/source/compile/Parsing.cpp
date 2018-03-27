@@ -129,36 +129,7 @@ bool Compiler::statement(FunctionSymbol* fs)
         unsigned int size = 0;
         VariableType t = vtype(&size);
         auto id = plainIdent();
-        if (symbolTable.isInScope(id)) //set to '0' or '""' depending on type
-        {
-            error("Variable '" + id + "' is already in scope");
-            /*string uid; VariableType vtype;
-            Identifier* idPtr = findVariable(id, uid, &vtype);
-            if (t != idPtr->getType()) error("'" + id + "' redeclared in same scope with different type");
-            else if (lookahead.type == ASSIGN)
-            {
-                match(ASSIGN);
-                if (t == STRING)
-                {
-                    if (lookahead.type == CALL) genFunctionCall(fs, vtype, uid);
-                    else if (lookahead.type == STRINGLIT)
-                    {
-                        fs->genAssignment(uid, quoteString(lookahead.lexemeString), lookahead.line);
-                        match(STRINGLIT);
-                    }
-                    else
-                        error("'" + id + "' declared in this scope as a string, assigned to "
-                              + TypeEnumNames[lookahead.type]);
-                }
-                else expression(fs, uid);
-            }
-            else
-            {
-                if (idPtr->getType() == DOUBLE || idPtr->getType() == ARRAY) fs->genAssignment(uid, "0", lookahead.line);
-                else if (idPtr->getType() == STRING) fs->genAssignment(uid, "\"\"", lookahead.line);
-                else throw "bad dtype";
-            }*/
-        }
+        if (symbolTable.isInScope(id)) error("Variable '" + id + "' is already in scope");
         else
         {
             Identifier* idPtr = symbolTable.declare(t, id, lookahead.line);
@@ -173,10 +144,7 @@ bool Compiler::statement(FunctionSymbol* fs)
 
                 if (t == VariableType::STRING)
                 {
-                    if (lookahead.type == CALL)
-                    {
-                        genFunctionCall(fs, STRING, move(vs));
-                    }
+                    if (lookahead.type == CALL) genFunctionCall(fs, STRING, move(vs));
                     else
                     {
                         fs->genAssignment(move(vs), quoteString(lookahead.lexemeString), lookahead.line);

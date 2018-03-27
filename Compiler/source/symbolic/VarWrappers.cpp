@@ -69,11 +69,18 @@ std::unique_ptr<VarWrapper> SVByName::clone() const
 }
 
 //SDByArrayIndex
+GottenVarPtr<SymbolicVariable> SDByArrayIndex::getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const
+{
+    SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
+    if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
+    return GottenVarPtr<SymbolicVariable>(move(sa->operator[](index)));
+}
+
 GottenVarPtr<SymbolicDouble> SDByArrayIndex::getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const
 {
     SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
     if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
-    return GottenVarPtr<SymbolicDouble>(move(sa->operator[](index))); //WHY operator[]???!
+    return GottenVarPtr<SymbolicDouble>(move(sa->operator[](index)));
 }
 
 bool SDByArrayIndex::check(SymbolicExecution::SymbolicExecutionFringe* sef) const
@@ -131,6 +138,14 @@ GottenVarPtr<SymbolicDouble> SDByIndexVar::getSymbolicDouble(SymbolicExecution::
     auto sv = index->getSymbolicDouble(sef);
     if (sv->getType() != DOUBLE) throw std::runtime_error("wrong type");
     return GottenVarPtr<SymbolicDouble>(sa->operator[](sv.get()));
+}
+
+GottenVarPtr<SymbolicVariable> SDByIndexVar::getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const
+{
+    SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
+    if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
+    auto sv = index->getSymbolicDouble(sef);
+    return GottenVarPtr<SymbolicVariable>(sa->operator[](sv.get()));
 }
 
 bool SDByIndexVar::check(SymbolicExecution::SymbolicExecutionFringe* sef) const

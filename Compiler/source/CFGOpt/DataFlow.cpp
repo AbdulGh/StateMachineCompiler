@@ -140,6 +140,7 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 case CommandType::POP:
                 {
                     usedVars.insert(instr->getVarWrapper()->getBaseName());
+                    genSet.insert(instr->getVarWrapper()->getBaseName());
                     killSet.insert(instr->getVarWrapper()->getBaseName());
                     break;
                 }
@@ -148,6 +149,8 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 {
                     PushCommand* pc = static_cast<PushCommand*>(instr.get());
                     if (pc->pushesState()) continue;
+                    else killSet.insert(instr->getVarWrapper()->getBaseName());
+
                 }
                 case CommandType::PRINT:
                 {

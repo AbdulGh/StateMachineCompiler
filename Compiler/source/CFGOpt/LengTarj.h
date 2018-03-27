@@ -46,7 +46,7 @@ private:
 
     void labelNodes();
     void calculateSemidominators();
-    std::vector<Loop> findNesting(std::vector<std::unique_ptr<Loop>>& loops);
+    std::vector<std::unique_ptr<Loop>> findNesting(std::vector<std::unique_ptr<Loop>>& loops);
 public:
     LengTarj(ControlFlowGraph& cfg);
     std::vector<std::unique_ptr<Loop>> findLoops();

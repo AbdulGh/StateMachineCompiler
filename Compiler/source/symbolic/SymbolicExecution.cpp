@@ -323,7 +323,6 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
             {
                 case SymbolicVariable::CANT:
                 {
-                    auto debug = LHS.get();
                     CFGNode* nextNode = getFailNode(sef, n);
                     if (nextNode != nullptr) visitNode(sef, nextNode);
                     return;

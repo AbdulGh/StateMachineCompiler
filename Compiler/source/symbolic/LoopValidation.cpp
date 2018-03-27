@@ -19,7 +19,7 @@
 
 using namespace std;
 
-Loop::Loop(CFGNode* entry, CFGNode* last, std::map<CFGNode*, bool> nodeSet,
+Loop::Loop(CFGNode* entry, CFGNode* last, std::map<CFGNode*, Loop*> nodeSet,
            unsigned long tailNumber, ControlFlowGraph& controlFlowGraph):
            headerNode(entry), nodes(move(nodeSet)), cfg(controlFlowGraph),
            domNum(tailNumber), invalid(false)
@@ -45,10 +45,15 @@ string Loop::getInfo()
     for (auto pair: nodes)
     {
         outStr += pair.first->getName();
-        if (!(pair.second == domNum || pair.first->getName() == headerNode->getName())) outStr += " (nested)";
+        if (pair.second) outStr += " (nested)";
         outStr += "\n";
     }
     return outStr;
+}
+
+void Loop::setNodeNesting(CFGNode* node, Loop* child)
+{
+    nodes[node] = child;
 }
 
 void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)

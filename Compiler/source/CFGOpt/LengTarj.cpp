@@ -114,23 +114,26 @@ void LengTarj::calculateSemidominators()
     }
 }
 
-vector<Loop> LengTarj::findNesting(std::vector<unique_ptr<Loop>>& loops)
+vector<unique_ptr<Loop>> LengTarj::findNesting(std::vector<unique_ptr<Loop>>& loops)
 {
-    bool** bitVectors = new bool*[loops.size()];
-    for (int i = 0; i < loops.size(); ++i)
+    unsigned int numLoops = loops.size();
+    unsigned int numCFGNodes = controlFlowGraph.getCurrentNodes().size();
+    
+    bool** bitVectors = new bool*[numLoops];
+    for (int i = 0; i < numLoops; ++i)
     {
-        bitVectors[i] = new bool[numNodes]();
+        bitVectors[i] = new bool[numCFGNodes]();
         for (auto pair : loops[i]->getNodes())
         {
             CFGNode* node = pair.first;
-            bitVectors[i][labels[node]] = true;
+            bitVectors[i][labels[node] - 1] = true;
         }
     }
 
     auto radixSort = //[l, r)
     [&, this, bitVectors](const auto& recurse, unsigned int digit, unsigned int l, unsigned int r) -> void
     {
-        if (digit >= numNodes || l == r) return;
+        if (digit >= numCFGNodes || l == r) return;
         unsigned int firstZero = l;
 
         for (unsigned int i = l; i < r; ++i)
@@ -161,7 +164,47 @@ vector<Loop> LengTarj::findNesting(std::vector<unique_ptr<Loop>>& loops)
         recurse(recurse, digit, firstZero, r);
     };
 
-    radixSort(radixSort, 0, loops.size(), 0);
+    radixSort(radixSort, 0, numLoops, 0);
+
+    vector<unique_ptr<Loop>> unnested;
+    unnested.push_back(move(*loops.begin()));
+    
+    for (int i = 1; i < numLoops; ++i)
+    {
+        for (int j = 0; j < numCFGNodes; ++j)
+        {
+            if (bitVectors[i][j] == true)
+            {
+                //scan left until we hit another 1
+                int scan = i - 1;
+                do
+                {
+                    if (scan < 0)
+                    {
+                        unnested.push_back(move(loops[i]));
+                        break;
+                    }
+                } while (bitVectors[scan][j] == false);
+
+                if (scan >= 0)
+                {
+                    while (j < numCFGNodes)
+                    {
+                        if (bitVectors[i][j] == true)
+                        {
+                            if (bitVectors[scan][j] == false) throw runtime_error("not laminar");
+                            CFGNode* shared =  verticies[j + 1]->node;
+                            //possibly should check this is nullptr?
+                            loops[scan]->setNodeNesting(shared, loops[i].get());
+                        }
+                        ++j;
+                    }
+                }
+
+                break;
+            }
+        }
+    }
 }
 
 unsigned long LengTarj::eval(unsigned long node)
@@ -208,7 +251,7 @@ vector<unique_ptr<Loop>> LengTarj::findLoops()
         {
             stack<unsigned long> toProcess({i});
 
-            std::map<CFGNode*, bool> nodeMap({{verticies[i]->node, false}});
+            std::map<CFGNode*, Loop*> nodeMap({{verticies[i]->node, nullptr}});
             while (!toProcess.empty()) //search upwards
             {
                 unsigned long processingIndex = toProcess.top();
@@ -218,11 +261,13 @@ vector<unique_ptr<Loop>> LengTarj::findLoops()
                 for (unsigned long pred : processing->predecessors)
                 {
                     unique_ptr<NodeWrapper>& predNode = verticies[pred];
-                    if (nodeMap.insert({predNode->node, false}).second) toProcess.push(pred);
+                    if (nodeMap.insert({predNode->node, nullptr}).second) toProcess.push(pred);
                 }
             }
             loops.push_back(make_unique<Loop>(verticies[succNum]->node, verticies[i]->node, move(nodeMap), succNum, controlFlowGraph));
         }
     }
+    
+    if (!loops.empty()) loops = findNesting(loops);
     return loops;
 }
