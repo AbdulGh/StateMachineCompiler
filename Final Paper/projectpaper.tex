@@ -62,19 +62,29 @@
 
 \begin{abstract}
 \par
+\noindent
 {\bf Context/Background.} The field of program verification, although fraught with undecidability, has still seen much success. Many techniques have been developed in order to
 cope with different requirements and standards - for example, automated testing of 15K lines of video game code should differ from the formal verification of 600 lines
 of safety-critical code.
-
+\noindent
+\par
+\noindent
 {\bf Aims.} The aim of this project is to implement graph-search algorithms in order to detect various bugs, i.e. misuse of arrays and loops that may not terminate. In particular we will focus on detecting `tired programmer errors' such as using unsanitized user input to index arrays and potential overflows.
-
+\noindent
+\par
+\noindent
 {\bf Method.} The user will write programs in a high level, procedural, C based language. This will be compiled into a Control Flow Graph (CFG) on which some standard
-optimisations will be applied. Graph-theoretic algorithms will then be used in order to find feasible paths and detect loops.
+optimisations will be applied. Graph-theoretic algorithms will then be used in order to find feasible paths and detect loops. Along the way we will try to find executions
+that lead to errors such as out of bound accesses, overflow and division by zero.
 We will then try to determine the monotonicity of variables and certify termination (or 
 infinite looping). The CFG will finally be translated into machine code for a state-based virtual machine.
-
-{\bf Results.} We had success in verifying termination of various looping programs, including recursive functions where termination is not immediately obvious (e.g. the Ackermann function). We were also able to certify nontermination of ruined versions of those looping programs, detect potential out of bounds array accesses, potential division by zero, and potential overflows.
-
+\noindent
+\par
+\noindent
+{\bf Results.} We had success in verifying termination of various looping programs, including recursive functions where termination is not immediately obvious (e.g. the Ackermann function). We were also able to certify nontermination of ruined versions of those looping programs as well as executions leading to the previously mentioned errors.
+\noindent
+\par
+\noindent
 {\bf Conclusions.} In this paper we describe a bug detection method that can be built into the compilation process. This method quickly discovers a range of errors.
 \end{abstract}
 
@@ -84,7 +94,7 @@ Program verification, symbolic execution.
 
 \section{Introduction}
 This paper describes the development of a compiler that attempts to verify certain desirable properties of the input during the course of the compiler.
-This has been identified by Hoare as a `A grand challenge for computing research' \cite{hoare} 
+This has been identified by Hoare as a `A grand challenge for computing research' \citep{hoare}.
 
 Software has become the backbone of modern society.
 The inevitable failures can be anything from annoying to costly to fatal - infamous examples are the failed Ariane 5 launch in 1996
@@ -99,51 +109,57 @@ These bounds are determined by conditions and arithmetic expressions (see~\cref{
 We will then try to find paths through loops where progress towards breaking a loop condition can be guaranteed by tracking monotonicity of variables.
 
 \begin{minipage}{\linewidth}
-\begin{lstlisting}[caption=Example of ranges.,frame=tlrb, language=myLang, label={lst:ranges},escapeinside={(*}{*)}]
+\begin{lstlisting}[caption=Example of ranges.,frame=tlrb, language=myLang, label={lst:ranges},escapeinside={(*}{*)}, numbers=none]
 double x; (*\hfill $x = 0$ \hspace{100mm} *)
-input x; (*\hfill $min \leq x \leq max $ \hspace{81mm} *)
-double y = x % 8; (*\hspace{4mm} $ min \leq x \leq max,\quad 0 \leq y < 8$*)
+input x; (*\hfill $min \leq x \leq max $ \hspace{84mm} *)
+double y = x % 8; (*\hspace{13.5mm} $ min \leq x \leq max,\quad 0 \leq y < 8$*)
 if (y < 4)
 {
-  ... (* \hspace{34mm} $min \leq x \leq max,\quad 0 \leq y < 4 $*)
+  ... (* \hspace{38mm} $min \leq x \leq max,\quad 0 \leq y < 4 $*)
 }
 else if (x >= z)
 {
-  ... (* \hspace{34mm} $ min(z) \leq x \leq max,\quad 4 \leq y < 8, \quad x \geq z $*) 
+  ... (* \hspace{38mm} $ min(z) \leq x \leq max,\quad 4 \leq y < 8, \quad x \geq z $*) 
 }
 \end{lstlisting}
 \end{minipage}
 
 In giving up constraint solvers we trade off accuracy for speed and flexibility.
-We gain flexibility from the ability to symbolically simulate stacks and arrays, and speed by determining path feasibility using depth first search.
+We gain flexibility from the ability to symbolically simulate stacks and arrays, and we gain speed by determining path feasibility using depth first search.
 
 The solution was implemented successfully. We managed to verify the termination of many small programs, some involving array usage and recursion.
 
 \section{Related Work}
 \subsection{Ranking functions}
-A well founded partial order is a partial order where there are no infinitely decending chains. If we can find a \emph{ranking function} that maps successive loop iterations into a strictly decending chain we know that the loop must always halt. (For example, in the FizzBuzz example \cref{lst:fb} we could take the ranking function \texttt{limit - current} with the codomain being the natural numbers.) This method was popularised by Floyd \citep{assigning meanings to programs}.
+A well founded partial order is a partial order where there are no infinitely decending chains. If we can find a \emph{ranking function} that maps successive loop iterations into a strictly decending chain we know that the loop must always halt.
+This method was popularised by Floyd \citep{floyd}.
 
 This method, although powerful and simple, is hard to automate. One attempt \citep{colon} begins by generalising the idea of a ranking function to strongly connected components (SCS) in a control flow graph - where now the ranking function is defined on the edges of the SCS, never increases on any edge, and strictly decreases on at least one edge. Every potentially infinite loop must live in an SCS, and if we succeed in finding such a ranking function we know that an infinite execution cannot use any decreasing edges. We can then remove those edges - if the remainder of the component is not acyclic, we repeat the procedure.
 
-\subsection{Term rewriting systems}
-Briefly, a \emph{term rewriting system} which transforms an `object' into another `object' by applying transformation rules to `sub-objects'. This framework is very general and touches many ideas of fundamental importance in computer science (i.e., the lambda calculus, semi-Thue systems, grammars). The termination properties of such systems has therefore been very well studied \cite{Zantema, term rewrite systems, p181}.
+This method is `sound' in the sense that if it succeeds in finding a ranking function for every SCS the program always halts. It may fail to find ranking functions
+for programs that do infact halt.
 
-Functional languages such as LISP and Haskell are amenable to interpretation as a rewrite system. Imperative languages, however, need more work. A method given in \citep{A Term Rewriting Approach to the Automated Termination Analysis of Imperative Programs} takes the possible states of the program (the values of variables, including the program coutner) to be the objects and transforms each basic block into a rewrite rule, possibly enriched with a condition given in some logic.
+\subsection{Term rewriting systems}
+Briefly, a \emph{term rewriting system} which transforms an `object' into another `object' by applying transformation rules to `sub-objects'. This framework is very general and touches many ideas of fundamental importance in computer science (i.e., the lambda calculus, semi-Thue systems, grammars). The termination properties of such systems has therefore been very well studied \cite[p.~181]{zantema}.
+
+Functional languages such as LISP and Haskell are amenable to interpretation as a rewrite system. Imperative languages, however, need more work. A method given in \citep{tra} takes the possible states of the program (the values of variables, including the program coutner) to be the objects and transforms each basic block into a rewrite rule, possibly enriched with a condition given in some logic. This method performs well on imperative programs without arrays and function calls, however
+it does not provide immediate diagnostics on the cause of nontermination. The high level of abstraction also leads to something akin to the path divergence problem
+discussed in the next subsection.
 
 \subsection{Symbolic Execution}\label{revSymEx}
-The last two methods are powerful but are not well suited to deal with arrays and function calls/stack usage. Many approaches search for bad execution paths by
-simulating program execution, substituting symbolic representations of variables instead of concrete values. Each `probe' of the search will represent a range of possible program executions. As each
+The last two methods are powerful but are not well suited to deal with arrays and function calls/stack usage. They also require `extra work' - transformations to, and manipulations of, structures and representations that are not in themselves useful to the compilation process. Many approaches search for bad execution paths by
+simulating program execution, substituting symbolic representations of variables for concrete values. Each `probe' of the search will represent a range of possible program executions. As each
 probe proceeds through the program it builds a path condition - the conjunction of conditionals it has taken. This method is named \emph{symbolic execution}.\\
 
 \noindent
-Anand\cite[pp.~2--3]{anand} identifies three issues with symbolic execution:\\
+Anand \cite[pp.~2--3]{anand} identifies three issues with symbolic execution:\\
 \begin{enumerate}
 \item \textbf{Path explosion}. At every branch we may double the number of paths we must trace. While
-nothing can be done about this combinatorial increase, I hope to lessen the damage by keeping the overhead
-for each path as low as possible, by using simple constraints and appropriate data structures.\\
+nothing can be done about this combinatorial increase, We hope to lessen the damage by keeping the overhead
+for each path as low as possible, by using simple constraints and appropriate data structures (see Section III.B below).\\ %todo check
 Some other possible solutions are discussed. An interesting one is first summarising each basic block by how it affects certain variables.\\
 
-\item \textbf{Complex constraints}. The path conditions generated may be intractable or even undecidable. Some more thorough program verifiers \cite{zhang, PNT}
+\item \textbf{Complex constraints}. The path conditions generated may be intractable or even undecidable. Some more thorough program verifiers \citep{zhang, gupta}
 invoke theorem provers and/or constraint solvers to try and determine the feasability of a path condition. This, while improving accuracy, will increase complexity
 and running time.\\
 In an attempt to deal with this, the intermediate language used to represent the control-flow graph will only
@@ -151,28 +167,26 @@ use conditionals with inequalities between a variable and another variable or co
 will be compiled down into these simple conditions. We will then only maintain possible ranges for each variable. If a range of
 a variable becomes empty, the path is not feasable.\\
 
-\item \textbf{Path divergence}. Innacuracies will be inevitably introduced by modelling complex software with a more simple 
-representation. Path divergence refers to the difference between the path followed by a symbolic execution of said model vs the path that
-should be followed in the code a programmer wrote. Simplifications, whilst helping with the first two issues, will cause me to pay
-dearly here. Not only will variables have different names (as the state machine has no scope, variables will be renamed) but it is very
+\item \textbf{Path divergence}. Innacuracies will be inevitably introduced by modelling complex software with a simpler representation. Path divergence refers to the difference between the path followed by a symbolic execution of said model vs the path that
+should be followed in the code a programmer wrote. The simplifications used to help with the last two issues will be paid for here. Not only will variables have different names (as the state machine has no scope, variables will be renamed) but it is very
 likely that compilation and optimisation will change the structure of the program to a significant degree. That being said, the representation
-itself can be directly executed and at least detected bugs will apply to the running program.
+itself can be directly executed and so detected bugs will apply to the running program.
 \end{enumerate}
 
 \subsection{More similar work}
 A similar approach to the solution presented here is the `lasoo' approach discussed in \citep{gupta}. It begins by symbolically executing the program and finding paths that revisit some state. It then uses a constraint solver to find states that are recurrent.
 
-Another approach is the method discussed in \cite{loopster}. Like us, it tries to determine the monotonicity of variables in a loop execution. For each loop it builds a path-automata, where the nodes are paths and the edges possible transitions. Feasible cycles in this automaton are then executions of the loop that could run forever.
+Another approach is the method discussed in \citep{loopster}. Like us, it tries to determine the monotonicity of variables in a loop execution. For each loop it builds a path-automata, where the nodes are paths and the edges possible transitions. Feasible cycles in this automaton are then executions of the loop that could run forever.
 However, they don't use a symbolic engine, and cannot work with constructs such as call stacks and arrays.
 
 
-\section{Design}
+\section{Solution}
 \subsection{The approach}
 \subsubsection{Compilation}
 Most programs are developed using some high level language. We will be compiling and verifying programs written in a language based on PL/0, with the addition
 of functions and function calls.
 
-\begin{lstlisting}[frame=tlrb,language=myLang, caption=Fizzbuzz., label={fizzbuzz}]
+\begin{lstlisting}[frame=tlrb,language=myLang, caption=Fizzbuzz., label={fizzbuzz}, numbers=none]
 while (current < limit)
 {
  if (current % 15 == 0) print("FizzBuzz");
@@ -288,7 +302,7 @@ node in the loop.) The path is called `good' if it moves towards any such loop c
 
 It may be the case that for some number of loop iterations all relevant variables may be moving \textit{away} from the 
 condition but eventually meet some \texttt{if} condition that kicks us out of the loop:
-\begin{lstlisting}[frame=tlrb,language=myLang,label={lst:trickloop}, mathescape=true]
+\begin{lstlisting}[frame=tlrb,language=myLang,label={lst:trickloop}, mathescape=true, numbers=none]
 double n = 9;
 while (n < 10)
 {
@@ -306,7 +320,7 @@ If we decide that they're bug-free we then verify the outer loop, treating the n
 
 Now we describe the method used to build the inclusion tree. A family of subsets is called \emph{laminar} if every pair is either disjoint,
 or one is a superset of another. Loops are an example - either two loops are disjoint, or one is nested inside
-the other. We can adapt a bioinformatical algorithm usually used to find perfect phylogenies\cite{gusfield}:
+the other. We can adapt a bioinformatical algorithm usually used to find perfect phylogenies \citep{gusfield}:
 
 \begin{enumerate}
 \item Assign each loop a bitvector, where the $i$th bit is $1$ iff the $i$th node appears in this loop.
@@ -321,8 +335,8 @@ For example, say the user creates an array of $10,000$ doubles. This array is re
 by a single symbolic double $init$ set to 0. Now the user adds $10$ to the cell with index $x$, $20 \leq x \leq 100$. We create a new symbolic double $nd$ with possible values $0 \leq nd \leq 10$.
 The index list becomes $(20, 100)$ and the value list $(init, nd, init)$.
 
-Given a undetermined index $i$ this symbolic array can then build a symbolic variable which overestimates the range of values present in the indicies spanned by $i$. It
-can also emit a warning in the cases of potential out of bounds accesses and indexing by an increasing/decreasing variable.
+Given a undetermined index $i$ this symbolic array can then build a symbolic variable which represents our belief about the range of values present in the indicies spanned by $i$. It
+can also emit a warning in the cases of potential out of bounds accesses.
 
 \subsection{Symbol tables and spaghetti stacks} \label{app:spaghetti}
 \subsubsection{The symbol table}
@@ -335,13 +349,13 @@ When leaving a scope we delete the head of the spaghetti stack and forget every 
 A small modification adapts the spaghetti stack into a structure useful for reducing memory used during symbolic execution.\\
 During symbolic execution we will encounter conditions which may be true or false according to the information we currently hold. For example, we might be sure that $0 \leq i \leq 5$ and encounter the command \texttt{jumpif i >= 2 state}. We search the two different paths, one with $0 \leq i < 2$ and the other $2 \leq i \leq 5$. These two different branches must be independent in the sense that they cannot affect each other or future searches. One way of ensuring this would be to clone the entire state - duplicating every variable met so far. This is very wasteful, as the only difference at the moment is the single variable $i$.\par
 
-A better way is to take advantage of the `most recent' property of searching through a spaghetti stack. Suppose we are using hash tables to map variable names to a \texttt{SymbolicVariable} object. Instead of duplicating that hash table for independent branches, we just set up two new hash tables with pointers to their parent. If we read a variable, we search up the spaghetti stack looking for the closest occurrence of that variable. If we change that variable in some way, we first copy it into the present table so that we don't affect other branches. This method has been used before (for example in KLEE - see \cite{klee}, Section 3.2).
+A better way is to take advantage of the `most recent' property of searching through a spaghetti stack. Suppose we are using hash tables to map variable names to a \texttt{SymbolicVariable} object. Instead of duplicating that hash table for independent branches, we just set up two new hash tables with pointers to their parent. If we read a variable, we search up the spaghetti stack looking for the closest occurrence of that variable. If we change that variable in some way, we first copy it into the present table so that we don't affect other branches. This method has been used before (for example in KLEE - see \citep{klee}, Section 3.2).
 
 \subsection{Finding loops in a CFG} \label{app:loops}
 \subsubsection{What is a loop?}
 \begin{figure}\label{fig:loops}
 \begin{minipage}{.45\textwidth}
-\begin{lstlisting}[caption=A loop.,frame=tlrb, language=myLang, label={isloop}]
+\begin{lstlisting}[caption=A loop.,frame=tlrb, language=myLang, label={isloop},numbers=none]
 function main() void 
 {call loopheader();}
 
@@ -356,7 +370,7 @@ function loopbod() void {
 \end{lstlisting}
 \end{minipage}\hfill
 \begin{minipage}{.45\textwidth}
-\begin{lstlisting}[caption=Not a loop.,frame=tlrb, language=myLang, label={isnloop}]
+\begin{lstlisting}[caption=Not a loop.,frame=tlrb, language=myLang, label={isnloop}, numbers=none]
 while (1==1)
 {
   return -1;
@@ -420,7 +434,7 @@ semiNum(n) = \min(&\{pre(v) | V \text{ is a predecessor of $n$ with } pre(v) < p
 \end{fact}
 Roughly, all of the immediate predecessors of $n$ are potential semidominators, with the higher labled ones being potential ends of semidominator paths. The semidominators of higher labled predecessors are also semidominators of the node itself. As the calculation of the semidominator depends only on the semidominators of higher labled nodes, we can start with the highest labled node and work downwards.\\
 After calculating semidominators, we calculate the immediate dominators using the following fact:
-\begin{fact}[\cite{lengtarj} Corollary 1]\label{thm:imdominators}
+\begin{fact}[\cite{lengtarj}, Corollary 1]\label{thm:imdominators}
 Let $n \neq start$ and let $u$ be the node which minimises $pre(S_u)$ among all nodes $x$ satisfying $S_x \xrightarrow{+} x \xrightarrow{*} n$. Then:
 \[
   idom(n) =
@@ -448,14 +462,14 @@ Now $S_w$ is $\argmin\{semiNum(eval(n)) |n \to w\}$.\\
 Finally, after all the semidominators have been computed and the immediate dominators implicitly computed, we process the nodes in increacing DF order to fill in the blanks.\par
 
 \subsection{Testing}
-The purpose of writing a virtual machine for the produced machine code is twofold. The first is to combat the path divergence problem discussed in \cref{revSymEx}.
-It also allows us to expect the execution of the produced code and check that is runs as expected. The compiler was tested `by inspection' - the produced CFG and the
+The purpose of writing a virtual machine for the produced machine code is twofold. The first is to combat the path divergence problem discussed in Section II.C. %todo check
+It also allows us to observe the execution of the produced code and check that is runs as expected. The compiler was tested `by inspection' - the produced CFG and the
 outputs of the compiled programs were checked manually for correctness.
 
 Most of the testing of the verification software happened during collection of the results given in the next section. The examples were chosen so as to demonstrate all features of the solution,
-and in doing so these tests achieve very high code coverage. In addition, the same examples were ran using the Valgrind debugging tool. This tool helps to detect memory leaks. More importantly, it an detect bugs that lead to undefined behaviour (these bugs might not have immediate obvious effects, but lead to problems down the line).
+and in doing so these tests achieve very high code coverage. In addition, the same examples were executed under the Valgrind debugging tool. This tool helps to detect memory leaks. More importantly, it can detect bugs that lead to undefined behaviour (these bugs might not have immediately obvious effects, but lead to problems later down the line).
 
-Finally, unit tests were carried out on sufficiently moduar parts of the code - i.e., finding loops, radix sort, building symbolic variables that represent our beliefs,
+Finally, unit tests were carried out on sufficiently moduar parts of the code - i.e., finding loops, radix sort, building symbolic variables that represent our beliefs about some array indicies,
 etc.
 
 \newpage
@@ -464,7 +478,7 @@ The solution was exercised on various examples from the literature. Some of the 
  for brevity and readability.
 
 \subsection{No functions}
-Most of the following examples are taken from the appendix of \citep{A Term Rewriting Approach to the Automated Termination Analysis of Imperative Programs}, itself a collection of examples from other papers.  All the examples given in this paper terminate, so we also introduced mistakes in order to test detection of nontermination.
+Most of the following examples are taken from the appendix of \citep{tra}, itself a collection of examples from other papers.  All the examples given in this paper terminate, so we also introduced mistakes in order to test detection of nontermination.
 
 \subsubsection{Bubblesort}
 \begin{wrapfigure}{r}{0.4\textwidth}
@@ -483,7 +497,7 @@ while (x > 0){
 \end{wrapfigure}
 This bubblesort implementation was correctly determined as halting. The program obtained by any of the update lines, or updating either of the variables the wrong way, was correctly detected as nonterminating with an explanation given. Changing the comparitor in line $3$ from $<$ to $\leq$ results in an out of bounds access, which was successfully picked up.\\
 
-\subsubsection{Two variables (\cite[A.8]{tra})}
+\subsubsection{Two variables \cite[A.6]{tra}}
 
 \begin{wrapfigure}{r}{0.3\textwidth}
 \centering
@@ -500,7 +514,7 @@ We then need to use `transitivity properties' to classify this sample as halting
 and the fact that if \texttt{y} and \texttt{z} are increasing then so is \texttt{temp0}.
 Changing any of the increments in lines $4-5$ to decrements, and inverting the inequality in line $3$, are detected as infinite loops with good reasons given.
 
-\subsubsection{Relative change (\cite[AAAA]{tra})}
+\subsubsection{Relative change \cite[A.8]{tra}}
 
 \begin{wrapfigure}{r}{0.3\textwidth}
 \centering
@@ -515,9 +529,10 @@ Both variables in this example are increasing - the loop only halts as \texttt{y
 This is noted by the program and it is classified as termiating. Inverting the condition, or swapping the constants in the addition,
 results in a nonterminating program that is detected.
 
-\subsubsection{Multiplication (\cite[C.1]{tra})}
+\pagebreak
+\subsubsection{Multiplication \cite[C.1]{tra}}
 
-\begin{wrapfigure}{r}{0.3\textwidth}
+\begin{wrapfigure}{r}{0.35\textwidth}
 \centering
 \begin{lstlisting}[frame=tlrb,language=myLang]
 while (x >= 0) {
@@ -539,10 +554,10 @@ function ack(double m, double n) double
 {
  if (m <= 0) return n + 1;
  else if (n <= 0) 
-  return call ack(m-1, 1);
+  return ack(m-1, 1);
  else {
-  double a = call ack(m, n-1);
-  return call ack(m-1, a);
+  double a = ack(m, n-1);
+  return ack(m-1, a);
  }
 }
 \end{lstlisting}
@@ -550,6 +565,9 @@ function ack(double m, double n) double
 This function halts, as it is always called on strictly decreasing pairs (in the lexicographic ordering).
 Changing the decrement in lines $5$ and $7$ into an an addition of a nonnegative constant is correctly seen to be nonterminating,
 however the method fails to detect the same when line $8$ is modified.
+
+This function is normally defined on the natural number, and the inequalities are given as equalities - doing so here results in a potentially
+nonterminating input, as $m$ and $n$ might both be negative.
 
 \subsubsection{McCarthy's 91 function}
 \begin{wrapfigure}{r}{0.4\textwidth}
@@ -560,7 +578,7 @@ function m(double n) double
     if (n > 100) return n-10;
     else{
         n = n + 11;
-        return call m(call m(n));
+        return m(m(n));
     }
 }
 \end{lstlisting}
@@ -573,13 +591,57 @@ or inverting the condition in line $3$, result in nonterminating programs that a
 As shown in the previous section the solution successfully verified a diverse range of programs, and did not struggle with array usage and/or function calls.
 We also managed to detect a variety of bugs.
 
+The method is especially good at detecting simple (yet common) errors - such as off by one errors, assuming that variables are always in a certain range
+when they might not be, off by one errors, inverted inequalities, and forgotten/misplaced loop counter increments.
+
+It is also worth noting that this method is independent of the language itself (as long as it is imperative) and is easily built into the compilation process.
 \subsection{Minuses}
-\textbf{The Ackermann function}. As noted in \cref{example:ack} we failed to catch a nonterminating program resulting from a bad modification to line $7$.
-This is due to shortsightedness of our method and our ignoring of path dependencies. 
+
+\textbf{Path dependencies}. 
+
+Currently, as long as we think we can leave a path we call it terminating. Consider now two paths that can alternate forever, or
+one path that once entered will be revisit infinitely often. Our method accept these cases as terminating.
+
+An approach discussed earlier \citep{loopster} builds a graph where the nodes are loop paths and the edges possible transitions between the paths, annotated with
+conditions that must be met for this transition to take place. Our method ony looks for nodes with only self loops - a better approach would look for feasible cycles.
+
+\textbf{Short sightedness}. Our method extrapolates as much as possible by inspecting the behaviour of the variables only on the first iteration. Complicated loops can exhibit behaviour that requires more work to uncover. For example, a variable may be decremented by another variable that is begins positive but is itself
+decreasing:
+
+\begin{centering}
+\begin{lstlisting}[language=myLang, frame=tlrb, numbers=none, label={lst:termin}]
+double d = 5;
+while (x < y){
+	x = x - d;
+	d = d - 1
+}
+\end{lstlisting}
+\end{centering}
+
+The solution would declare $x$ decreasing and the loop nonterminating, although this is not the case.
+
+\textbf{Integers and equalities/inequalities}. Our method currently deals with every numerical type as if it was a double. This introduces innacuracies. For example, it accepts as halting
+the probematic code fragment
+\begin{centering}
+\begin{lstlisting}[language=myLang, frame=tlrb, numbers=none]
+double x = 1;
+while (x != 0) x = x - 2;
+\end{lstlisting}
+\end{centering}
+as $x$ begins above the inequality and moves towards it.
+
+\textbf{Type 1 and 2 errors}. In this paper we have given an example of a nonterminating fragment that the program accepts as terminating (our modification to the
+Ackermann function) and a terminating fragment we deem nonterminating (\cref{lst:termin}). This unfortunately means that you cannot believe either decision and must
+inspect the diagnostic output manually. 
 
 \section{Conclusions}
+This paper has described a method that catches a wide range of program errors. For diagnostic purposes it produces annotated execution traces that lead
+to the error occuring. It can deal with array usages and function calls. Finally, it works only with structures produced during the compilation process
+and can itself be seamlessly built into a compiler. 
 
 \subsection{Future work}
+\textbf{Addressing the issues discussed in the previous section}. None of the issues mentioned there are fatal.\\
+
 \textbf{Extention to other programming paradigms}. The solution as described works with imperative languages only - we affect some global state as we proceed through
 the program and through loops. The principles underlying the technique given here could be extended to stateless paradigms, such as functional and logic programming.\\
 
@@ -590,7 +652,9 @@ to use this method, or symbolic execution in general, to automatically search fo
 \textbf{Constraint solvers}. We avoided the use of constraint solvers for speed and flexibility. There are, however, many cases where speed can be sold in
 exchange for accuracy and thoroughness. In these cases it may be profitable to combine the method given here with constraint solvers - doing so would retain the flexibility
 afforded by symbolic execution (i.e. the simulation of stacks and memory) but give us much more power to detect feasible/infeasible paths and monotonically changing variables. The assertions just discussed could be enriched with the constraint language chosen, and we would be able to check additional, custom properties (such as
-`Bubblesort actually sorts').
+`Bubblesort actually sorts').\\
 
+\textbf{Memory}. The method could be easily extended to search for null pointer dereferences and memory leaks. Some more work, possibly using similar techniques to the ones used to simulate arrays, could be used to simulate the contents of memory and allow for pointers to be used just like other variables.
 \bibliography{projectpaper}
+
 \end{document}

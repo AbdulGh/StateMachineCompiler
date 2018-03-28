@@ -78,7 +78,7 @@ public:
                            "Asked to get index <= " + std::to_string(ub) + " in array");
             return false;
         }
-        else if (lb >= size)
+        if (lb >= size)
         {
             reporter.error(Reporter::ARRAY_BOUNDS,
                            "Asked to get index >= " + std::to_string(lb) + " in array of size " + std::to_string(size));
@@ -90,10 +90,10 @@ public:
             reporter.warn(Reporter::ARRAY_BOUNDS, "Asked to access possibly negative index");
             lb = 0;
         }
-        else if (ub >= size)
+        if (ub >= size)
         {
             reporter.warn(Reporter::ARRAY_BOUNDS,
-                          "Could access index up to " + std::to_string(ub) + " in index of size " + std::to_string(size));
+                          "Could access index up to " + std::to_string(ub) + " in array of size " + std::to_string(size));
             ub = size - 1;
         }
         
@@ -111,7 +111,7 @@ public:
                            "Asked to get index <= " + std::to_string(ubd) + " in array");
             return false;
         }
-        else if (lbd >= size)
+        if (lbd >= size)
         {
             reporter.error(Reporter::ARRAY_BOUNDS,
                            "Asked to get index >= " + std::to_string(lbd) + " in array of size " + std::to_string(size));
@@ -120,10 +120,10 @@ public:
 
         if (lbd < 0) reporter.warn(Reporter::ARRAY_BOUNDS, "Asked to access possibly negative index");
 
-        else if (ubd >= size)
+        if (ubd >= size)
         {
             reporter.warn(Reporter::ARRAY_BOUNDS,
-                          "Could access index up to " + std::to_string(ubd) + " in index of size " + std::to_string(size));
+                          "Could access index up to " + std::to_string(ubd) + " in array of size " + std::to_string(size));
         }
 
         return true;
@@ -230,59 +230,77 @@ public:
 
     bool set(SymbolicDouble* index, SymbolicDouble* sdr)
     {
-        if (index->isDetermined()) set(index->getTConstValue(), sdr);
-        std::unique_ptr<SymbolicDouble> sd = sdr->cloneSD();
-        if (index->getTUpperBound() < 0)
+        if (index->isDetermined())
+        {
+            double intpart;
+            if (modf(index->getTConstValue(), &intpart) != 0.0)
+            {
+                reporter.error(Reporter::ARRAY_BOUNDS, "Asked to get non integral index '"
+                               + std::to_string(index->getTConstValue())
+                               + "' in array");
+                return false;
+            }
+            return set(intpart, sdr);
+        }
+        double lb = ceil(index->getTLowerBound());
+        double ub = floor(index->getTUpperBound());
+        if (ub < 0)
         {
             reporter.error(Reporter::ARRAY_BOUNDS,
                            "Asked to set index <= " + std::to_string(index->getTUpperBound()) + " in array");
             return false;
         }
-        else if (index->getTLowerBound() >= size)
+        if (lb >= size)
         {
             reporter.error(Reporter::ARRAY_BOUNDS,
                            "Asked to set index >= " + std::to_string(index->getTLowerBound()) + " in array of size " + std::to_string(size));
             return false;
         }
 
-        if (index->getTLowerBound() < 0) reporter.warn(Reporter::ARRAY_BOUNDS, "Asked to access possibly negative index");
-        else if (index->getTUpperBound() >= size)
+        if (lb < 0)
+        {
+            reporter.warn(Reporter::ARRAY_BOUNDS, "Asked to access possibly negative index");
+            lb = 0;
+        }
+        if (ub >= size)
         {
             reporter.warn(Reporter::ARRAY_BOUNDS,
-                          "Could access index up to " + std::to_string(index->getTUpperBound()) + " in index of size " + std::to_string(size));
+                          "Could access index up to " + std::to_string(index->getTUpperBound()) + " in array of size " + std::to_string(size));
+            ub = size - 1;
         }
 
         auto it = indicies.begin();
         auto varit = indexVars.begin();
 
-        while (*it <= index->getTLowerBound())
+        while (*it <= lb)
         {
             ++it;
             ++varit;
             if (it == indicies.end() || varit == indexVars.end()) throw "bad";
         }
 
-        it = indicies.insert(it, index->getTLowerBound());
+        it = indicies.insert(it, lb);
         ++it;
         std::unique_ptr<SymbolicDouble> cp = (*varit)->cloneSD();
+        cp->unionVar(sdr);
         varit = indexVars.insert(++varit, cp.get());
         myVars.push_back(move(cp));
 
         while (it != indicies.end() && varit != indexVars.end())
         {
-            if (*it == index->getTUpperBound() + 1) return true;
-            else if (*it > index->getTUpperBound() + 1)
+            if (*it == ub + 1) return true;
+            else if (*it > ub + 1)
             {
-                indicies.insert(it, index->getTUpperBound() + 1);
+                indicies.insert(it, ub + 1);
                 std::unique_ptr<SymbolicDouble> newSD = (*varit)->cloneSD();
-                newSD->unionVar(sd.get());
+                newSD->unionVar(sdr);
                 indexVars.insert(varit, newSD.get());
-                myVars.push_back(std::move((*varit)->cloneSD()));
+                myVars.push_back(move(newSD));
                 return true;
             }
             else
             {
-                (*varit)->unionVar(sd.get());
+                (*varit)->unionVar(sdr);
                 ++it;
                 ++varit;
             }

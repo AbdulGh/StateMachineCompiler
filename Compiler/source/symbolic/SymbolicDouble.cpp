@@ -208,10 +208,10 @@ bool SymbolicDouble::unionLowerBound(const std::string& lb, bool closed)
     return unionTLowerBound(stod(lb), closed);
 }
 
-bool SymbolicDouble::unionVar(SymbolicVariable* other)
+bool SymbolicDouble::unionVar(const SymbolicVariable* other)
 {
     if (other->getType() != DOUBLE) throw "wrong";
-    SymbolicDouble* sd = static_cast<SymbolicDouble*>(other);
+    const SymbolicDouble* sd = static_cast<const SymbolicDouble*>(other);
     bool ret = unionTLowerBound(sd->getTLowerBound());
     if (unionTUpperBound(sd->getTUpperBound())) ret = true;
     return ret;

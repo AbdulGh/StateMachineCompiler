@@ -83,7 +83,7 @@ public:
     virtual bool clipUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setLowerBound(const std::string& ub, bool closed=true) = 0;
-    virtual bool unionVar(SymbolicVariable* unionFrom) = 0;
+    virtual bool unionVar(const SymbolicVariable* unionFrom) = 0;
     virtual void iterateTo(const std::string& to, bool closed=true) = 0;
     virtual void iterateTo(SymbolicVariable* to, bool closed=true) = 0;
 
@@ -170,7 +170,7 @@ public:
     void setTConstValue(const double& d) override;
     bool unionTLowerBound(const double& lb, bool closed = true) override;
     bool unionTUpperBound(const double& up, bool closed = true) override;
-    bool unionVar(SymbolicVariable* other) override;
+    bool unionVar(const SymbolicVariable* other) override;
     void setConstValue(const std::string&) override;
     bool clipUpperBound(const std::string& ub, bool closed = true) override;
     bool clipLowerBound(const std::string& lb, bool closed = true) override;
@@ -227,7 +227,7 @@ public:
     bool unionTUpperBound(const std::string& up, bool closed = true) override;
     void setTConstValue(const std::string& s) override;
     void unionTConstValue(const std::string& s, bool closed=true) override;
-    bool unionVar(SymbolicVariable* other) override;
+    bool unionVar(const SymbolicVariable* other) override;
     void setConstValue(const std::string&) override;
     bool clipUpperBound(const std::string& ub, bool closed = true) override;
     bool clipLowerBound(const std::string& lb, bool closed = true) override;

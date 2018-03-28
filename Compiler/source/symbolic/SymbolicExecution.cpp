@@ -360,6 +360,9 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
                 return;
             }
 
+            auto debug1 = LHS.get();
+            auto debug2 = RHS.get();
+
             if (LHS->isDetermined())
             {
                 if (RHS->isDetermined())
