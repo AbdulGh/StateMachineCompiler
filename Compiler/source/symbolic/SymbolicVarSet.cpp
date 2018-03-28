@@ -83,6 +83,17 @@ bool SymbolicVarSet::unionSVS(SymbolicVarSet* other)
             if (svp->unionLowerBound(pair.second->getLowerBound())) change = true;
         }
     }
+
+    for (auto& pair : other->getAllArrays())
+    {
+        SymbolicArray* sap = findArray(pair.first);
+        if (sap == nullptr)
+        {
+            change = true;
+            arrays[pair.first] = pair.second->clone();
+        }
+        else if (sap->unionArray(pair.second)) change = true;
+    }
     return change;
 }
 
@@ -99,6 +110,19 @@ vector<pair<const string, SymbolicVariable*>> SymbolicVarSet::getAllVars()
     return toReturn;
 }
 
+vector<pair<const string, SymbolicArray*>> SymbolicVarSet::getAllArrays()
+{
+    vector<pair<const string, SymbolicArray*>> toReturn = {};
+    if (parent != nullptr) toReturn = parent->getAllArrays();
+
+    for (const auto& v : arrays)
+    {
+        toReturn.emplace_back(pair<const string, SymbolicArray*>(v.first, v.second.get()));
+    }
+
+    return toReturn;
+}
+
 //iterator
 const pair<const string, SymbolicVariablePointer>& SVSIterator::operator*()
 {
@@ -107,7 +131,6 @@ const pair<const string, SymbolicVariablePointer>& SVSIterator::operator*()
 
 SVSIterator& SVSIterator::operator++()
 {
-
     if (currentIt == currentSVS->endIterator) throw "went too far";
     ++currentIt;
     if (currentIt == currentSVS->variables.cend() && currentSVS->parent != nullptr)

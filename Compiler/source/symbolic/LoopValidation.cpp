@@ -39,16 +39,24 @@ Loop::Loop(CFGNode* entry, CFGNode* last, std::map<CFGNode*, Loop*> nodeSet,
     else invalid = true;
 }
 
-string Loop::getInfo()
+string Loop::getInfo(string indent)
 {
-    std::string outStr = "Header: " + headerNode->getName() + "\nNodes:\n";
+    std::string outStr = "------------\n";
+    outStr += indent + "Header: " + headerNode->getName() + "\n" + indent + "Nodes:\n";
     for (auto pair: nodes)
     {
-        outStr += pair.first->getName();
+        outStr += indent + pair.first->getName();
         if (pair.second) outStr += " (nested)";
         outStr += "\n";
     }
+    indent += "--";
+    for (auto& child : children) outStr += child->getInfo(indent);
     return outStr;
+}
+
+void Loop::addChild(std::unique_ptr<Loop> child)
+{
+    if (!children.insert(move(child)).second) throw runtime_error("Already have this child");
 }
 
 void Loop::setNodeNesting(CFGNode* node, Loop* child)
@@ -66,6 +74,8 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
         cfg.getReporter().addText(report);
         return;
     }
+
+    for (auto& child : children) child->validate(tags);
 
     ChangeMap varChanges; //node->varname->known path through that node where the specified change happens
     SEFPointer sef = make_shared<SymbolicExecution::SymbolicExecutionFringe>(cfg.getReporter());
@@ -124,12 +134,12 @@ inline void mergeMaps(NodeChangeMap& intoMap, NodeChangeMap& fromMap)
     }
 }
 
-string lastNode;
-
 bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string, unique_ptr<SearchResult>>& tags,
                       SEFPointer sef, string& badExample, bool headerSeen)
 {
-    if (nodes.find(node) == nodes.end()) throw "asked to search outside of loop";
+    auto it = nodes.find(node);
+    if (it == nodes.end()) throw "asked to search outside of loop";
+    bool inNested = it->second != nullptr;
     unique_ptr<SearchResult>& thisNodeSR = tags[node->getName()];
     thisNodeSR->resetPoppedCounter();
 
@@ -283,11 +293,15 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                     SEFPointer newSEF = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
                     CFGNode* nextNode = cfg.getNode(newSEF->symbolicStack->popState());
                     if (nextNode == nullptr) throw "tried to jump to nonexisting node";
-                    else if (nodes.find(nextNode) == nodes.end()) goodPathFound = true;
                     else
                     {
-                        searchNode(nextNode, varChanges, tags, newSEF, badExample);
-                        mergeMaps(varChanges.at(node), varChanges.at(nextNode));
+                        auto it = nodes.find(nextNode);
+                        if (it == nodes.end() || inNested && it->second != nullptr) goodPathFound = true;
+                        else
+                        {
+                            searchNode(nextNode, varChanges, tags, newSEF, badExample);
+                            mergeMaps(varChanges.at(node), varChanges.at(nextNode));
+                        }
                     }
                 }
             }
@@ -332,7 +346,8 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                         string newBadExample;
                         if (sefSucc->addPathCondition(node->getName(), jocc))
                         {
-                            if (nodes.find(succNode) == nodes.end()) //left the loop
+                            auto it = nodes.find(succNode);
+                            if (it == nodes.end() || inNested && it->second != nullptr) //left the loop
                             {
                                 generateNodeChanges();
                                 goodPathFound = true;
@@ -354,7 +369,8 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                                 = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
                                         if (sefFailure->addPathCondition(node->getName(), jocc, true))
                                         {
-                                            if (nodes.find(failNode) == nodes.end())
+                                            it = nodes.find(failNode);
+                                            if (it == nodes.end() || inNested && it->second != nullptr)
                                             {
                                                 generateNodeChanges();
                                                 goodPathFound = true;
@@ -403,7 +419,8 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                                 = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
                                         if (sefSucc->addPathCondition(node->getName(), jocc))
                                         {
-                                            if (nodes.find(succNode) == nodes.end())
+                                            it = nodes.find(succNode);
+                                            if (it == nodes.end() || inNested && it->second != nullptr)
                                             {
                                                 generateNodeChanges();
                                                 goodPathFound = true;
@@ -431,17 +448,18 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                         bool firstSearched = false;
                         if (sefFailure->addPathCondition(node->getName(), jocc, true))
                         {
-                            if (nodes.find(failNode) != nodes.end())
+                            it = nodes.find(failNode);
+                            if (it == nodes.end() || inNested && it->second != nullptr)
+                            {
+                                generateNodeChanges();
+                                goodPathFound = true;
+                            }
+                            else
                             {
                                 if (firstSearched = searchNode(failNode, varChanges, tags, sefFailure, badExample))
                                 {
                                     mergeMaps(varChanges.at(node), varChanges.at(failNode));
                                 }
-                            }
-                            else
-                            {
-                                generateNodeChanges();
-                                goodPathFound = true;
                             }
                         }
 
@@ -449,7 +467,8 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                 = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
                         if (sefSucc->addPathCondition(node->getName(), jocc))
                         {
-                            if (nodes.find(succNode) == nodes.end())
+                            it = nodes.find(succNode);
+                            if (it == nodes.end() || inNested && it->second != nullptr)
                             {
                                 generateNodeChanges();
                                 goodPathFound = true;
@@ -472,67 +491,78 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                 {
                     case SymbolicVariable::MeetEnum::MUST:
                     {
-                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
-                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                        if (sefSucc->addPathCondition(node->getName(), jocc))
+                        it = nodes.find(succNode);
+                        if (it == nodes.end() || inNested && it->second != nullptr)
                         {
-                            if (nodes.find(node->getCompSuccess()) == nodes.end())
+                            generateNodeChanges();
+                            goodPathFound = true;
+                        }
+                        else
+                        {
+                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
+                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                            if (sefSucc->addPathCondition(node->getName(), jocc))
                             {
-                                generateNodeChanges();
-                                goodPathFound = true;
+                                searchNode(succNode, varChanges, tags, sefSucc, badExample);
+                                mergeMaps(varChanges.at(node), varChanges.at(succNode));
                             }
-                            else searchNode(node->getCompSuccess(), varChanges, tags, sefSucc, badExample);
-                            mergeMaps(varChanges.at(node), varChanges.at(failNode));
                         }
                     }
+                    break;
 
                     case SymbolicVariable::MeetEnum::CANT:
                     {
-                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFail
-                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                        if (sefFail->addPathCondition(node->getName(), jocc, true))
+                        it = nodes.find(failNode);
+                        if (it == nodes.end() || inNested && it->second != nullptr)
                         {
-                            if (nodes.find(node->getCompFail()) == nodes.end())
-                            {
-                                generateNodeChanges();
-                                goodPathFound = true;
-                            }
-                            else
+                            generateNodeChanges();
+                            goodPathFound = true;
+                        }
+                        else
+                        {
+                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFail
+                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                            if (sefFail->addPathCondition(node->getName(), jocc, true))
                             {
                                 searchNode(node->getCompFail(), varChanges, tags, sefFail, badExample);
                                 mergeMaps(varChanges.at(node), varChanges.at(failNode));
                             }
                         }
                     }
+                    break;
 
                     case SymbolicVariable::MeetEnum::MAY:
                     {
-                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
-                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                        if (sefSucc->addPathCondition(node->getName(), jocc))
+                        it = nodes.find(succNode);
+                        if (it == nodes.end() || inNested && it->second != nullptr)
                         {
-                            if (nodes.find(node->getCompSuccess()) == nodes.end())
-                            {
-                                generateNodeChanges();
-                                goodPathFound = true;
-                            }
-                            else if (searchNode(node->getCompSuccess(), varChanges, tags, sefSucc, badExample))
+                            generateNodeChanges();
+                            goodPathFound = true;
+                        }
+                        else
+                        {
+                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
+                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                            if (sefSucc->addPathCondition(node->getName(), jocc)
+                                && searchNode(node->getCompSuccess(), varChanges, tags, sefSucc, badExample))
                             {
                                 mergeMaps(varChanges.at(node), varChanges.at(node->getCompSuccess()));
                             }
                         }
 
-                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFail
-                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                        if (sefFail->addPathCondition(node->getName(), jocc, true))
+                        it = nodes.find(failNode);
+                        if (it == nodes.end() || inNested && it->second != nullptr)
                         {
-                            if (nodes.find(node->getCompFail()) == nodes.end())
+                            generateNodeChanges();
+                            goodPathFound = true;
+                        }
+                        else
+                        {
+                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFail
+                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                            if (sefFail->addPathCondition(node->getName(), jocc, true))
                             {
-                                generateNodeChanges();
-                                goodPathFound = true;
-                            }
-                            else if (searchNode(node->getCompFail(), varChanges, tags, sefFail, badExample))
-                            {
+                                searchNode(node->getCompFail(), varChanges, tags, sefFail, badExample);
                                 mergeMaps(varChanges.at(node), varChanges.at(failNode));
                             }
                         }

@@ -47,17 +47,18 @@ void Compiler::compile(stringstream& out)
 
     Optimise::optimise(symbolTable, functionTable, cfg);
 
-
     SymbolicExecution::SymbolicExecutionManager symbolicExecutionManager
             = SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter);
     unordered_map<string, SRPointer>& tags
             = symbolicExecutionManager.search();
-    return;
 
     vector<unique_ptr<Loop>> loops = LengTarj(cfg).findLoops();
+
+    auto debug = loops.size();
+
     for (auto& loop : loops) loop->validate(tags);
-    cout << cfg.getStructuredSource() << endl;
     return;
+    cout << cfg.getStructuredSource() << endl;
 
     Optimise::optimise(symbolTable, functionTable, cfg);
 

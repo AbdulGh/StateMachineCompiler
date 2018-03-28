@@ -272,24 +272,29 @@ public:
         auto it = indicies.begin();
         auto varit = indexVars.begin();
 
-        while (*it <= lb)
+        if (lb != 0)
         {
-            ++it;
-            ++varit;
-            if (it == indicies.end() || varit == indexVars.end()) throw "bad";
+            while (*it <= lb)
+            {
+                ++it;
+                ++varit;
+                if (it == indicies.end() || varit == indexVars.end()) throw "bad";
+            }
+            it = indicies.insert(it, lb);
+            std::unique_ptr<SymbolicDouble> newD = (*varit)->cloneSD();
+            varit = indexVars.insert(varit, newD.get());
+            myVars.push_back(move(newD));
+            ++it; ++varit;
         }
-
-        it = indicies.insert(it, lb);
-        ++it;
-        std::unique_ptr<SymbolicDouble> cp = (*varit)->cloneSD();
-        cp->unionVar(sdr);
-        varit = indexVars.insert(++varit, cp.get());
-        myVars.push_back(move(cp));
 
         while (it != indicies.end() && varit != indexVars.end())
         {
-            if (*it == ub + 1) return true;
-            else if (*it > ub + 1)
+            if (*it == ub + 1)
+            {
+                (*varit)->unionVar(sdr);
+                return true;
+            }
+            else if (*it > ub)
             {
                 indicies.insert(it, ub + 1);
                 std::unique_ptr<SymbolicDouble> newSD = (*varit)->cloneSD();
@@ -320,6 +325,68 @@ public:
         SymbolicDouble undet("undet", reporter);
         undet.nondet();
         set(index, &undet);
+    }
+
+    bool unionArray(const SymbolicArray* other)
+    {
+        auto myIndexIt = indicies.begin();
+        auto myVarsIt = indexVars.begin();
+        auto theirIndexIt = other->indicies.cbegin();
+        auto theirVarsIt = other->indexVars.cbegin();
+
+        bool change = false;
+
+        while (myIndexIt != indicies.end() && theirIndexIt != other->indicies.end())
+        {
+            if (*myIndexIt > *theirIndexIt)
+            {
+                std::unique_ptr<SymbolicDouble> newVar = (*myVarsIt)->cloneSD();
+                if (newVar->unionVar(*theirVarsIt))
+                {
+                    change = true;
+                    myIndexIt = indicies.insert(myIndexIt, *theirIndexIt);
+                    myVarsIt = indexVars.insert(myVarsIt, newVar.get());
+                    myVars.push_back(move(newVar));
+                    ++myIndexIt;
+                    ++myVarsIt;
+                }
+                ++theirIndexIt;
+                ++theirVarsIt;
+            }
+            else if (*myIndexIt == *theirIndexIt)
+            {
+                if ((*myVarsIt)->unionVar(*theirVarsIt)) change = true;
+                ++myIndexIt;
+                ++myVarsIt;
+                ++theirIndexIt;
+                ++theirVarsIt;
+            }
+            else
+            {
+                ++myIndexIt;
+                ++myVarsIt;
+            }
+        }
+    }
+
+    std::string diagString()
+    {
+        int lastIndex = 0;
+        auto indIt = indicies.begin();
+        auto varIt = indexVars.begin();
+
+        std::string out;
+        while (indIt != indicies.end())
+        {
+            out += "[" + std::to_string(lastIndex) + ", " + std::to_string(*indIt) + "): ";
+            out += std::to_string((*varIt)->getTLowerBound()) + " - " + std::to_string((*varIt)->getTUpperBound());
+            out += "\n";
+
+            lastIndex = *indIt;
+            ++indIt;
+            ++varIt;
+        }
+        return out;
     }
 };
 

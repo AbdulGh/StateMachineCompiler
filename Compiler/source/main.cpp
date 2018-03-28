@@ -1,7 +1,7 @@
 #include <iostream>
 #include "compile/Compiler.h"
 #include "compile/Lexer.h"
-
+#include "symbolic/SymbolicArray.h"
 using namespace std;
 
 //todo convert thrown strings to runtime_errors

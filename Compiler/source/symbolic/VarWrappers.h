@@ -97,7 +97,7 @@ public:
 class VarWrapper
 {
 protected:
-    AccessType accessType;
+    AccessType accessType; //todo check what this is used for
     void setAccessType(AccessType at) {accessType = at;}
     std::string name;
     void setName(std::string n) {name = move(n);}
@@ -146,7 +146,7 @@ public:
 
     SDByArrayIndex(std::string n, unsigned int i): index(i)
     {
-        setAccessType(AccessType::DIRECT);
+        setAccessType(AccessType::BYARRAY);
         setName(move(n));
     };
 
@@ -175,7 +175,7 @@ public:
             index(move(var))
     {
         setName(move(arrN));
-        setAccessType(AccessType::DIRECT);
+        setAccessType(AccessType::BYARRAY);
     }
 
     std::string getFullName() const override

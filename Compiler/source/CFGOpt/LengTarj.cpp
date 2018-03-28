@@ -133,7 +133,7 @@ vector<unique_ptr<Loop>> LengTarj::findNesting(std::vector<unique_ptr<Loop>>& lo
     auto radixSort = //[l, r)
     [&, this, bitVectors](const auto& recurse, unsigned int digit, unsigned int l, unsigned int r) -> void
     {
-        if (digit >= numCFGNodes || l == r) return;
+        if (digit >= numCFGNodes || l >= r) return;
         unsigned int firstZero = l;
 
         for (unsigned int i = l; i < r; ++i)
@@ -153,8 +153,8 @@ vector<unique_ptr<Loop>> LengTarj::findNesting(std::vector<unique_ptr<Loop>>& lo
                 bool* temp = bitVectors[probe];
                 bitVectors[probe] = bitVectors[firstZero];
                 bitVectors[firstZero] = temp;
+                iter_swap(loops.begin() + probe, loops.begin() + firstZero);
                 ++firstZero;
-                loops[probe].swap(loops[firstZero]);
             }
             ++probe;
         }
@@ -164,27 +164,26 @@ vector<unique_ptr<Loop>> LengTarj::findNesting(std::vector<unique_ptr<Loop>>& lo
         recurse(recurse, digit, firstZero, r);
     };
 
-    radixSort(radixSort, 0, numLoops, 0);
+    radixSort(radixSort, 0, 0, numLoops);
 
     vector<unique_ptr<Loop>> unnested;
-    unnested.push_back(move(*loops.begin()));
-    
-    for (int i = 1; i < numLoops; ++i)
+
+    for (int i = numLoops - 1; i >= 0; --i)
     {
         for (int j = 0; j < numCFGNodes; ++j)
         {
             if (bitVectors[i][j] == true)
             {
+                if (i == 1)
+                {
+                    bool debug2 = bitVectors[0][1];
+                    int debug;
+                    debug = 2;
+                }
+
                 //scan left until we hit another 1
                 int scan = i - 1;
-                do
-                {
-                    if (scan < 0)
-                    {
-                        unnested.push_back(move(loops[i]));
-                        break;
-                    }
-                } while (bitVectors[scan][j] == false);
+                while (scan >= 0 && bitVectors[scan][j] == false) --scan;
 
                 if (scan >= 0)
                 {
@@ -199,12 +198,14 @@ vector<unique_ptr<Loop>> LengTarj::findNesting(std::vector<unique_ptr<Loop>>& lo
                         }
                         ++j;
                     }
+                    loops[scan]->addChild(move(loops[i]));
                 }
-
+                else unnested.push_back(move(loops[i]));
                 break;
             }
         }
     }
+    return unnested;
 }
 
 unsigned long LengTarj::eval(unsigned long node)
