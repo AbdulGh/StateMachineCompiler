@@ -56,6 +56,11 @@ bool SymbolicVariable::isIncrementable() const
     return incrementable;
 }
 
+bool SymbolicVariable::getRelativeVelocity(SymbolicVariable *o, long double& slowest, long double& fastest) const
+{
+    return false;
+}
+
 void SymbolicVariable::define()
 {
     defined = true;
@@ -70,17 +75,17 @@ bool SymbolicVariable::addGT(const VarWrapper* vg, SymbolicExecutionFringe* sef,
 {
     GottenVarPtr<SymbolicVariable> other = vg->getSymbolicVariable(sef);
     SymbolicVariable* sv = other.get();
-    if (other.constructed())
+    if (!other.constructed())
     {
         if (find_if(gt.begin(), gt.end(),
                     [&, sv] (SymbolicVariable* t)
-                    {return t->getName() == sv->getName();}) != gt.end()) return feasable && sv->isFeasable();
-        gt.push_back(sv);
+                    {return t->getName() == sv->getName();}) != gt.end()) return isFeasable() && sv->isFeasable();
+        gt.insert(sv);
     }
-    if (constructed) sv->lt.push_back(this);
+    if (!constructed) sv->lt.insert(this);
     if (sv->isBoundedBelow()) clipLowerBound(sv->getLowerBound(), false);
     if (isBoundedAbove()) sv->clipUpperBound(getUpperBound());
-    return feasable && sv->isFeasable();
+    return isFeasable() && sv->isFeasable();
 }
 
 bool SymbolicVariable::addGE(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
@@ -88,35 +93,38 @@ bool SymbolicVariable::addGE(const VarWrapper* vg, SymbolicExecutionFringe* sef,
     GottenVarPtr<SymbolicVariable> other = vg->getSymbolicVariable(sef);
     SymbolicVariable* sv = other.get();
 
-    if (other.constructed())
+    if (!other.constructed())
     {
         if (find_if(ge.begin(), ge.end(),
                     [&, sv] (SymbolicVariable* t)
-                    {return t->getName() == sv->getName();}) != ge.end()) return feasable && sv->isFeasable();
-        ge.push_back(sv);
+                    {return t->getName() == sv->getName();}) != ge.end()) return isFeasable() && sv->isFeasable();
+        ge.insert(sv);
     }
-    if (constructed) sv->le.push_back(this);
+    if (!constructed) sv->le.insert(this);
     
     if (sv->isBoundedBelow()) clipLowerBound(sv->getLowerBound());
     if (isBoundedAbove()) sv->clipUpperBound(getUpperBound());
-    return feasable && sv->isFeasable();
+    return isFeasable() && sv->isFeasable();
 }
 
 bool SymbolicVariable::addLT(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
 {
     GottenVarPtr<SymbolicVariable> other = vg->getSymbolicVariable(sef);
     SymbolicVariable* sv = other.get();
-    if (other.constructed())
+    if (!constructed && !other.constructed())
     {
-        if (find_if(lt.begin(), lt.end(),
-                    [&, sv] (SymbolicVariable* t)
-                    {return t->getName() == sv->getName();}) != lt.end()) return feasable && sv->isFeasable();
-        lt.push_back(sv);
+        setRepeatUpperBound(sv->getUpperBound(), false);
+        sv->setRepeatLowerBound(getLowerBound(), false);
+        
+        set<SymbolicVariable*> seen;
+        if (guaranteedLT(sv, this, seen)) return isFeasable() && sv->isFeasable();
+        lt.insert(sv);
+        sv->gt.insert(this);
     }
-    if (constructed) sv->gt.push_back(this);
+
     if (sv->isBoundedAbove()) clipUpperBound(sv->getUpperBound(), false);
     if (isBoundedBelow()) sv->clipLowerBound(getLowerBound());
-    return feasable && sv->isFeasable();
+    return isFeasable() && sv->isFeasable();
 }
 
 bool SymbolicVariable::addLE(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
@@ -124,201 +132,195 @@ bool SymbolicVariable::addLE(const VarWrapper* vg, SymbolicExecutionFringe* sef,
     GottenVarPtr<SymbolicVariable> other = vg->getSymbolicVariable(sef);
     SymbolicVariable* sv = other.get();
 
-    if (other.constructed())
+    if (!constructed && !other.constructed())
     {
-        if (find_if(le.begin(), le.end(),
-                    [&, sv] (SymbolicVariable* t)
-                    {return t->getName() == sv->getName();}) != le.end()) return feasable && sv->isFeasable();
-        le.push_back(sv);
+        setRepeatUpperBound(sv->getUpperBound());
+        sv->setRepeatLowerBound(getLowerBound());
+        set<SymbolicVariable*> seen;
+        if (guaranteedLE(sv, this, seen)) return isFeasable() && sv->isFeasable();
+        lt.insert(sv);
+        sv->gt.insert(this);
     }
-    if (constructed) sv->ge.push_back(this);
     if (sv->isBoundedAbove()) clipUpperBound(sv->getUpperBound());
     if (isBoundedBelow()) sv->clipLowerBound(getLowerBound());
-    return feasable && sv->isFeasable();
+    return isFeasable() && sv->isFeasable();
 }
 
 bool SymbolicVariable::addEQ(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
 {
     GottenVarPtr<SymbolicVariable> other = vg->getSymbolicVariable(sef);
     SymbolicVariable* sv = other.get();
-    if (other.constructed())
+    if (!other.constructed() && !constructed)
     {
-        if (find_if(eq.begin(), eq.end(),
-            [&, sv] (SymbolicVariable* t)
-            {return t->getName() == sv->getName();}) != eq.end()) return feasable && sv->isFeasable();
-        eq.push_back(sv);
+        setRepeatUpperBound(sv->getUpperBound());
+        setRepeatLowerBound(sv->getLowerBound());
+        sv->setRepeatUpperBound(getUpperBound());
+        sv->setRepeatLowerBound(getLowerBound());
+        set<SymbolicVariable*> seen;
+        if (guaranteedEQ(sv, this, seen)) isFeasable() && sv->isFeasable();
+        eq.insert(sv);
+        sv->eq.insert(this);
     }
-    if (constructed) sv->eq.push_back(this);
-    return feasable && sv->isFeasable();
+
+    if (sv->isDetermined()) setConstValue(sv->getConstString());
+    else
+    {
+        clipUpperBound(sv->getUpperBound());
+        clipLowerBound(sv->getLowerBound());
+    }
+
+    return isFeasable() && sv->isFeasable();
 }
 
 bool SymbolicVariable::addNEQ(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
 {
     GottenVarPtr<SymbolicVariable> other = vg->getSymbolicVariable(sef);
     SymbolicVariable* sv = other.get();
-    if (other.constructed())
+    if (!other.constructed())
     {
-        if (find_if(neq.begin(), neq.end(),
-                    [&, sv] (SymbolicVariable* t)
-                    {return t->getName() == sv->getName();}) != neq.end()) return feasable && sv->isFeasable();
-        neq.push_back(sv);
+        if (find(neq.begin(), neq.end(), sv) != neq.end()) return isFeasable() && sv->isFeasable();
+        neq.insert(sv);
     }
-    if (constructed) sv->neq.push_back(this);
-    return feasable && sv->isFeasable();
+    if (!constructed) sv->neq.insert(this);
+    return isFeasable() && sv->isFeasable();
 }
 
-//todo these below
-bool SymbolicVariable::guaranteedLT(SymbolicVariable* searchFor, const string& initName)
+//todo wrapper for seen sets
+bool SymbolicVariable::guaranteedLT(SymbolicVariable* searchFor, SymbolicVariable* searchInit, set<SymbolicVariable*>& seen)
 {
-
-    /*
-    if (getName() == initName || getName() == searchFor->getName())  return false;
+    auto addLT = [&, this, searchFor] () -> void
+    {
+        lt.insert(searchFor);
+        searchFor->gt.insert(this);
+    };
+    
+    if (this == searchInit) return false;
+    else if (searchFor == this) return true;
+    
+    if (canMeet(Relations::LT, searchFor) == MeetEnum::MUST)
+    {
+        addLT();
+        return true;
+    }
     for (SymbolicVariable* optr : lt)
     {
-        if (optr->getName() == searchFor->getName() || optr->guaranteedLE(searchFor, initName))
+        if (optr->getName() == searchFor->getName() || optr->guaranteedLE(searchFor, searchInit, seen))
         {
-            addLT(searchFor);
+            addLT();
             return true;
         }
     }
-    for (SymbolicVariable* optr : le) if (optr->guaranteedLT(searchFor, initName))
+    for (SymbolicVariable* optr : le) if (optr->guaranteedLT(searchFor, searchInit, seen))
     {
-        addLT(searchFor);
+        addLT();
         return true;
     }
-    for (SymbolicVariable* optr : eq) if (optr->guaranteedLT(searchFor, initName))
+    for (SymbolicVariable* optr : eq) if (optr->guaranteedLT(searchFor, searchInit, seen))
     {
-        addLT(searchFor);
-        return true;
-    }*/
-    return false;
-}
-bool SymbolicVariable::guaranteedLE(SymbolicVariable* searchFor, const string& initName)
-{
-    /*if (getName() == initName || getName() == searchFor->getName()) return true;
-    for (SymbolicVariable* optr : lt) if (optr->guaranteedLE(searchFor, initName))
-    {
-        addLE(searchFor);
+        addLT();
         return true;
     }
-    for (SymbolicVariable* optr : le) if (optr->guaranteedLE(searchFor, initName))
-    {
-        addLE(searchFor);
-        return true;
-    }
-    for (SymbolicVariable* optr : eq) if (optr->guaranteedLE(searchFor, initName))
-    {
-        addLE(searchFor);
-        return true;
-    }*/
-    return false;
-}
-bool SymbolicVariable::guaranteedGT(SymbolicVariable* searchFor, const string& initName)
-{
-    /*if (getName() == initName || getName() == searchFor->getName())  return false;
-    for (SymbolicVariable* optr : gt)
-    {
-        if (optr->getName() == searchFor->getName() || optr->guaranteedGE(searchFor, initName))
-        {
-            addGT(searchFor);
-            return true;
-        }
-    }
-    for (SymbolicVariable* optr : ge) if (optr->guaranteedGT(searchFor, initName))
-    {
-        addGT(searchFor);
-        return true;
-    }
-    for (SymbolicVariable* optr : eq) if (optr->guaranteedGT(searchFor, initName))
-    {
-        addGT(searchFor);
-        return true;
-    }*/
-    return false;
-}
-bool SymbolicVariable::guaranteedGE(SymbolicVariable* searchFor, const string& initName)
-{
-    /*if (getName() == initName || getName() == searchFor->getName()) return true;
-    for (SymbolicVariable* optr : gt) if (optr->guaranteedGE(searchFor, initName))
-    {
-        addGE(searchFor);
-        return true;
-    }
-    for (SymbolicVariable* optr : ge) if (optr->guaranteedGE(searchFor, initName))
-    {
-        addGE(searchFor);
-        return true;
-    }
-    for (SymbolicVariable* optr : eq) if (optr->guaranteedGE(searchFor, initName))
-    {
-        addGE(searchFor);
-        return true;
-    }*/
-    return false;
-}
-bool SymbolicVariable::guaranteedEQ(SymbolicVariable* searchFor, const string& initName)
-{
-    /*if (getName() == initName || getName() == searchFor->getName()) return true;
-    for (SymbolicVariable* optr : eq) if (optr->guaranteedEQ(searchFor, initName))
-    {
-        addEQ(searchFor);
-        return true;
-    }*/
     return false;
 }
 
-bool SymbolicVariable::guaranteedNEQ(SymbolicVariable* searchFor, const string& initName)
+bool SymbolicVariable::guaranteedLE(SymbolicVariable* searchFor, SymbolicVariable* searchInit, set<SymbolicVariable*>& seen)
 {
-    /*
-    if (getName() == initName || getName() == searchFor->getName()) return false;
-    for (SymbolicVariable* optr : neq) if (optr->guaranteedEQ(searchFor, initName))
-        {addNEQ(searchFor); return true;}
-    for (SymbolicVariable* optr : gt) if (optr->guaranteedGE(searchFor, initName))
-        {addNEQ(searchFor); return true;}
-    for (SymbolicVariable* optr : ge) if (optr->guaranteedGT(searchFor, initName))
-        {addNEQ(searchFor); return true;}
-    for (SymbolicVariable* optr : lt) if (optr->guaranteedLE(searchFor, initName))
-        {addNEQ(searchFor); return true;}
-    for (SymbolicVariable* optr : le) if (optr->guaranteedLE(searchFor, initName))
-        {addNEQ(searchFor); return true;}
-    for (SymbolicVariable* optr : eq) if (optr->guaranteedNEQ(searchFor, initName))
-        {addNEQ(searchFor); return true;} */
+    auto addLE = [&, this, searchFor] () -> void
+    {
+        le.insert(searchFor);
+        searchFor->ge.insert(this);
+    };
+
+    if (searchFor == this || searchInit == this) return true;
+    else if (canMeet(Relations::LE, searchFor) == MeetEnum::MUST)
+    {
+        addLE();
+        return true;
+    }
+    for (SymbolicVariable* optr : lt)
+    {
+        if (optr->getName() == searchFor->getName() || optr->guaranteedLE(searchFor, searchInit, seen))
+        {
+            addLE();
+            return true;
+        }
+    }
+    for (SymbolicVariable* optr : le) if (optr->guaranteedLE(searchFor, searchInit, seen))
+    {
+        addLE();
+        return true;
+    }
+    for (SymbolicVariable* optr : eq) if (optr->guaranteedLE(searchFor, searchInit, seen))
+    {
+        addLE();
+        return true;
+    }
+    return false;
+}
+
+bool SymbolicVariable::guaranteedGT(SymbolicVariable* searchFor, SymbolicVariable* searchInit, set<SymbolicVariable*>& seen)
+{
+    if (this == searchInit) return false;
+    return searchFor->guaranteedLT(this, searchFor, seen);
+}
+
+bool SymbolicVariable::guaranteedGE(SymbolicVariable* searchFor, SymbolicVariable* searchInit, set<SymbolicVariable*>& seen)
+{
+    if (this == searchInit) return true;
+    return searchFor->guaranteedLE(this, searchFor, seen);
+}
+
+bool SymbolicVariable::guaranteedEQ(SymbolicVariable* searchFor, SymbolicVariable* searchInit, set<SymbolicVariable*>& seen)
+{
+    if (this == searchInit || this == searchFor) return true;
+    if (canMeet(Relations::EQ, searchFor) == MeetEnum::MUST)
+    {
+        eq.insert(searchFor);
+        searchFor->eq.insert(this);
+        return true;
+    }
+    else for (auto& equal : eq) if (equal->guaranteedEQ(searchFor, searchInit, seen)) return true;
+    return false;
+}
+
+bool SymbolicVariable::guaranteedNEQ(SymbolicVariable* searchFor, SymbolicVariable* searchInit, set<SymbolicVariable*>& seen)
+{
+    if (this == searchInit || this == searchFor) return false;
+
+    auto addNEQ = [&, searchFor, this] () -> void
+    {
+        neq.insert(searchFor);
+        searchFor->neq.insert(this);
+    };
+
+    for (SymbolicVariable* optr : neq) if (optr->guaranteedEQ(searchFor, searchInit, seen))
+        {addNEQ(); return true;}
+    for (SymbolicVariable* optr : gt) if (optr->guaranteedGE(searchFor, searchInit, seen))
+        {addNEQ(); return true;}
+    for (SymbolicVariable* optr : ge) if (optr->guaranteedGT(searchFor, searchInit, seen))
+        {addNEQ(); return true;}
+    for (SymbolicVariable* optr : lt) if (optr->guaranteedLE(searchFor, searchInit, seen))
+        {addNEQ(); return true;}
+    for (SymbolicVariable* optr : le) if (optr->guaranteedLE(searchFor, searchInit, seen))
+        {addNEQ(); return true;}
+    for (SymbolicVariable* optr : eq) if (optr->guaranteedNEQ(searchFor, searchInit, seen))
+        {addNEQ(); return true;} 
     return false;
 }
 
 void SymbolicVariable::clearEQ()
 {
-    auto isMe = [&, this](SymbolicVariable* poss) -> bool
-    {return poss->getName() == getName();};
-    for (auto& ptr : eq)
-    {
-        auto& vector = ptr->eq;
-        vector.erase(remove_if(vector.begin(), vector.end(), isMe), vector.end());
-    }
+    for (auto& ptr : eq) ptr->eq.erase(this);
     eq.clear();
-    for (auto& ptr : neq)
-    {
-        auto& vector = ptr->neq;
-        vector.erase(remove_if(vector.begin(), vector.end(), isMe), vector.end());
-    }
+    for (auto& ptr : neq) ptr->neq.erase(this);
     neq.clear();
 }
 
 void SymbolicVariable::clearLess()
 {
-    auto isMe = [&, this](SymbolicVariable* poss) -> bool
-    {return poss->getName() == getName();};
-    for (auto& ptr : lt)
-    {
-        auto& vector = ptr->gt;
-        vector.erase(remove_if(vector.begin(), vector.end(), isMe), vector.end());
-    }
+    for (auto& ptr : lt) ptr->lt.erase(this);
     lt.clear();
-    for (auto& ptr : le)
-    {
-        auto& vector = ptr->ge;
-        vector.erase(remove_if(vector.begin(), vector.end(), isMe), vector.end());
-    }
+    for (auto& ptr : le) ptr->ge.erase(this);
     le.clear();
 }
 
@@ -339,17 +341,9 @@ void SymbolicVariable::clearGreater()
 {
     auto isMe = [&, this](SymbolicVariable* poss) -> bool
     {return poss->getName() == getName();};
-    for (auto& ptr : gt)
-    {
-        auto& vector = ptr->lt;
-        vector.erase(remove_if(vector.begin(), vector.end(), isMe), vector.end());
-    }
+    for (auto& ptr : gt) ptr->lt.erase(this);
     gt.clear();
-    for (auto& ptr : ge)
-    {
-        auto& vector = ptr->le;
-        vector.erase(remove_if(vector.begin(), vector.end(), isMe), vector.end());
-    }
+    for (auto& ptr : ge) ptr->le.erase(this);
     ge.clear();
 }
 
@@ -440,16 +434,14 @@ bool SymbolicVariableTemplate<T>::isFeasable()
 template <>
 void SymbolicVariableTemplate<string>::addNEQConst(const string& c)
 {
-    if (find(neqConsts.begin(), neqConsts.end(), c) != neqConsts.end()) return;
-    neqConsts.push_back(c);
+    neqConsts.insert(c);
 }
 
 template <>
 void SymbolicVariableTemplate<double>::addNEQConst(const string& d)
 {
     double c = stod(d);
-    if (find(neqConsts.begin(), neqConsts.end(), c) != neqConsts.end()) return;
-    neqConsts.push_back(c);
+    neqConsts.insert(c);
 }
 
 template <typename T>

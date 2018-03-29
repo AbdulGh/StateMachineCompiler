@@ -7,6 +7,7 @@
 
 #include <list>
 #include <map>
+#include <iomanip>
 
 #include "SymbolicVariables.h"
 
@@ -74,14 +75,20 @@ public:
 
         if (ub < 0)
         {
+            std::ostringstream precision;
+            precision << std::setprecision(10);
+            precision << ub;
             reporter.error(Reporter::ARRAY_BOUNDS,
-                           "Asked to get index <= " + std::to_string(ub) + " in array");
+                           "Asked to get index <= " + precision.str() + " in array");
             return false;
         }
         if (lb >= size)
         {
+            std::ostringstream precision;
+            precision << std::setprecision(10);
+            precision << lb;
             reporter.error(Reporter::ARRAY_BOUNDS,
-                           "Asked to get index >= " + std::to_string(lb) + " in array of size " + std::to_string(size));
+                           "Asked to get index >= " + precision.str() + " in array of size " + std::to_string(size));
             return false;
         }
 
@@ -92,8 +99,12 @@ public:
         }
         if (ub >= size)
         {
+            std::ostringstream precision;
+            precision << std::setprecision(10);
+            precision << ub;
+
             reporter.warn(Reporter::ARRAY_BOUNDS,
-                          "Could access index up to " + std::to_string(ub) + " in array of size " + std::to_string(size));
+                          "Could access index up to " + precision.str() + " in array of size " + std::to_string(size));
             ub = size - 1;
         }
         
@@ -122,8 +133,11 @@ public:
 
         if (ubd >= size)
         {
+            std::ostringstream precision;
+            precision << std::setprecision(10);
+            precision << ubd;
             reporter.warn(Reporter::ARRAY_BOUNDS,
-                          "Could access index up to " + std::to_string(ubd) + " in array of size " + std::to_string(size));
+                          "Could access index up to " + precision.str() + " in array of size " + std::to_string(size));
         }
 
         return true;
@@ -246,14 +260,20 @@ public:
         double ub = floor(index->getTUpperBound());
         if (ub < 0)
         {
+            std::ostringstream precision;
+            precision << std::setprecision(10);
+            precision << ub;
             reporter.error(Reporter::ARRAY_BOUNDS,
-                           "Asked to set index <= " + std::to_string(index->getTUpperBound()) + " in array");
+                           "Asked to set index <= " + precision.str() + " in array");
             return false;
         }
         if (lb >= size)
         {
+            std::ostringstream precision;
+            precision << std::setprecision(10);
+            precision << lb;
             reporter.error(Reporter::ARRAY_BOUNDS,
-                           "Asked to set index >= " + std::to_string(index->getTLowerBound()) + " in array of size " + std::to_string(size));
+                           "Asked to set index >= " + precision.str() + " in array of size " + std::to_string(size));
             return false;
         }
 
@@ -264,8 +284,11 @@ public:
         }
         if (ub >= size)
         {
+            std::ostringstream precision;
+            precision << std::setprecision(10);
+            precision << ub;
             reporter.warn(Reporter::ARRAY_BOUNDS,
-                          "Could access index up to " + std::to_string(index->getTUpperBound()) + " in array of size " + std::to_string(size));
+                          "Could access index up to " + precision.str() + " in array of size " + std::to_string(size));
             ub = size - 1;
         }
 

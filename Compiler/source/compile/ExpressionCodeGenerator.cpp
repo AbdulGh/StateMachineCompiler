@@ -163,13 +163,13 @@ bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol*
     AbstractExprNode* rightp = p->getRight();
     double dl, dr;
     std::unique_ptr<VarWrapper> left, right;
-    bool leftlit = leftp->getType() == LITERAL;
-    bool rightlit = rightp->getType() == LITERAL;
+    bool leftlit = leftp->getType() == LITERAL && !leftp->getVarWrapper();
+    bool rightlit = rightp->getType() == LITERAL && !rightp->getVarWrapper();
 
     if (leftlit) dl = leftp->getDouble();
     if (rightlit) dr = rightp->getDouble();
 
-    if (!leftlit || !rightlit)
+    if (!leftlit)
     {
         if (leftp->isAtom()) left = leftp->getVarWrapper()->clone();
         else
@@ -177,8 +177,11 @@ bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol*
             leftlit = translateTree(leftp, fs, reg, dl);
             if (!leftlit) left = genTemp(fs, reg); //todo VarWrapper -> term
         }
+    }
 
-        if (rightp->isAtom()) right = leftp->getVarWrapper()->clone();
+    if (!rightlit)
+    {
+        if (rightp->isAtom()) right = rightp->getVarWrapper()->clone();
         else
         {
             rightlit = translateTree(rightp, fs, reg + 1, dr);

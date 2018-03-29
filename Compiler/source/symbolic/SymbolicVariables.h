@@ -22,13 +22,13 @@ protected:
     std::string varN;
     Reporter& reporter;
     VariableType type;
-    //most of the time we will scan through all of these - hence vectors
-    std::vector<SymbolicVariable*> lt;
-    std::vector<SymbolicVariable*> le;
-    std::vector<SymbolicVariable*> ge;
-    std::vector<SymbolicVariable*> gt;
-    std::vector<SymbolicVariable*> eq;
-    std::vector<SymbolicVariable*> neq;
+    
+    std::set<SymbolicVariable*> lt;
+    std::set<SymbolicVariable*> le;
+    std::set<SymbolicVariable*> ge;
+    std::set<SymbolicVariable*> gt;
+    std::set<SymbolicVariable*> eq;
+    std::set<SymbolicVariable*> neq;
 
     void reportError(Reporter::AlertType type, std::string err);
 
@@ -47,16 +47,17 @@ public:
     void setName(const std::string& newName);
     bool isDefined() const;
     bool isIncrementable() const;
+    virtual bool getRelativeVelocity(SymbolicVariable* o,long double& slowest, long double& fastest) const;
     bool wasUserAffected() const;
     void define();
     virtual MonotoneEnum getMonotonicity() const = 0;
-
-    virtual bool guaranteedLT(SymbolicVariable* searchFor, const std::string& initName);
-    virtual bool guaranteedLE(SymbolicVariable* searchFor, const std::string& initName);
-    virtual bool guaranteedGT(SymbolicVariable* searchFor, const std::string& initName);
-    virtual bool guaranteedGE(SymbolicVariable* searchFor, const std::string& initName);
-    virtual bool guaranteedEQ(SymbolicVariable* searchFor, const std::string& initName);
-    virtual bool guaranteedNEQ(SymbolicVariable* searchFor, const std::string& initName);
+    
+    virtual bool guaranteedLT(SymbolicVariable* searchFor, SymbolicVariable* searchInit, std::set<SymbolicVariable*>& seen);
+    virtual bool guaranteedLE(SymbolicVariable* searchFor, SymbolicVariable* searchInit, std::set<SymbolicVariable*>& seen);
+    virtual bool guaranteedGT(SymbolicVariable* searchFor, SymbolicVariable* searchInit, std::set<SymbolicVariable*>& seen);
+    virtual bool guaranteedGE(SymbolicVariable* searchFor, SymbolicVariable* searchInit, std::set<SymbolicVariable*>& seen);
+    virtual bool guaranteedEQ(SymbolicVariable* searchFor, SymbolicVariable* searchInit, std::set<SymbolicVariable*>& seen);
+    virtual bool guaranteedNEQ(SymbolicVariable* searchFor, SymbolicVariable* searchInit, std::set<SymbolicVariable*>& seen);
 
     virtual bool addLT(const VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
     virtual bool addLE(const VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
@@ -115,7 +116,7 @@ protected:
     T lowerBound;
     T repeatUpper;
     T repeatLower;
-    std::vector<T> neqConsts;
+    std::set<T> neqConsts;
 
 public:
     SymbolicVariableTemplate(std::string name, const T lower, const T upper, const T repeatLower, const T repeatUpper,
@@ -195,9 +196,10 @@ public:
     void unionTConstValue(const double& cv, bool closed=true) override;
     bool setUpperBound(const std::string& ub, bool closed = true) override;
     bool setLowerBound(const std::string& lb, bool closed = true) override;
-    virtual void iterateTo(double to, bool closed=true);
-    virtual void iterateTo(const std::string& to, bool closed=true);
-    virtual void iterateTo(SymbolicVariable* to, bool closed=true);
+    void iterateTo(double to, bool closed=true);
+    void iterateTo(const std::string& to, bool closed=true);
+    void iterateTo(SymbolicVariable* to, bool closed=true);
+    bool getRelativeVelocity(SymbolicVariable* other, long double& slowest, long double& fastest) const override;
 
     void setTRepeatLowerBound(const double& lb, bool closed) override;
     void setTRepeatUpperBound(const double& up, bool closed) override;

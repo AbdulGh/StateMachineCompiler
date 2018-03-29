@@ -67,6 +67,7 @@ void Loop::setNodeNesting(CFGNode* node, Loop* child)
     nodes[node] = child;
 }
 
+//todo next reset upper/lower repeat
 void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
 {
     if (invalid)
@@ -78,7 +79,7 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
         return;
     }
 
-    //for (auto& child : children) child->validate(tags); debug
+    for (auto& child : children) child->validate(tags);
 
     ChangeMap varChanges; //node->varname->known path through that node where the specified change happens
     SEFPointer sef = make_shared<SymbolicExecution::SymbolicExecutionFringe>(cfg.getReporter());
@@ -86,7 +87,7 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
     sef->symbolicVarSet = move(headerSR->getInitSVS());
     sef->setLoopInit();
 
-    /*if (stackBased) todo next
+    /*if (stackBased) todo
     {
         vector<CFGNode*> retNodes = comparisonNode->getSuccessorVector();
         sort(retNodes.begin(), retNodes.end());
@@ -502,8 +503,12 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                         throw "weird enum";
                 }
             }
-            else //rhs is indeterminate var (could also do the extrapolation stuff here)
+            else //todo next extrapolate here too
             {
+                long double slowestApproach;
+                long double fastestApproach;
+                bool moving = lhVar->getRelativeVelocity(rhVar.get(), slowestApproach, fastestApproach);
+
                 switch (lhVar->canMeet(jocc->op, rhVar.get()))
                 {
                     case SymbolicVariable::MeetEnum::MUST:
@@ -525,6 +530,30 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                             }
                         }
                     }
+
+                    if (moving &&
+                            (fastestApproach > 0 && (jocc->op == Relations::LT || jocc->op == Relations::LE))
+                        ||  (slowestApproach < 0 && (jocc->op == Relations::GT || jocc->op == Relations::GE)))
+                    {
+                        it = nodes.find(failNode);
+                        if (it == nodes.end() || inNested && it->second != nullptr)
+                        {
+                            generateNodeChanges();
+                            goodPathFound = true;
+                        }
+                        else
+                        {
+                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFail
+                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                            bool closed = jocc->op == Relations::LE || jocc->op == Relations::GE;
+                            jocc->term1.getVarWrapper()->getSymbolicVariable(sefFail.get())->iterateTo(rhVar.get(), closed);
+                            if (sefFail->addPathCondition(node->getName(), jocc, true))
+                            {
+                                searchNode(failNode, varChanges, tags, sefFail, badExample);
+                                mergeMaps(varChanges.at(node), varChanges.at(failNode));
+                            }
+                        }
+                    }
                     break;
 
                     case SymbolicVariable::MeetEnum::CANT:
@@ -543,6 +572,30 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                             {
                                 searchNode(node->getCompFail(), varChanges, tags, sefFail, badExample);
                                 mergeMaps(varChanges.at(node), varChanges.at(failNode));
+                            }
+                        }
+
+                        if (moving &&
+                            (fastestApproach > 0 && (jocc->op == Relations::LT || jocc->op == Relations::LE))
+                            ||  (slowestApproach < 0 && (jocc->op == Relations::GT || jocc->op == Relations::GE)))
+                        {
+                            it = nodes.find(succNode);
+                            if (it == nodes.end() || inNested && it->second != nullptr)
+                            {
+                                generateNodeChanges();
+                                goodPathFound = true;
+                            }
+                            else
+                            {
+                                shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
+                                        = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                                bool closed = jocc->op == Relations::LE || jocc->op == Relations::GE;
+                                jocc->term1.getVarWrapper()->getSymbolicVariable(sefSucc.get())->iterateTo(rhVar.get(), closed);
+                                if (sefSucc->addPathCondition(node->getName(), jocc))
+                                {
+                                    searchNode(succNode, varChanges, tags, sefSucc, badExample);
+                                    mergeMaps(varChanges.at(node), varChanges.at(succNode));
+                                }
                             }
                         }
                     }

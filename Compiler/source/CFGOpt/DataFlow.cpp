@@ -25,7 +25,7 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
         set<string> killSet;
 
         vector<unique_ptr<AbstractCommand>>& instrs = node->getInstrs();
-        
+
         for (const auto& instr : instrs)
         {
             switch (instr->getType())

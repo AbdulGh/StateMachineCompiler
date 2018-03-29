@@ -116,7 +116,7 @@ AtomNode::AtomNode(std::unique_ptr<VarWrapper> vw):
 }
 
 AtomNode::AtomNode(double d):
-    varsRequired(0), doub(d)
+    varsRequired(0), doub(d), data{nullptr}
 {
     setType(LITERAL);
 }

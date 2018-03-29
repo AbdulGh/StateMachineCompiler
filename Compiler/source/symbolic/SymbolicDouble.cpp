@@ -344,6 +344,15 @@ void SymbolicDouble::iterateTo(SymbolicVariable* to, bool closed)
     SymbolicDouble* sd = static_cast<SymbolicDouble*>(to);
     if (upperBound <= sd->getTLowerBound()) iterateTo(sd->getTLowerBound(), closed);
     else if (lowerBound >= sd->getTUpperBound()) iterateTo(sd->getTUpperBound(), closed);
+    else throw runtime_error("should have been one of those");
+}
+
+bool SymbolicDouble::getRelativeVelocity(SymbolicVariable* other, long double& slowest, long double& fastest) const
+{
+    if (other->getType() != DOUBLE) throw runtime_error("should be double");
+    SymbolicDouble* sd = static_cast<SymbolicDouble*>(other);
+    fastest = sd->minChange - maxChange;
+    slowest = sd->maxChange - minChange;
 }
 
 bool SymbolicDouble::isBoundedAbove() const

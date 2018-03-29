@@ -134,12 +134,69 @@ vector<Condition> SymbolicExecutionFringe::getConditions()
 {
     vector<Condition> retMe;
     if (parent != nullptr) retMe = parent->getConditions();
-    for (const string& n : visitOrder) retMe.push_back(Condition(pathConditions.at(n)));
+    for (const string& n : visitOrder) retMe.emplace_back(Condition(pathConditions.at(n)));
     return retMe;
+}
+
+void SymbolicExecutionFringe::setLoopInit()
+{
+    symbolicVarSet->setLoopInit();
+    symbolicStack->setLoopInit();
+}
+
+//SymbolicExecutionManager
+unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& SymbolicExecutionManager::search()
+{
+    visitedNodes.clear();
+    tags.clear();
+    for (auto& pair : cfg.getCurrentNodes()) tags[pair.first] = make_unique<SearchResult>(reporter);
+    shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(reporter);
+    visitNode(sef, cfg.getFirst());
+    auto it = cfg.getCurrentNodes().begin();
+    while (it != cfg.getCurrentNodes().end())
+    {
+        if (it->second->isLastNode())
+        {
+            ++it;
+            continue;
+        }
+        if (visitedNodes.find(it->first) == visitedNodes.end()) //no feasable visits - remove
+        {
+            reporter.optimising(Reporter::DEADCODE, "State '" + it->first + "' is unreachable and will be removed");
+            CFGNode* lonelyNode = it->second.get();
+            if (lonelyNode->getCompSuccess() != nullptr) lonelyNode->getCompSuccess()->removeParent(lonelyNode);
+            if (lonelyNode->getCompFail() != nullptr) lonelyNode->getCompFail()->removeParent(lonelyNode);
+            for (auto& parentPair : lonelyNode->getPredecessorMap())
+            {
+                CFGNode* parent = parentPair.second;
+                if (parent->getCompSuccess() != nullptr &&
+                        parent->getCompSuccess()->getName() == lonelyNode->getName()) parent->setCompSuccess(nullptr);
+
+                else if (parent->getCompFail() != nullptr && parent->getCompFail()->getName() == lonelyNode->getName())
+                {
+                    parent->setCompFail(parent->getCompSuccess());
+                    parent->setComp(nullptr);
+                    parent->setCompSuccess(nullptr);
+                }
+                else if (!parent->isLastNode()) throw runtime_error("bad parent");
+                parent->setComp(nullptr);
+            }
+            lonelyNode->prepareToDie();
+            it = cfg.removeNode(it->first);
+        }
+        else ++it;
+    }
+    return tags;
 }
 
 bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, JumpOnComparisonCommand* jocc, bool negate)
 {
+    if (jocc->getState() == "F0_main_7")
+    {
+        int debug;
+        debug = 2;
+    }
+
     if (hasSeen(nodeName)) throw "cant visit node twice";
     else if (jocc->term1.getType() != StringType::ID) throw "lhs should be ID";
     visitOrder.push_back(nodeName);
@@ -195,57 +252,6 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
                 throw "unknown relop";
         }
     }
-}
-
-void SymbolicExecutionFringe::setLoopInit()
-{
-    symbolicVarSet->setLoopInit();
-    symbolicStack->setLoopInit();
-}
-
-//SymbolicExecutionManager
-unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& SymbolicExecutionManager::search()
-{
-    visitedNodes.clear();
-    tags.clear();
-    for (auto& pair : cfg.getCurrentNodes()) tags[pair.first] = make_unique<SearchResult>(reporter);
-    shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(reporter);
-    visitNode(sef, cfg.getFirst());
-    auto it = cfg.getCurrentNodes().begin();
-    while (it != cfg.getCurrentNodes().end())
-    {
-        if (it->second->isLastNode())
-        {
-            ++it;
-            continue;
-        }
-        if (visitedNodes.find(it->first) == visitedNodes.end()) //no feasable visits - remove
-        {
-            reporter.optimising(Reporter::DEADCODE, "State '" + it->first + "' is unreachable and will be removed");
-            CFGNode* lonelyNode = it->second.get();
-            if (lonelyNode->getCompSuccess() != nullptr) lonelyNode->getCompSuccess()->removeParent(lonelyNode);
-            if (lonelyNode->getCompFail() != nullptr) lonelyNode->getCompFail()->removeParent(lonelyNode);
-            for (auto& parentPair : lonelyNode->getPredecessorMap())
-            {
-                CFGNode* parent = parentPair.second;
-                if (parent->getCompSuccess() != nullptr &&
-                        parent->getCompSuccess()->getName() == lonelyNode->getName()) parent->setCompSuccess(nullptr);
-
-                else if (parent->getCompFail() != nullptr && parent->getCompFail()->getName() == lonelyNode->getName())
-                {
-                    parent->setCompFail(parent->getCompSuccess());
-                    parent->setComp(nullptr);
-                    parent->setCompSuccess(nullptr);
-                }
-                else if (!parent->isLastNode()) throw runtime_error("bad parent");
-                parent->setComp(nullptr);
-            }
-            lonelyNode->prepareToDie();
-            it = cfg.removeNode(it->first);
-        }
-        else ++it;
-    }
-    return tags;
 }
 
 CFGNode* SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFringe> returningSEF, CFGNode* n)

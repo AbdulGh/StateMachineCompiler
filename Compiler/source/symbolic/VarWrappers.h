@@ -75,7 +75,7 @@ public:
     std::unique_ptr<T> release()
     {
         if (constructed()) return move(up);
-        else return std::unique_ptr<T>(rp);
+        else throw std::runtime_error("not mine!"); //return std::unique_ptr<T>(rp);
     }
 
     T& operator*()
@@ -91,7 +91,7 @@ public:
 
     bool constructed() const
     {
-        return !owns;
+        return owns;
     }
 };
 

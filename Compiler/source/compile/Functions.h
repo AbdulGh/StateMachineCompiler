@@ -81,7 +81,7 @@ public:
     std::vector<CFGNode*> getNodesReturnedTo();
     FunctionCall* getOnlyFunctionCall();
 
-    //codegen (todo next convert all to use VarWrapper)
+    //codegen
     void genNewState(std::string);
     void genEndState();
     void genPrint(Atom a, int linenum);
