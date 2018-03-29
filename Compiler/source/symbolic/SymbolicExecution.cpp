@@ -134,7 +134,7 @@ vector<Condition> SymbolicExecutionFringe::getConditions()
 {
     vector<Condition> retMe;
     if (parent != nullptr) retMe = parent->getConditions();
-    for (const string& n : visitOrder) retMe.push_back(pathConditions[n]);
+    for (const string& n : visitOrder) retMe.push_back(Condition(pathConditions.at(n)));
     return retMe;
 }
 
@@ -144,10 +144,10 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
     else if (jocc->term1.getType() != StringType::ID) throw "lhs should be ID";
     visitOrder.push_back(nodeName);
     Relations::Relop op = negate ? Relations::negateRelop(jocc->op) : jocc->op;
-    pathConditions.insert({nodeName, Condition(string(jocc->term1), op, string(jocc->term2))});
+    pathConditions.insert({nodeName, Condition(jocc->term1, op, jocc->term2)});
     auto t1var = jocc->term1.getVarWrapper()->getSymbolicVariable(this);
     if (!t1var) throw "comparing unknown var or constants";
-    bool t1constructed = jocc->term1.getVarWrapper()->getSymbolicVariable(this).constructed(); //todo make this less embarassing
+    bool t1constructed = jocc->term1.getVarWrapper()->getSymbolicVariable(this).constructed();
     if (jocc->term2.getType() == StringType::ID)
     {
         auto t2var = jocc->term2.getVarWrapper()->getSymbolicVariable(this);
@@ -178,6 +178,7 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
             case Relations::LT:
                 closed = false;
             case Relations::LE:
+                t1var->clip
                 return t1var->clipUpperBound(string(jocc->term2), closed);
             case Relations::GT:
                 closed = false;

@@ -107,6 +107,8 @@ class SymbolicVariableTemplate : public SymbolicVariable
 protected:
     T upperBound;
     T lowerBound;
+    T repeatUpper;
+    T repeatLower;
     std::vector<T> neqConsts;
 
 public:
@@ -131,9 +133,17 @@ public:
     virtual bool unionTUpperBound(const T& up, bool closed) = 0;
     virtual void unionTConstValue(const T& cv, bool closed) = 0;
     virtual void setTConstValue(const T& cv);
+
+    virtual void setTRepeatLowerBound(const T& lb, bool closed) = 0;
+    virtual void setTRepeatUpperBound(const T& up, bool closed) = 0;
+    virtual bool clipTRepeatLowerBound(const T& lb, bool closed) = 0;
+    virtual bool clipTRepeatUpperBound(const T& up, bool closed) = 0;
+
     const T& getTConstValue();
     const T& getTUpperBound() const;
     const T& getTLowerBound() const;
+    const T& getTRepeatLowerBound() const;
+    const T& getTRepeatUpperBound() const;
     std::string getUpperBound() const override;
     std::string getLowerBound() const override;
     const std::string getConstString() override;
@@ -183,6 +193,11 @@ public:
     virtual void iterateTo(const std::string& to, bool closed=true);
     virtual void iterateTo(SymbolicVariable* to, bool closed=true);
 
+    void setTRepeatLowerBound(const double& lb, bool closed) override;
+    void setTRepeatUpperBound(const double& up, bool closed) override;
+    bool clipTRepeatLowerBound(const double& lb, bool closed) override;
+    bool clipTRepeatUpperBound(const double& up, bool closed) override;
+
     void userInput() override;
     void nondet() override;
 
@@ -201,7 +216,7 @@ public:
 };
 
 //SymbolicString.cpp
-class SymbolicString : public SymbolicVariableTemplate<std::string>
+class SymbolicString : public SymbolicVariableTemplate<std::string> //todo replace string w/ some helper wrapper
 {
 private:
     bool boundedLower;
@@ -237,6 +252,12 @@ public:
     bool setLowerBound(const std::string& lb, bool closed = true) override;
     void iterateTo(const std::string& to, bool closed) {throw "not changing";};
     void iterateTo(SymbolicVariable* sv, bool closed) {throw "not changing";}
+
+    //I am pretending string don't exist
+    void setTRepeatLowerBound(const double& lb, bool closed) {};
+    void setTRepeatUpperBound(const double& up, bool closed) {};
+    bool clipTRepeatLowerBound(const double& lb, bool closed) {};
+    bool clipTRepeatUpperBound(const double& up, bool closed) {};
 
     void userInput() override;
     void nondet() override;

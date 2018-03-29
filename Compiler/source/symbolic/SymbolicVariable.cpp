@@ -510,6 +510,19 @@ const T& SymbolicVariableTemplate<T>::getTUpperBound() const
     return upperBound;
 }
 
+template <typename T>
+const T& SymbolicVariableTemplate<T>::getTRepeatLowerBound() const
+{
+    return repeatLower;
+}
+
+template <typename T>
+const T& SymbolicVariableTemplate<T>::getTRepeatUpperBound() const
+{
+    return repeatUpper;
+}
+
+
 template <>
 string SymbolicVariableTemplate<string>::getLowerBound() const
 {

@@ -6,6 +6,7 @@
 #define PROJECT_VARWRAPPERS_H
 
 #include <memory>
+#include <vector>
 #include "../compile/Token.h"
 
 class SymbolicVariable;
@@ -101,12 +102,13 @@ protected:
     void setAccessType(AccessType at) {accessType = at;}
     std::string name;
     void setName(std::string n) {name = move(n);}
-    
+    bool compound = false;
+    void setCompound(bool c) {compound = c;}
+
 public:
-    VarWrapper(std::string n): name(move(n)), accessType(AccessType::DIRECT) {}
-    VarWrapper() = default;
     virtual std::string getFullName() const {return name;}
     virtual const std::string& getBaseName() const {return name;}
+    bool isCompound() const {return compound;}
     const AccessType& getAccessType() {return accessType;}
     virtual GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const = 0;
     virtual GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const  = 0;
@@ -115,6 +117,8 @@ public:
     virtual VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const = 0;
     virtual void setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv) = 0;
     virtual void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv) = 0;
+    virtual std::vector<const std::string*> getAllNames() const = 0;
+
     virtual void nondet(SymbolicExecution::SymbolicExecutionFringe* sef) = 0;
 };
 
@@ -127,7 +131,12 @@ public:
         setName(move(n));
         setAccessType(AccessType::DIRECT);
     }
-
+    std::vector<const std::string*> getAllNames() const override
+    {
+        std::vector<const std::string*> toRet;
+        toRet.push_back(&name);
+        return toRet;
+    }
     GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
@@ -154,9 +163,13 @@ public:
     {
         return name + "[" + std::to_string(index) + "]";
     }
-
     VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
-
+    std::vector<const std::string*> getAllNames() const override
+    {
+        std::vector<const std::string*> toRet;
+        toRet.push_back(&name);
+        return toRet;
+    }
     GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
@@ -175,12 +188,20 @@ public:
             index(move(var))
     {
         setName(move(arrN));
+        setCompound(true);
         setAccessType(AccessType::BYARRAY);
     }
 
     std::string getFullName() const override
     {
         return name + "[" + index->getFullName() + "]";
+    }
+
+    std::vector<const std::string*> getAllNames() const override
+    {
+        std::vector<const std::string*> names = index->getAllNames();
+        names.push_back(&name);
+        return names;
     }
 
     GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const override;

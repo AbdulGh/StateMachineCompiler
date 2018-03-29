@@ -18,19 +18,19 @@ namespace SymbolicExecution
 {
     struct Condition
     {
-        std::string lhs;
+        Atom lhs;
         Relations::Relop comp;
-        std::string rhs;
+        Atom rhs;
 
-        Condition(std::string l, Relations::Relop c, std::string r):
-                lhs(move(l)), comp(c), rhs(move(r)) {}
-        Condition(std::string l, Relations::Relop c, double r):
-                lhs(move(l)), comp(c), rhs(std::to_string(r)) {}
-        Condition() = default;
+        Condition(Atom l, Relations::Relop c, Atom r):
+                lhs(std::move(l)), comp(c), rhs(std::move(r)) {}
+
+        Condition(const Condition& o):
+            lhs(Atom(o.lhs)), comp(o.comp), rhs(Atom(o.rhs)) {}
 
         std::string toString()
         {
-            return lhs + relEnumStrs[comp] + rhs;
+            return std::string(lhs) + relEnumStrs[comp] + std::string(rhs);
         }
     };
 

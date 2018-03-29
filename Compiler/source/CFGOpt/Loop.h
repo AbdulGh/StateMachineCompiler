@@ -41,7 +41,7 @@ private:
 public:
     Loop(CFGNode* entry, CFGNode* last, std::map<CFGNode*, Loop*> nodeSet, unsigned long tailNumber, ControlFlowGraph& cfg);
     const std::map<CFGNode*, Loop*>& getNodes() {return nodes;}
-    std::string getInfo(std::string indent = "|");
+    std::string getInfo(bool nested = false, std::string indent = "|");
     void addChild(std::unique_ptr<Loop> child);
     void setNodeNesting(CFGNode* node, Loop* child);
     void validate(std::unordered_map<std::string, std::unique_ptr<SearchResult>>& tags);

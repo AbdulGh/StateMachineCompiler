@@ -53,9 +53,6 @@ void Compiler::compile(stringstream& out)
             = symbolicExecutionManager.search();
 
     vector<unique_ptr<Loop>> loops = LengTarj(cfg).findLoops();
-
-    auto debug = loops.size();
-
     for (auto& loop : loops) loop->validate(tags);
     return;
     cout << cfg.getStructuredSource() << endl;

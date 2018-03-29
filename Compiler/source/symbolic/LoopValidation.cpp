@@ -39,7 +39,7 @@ Loop::Loop(CFGNode* entry, CFGNode* last, std::map<CFGNode*, Loop*> nodeSet,
     else invalid = true;
 }
 
-string Loop::getInfo(string indent)
+string Loop::getInfo(bool nested, string indent)
 {
     std::string outStr = "------------\n";
     outStr += indent + "Header: " + headerNode->getName() + "\n" + indent + "Nodes:\n";
@@ -49,9 +49,12 @@ string Loop::getInfo(string indent)
         if (pair.second) outStr += " (nested)";
         outStr += "\n";
     }
-    indent += "--";
-    for (auto& child : children) outStr += child->getInfo(indent);
-    return outStr;
+    if (nested)
+    {
+        indent += "--";
+        for (auto& child : children) outStr += child->getInfo(true, indent);
+        return outStr;
+    }
 }
 
 void Loop::addChild(std::unique_ptr<Loop> child)
@@ -69,13 +72,13 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
     if (invalid)
     {
         string report;
-        report = "Could not find any good path through the following loop:\n";
+        report = "No conditions on the header or backedge in this loop:\n";
         report += getInfo() + "\n";
         cfg.getReporter().addText(report);
         return;
     }
 
-    for (auto& child : children) child->validate(tags);
+    //for (auto& child : children) child->validate(tags); debug
 
     ChangeMap varChanges; //node->varname->known path through that node where the specified change happens
     SEFPointer sef = make_shared<SymbolicExecution::SymbolicExecutionFringe>(cfg.getReporter());
@@ -137,11 +140,19 @@ inline void mergeMaps(NodeChangeMap& intoMap, NodeChangeMap& fromMap)
 bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string, unique_ptr<SearchResult>>& tags,
                       SEFPointer sef, string& badExample, bool headerSeen)
 {
+    printf("%s \n", node->getName().c_str());
     auto it = nodes.find(node);
     if (it == nodes.end()) throw "asked to search outside of loop";
     bool inNested = it->second != nullptr;
     unique_ptr<SearchResult>& thisNodeSR = tags[node->getName()];
     thisNodeSR->resetPoppedCounter();
+    printf("in\n");
+
+    if (node->getName() == "F0_main_6")
+    {
+        int debug;
+        debug = 2;
+    }
 
     for (auto& instr : node->getInstrs())
     {
@@ -194,6 +205,12 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
 
     if (headerSeen && node->getName() == comparisonNode->getName())
     {
+        if (node->getName() == "F0_main_1")
+        {
+            int debug;
+            debug = 2;
+        }
+
         if (stackBased) //todo check if stack size decreased
         {
             bool returnToNodeInLoop = false;
@@ -215,20 +232,21 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             bool noGood = true;
             for (SymbolicExecution::Condition condition : sef->getConditions())
             {
-                SymbolicVariable* varInQuestion = sef->symbolicVarSet->findVar(condition.lhs);
+                GottenVarPtr<SymbolicVariable> varInQuestion
+                        = condition.lhs.getVarWrapper()->getSymbolicVariable(sef.get());
                 //check if this is a good path
                 //first check if we must break a loop condition
 
                 SymbolicVariable::MeetEnum meetStat;
-                if (getStringType(condition.rhs) != StringType::ID)
+                if (!condition.rhs.isHolding())
                 {
                     meetStat = varInQuestion->canMeet(condition.comp, condition.rhs);
                 }
                 else
                 {
-                    SymbolicVariable* rhVar = sef->symbolicVarSet->findVar(condition.rhs);
-                    if (!rhVar) throw runtime_error("Unknown var '" + condition.rhs + "'");
-                    meetStat = varInQuestion->canMeet(condition.comp, rhVar);
+                    GottenVarPtr<SymbolicVariable> rhVar
+                            = condition.rhs.getVarWrapper()->getSymbolicVariable(sef.get());
+                    meetStat = varInQuestion->canMeet(condition.comp, rhVar.get());
                 }
 
                 if (meetStat == SymbolicVariable::MeetEnum::CANT) noGood = false;
@@ -238,7 +256,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
 
                     if (change == SymbolicVariable::MonotoneEnum::FRESH)
                     {
-                        newBadExample = sef->printPathConditions() + "(" + condition.lhs + " unchanging)\n";
+                        newBadExample = sef->printPathConditions() + "(" + string(condition.lhs) + " unchanging)\n";
                     }
                     else
                     {
@@ -248,20 +266,20 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                 if (change == SymbolicVariable::MonotoneEnum::INCREASING) noGood = false;
                                 else if (change == SymbolicVariable::MonotoneEnum::DECREASING && newBadExample.empty())
                                 {
-                                    newBadExample = sef->printPathConditions() + "(" + condition.lhs + " decreasing)\n";
+                                    newBadExample = sef->printPathConditions() + "(" + string(condition.lhs) + " decreasing)\n";
                                 }
                                 break;
                             case Relations::GT: case Relations::GE:
                                 if (change == SymbolicVariable::MonotoneEnum::DECREASING) noGood = false;
                                 else if (change == SymbolicVariable::MonotoneEnum::INCREASING && newBadExample.empty())
                                 {
-                                    newBadExample = sef->printPathConditions() + "(" + condition.lhs + " increasing)\n";
+                                    newBadExample = sef->printPathConditions() + "(" + string(condition.lhs) + " increasing)\n";
                                 }
                                 break;
                             case Relations::EQ: case Relations::NEQ:
                                 if (change != SymbolicVariable::MonotoneEnum::FRESH
                                     && meetStat == SymbolicVariable::MeetEnum::MAY) noGood = false;
-                                else newBadExample = sef->printPathConditions() + "(" + condition.lhs + " must meet header condition)\n";
+                                else newBadExample = sef->printPathConditions() + "(" + string(condition.lhs) + " must meet header condition)\n";
                                 break;
                             default:
                                 throw "intriguing relop";

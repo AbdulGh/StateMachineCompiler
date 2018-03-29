@@ -495,7 +495,7 @@ while (x > 0){
 }
 \end{lstlisting}
 \end{wrapfigure}
-This bubblesort implementation was correctly determined as halting. The program obtained by any of the update lines, or updating either of the variables the wrong way, was correctly detected as nonterminating with an explanation given. Changing the comparitor in line $3$ from $<$ to $\leq$ results in an out of bounds access, which was successfully picked up.\\
+This bubblesort implementation was correctly determined as halting. The program obtained by removing any of the update lines, or moving either of the variables the wrong way, was correctly detected as nonterminating with an explanation given. Changing the comparitor in line $3$ from $<$ to $\leq$ results in an out of bounds access, which was successfully picked up.\\
 
 \subsubsection{Two variables \cite[A.6]{tra}}
 
@@ -658,3 +658,30 @@ afforded by symbolic execution (i.e. the simulation of stacks and memory) but gi
 \bibliography{projectpaper}
 
 \end{document}
+
+function main() void
+{
+	double x = 99;
+	double[100] array;
+
+	double index;
+	input index;
+	input array[index];
+
+	while (x > 0)
+	{
+		double y = 0;
+		while (y < x)
+        {
+            double yPlus1 = y+1;
+            if (array[y] < array[yPlus1])
+            {
+                double t = array[y];
+                array[y] = array[yPlus1];
+                array[yPlus1] = t;
+            }
+			y = yPlus1;
+		}
+		x = x - 1;
+	}
+}

@@ -104,15 +104,6 @@ void AssignmentPropogationDataFlow::finish()
 
 //LiveVariableDataFlow
 
-#define insertAndCheckUpwardExposed(inserting) \
-    if (!isdigit(inserting[0]) && inserting[0] != '"')\
-    {\
-        it = killSet.find(inserting);\
-        if (it == killSet.end()) thisUEVars.insert(inserting);\
-        genSet.insert(inserting);\
-        usedVars.insert(inserting);\
-    }
-
 LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& st)
         : AbstractDataFlow(cfg, st)
 {
@@ -121,7 +112,36 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
         set<string> thisUEVars;
         set<string> genSet;
         set<string> killSet;
-        set<string>::iterator it;
+
+        auto insertAndCheckUpwardExposed = [&genSet, &thisUEVars, &killSet, this](const VarWrapper* inserting) -> void
+        {
+            if (inserting->isCompound())
+            {
+                for (const std::string* namePtr : inserting->getAllNames())
+                {
+                    const std::string& name = *namePtr;
+                    if (!isdigit(name[0]) && name[0] != '"')
+                    {
+                        auto it = killSet.find(name);
+                        if (it == killSet.end()) thisUEVars.insert(name);
+                        genSet.insert(name);
+                        usedVars.insert(name);
+                    }
+                }
+            }
+
+            else
+            {
+                const std::string& name = inserting->getBaseName();
+                if (!isdigit(name[0]) && name[0] != '"')
+                {
+                    auto it = killSet.find(name);
+                    if (it == killSet.end()) thisUEVars.insert(name);
+                    genSet.insert(name);
+                    usedVars.insert(name);
+                }
+            }
+        };
 
         vector<unique_ptr<AbstractCommand>>& instrs = node->getInstrs();
 
@@ -155,22 +175,22 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 case CommandType::PRINT:
                 {
                     const Atom& at = instr->getAtom();
-                    if (at.getType() == StringType::ID) insertAndCheckUpwardExposed(at.getVarWrapper()->getBaseName());
+                    if (at.getType() == StringType::ID) insertAndCheckUpwardExposed(at.getVarWrapper());
                     break;
                 }
                 case CommandType::ASSIGNVAR:
                 {
                     killSet.insert(instr->getVarWrapper()->getBaseName());
                     const Atom& rhs = instr->getAtom();
-                    if (rhs.getType() == StringType::ID) insertAndCheckUpwardExposed(rhs.getVarWrapper()->getBaseName());
+                    if (rhs.getType() == StringType::ID) insertAndCheckUpwardExposed(rhs.getVarWrapper());
                     break;
                 }
                 case CommandType::EXPR:
                 {
                     EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(instr.get());
                     killSet.insert(eec->getVarWrapper()->getBaseName());
-                    if (!eec->term1.isLit) insertAndCheckUpwardExposed(eec->term1.vg->getBaseName());
-                    if (!eec->term2.isLit) insertAndCheckUpwardExposed(eec->term2.vg->getBaseName());
+                    if (!eec->term1.isLit) insertAndCheckUpwardExposed(eec->term1.vg.get());
+                    if (!eec->term2.isLit) insertAndCheckUpwardExposed(eec->term2.vg.get());
                 }
             }
         }
@@ -180,11 +200,11 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
         {
             if (jocc->term1.getType() == StringType::ID)
             {
-                insertAndCheckUpwardExposed(jocc->term1.getVarWrapper()->getBaseName());
+                insertAndCheckUpwardExposed(jocc->term1.getVarWrapper());
             }
             if (jocc->term2.getType() == StringType::ID)
             {
-                insertAndCheckUpwardExposed(jocc->term2.getVarWrapper()->getBaseName());
+                insertAndCheckUpwardExposed(jocc->term2.getVarWrapper());
             }
         }
 

@@ -244,7 +244,7 @@ unique_ptr<VarWrapper> Compiler::wrappedIdent(Identifier** idp)
     string s = lookahead.lexemeString;
     Compiler::match(IDENT);
     Identifier* id = symbolTable.findIdentifier(s);
-    if (!id) throw "aaaaaaaa";
+    if (!id) throw runtime_error("Could not find identifier '" + s + "'");
     if (idp) *idp = id;
     s = id->getUniqueID();
     if (lookahead.type == LSQPAREN)
