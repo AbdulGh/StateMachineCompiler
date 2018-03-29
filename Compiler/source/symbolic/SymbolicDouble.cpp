@@ -193,7 +193,7 @@ bool SymbolicDouble::unionTLowerBound(const double& d, bool closed)
 }
 bool SymbolicDouble::unionUpperBound(const std::string& ub, bool closed)
 {
-    return unionTLowerBound(stod(ub), closed);
+    return unionTUpperBound(stod(ub), closed);
 }
 
 bool SymbolicDouble::unionTUpperBound(const double& d, bool closed)
@@ -251,8 +251,6 @@ void SymbolicDouble::setConstValue(const std::string& c)
     clearAll();
     double cd = stod(c);
     setTConstValue(cd);
-    setTRepeatUpperBound(cd, true);
-    setTRepeatLowerBound(cd, true);
 }
 
 void SymbolicDouble::clipTRepeatLowerBound(const double& lb, bool closed)

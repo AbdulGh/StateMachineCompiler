@@ -65,6 +65,8 @@ void SymbolicVarSet::addArray(const std::string& name, SymbolicArrayPointer p)
     arrays[name] = move(p);
 }
 
+//bool SymbolicVarSet::unionSVSSelective(S)
+
 bool SymbolicVarSet::unionSVS(SymbolicVarSet* other)
 {
     if (other == nullptr) throw "cant union with nullptr";

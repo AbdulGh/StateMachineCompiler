@@ -88,12 +88,10 @@ string CFGNode::getDotEdges()
     }
     else
     {
-        //if (!isLast) throw "should be last"; debug
+        if (!isLast) throw "should be last";
         for (CFGNode* nodePointer : parentFunction->getNodesReturnedTo())
         {
-            if (!isLast) outs << name << "->" << nodePointer->getName()
-                              << "[label=\"return (bad)\"];\n";
-            else outs << name << "->" << nodePointer->getName()
+            outs << name << "->" << nodePointer->getName()
                  << "[label=\"return\"];\n";
         }
     }

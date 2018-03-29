@@ -174,13 +174,6 @@ vector<unique_ptr<Loop>> LengTarj::findNesting(std::vector<unique_ptr<Loop>>& lo
         {
             if (bitVectors[i][j] == true)
             {
-                if (i == 1)
-                {
-                    bool debug2 = bitVectors[0][1];
-                    int debug;
-                    debug = 2;
-                }
-
                 //scan left until we hit another 1
                 int scan = i - 1;
                 while (scan >= 0 && bitVectors[scan][j] == false) --scan;

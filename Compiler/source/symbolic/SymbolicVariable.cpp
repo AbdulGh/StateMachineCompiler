@@ -355,9 +355,10 @@ void SymbolicVariable::clearGreater()
 
 //SymbolicVariableTemplate
 template <typename T>
-SymbolicVariableTemplate<T>::SymbolicVariableTemplate(string name, const T lower, const T upper, const T repeatLower, const T repeatUpper,
+SymbolicVariableTemplate<T>::SymbolicVariableTemplate(string name, const T lower, const T upper, const T repeatLow, const T repeatUp,
                                       Reporter& r, VariableType t, bool init, bool incrementable):
-        SymbolicVariable(name, t, r, init, lower <= upper, incrementable), lowerBound(lower), upperBound(upper) {}
+        SymbolicVariable(name, t, r, init, lower <= upper, incrementable), lowerBound(lower),
+        upperBound(upper), repeatLower(repeatLow), repeatUpper(repeatUp) {}
 
 template<typename T>
 bool SymbolicVariableTemplate<T>::isDisjointFrom(shared_ptr<SymbolicVariableTemplate<T>> other)

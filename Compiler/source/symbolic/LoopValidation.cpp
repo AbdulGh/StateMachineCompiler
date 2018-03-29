@@ -140,19 +140,24 @@ inline void mergeMaps(NodeChangeMap& intoMap, NodeChangeMap& fromMap)
 bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string, unique_ptr<SearchResult>>& tags,
                       SEFPointer sef, string& badExample, bool headerSeen)
 {
-    printf("%s \n", node->getName().c_str());
-    auto it = nodes.find(node);
-    if (it == nodes.end()) throw "asked to search outside of loop";
-    bool inNested = it->second != nullptr;
-    unique_ptr<SearchResult>& thisNodeSR = tags[node->getName()];
-    thisNodeSR->resetPoppedCounter();
-    printf("in\n");
-
     if (node->getName() == "F0_main_6")
     {
         int debug;
-        debug = 2;
+        debug = 3;
     }
+
+    auto it = nodes.find(node);
+    if (it == nodes.end()) throw "asked to search outside of loop";
+    unique_ptr<SearchResult>& thisNodeSR = tags[node->getName()];
+    thisNodeSR->resetPoppedCounter();
+
+    bool inNested;
+    if (it->second != nullptr)
+    {
+        inNested = true;
+        sef->symbolicVarSet->unionSVS(thisNodeSR->getInitSVS().get());
+    }
+    else inNested = false;
 
     for (auto& instr : node->getInstrs())
     {
@@ -205,12 +210,6 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
 
     if (headerSeen && node->getName() == comparisonNode->getName())
     {
-        if (node->getName() == "F0_main_1")
-        {
-            int debug;
-            debug = 2;
-        }
-
         if (stackBased) //todo check if stack size decreased
         {
             bool returnToNodeInLoop = false;

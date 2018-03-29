@@ -178,12 +178,12 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
             case Relations::LT:
                 closed = false;
             case Relations::LE:
-                t1var->clipRepeatUpperBound(string(jocc->term2), closed);
+                t1var->setRepeatUpperBound(string(jocc->term2), closed);
                 return t1var->clipUpperBound(string(jocc->term2), closed);
             case Relations::GT:
                 closed = false;
             case Relations::GE:
-                t1var->clipRepeatLowerBound(string(jocc->term2), closed);
+                t1var->setRepeatLowerBound(string(jocc->term2), closed);
                 return t1var->clipLowerBound(string(jocc->term2), closed);
             case Relations::EQ:
                 t1var->setConstValue(string(jocc->term2));
@@ -277,6 +277,7 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
     if (!osef->isFeasable()) return;
 
     unique_ptr<SearchResult>& thisNodeSR = tags[n->getName()];
+
     bool change = thisNodeSR->unionSVS(osef->symbolicVarSet.get());
 
     if (thisNodeSR->unionStack(osef->symbolicStack.get())) change = true;
