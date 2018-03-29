@@ -355,7 +355,7 @@ void SymbolicVariable::clearGreater()
 
 //SymbolicVariableTemplate
 template <typename T>
-SymbolicVariableTemplate<T>::SymbolicVariableTemplate(string name, const T lower, const T upper,
+SymbolicVariableTemplate<T>::SymbolicVariableTemplate(string name, const T lower, const T upper, const T repeatLower, const T repeatUpper,
                                       Reporter& r, VariableType t, bool init, bool incrementable):
         SymbolicVariable(name, t, r, init, lower <= upper, incrementable), lowerBound(lower), upperBound(upper) {}
 

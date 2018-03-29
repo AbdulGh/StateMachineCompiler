@@ -10,11 +10,14 @@ using namespace std;
 enum ArithResult{OVER, UNDER, FINE};
 
 SymbolicDouble::SymbolicDouble(string name, Reporter& r):
-        SymbolicVariableTemplate(move(name), 0, 0, r, DOUBLE, true, true) {}
+        SymbolicVariableTemplate(move(name), 0, 0,
+                                 numeric_limits<double>::lowest(), numeric_limits<double>::max(),
+                                 r, DOUBLE, true, true) {}
 
 SymbolicDouble::SymbolicDouble(SymbolicDouble& o):
         SymbolicVariableTemplate
-                (o.getName(), o.getTLowerBound(), o.getTUpperBound(), o.reporter, DOUBLE, o.defined, true),
+                (o.getName(), o.getTLowerBound(), o.getTUpperBound(),
+                 o.getTRepeatLowerBound(), o.getTRepeatUpperBound(), o.reporter, DOUBLE, o.defined, true),
         minChange(o.minChange), maxChange(o.maxChange), uniformlyChanging(o.uniformlyChanging) {}
 
 SymbolicDouble::SymbolicDouble(SymbolicVariable* other): SymbolicDouble(*static_cast<SymbolicDouble*>(other)) {}
@@ -149,13 +152,13 @@ bool SymbolicDouble::setUpperBound(const std::string& ub, bool closed)
     return setTUpperBound(stod(ub), closed);
 }
 
-void SymbolicDouble::removeLowerBound()
+void SymbolicDouble::minLowerBound()
 {
-    lowerBound = numeric_limits<double>::lowest();
+    lowerBound = repeatLower;
 }
-void SymbolicDouble::removeUpperBound()
+void SymbolicDouble::maxUpperBound()
 {
-    upperBound = numeric_limits<double>::max();
+    upperBound = repeatUpper;
 }
 
 bool SymbolicDouble::clipTLowerBound(const double& d, bool closed) //todo forgetting stuff
@@ -246,10 +249,13 @@ void SymbolicDouble::unionTConstValue(const double& cv, bool closed)
 void SymbolicDouble::setConstValue(const std::string& c)
 {
     clearAll();
-    setTConstValue(stod(c));
+    double cd = stod(c);
+    setTConstValue(cd);
+    setTRepeatUpperBound(cd, true);
+    setTRepeatLowerBound(cd, true);
 }
 
-bool SymbolicDouble::clipTRepeatLowerBound(const double& lb, bool closed)
+void SymbolicDouble::clipTRepeatLowerBound(const double& lb, bool closed)
 {
     if (!closed)
     {
@@ -259,19 +265,26 @@ bool SymbolicDouble::clipTRepeatLowerBound(const double& lb, bool closed)
     }
     else repeatLower = max(lb, repeatLower);
 }
-bool SymbolicDouble::setTRepeatLowerBound(const double& lb, bool closed)
+void SymbolicDouble::clipRepeatLowerBound(const std::string& lb, bool closed)
+{
+    clipTRepeatLowerBound(stod(lb), closed);
+}
+
+void SymbolicDouble::setTRepeatLowerBound(const double& lb, bool closed)
 {
     if (!closed)
     {
         repeatLower = (lb == numeric_limits<double>::lowest() ?
                       numeric_limits<double>::lowest() : nextafter(lb, numeric_limits<double>::lowest()));
-        
     }
     else repeatLower = lb;
 }
+void SymbolicDouble::setRepeatLowerBound(const std::string& lb, bool closed)
+{
+    setTRepeatLowerBound(stod(lb), closed);
+}
 
-
-bool SymbolicDouble::clipTRepeatUpperBound(const double& ub, bool closed)
+void SymbolicDouble::clipTRepeatUpperBound(const double& ub, bool closed)
 {
     if (!closed)
     {
@@ -281,15 +294,23 @@ bool SymbolicDouble::clipTRepeatUpperBound(const double& ub, bool closed)
     }
     else repeatUpper = min(ub, repeatUpper);
 }
-bool SymbolicDouble::setTRepeatUpperBound(const double& ub, bool closed)
+void SymbolicDouble::clipRepeatUpperBound(const std::string& ub, bool closed)
+{
+    clipTRepeatUpperBound(stod(ub), closed);
+}
+
+void SymbolicDouble::setTRepeatUpperBound(const double& ub, bool closed)
 {
     if (!closed)
     {
         repeatUpper = (ub == numeric_limits<double>::max() ?
                        numeric_limits<double>::lowest() : nextafter(ub, numeric_limits<double>::max()));
-
     }
     else repeatUpper = ub;
+}
+void SymbolicDouble::setRepeatUpperBound(const std::string& ub, bool closed)
+{
+    setTRepeatUpperBound(stod(ub), closed);
 }
 
 void SymbolicDouble::iterateTo(double toD, bool closed)

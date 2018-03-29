@@ -83,6 +83,12 @@ public:
     virtual bool clipUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setLowerBound(const std::string& ub, bool closed=true) = 0;
+
+    virtual void clipRepeatLowerBound(const std::string& lb, bool closed=true) = 0;
+    virtual void clipRepeatUpperBound(const std::string& ub, bool closed=true) = 0;
+    virtual void setRepeatUpperBound(const std::string& ub, bool closed=true) = 0;
+    virtual void setRepeatLowerBound(const std::string& ub, bool closed=true) = 0;
+
     virtual bool unionVar(const SymbolicVariable* unionFrom) = 0;
     virtual void iterateTo(const std::string& to, bool closed=true) = 0;
     virtual void iterateTo(SymbolicVariable* to, bool closed=true) = 0;
@@ -112,7 +118,7 @@ protected:
     std::vector<T> neqConsts;
 
 public:
-    SymbolicVariableTemplate(std::string name, const T lower, const T upper,
+    SymbolicVariableTemplate(std::string name, const T lower, const T upper, const T repeatLower, const T repeatUpper,
                      Reporter& r, VariableType t, bool init, bool incrementable);
 
     bool isDisjointFrom(std::shared_ptr<SymbolicVariableTemplate<T>> other);
@@ -136,8 +142,8 @@ public:
 
     virtual void setTRepeatLowerBound(const T& lb, bool closed) = 0;
     virtual void setTRepeatUpperBound(const T& up, bool closed) = 0;
-    virtual bool clipTRepeatLowerBound(const T& lb, bool closed) = 0;
-    virtual bool clipTRepeatUpperBound(const T& up, bool closed) = 0;
+    virtual void clipTRepeatLowerBound(const T& lb, bool closed) = 0;
+    virtual void clipTRepeatUpperBound(const T& up, bool closed) = 0;
 
     const T& getTConstValue();
     const T& getTUpperBound() const;
@@ -171,8 +177,8 @@ public:
     std::unique_ptr<SymbolicDouble> cloneSD();
     SymbolicVariable* cloneRaw() override;
 
-    void removeUpperBound();
-    void removeLowerBound();
+    void maxUpperBound();
+    void minLowerBound();
     bool setTLowerBound(const double& d, bool closed = true) override;
     bool setTUpperBound(const double& d, bool closed = true) override;
     bool clipTLowerBound(const double& d, bool closed = true) override;
@@ -195,8 +201,12 @@ public:
 
     void setTRepeatLowerBound(const double& lb, bool closed) override;
     void setTRepeatUpperBound(const double& up, bool closed) override;
-    bool clipTRepeatLowerBound(const double& lb, bool closed) override;
-    bool clipTRepeatUpperBound(const double& up, bool closed) override;
+    void clipTRepeatLowerBound(const double& lb, bool closed) override;
+    void clipTRepeatUpperBound(const double& up, bool closed) override;
+    void clipRepeatLowerBound(const std::string& lb, bool closed=true) override;
+    void clipRepeatUpperBound(const std::string& ub, bool closed=true) override;
+    void setRepeatUpperBound(const std::string& ub, bool closed=true) override;
+    void setRepeatLowerBound(const std::string& ub, bool closed=true) override;
 
     void userInput() override;
     void nondet() override;
@@ -254,10 +264,14 @@ public:
     void iterateTo(SymbolicVariable* sv, bool closed) {throw "not changing";}
 
     //I am pretending string don't exist
-    void setTRepeatLowerBound(const double& lb, bool closed) {};
-    void setTRepeatUpperBound(const double& up, bool closed) {};
-    bool clipTRepeatLowerBound(const double& lb, bool closed) {};
-    bool clipTRepeatUpperBound(const double& up, bool closed) {};
+    void setTRepeatLowerBound(const std::string& lb, bool closed) {};
+    void setTRepeatUpperBound(const std::string& up, bool closed) {};
+    void clipTRepeatLowerBound(const std::string& lb, bool closed) {};
+    void clipTRepeatUpperBound(const std::string& up, bool closed) {};
+    void clipRepeatLowerBound(const std::string& lb, bool closed=true) {};
+    void clipRepeatUpperBound(const std::string& ub, bool closed=true) {};
+    void setRepeatUpperBound(const std::string& ub, bool closed=true) {};
+    void setRepeatLowerBound(const std::string& ub, bool closed=true) {};
 
     void userInput() override;
     void nondet() override;

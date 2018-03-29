@@ -126,8 +126,8 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 case ArithOp::MINUS:
                     t2 *= -1;
                 case ArithOp::PLUS:
-                    if (t2 > 0) sd->removeUpperBound();
-                    else if (t2 < 0) sd->removeLowerBound();
+                    if (t2 > 0) sd->maxUpperBound();
+                    else if (t2 < 0) sd->minLowerBound();
                     break;
 
                 case ArithOp::DIV: //todo this
@@ -136,10 +136,10 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 case ArithOp::MULT:
                     if (abs(t2) > 1)
                     {
-                        if (sd->getTUpperBound() > 0) sd->removeUpperBound();
-                        else if (sd->getTUpperBound() < 0) sd->removeLowerBound();
-                        if (sd->getTLowerBound() < 0) sd->removeLowerBound();
-                        else if (sd->getTLowerBound() > 0) sd->removeUpperBound();
+                        if (sd->getTUpperBound() > 0) sd->maxUpperBound();
+                        else if (sd->getTUpperBound() < 0) sd->minLowerBound();
+                        if (sd->getTLowerBound() < 0) sd->minLowerBound();
+                        else if (sd->getTLowerBound() > 0) sd->maxUpperBound();
                     }
                     else if (abs(t2) < 1)
                     {

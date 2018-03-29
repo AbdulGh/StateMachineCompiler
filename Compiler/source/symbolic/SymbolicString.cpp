@@ -5,11 +5,11 @@
 using namespace std;
 
 SymbolicString::SymbolicString(string name, Reporter& reporter):
-    SymbolicVariableTemplate(move(name), "", "", reporter, STRING, false, false),
+    SymbolicVariableTemplate(move(name), "", "", "", "", reporter, STRING, false, false),
     boundedLower(true), boundedUpper(true) {}
 
 SymbolicString::SymbolicString(SymbolicString& o):
-        SymbolicVariableTemplate(o.varN, o.lowerBound, o.upperBound,
+        SymbolicVariableTemplate(o.varN, o.lowerBound, o.upperBound, o.getTRepeatLowerBound(), o.getTRepeatUpperBound(),
                                  o.reporter, STRING, o.isDefined() ,o.isIncrementable()),
         boundedLower(o.isBoundedBelow()), boundedUpper(o.isBoundedAbove()){}
 
