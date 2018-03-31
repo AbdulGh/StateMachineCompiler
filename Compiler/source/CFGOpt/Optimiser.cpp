@@ -43,7 +43,7 @@ namespace Optimise
             Optimise::collapseSmallStates(controlFlowGraph, functionTable);
             for (const auto& node : controlFlowGraph.getCurrentNodes())
             {
-                if (node.second->constProp()) changes = true;
+               // if (node.second->constProp()) changes = true;
             }
         }
         DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();

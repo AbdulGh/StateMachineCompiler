@@ -107,6 +107,8 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
 
 bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
+    if (op == PLUS || )
+
     term1.vg->check(sef.get());
     if (op != MOD && repeat)
     {
@@ -155,82 +157,61 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
     }
     else
     {
-        //todo make it use consts directly instead of creating vars
-        GottenVarPtr<SymbolicDouble> t1(nullptr);
-        if (term1.isLit)
-        {
-            t1.reset(make_unique<SymbolicDouble>("LHSconst", sef->reporter));
-            t1->setTConstValue(term1.d);
-        }
-        else
-        {
-            term1.vg->check(sef.get());
-            auto t1gvp = term1.vg->getSymbolicDouble(sef.get());
-            t1.become(t1gvp);
-            if (!t1)
-            {
-                sef->error(Reporter::UNDECLARED_USE, "'" + term1.vg->getFullName() + "' used without being declared", getLineNum());
-                return false;
-            }
-            else if (!t1->isDefined()) sef->warn(Reporter::TYPE, "'" + term1.vg->getFullName() + "' used before definition", getLineNum());
+        if (term1.isLit) throw runtime_error("these should have been caught during compilation");
 
-            //else if (t1->getType() != DOUBLE)
-            //{
-            //    sef->error(Reporter::TYPE, "'" + term1 + "' (type " + TypeEnumNames[t1->getType()] +
-            //                               ") used in arithmetic evaluation", getLineNum());
-            //   return false;
-            //}
-        }
-
-        GottenVarPtr<SymbolicDouble> t2(nullptr);
+        term1.vg->check(sef.get());
+        unique_ptr<SymbolicDouble> result = term1.vg->getSymbolicDouble(sef.get())->cloneSD();
+        if (!result->isDefined()) sef->warn(Reporter::TYPE, "'" + term1.vg->getFullName() + "' used before definition", getLineNum());
+        
         if (term2.isLit)
         {
-            t2.reset(make_unique<SymbolicDouble>("RHSconst", sef->reporter));
-            t2->setTConstValue(term2.d);
+            double d = term2.d;
+            switch (op)
+            {
+                case MINUS:
+                    d *= -1;
+                case PLUS:
+                    result->addConst(d);
+                    break;
+                case MULT:
+                    result->multConst(d);
+                    break;
+                case DIV:
+                    result->divConst(d);
+                    break;
+                case MOD:
+                    result->modConst(d);
+                    break;
+                default:
+                    throw runtime_error("Bitwise operations not supported");
+            }
         }
         else
         {
             term2.vg->check(sef.get());
-            auto t2gvp = term2.vg->getSymbolicDouble(sef.get());
-            t2.become(t2gvp);
-            if (!t2)
+            unique_ptr<SymbolicDouble> t2 = term2.vg->getSymbolicDouble(sef.get())->cloneSD();
+            bool appears = term1.vg->getFullName() == vs->getFullName() || term2.vg->getFullName() == vs->getFullName();
+            if (!t2->isDefined()) sef->warn(Reporter::TYPE, "'" + term2.vg->getFullName() + "' used before definition", getLineNum());
+
+            switch (op)
             {
-                sef->error(Reporter::UNDECLARED_USE, "'" + term2.vg->getFullName() + "' used without being declared", getLineNum());
-                return false;
+                case MINUS:
+                    t2->multConst(-1);
+                case PLUS:
+                    result->addSymbolicDouble(*t2, !appears);
+                    break;
+                case MULT:
+                    result->multSymbolicDouble(*t2);
+                    break;
+                case DIV:
+                    result->divSymbolicDouble(*t2);
+                    break;
+                case MOD:
+                    result->modSymbolicDouble(*t2);
+                    break;
+                default:
+                    throw runtime_error("Bitwise operations not supported");
             }
-            else if (!t2->isDefined()) sef->warn(Reporter::TYPE, "'" + term2.vg->getFullName() + "' used before definition", getLineNum());
-
-            //else if (t2->getType() != DOUBLE)
-            //{
-            //    sef->error(Reporter::TYPE, "'" + term2 + "' (type " + TypeEnumNames[t2->getType()] +
-            //                               ") used in arithmetic evaluation", getLineNum());
-            //   return false;
-            //}
-        }
-        
-        unique_ptr<SymbolicDouble> result = make_unique<SymbolicDouble>(t1.get());
-        SymbolicDouble t2copy(t2.get());
-
-        switch (op)
-        {
-            case PLUS:
-                result->addSymbolicDouble(t2copy);
-                break;
-            case MULT:
-                result->multSymbolicDouble(t2copy);
-                break;
-            case MINUS:
-                t2copy.multConst(-1);
-                result->addSymbolicDouble(t2copy);
-                break;
-            case DIV:
-                result->divSymbolicDouble(t2copy);
-                break;
-            case MOD:
-                result->modSymbolicDouble(t2copy);
-                break;
-            default:
-                throw runtime_error("Bitwise operations not supported");
         }
         vs->setSymbolicVariable(sef.get(), result.get());
     }

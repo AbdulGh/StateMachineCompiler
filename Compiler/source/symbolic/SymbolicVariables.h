@@ -162,13 +162,15 @@ public:
 class SymbolicDouble : public SymbolicVariableTemplate<double>
 {
 private:
-    long double minChange = 0; //most negative possible movement since initiation
-    long double maxChange = 0; //most positive possible movement since initiation
     bool uniformlyChanging = true;
     void addConstToLower(const double d);
     void addConstToUpper(const double d);
 
 public:
+    //debug move back
+    long double minChange = 0; //most negative possible movement since initiation
+    long double maxChange = 0; //most positive possible movement since initiation
+
     SymbolicDouble(SymbolicDouble& o);
     SymbolicDouble(SymbolicVariable* o);
     SymbolicDouble(std::string name, Reporter& reporter);
@@ -221,7 +223,7 @@ public:
     void multConst(double);
     void divConst(double);
     void modConst(double);
-    void addSymbolicDouble(SymbolicDouble& other);
+    void addSymbolicDouble(SymbolicDouble& other, bool appears = false);
     void multSymbolicDouble(SymbolicDouble& other);
     void divSymbolicDouble(SymbolicDouble& other);
     void modSymbolicDouble(SymbolicDouble& other);

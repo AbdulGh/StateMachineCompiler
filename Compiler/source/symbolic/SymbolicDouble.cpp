@@ -351,8 +351,9 @@ bool SymbolicDouble::getRelativeVelocity(SymbolicVariable* other, long double& s
 {
     if (other->getType() != DOUBLE) throw runtime_error("should be double");
     SymbolicDouble* sd = static_cast<SymbolicDouble*>(other);
-    fastest = sd->minChange - maxChange;
-    slowest = sd->maxChange - minChange;
+    fastest = maxChange - sd->minChange;
+    slowest = minChange - sd->maxChange;
+    return true;
 }
 
 bool SymbolicDouble::isBoundedAbove() const
@@ -457,7 +458,7 @@ void SymbolicDouble::addConst(double diff)
     maxChange += diff;
 }
 
-void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other)
+void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other, bool composite)
 {
     if (!other.defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
 
@@ -475,8 +476,16 @@ void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other)
     addConstToLower(otherLowerBound);
     addConstToUpper(otherUpperBound);
 
-    minChange += otherLowerBound;
-    maxChange += otherUpperBound;
+    if (composite)
+    {
+        minChange += other.minChange;
+        maxChange += other.maxChange;
+    }
+    else
+    {
+        minChange += other.getTLowerBound();
+        maxChange += other.getTUpperBound();
+    }
 }
 
 ArithResult safeMultiply(double a, double b, double& result)

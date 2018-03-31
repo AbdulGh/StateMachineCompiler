@@ -121,7 +121,7 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
     }
     else if (!badExample.empty())
     {
-        string report = "=Potential bad path through the following loop:\n";
+        string report = "Potential bad path through the following loop:\n";
         report += getInfo();
         report += "\nExample:\n" + badExample + " exit loop\n-----\n";
         cfg.getReporter().addText(report);
@@ -141,12 +141,6 @@ inline void mergeMaps(NodeChangeMap& intoMap, NodeChangeMap& fromMap)
 bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string, unique_ptr<SearchResult>>& tags,
                       SEFPointer sef, string& badExample, bool headerSeen)
 {
-    if (node->getName() == "F0_main_6")
-    {
-        int debug;
-        debug = 3;
-    }
-
     auto it = nodes.find(node);
     if (it == nodes.end()) throw "asked to search outside of loop";
     unique_ptr<SearchResult>& thisNodeSR = tags[node->getName()];
@@ -226,7 +220,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             else badExample = sef->printPathConditions() + "(return to state in loop)\n";
             generateNodeChanges();
         }
-        else
+        else //todo deal with nonmonotone vars
         {
             string newBadExample;
             bool noGood = true;
@@ -252,11 +246,26 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                 if (meetStat == SymbolicVariable::MeetEnum::CANT) noGood = false;
                 else
                 {
-                    SymbolicVariable::MonotoneEnum change = varInQuestion->getMonotonicity();
+                    SymbolicVariable::MonotoneEnum change;
+
+                    if (condition.rhs.isHolding())
+                    {
+                        long double slowest; long double fastest;
+                        auto debug = static_cast<SymbolicDouble*>(sef->symbolicVarSet->findVar("RHS"));
+                        const VarWrapper* rhsVW = condition.rhs.getVarWrapper();
+                        GottenVarPtr<SymbolicDouble> rhs = rhsVW->getSymbolicDouble(sef.get());
+                        varInQuestion->getRelativeVelocity(rhs.get(), slowest, fastest);
+                        if (slowest == 0 && fastest == 0) change = SymbolicVariable::MonotoneEnum::FRESH;
+                        else if (slowest > 0) change = SymbolicVariable::MonotoneEnum::INCREASING;
+                        else if (fastest < 0) change = SymbolicVariable::MonotoneEnum::DECREASING;
+                        else change = SymbolicVariable::MonotoneEnum::NONE;
+                    }
+
+                    else change = varInQuestion->getMonotonicity();
 
                     if (change == SymbolicVariable::MonotoneEnum::FRESH)
                     {
-                        newBadExample = sef->printPathConditions() + "(" + string(condition.lhs) + " unchanging)\n";
+                        newBadExample = sef->printPathConditions() + "(" + string(condition.lhs) + " unchanging compared to RHS)\n";
                     }
                     else
                     {
@@ -266,14 +275,14 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                 if (change == SymbolicVariable::MonotoneEnum::INCREASING) noGood = false;
                                 else if (change == SymbolicVariable::MonotoneEnum::DECREASING && newBadExample.empty())
                                 {
-                                    newBadExample = sef->printPathConditions() + "(" + string(condition.lhs) + " decreasing)\n";
+                                    newBadExample = sef->printPathConditions() + "(" + string(condition.lhs) + " decreasing compared to RHS)\n";
                                 }
                                 break;
                             case Relations::GT: case Relations::GE:
                                 if (change == SymbolicVariable::MonotoneEnum::DECREASING) noGood = false;
                                 else if (change == SymbolicVariable::MonotoneEnum::INCREASING && newBadExample.empty())
                                 {
-                                    newBadExample = sef->printPathConditions() + "(" + string(condition.lhs) + " increasing)\n";
+                                    newBadExample = sef->printPathConditions() + "(" + string(condition.lhs) + " increasing compared to RHS)\n";
                                 }
                                 break;
                             case Relations::EQ: case Relations::NEQ:
@@ -503,7 +512,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                         throw "weird enum";
                 }
             }
-            else //todo next extrapolate here too
+            else //todo next make this two sided
             {
                 long double slowestApproach;
                 long double fastestApproach;

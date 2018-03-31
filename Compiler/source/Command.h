@@ -330,7 +330,8 @@ public:
     std::string str() const;
 };
 
-class EvaluateExprCommand: public WrapperHoldingCommand
+class
+EvaluateExprCommand: public WrapperHoldingCommand
 {
 public:
     Term term1;

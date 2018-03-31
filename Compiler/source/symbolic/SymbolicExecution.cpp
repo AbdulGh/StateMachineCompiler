@@ -191,12 +191,6 @@ unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& Symbo
 
 bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, JumpOnComparisonCommand* jocc, bool negate)
 {
-    if (jocc->getState() == "F0_main_7")
-    {
-        int debug;
-        debug = 2;
-    }
-
     if (hasSeen(nodeName)) throw "cant visit node twice";
     else if (jocc->term1.getType() != StringType::ID) throw "lhs should be ID";
     visitOrder.push_back(nodeName);

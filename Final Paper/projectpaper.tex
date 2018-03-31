@@ -508,10 +508,10 @@ while (x > y + z){
 }
 \end{lstlisting}
 \end{wrapfigure}
-This example was correctly detected as terminating.
-The comparison in line $3$ is compiled into the three-address-code \texttt{temp0 = y + z, jumpif x > temp0 ...}
-We then need to use `transitivity properties' to classify this sample as halting - the inequalities \texttt{x > temp0 = y + z},
-and the fact that if \texttt{y} and \texttt{z} are increasing then so is \texttt{temp0}.
+This example was correctly detected as terminating. It also picked up the potential overflow in all three additions.
+The comparison in line $3$ is compiled into the three-address-code \texttt{RHS = y + z, jumpif x > RHS ...}
+We then need to use `transitivity properties' to classify this sample as halting - the inequalities \texttt{x > RHS = y + z},
+and the fact that if \texttt{y} and \texttt{z} are increasing then so is \texttt{RHS}.
 Changing any of the increments in lines $4-5$ to decrements, and inverting the inequality in line $3$, are detected as infinite loops with good reasons given.
 
 \subsubsection{Relative change \cite[A.8]{tra}}
@@ -608,26 +608,30 @@ conditions that must be met for this transition to take place. Our method ony lo
 \textbf{Short sightedness}. Our method extrapolates as much as possible by inspecting the behaviour of the variables only on the first iteration. Complicated loops can exhibit behaviour that requires more work to uncover. For example, a variable may be decremented by another variable that is begins positive but is itself
 decreasing:
 
-\begin{centering}
-\begin{lstlisting}[language=myLang, frame=tlrb, numbers=none, label={lst:termin}]
+\begin{center}
+\begin{minipage}{5.5cm}
+\begin{lstlisting}[language=myLang, frame=tlrb, numbers=none, label={lst:termin}, linewidth=5cm]
 double d = 5;
 while (x < y){
 	x = x - d;
 	d = d - 1
 }
 \end{lstlisting}
-\end{centering}
+\end{minipage}
+\end{center}
 
 The solution would declare $x$ decreasing and the loop nonterminating, although this is not the case.
 
 \textbf{Integers and equalities/inequalities}. Our method currently deals with every numerical type as if it was a double. This introduces innacuracies. For example, it accepts as halting
 the probematic code fragment
-\begin{centering}
-\begin{lstlisting}[language=myLang, frame=tlrb, numbers=none]
+\begin{center}
+\begin{minipage}{6.5cm}
+\begin{lstlisting}[language=myLang, frame=tlrb, numbers=none, linewidth=6cm]
 double x = 1;
 while (x != 0) x = x - 2;
 \end{lstlisting}
-\end{centering}
+\end{minipage}
+\end{center}
 as $x$ begins above the inequality and moves towards it.
 
 \textbf{Type 1 and 2 errors}. In this paper we have given an example of a nonterminating fragment that the program accepts as terminating (our modification to the

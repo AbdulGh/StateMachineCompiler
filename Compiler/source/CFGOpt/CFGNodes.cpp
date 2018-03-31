@@ -153,7 +153,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
     
                 if (!eec->term2.isLit)
                 {
-                    unordered_map<string, Atom>::const_iterator t2it = assignments.find(eec->term1.vg->getFullName());
+                    unordered_map<string, Atom>::const_iterator t2it = assignments.find(eec->term2.vg->getFullName());
                     if (t2it != assignments.end()) eec->term2.parse(t2it->second);
                 }
     
