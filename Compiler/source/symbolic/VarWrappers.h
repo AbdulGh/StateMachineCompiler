@@ -98,8 +98,6 @@ public:
 class VarWrapper
 {
 protected:
-    AccessType accessType; //todo check what this is used for
-    void setAccessType(AccessType at) {accessType = at;}
     std::string name;
     void setName(std::string n) {name = move(n);}
     bool compound = false;
@@ -109,9 +107,8 @@ public:
     virtual std::string getFullName() const {return name;}
     virtual const std::string& getBaseName() const {return name;}
     bool isCompound() const {return compound;}
-    const AccessType& getAccessType() {return accessType;}
     virtual GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const = 0;
-    virtual GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const  = 0;
+    virtual GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const  = 0; //todo clone symbolic double
     virtual bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const = 0;
     virtual std::unique_ptr<VarWrapper> clone() const  = 0;
     virtual VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const = 0;
@@ -129,7 +126,6 @@ public:
     SVByName(std::string n)
     {
         setName(move(n));
-        setAccessType(AccessType::DIRECT);
     }
     std::vector<const std::string*> getAllNames() const override
     {
@@ -143,7 +139,7 @@ public:
     void setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv) override;
     void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv) override;
     void nondet(SymbolicExecution::SymbolicExecutionFringe* sef) override;
-    bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
+    bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const override; //todo check to make sure return gets used
     std::string getFullName() const override;
     std::unique_ptr<VarWrapper> clone() const override;
 };
@@ -155,7 +151,6 @@ public:
 
     SDByArrayIndex(std::string n, unsigned int i): index(i)
     {
-        setAccessType(AccessType::BYARRAY);
         setName(move(n));
     };
 
@@ -189,7 +184,6 @@ public:
     {
         setName(move(arrN));
         setCompound(true);
-        setAccessType(AccessType::BYARRAY);
     }
 
     std::string getFullName() const override

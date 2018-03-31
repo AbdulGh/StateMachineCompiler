@@ -223,7 +223,8 @@ public:
     void multConst(double);
     void divConst(double);
     void modConst(double);
-    void addSymbolicDouble(SymbolicDouble& other, bool appears = false);
+    void addSymbolicDouble(SymbolicDouble& other, bool increment = false);
+    void minusSymbolicDouble(SymbolicDouble& other, bool increment = false);
     void multSymbolicDouble(SymbolicDouble& other);
     void divSymbolicDouble(SymbolicDouble& other);
     void modSymbolicDouble(SymbolicDouble& other);

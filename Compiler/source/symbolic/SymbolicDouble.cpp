@@ -5,6 +5,8 @@
 #include <cmath>
 #include "SymbolicVariables.h"
 
+//todo uniformly changing when set/clip/union is called
+
 using namespace std;
 
 enum ArithResult{OVER, UNDER, FINE};
@@ -458,7 +460,7 @@ void SymbolicDouble::addConst(double diff)
     maxChange += diff;
 }
 
-void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other, bool composite)
+void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other, bool increment)
 {
     if (!other.defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
 
@@ -476,7 +478,7 @@ void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other, bool composite)
     addConstToLower(otherLowerBound);
     addConstToUpper(otherUpperBound);
 
-    if (composite)
+    if (increment)
     {
         minChange += other.minChange;
         maxChange += other.maxChange;
@@ -485,6 +487,36 @@ void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other, bool composite)
     {
         minChange += other.getTLowerBound();
         maxChange += other.getTUpperBound();
+    }
+}
+
+void SymbolicDouble::minusSymbolicDouble(SymbolicDouble& other, bool increment)
+{
+    if (!other.defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
+
+    if (other.isDetermined())
+    {
+        addConst(other.getTConstValue());
+        return;
+    }
+
+    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+
+    double otherLowerBound = other.getTLowerBound();
+    double otherUpperBound = other.getTUpperBound();
+
+    addConstToLower(-otherUpperBound);
+    addConstToUpper(-otherLowerBound);
+
+    if (increment)
+    {
+        minChange -= other.minChange;
+        maxChange -= other.maxChange;
+    }
+    else
+    {
+        minChange -= other.getTLowerBound();
+        maxChange -= other.getTUpperBound();
     }
 }
 

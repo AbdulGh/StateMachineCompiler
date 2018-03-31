@@ -11,7 +11,6 @@
 
 #include "SymbolicVariables.h"
 
-//todo indeterminate size
 class SymbolicArray
 {
 private:

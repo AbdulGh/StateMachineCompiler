@@ -332,7 +332,7 @@ string Term::str() const
 
 EvaluateExprCommand::EvaluateExprCommand(unique_ptr<VarWrapper> lh, Term t1,
                                          ArithOp o, Term t2, int linenum):
-        WrapperHoldingCommand(move(lh), linenum),  op{o}, term1{move(t1)}, term2{move(t2)} //todo brackets vs paren
+        WrapperHoldingCommand(move(lh), linenum),  op(o), term1(move(t1)), term2(move(t2))
 {
     setType(CommandType::EXPR);
 }

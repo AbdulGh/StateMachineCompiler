@@ -2,7 +2,7 @@
 #include "../symbolic/VarWrappers.h"
 
 using namespace std;
-VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType, unique_ptr<VarWrapper> uid) //todo remember why this returns a vtype
+void Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType, unique_ptr<VarWrapper> uid) //todo remember why this returns a vtype
 {
     match(Type::CALL);
     string fid = plainIdent();
@@ -89,7 +89,6 @@ VariableType Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expe
                 throw runtime_error("Unaccounted for variable type");
         }
     }
-    return toFS->getReturnType();
 }
 
 void Compiler::genIf(FunctionSymbol* fs)

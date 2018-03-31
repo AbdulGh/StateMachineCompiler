@@ -49,7 +49,7 @@ private:
     std::string plainIdent();
 
     //code generation
-    VariableType genFunctionCall(FunctionSymbol*, VariableType expectedType, std::unique_ptr<VarWrapper> vs = nullptr);
+    void genFunctionCall(FunctionSymbol*, VariableType expectedType, std::unique_ptr<VarWrapper> vs = nullptr);
     void genIf(FunctionSymbol*);
     void genWhile(FunctionSymbol*);
     void ands(FunctionSymbol* fs, std::string success, std::string fail);
