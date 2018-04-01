@@ -79,7 +79,7 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
         return;
     }
 
-    for (auto& child : children) child->validate(tags);
+    //for (auto& child : children) child->validate(tags); debug
 
     ChangeMap varChanges; //node->varname->known path through that node where the specified change happens
     SEFPointer sef = make_shared<SymbolicExecution::SymbolicExecutionFringe>(cfg.getReporter());
@@ -94,7 +94,7 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
         vector<CFGNode*> intersect;
         set_intersection(retNodes.begin(), retNodes.end(),
                          nodes.begin(), nodes.end(), inserter(intersect, intersect.begin()));
-        if (intersect.size() != 1) throw "should be";
+        if (intersect.size() != 1) throw std::runtime_error("should be");
         sef->symbolicStack->pushState((*intersect.cbegin())->getName());
     }*/
 
@@ -142,7 +142,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                       SEFPointer sef, string& badExample, bool headerSeen)
 {
     auto it = nodes.find(node);
-    if (it == nodes.end()) throw "asked to search outside of loop";
+    if (it == nodes.end()) throw std::runtime_error("asked to search outside of loop");
     unique_ptr<SearchResult>& thisNodeSR = tags[node->getName()];
     thisNodeSR->resetPoppedCounter();
 
@@ -150,7 +150,11 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
     if (it->second != nullptr)
     {
         inNested = true;
+        auto debug = sef->symbolicVarSet->findVar("_3_0_y");
         sef->symbolicVarSet->unionSVS(thisNodeSR->getInitSVS().get());
+        debug = sef->symbolicVarSet->findVar("_3_0_y");
+        int debug2;
+        debug2 = 3;
     }
     else inNested = false;
 
@@ -197,7 +201,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                     thisNodeChange.insert({symvar.first, FUNKNOWN});
                     break;
                 default:
-                    throw "incompatible enum";
+                    throw std::runtime_error("incompatible enum");
             }
         } //todo without thisNodeChange
         mergeMaps(varChanges.at(node), thisNodeChange);
@@ -210,10 +214,10 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             bool returnToNodeInLoop = false;
             if (!sef->symbolicStack->isEmpty())
             {
-                if (sef->symbolicStack->peekTopType() != SymbolicStackMemberType::STATE) throw "tried to return to non state";
+                if (sef->symbolicStack->peekTopType() != SymbolicStackMemberType::STATE) throw std::runtime_error("tried to return to non state");
                 const string& topName = sef->symbolicStack->peekTopName();
                 CFGNode* retNode = cfg.getNode(topName);
-                if (retNode == nullptr) throw "tried to jump to unknown node";
+                if (retNode == nullptr) throw std::runtime_error("tried to jump to unknown node");
                 returnToNodeInLoop = nodes.find(retNode) != nodes.end();
             }
             if (!returnToNodeInLoop) goodPathFound = true;
@@ -291,7 +295,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                 else newBadExample = sef->printPathConditions() + "(" + string(condition.lhs) + " must meet header condition)\n";
                                 break;
                             default:
-                                throw "intriguing relop";
+                                throw std::runtime_error("intriguing relop");
                         }
                     }
                 }
@@ -314,12 +318,12 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                     generateNodeChanges();
                     goodPathFound = true;
                 }
-                else if (sef->symbolicStack->peekTopType() != SymbolicStackMemberType::STATE) throw "tried to jump to non node";
+                else if (sef->symbolicStack->peekTopType() != SymbolicStackMemberType::STATE) throw std::runtime_error("tried to jump to non node");
                 else
                 {
                     SEFPointer newSEF = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
                     CFGNode* nextNode = cfg.getNode(newSEF->symbolicStack->popState());
-                    if (nextNode == nullptr) throw "tried to jump to nonexisting node";
+                    if (nextNode == nullptr) throw std::runtime_error("tried to jump to nonexisting node");
                     else
                     {
                         auto it = nodes.find(nextNode);
@@ -334,7 +338,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             }
             else
             {
-                if (nodes.find(failNode) == nodes.end()) throw "unconditional jump should be in the loop";
+                if (nodes.find(failNode) == nodes.end()) throw std::runtime_error("unconditional jump should be in the loop");
                 bool t = searchNode(failNode, varChanges, tags, sef, badExample);
                 mergeMaps(varChanges.at(node), varChanges.at(failNode));
                 return t;
@@ -346,7 +350,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             JumpOnComparisonCommand* jocc = node->getComp();
             CFGNode* succNode = node->getCompSuccess();
             GottenVarPtr<SymbolicVariable> lhVar = jocc->term1.getVarWrapper()->getSymbolicVariable(sef.get());
-            if (!lhVar) throw "not found";
+            if (!lhVar) throw std::runtime_error("not found");
 
             GottenVarPtr<SymbolicVariable> rhVar(nullptr);
             bool rhconst = true;
@@ -509,7 +513,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                         break;
                     }
                     default:
-                        throw "weird enum";
+                        throw std::runtime_error("weird enum");
                 }
             }
             else //todo next make this two sided

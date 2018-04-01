@@ -34,7 +34,7 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
             {
                 GottenVarPtr<SymbolicVariable> found = atom->getVarWrapper()->getSymbolicVariable(sef.get());
 
-                if (!found->isFeasable()) throw "should be feasable";
+                if (!found->isFeasable()) throw std::runtime_error("should be feasable");
                 else if (!found->isDefined())
                 {
                     sef->warn(Reporter::UNINITIALISED_USE, "'" + found->getName() + "' pushed without being defined", getLineNum());
@@ -56,7 +56,7 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
             break;
         }
         default:
-            throw "unfamiliar string type";
+            throw std::runtime_error("unfamiliar string type");
     };
     return true;
 }
@@ -106,10 +106,9 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
 }
 
 bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
-//todo can actually move past repeatUpper
 {
     if (op == AND || op == OR) throw runtime_error("Bitwise operations not supported by verifier");
-    else if (op == PLUS || op == MINUS)
+    else if (op == PLUS || op == MULT)
     {
         auto multConst = [&, this, sef, repeat] (SymbolicDouble* result, double c) -> void
         {
@@ -124,6 +123,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 {
                     result->maxUpperBound();
                     result->minLowerBound();
+                    result->multConst(c);
                 }
                 else
                 {
@@ -142,7 +142,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 if (c > 0) result->maxUpperBound();
                 else result->minLowerBound();
             }
-            else result->addConst(c);
+            result->addConst(c);
         };
 
         if (!term1.isLit && !term2.isLit)
@@ -212,7 +212,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
 
     else //not commutative
     {
-        auto varModVar = [&sef] (SymbolicDouble* result, SymbolicDouble* t2v) -> void
+        auto varModVar = [&sef, this] (SymbolicDouble* result, SymbolicDouble* t2v) -> void
         {
             if (t2v->getTLowerBound() <= 0 && t2v->getTUpperBound() >= 0)
             {
@@ -357,6 +357,9 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                     else result->divConst(term2.d);
                 }
                 else throw runtime_error("Strange op encountered");
+
+                vs->setSymbolicVariable(sef.get(), result.get());
+                return true;
             }
         }
         else //const and var
@@ -439,112 +442,6 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
         }
     }
 
-    term1.vg->check(sef.get());
-    if (op != MOD && repeat)
-    {
-        if (!term2.isLit)
-        {
-            vs->nondet(sef.get());
-            term2.vg->check(sef.get());
-        }
-        else
-        {
-            double t2 = term2.d;
-
-            unique_ptr<SymbolicDouble> sd = term1.vg->getSymbolicDouble(sef.get())->cloneSD();
-
-            switch (op)
-            {
-                case ArithOp::MINUS:
-                    t2 *= -1;
-                case ArithOp::PLUS:
-                    if (t2 > 0) sd->maxUpperBound();
-                    else if (t2 < 0) sd->minLowerBound();
-                    break;
-
-                case ArithOp::DIV:
-                    if (t2 == 0) throw runtime_error("divide by 0");
-                    else t2 = 1/t2;
-                case ArithOp::MULT:
-                    if (abs(t2) > 1)
-                    {
-                        if (sd->getTUpperBound() > 0) sd->maxUpperBound();
-                        else if (sd->getTUpperBound() < 0) sd->minLowerBound();
-                        if (sd->getTLowerBound() < 0) sd->minLowerBound();
-                        else if (sd->getTLowerBound() > 0) sd->maxUpperBound();
-                    }
-                    else if (abs(t2) < 1)
-                    {
-                        if (sd->getTLowerBound() > 0) sd->setTLowerBound(0);
-                        if (sd->getTUpperBound() < 0) sd->setTUpperBound(0);
-                    }
-
-                default:
-                    throw runtime_error("Unsupported op");
-            }
-            vs->setSymbolicVariable(sef.get(), sd.get());
-        }
-    }
-    else
-    {
-        if (term1.isLit) throw runtime_error("these should have been caught during compilation");
-
-        term1.vg->check(sef.get());
-        unique_ptr<SymbolicDouble> result = term1.vg->getSymbolicDouble(sef.get())->cloneSD();
-        if (!result->isDefined()) sef->warn(Reporter::TYPE, "'" + term1.vg->getFullName() + "' used before definition", getLineNum());
-        
-        if (term2.isLit)
-        {
-            double d = term2.d;
-            switch (op)
-            {
-                case MINUS:
-                    d *= -1;
-                case PLUS:
-                    result->addConst(d);
-                    break;
-                case MULT:
-                    result->multConst(d);
-                    break;
-                case DIV:
-                    result->divConst(d);
-                    break;
-                case MOD:
-                    result->modConst(d);
-                    break;
-                default:
-                    throw runtime_error("Bitwise operations not supported");
-            }
-        }
-        else
-        {
-            term2.vg->check(sef.get());
-            unique_ptr<SymbolicDouble> t2 = term2.vg->getSymbolicDouble(sef.get())->cloneSD();
-            bool increment = term1.vg->getFullName() == vs->getFullName() || term2.vg->getFullName() == vs->getFullName();
-            if (!t2->isDefined()) sef->warn(Reporter::TYPE, "'" + term2.vg->getFullName() + "' used before definition", getLineNum());
-
-            switch (op)
-            {
-                case MINUS:
-                    t2->multConst(-1);
-                case PLUS:
-                    result->addSymbolicDouble(*t2, !increment);
-                    break;
-                case MULT:
-                    result->multSymbolicDouble(*t2);
-                    break;
-                case DIV:
-                    result->divSymbolicDouble(*t2);
-                    break;
-                case MOD:
-                    result->modSymbolicDouble(*t2);
-                    break;
-                default:
-                    throw runtime_error("Bitwise operations not supported");
-            }
-        }
-        vs->setSymbolicVariable(sef.get(), result.get());
-    }
     return sef->isFeasable();
 }
 

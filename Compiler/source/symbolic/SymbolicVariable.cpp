@@ -373,7 +373,7 @@ bool SymbolicVariableTemplate<string>::meetsConstComparison(Relations::Relop r, 
 template <typename T>
 SymbolicVariable::MeetEnum SymbolicVariableTemplate<T>::canMeet(Relations::Relop rel, SymbolicVariable* rhs) const
 {
-    throw "not implemented for generic vars";
+    throw std::runtime_error("not implemented for generic vars");
     /*
     if (r->isDetermined()) return canMeet(rel, r->getConstString());
     SymbolicDouble* rhs = static_cast<SymbolicDouble*>(r);
@@ -553,7 +553,7 @@ const string SymbolicVariableTemplate<T>::getConstString()
 template <typename T>
 const T& SymbolicVariableTemplate<T>::getTConstValue()
 {
-    if (!isDetermined()) throw "Not constant";
+    if (!isDetermined()) throw std::runtime_error("Not constant");
     return lowerBound; //could be upper
 }
 

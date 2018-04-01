@@ -23,7 +23,7 @@ public:
     virtual std::string diagString() = 0;
     virtual void setLoopInit() {};
     virtual bool mergeSM(std::unique_ptr<StackMember>& other) = 0;
-    virtual const std::string& getName() {throw "not implemented in this type";}
+    virtual const std::string& getName() {throw std::runtime_error("not implemented in this type");}
 
     SymbolicStackMemberType getType() const {return type;}
 };
@@ -81,7 +81,7 @@ public:
 
     bool mergeSM(std::unique_ptr<StackMember>& other) override
     {
-        if (other->getType() != SymbolicStackMemberType::VAR) throw "merged incompatable types";
+        if (other->getType() != SymbolicStackMemberType::VAR) throw std::runtime_error("merged incompatable types");
         bool change = false;
         SymVarStackMember* o = static_cast<SymVarStackMember*>(other.get());
 
@@ -117,7 +117,7 @@ public:
 
     bool mergeSM(std::unique_ptr<StackMember>& other) override
     {
-        throw "cant merge state names";
+        throw std::runtime_error("cant merge state names");
     }
 };
 

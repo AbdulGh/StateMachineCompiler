@@ -91,7 +91,7 @@ SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, Symboli
             else if (getTUpperBound() <= rhs->getTLowerBound()) return CANT;
             return MAY;
         default:
-            throw "weird enum";
+            throw std::runtime_error("weird enum");
     }
 }
 
@@ -163,6 +163,15 @@ void SymbolicDouble::maxUpperBound()
     upperBound = repeatUpper;
 }
 
+void SymbolicDouble::removeLowerBound()
+{
+    lowerBound = numeric_limits<double>::lowest();
+}
+void SymbolicDouble::removeUpperBound()
+{
+    upperBound = numeric_limits<double>::max();
+}
+
 bool SymbolicDouble::clipTLowerBound(const double& d, bool closed) //todo forgetting stuff
 {
     if (d > getTLowerBound()) return setTLowerBound(d, closed);
@@ -215,7 +224,7 @@ bool SymbolicDouble::unionLowerBound(const std::string& lb, bool closed)
 
 bool SymbolicDouble::unionVar(const SymbolicVariable* other)
 {
-    if (other->getType() != DOUBLE) throw "wrong";
+    if (other->getType() != DOUBLE) throw std::runtime_error("wrong");
     const SymbolicDouble* sd = static_cast<const SymbolicDouble*>(other);
     bool ret = unionTLowerBound(sd->getTLowerBound());
     if (unionTUpperBound(sd->getTUpperBound())) ret = true;
@@ -317,7 +326,7 @@ void SymbolicDouble::iterateTo(double toD, bool closed)
 {
     if (toD < lowerBound)
     {
-        if (minChange > 0) throw "cant move downwards";
+        if (minChange > 0) throw std::runtime_error("cant move downwards");
         if (numeric_limits<double>::lowest() - minChange > toD)
         {
             lowerBound = numeric_limits<double>::lowest();
@@ -326,7 +335,7 @@ void SymbolicDouble::iterateTo(double toD, bool closed)
     }
     else if (toD > upperBound)
     {
-        if (maxChange < 0) throw "cant move downwards";
+        if (maxChange < 0) throw std::runtime_error("cant move downwards");
         if (numeric_limits<double>::max() - maxChange < toD)
         {
             upperBound = numeric_limits<double>::max();
@@ -338,7 +347,7 @@ void SymbolicDouble::iterateTo(const std::string& to, bool closed)
 {
     double toD;
     try {toD = stod(to);}
-    catch (invalid_argument&) {throw "double asked to iterate to something else";}
+    catch (invalid_argument&) {throw std::runtime_error("double asked to iterate to something else");}
     iterateTo(toD, closed);
 }
 void SymbolicDouble::iterateTo(SymbolicVariable* to, bool closed)
@@ -549,11 +558,21 @@ ArithResult safeMultiply(double a, double b, double& result)
 
 void SymbolicDouble::multConst(double mul)
 {
-    double oldUpper = upperBound;
-    double oldLower = lowerBound;
+    double change1 = upperBound * (mul - 1);
+    double change2 = lowerBound * (mul - 1);
+    if (change1 > change2)
+    {
+        maxChange += change1;
+        minChange += change2;
+    }
+    else
+    {
+        maxChange += change2;
+        minChange += change1;
+    }
 
     if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
-    if (mul == 0) setConstValue(0);
+    if (mul == 0) setTConstValue(0);
     else if (mul == 1) reporter.warn(Reporter::AlertType::USELESS_OP, varN + "multiplied by 1");
     else
     {
@@ -572,7 +591,7 @@ void SymbolicDouble::multConst(double mul)
             bool alwaysabove = true;
             bool alwaysbelow = true;
 
-            ArithResult result = safeMultiply(oldLower, mul, lowerResult);
+            ArithResult result = safeMultiply(lowerBound, mul, lowerResult);
             if (result == FINE) alwaysabove = alwaysbelow = false;
             else
             {
@@ -581,7 +600,7 @@ void SymbolicDouble::multConst(double mul)
                 else alwaysabove = false;
             }
 
-            result = safeMultiply(oldUpper, mul, upperResult);
+            result = safeMultiply(upperBound, mul, upperResult);
             if (result == FINE) alwaysabove = alwaysbelow = false;
             else
             {
@@ -604,16 +623,6 @@ void SymbolicDouble::multConst(double mul)
                 setTUpperBound(lowerResult);
             }
         }
-    }
-    if (mul >= 0)
-    {
-        minChange += lowerBound - oldLower;
-        maxChange += upperBound - oldUpper;
-    }
-    else
-    {
-        minChange += lowerBound - oldUpper;
-        maxChange += upperBound - oldLower;
     }
 }
 
@@ -780,6 +789,19 @@ ArithResult safeDivide(double a, double b, double& result)
 void SymbolicDouble::divConst(double denom)
 {
     if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+
+    double change1 = upperBound * (1/denom - 1);
+    double change2 = lowerBound * (1/denom - 1);
+    if (change1 > change2)
+    {
+        maxChange += change1;
+        minChange += change2;
+    }
+    else
+    {
+        maxChange += change2;
+        minChange += change1;
+    }
 
     if (denom == 0) reportError(Reporter::AlertType::ZERODIVISION, varN + "divided by 0");
     else if (denom == 1) reporter.warn(Reporter::AlertType::USELESS_OP, varN + "divided by 1");

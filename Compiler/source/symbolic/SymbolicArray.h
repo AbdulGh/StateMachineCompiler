@@ -162,7 +162,7 @@ public:
                 ++varit;
             }
         }
-        throw "shouldn't happen";
+        throw std::runtime_error("shouldn't happen");
     }
 
     std::unique_ptr<SymbolicDouble> operator[](SymbolicDouble* index)
@@ -194,7 +194,7 @@ public:
             else return std::move(cp);
         }
 
-        throw "shouldn't get here";
+        throw std::runtime_error("shouldn't get here");
     }
 
     bool set(unsigned int n, double v)
@@ -238,7 +238,7 @@ public:
                 ++varit;
             }
         }
-        throw "shouldnt reach here";
+        throw std::runtime_error("shouldnt reach here");
     }
 
     bool set(SymbolicDouble* index, SymbolicDouble* sdr)
@@ -300,7 +300,7 @@ public:
             {
                 ++it;
                 ++varit;
-                if (it == indicies.end() || varit == indexVars.end()) throw "bad";
+                if (it == indicies.end() || varit == indexVars.end()) throw std::runtime_error("bad");
             }
             it = indicies.insert(it, lb);
             std::unique_ptr<SymbolicDouble> newD = (*varit)->cloneSD();
@@ -332,7 +332,7 @@ public:
                 ++varit;
             }
         }
-        throw "shouldn't get here";
+        throw std::runtime_error("shouldn't get here");
     }
 
     void nondet(unsigned int i)

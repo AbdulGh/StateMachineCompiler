@@ -45,7 +45,7 @@ SymbolicArray* SymbolicVarSet::findArray(string name)
 bool SymbolicVarSet::isFeasable()
 {
     for (auto& i : variables) if (!i.second->isFeasable()) return false;
-    if (parent != nullptr && !parent->isFeasable()) throw "shouldnt happen";
+    if (parent != nullptr && !parent->isFeasable()) throw std::runtime_error("shouldnt happen");
     return true;
 }
 
@@ -69,7 +69,7 @@ void SymbolicVarSet::addArray(const std::string& name, SymbolicArrayPointer p)
 
 bool SymbolicVarSet::unionSVS(SymbolicVarSet* other)
 {
-    if (other == nullptr) throw "cant union with nullptr";
+    if (other == nullptr) throw std::runtime_error("cant union with nullptr");
     bool change = false;
     for (auto& pair : other->getAllVars())
     {
@@ -133,7 +133,7 @@ const pair<const string, SymbolicVariablePointer>& SVSIterator::operator*()
 
 SVSIterator& SVSIterator::operator++()
 {
-    if (currentIt == currentSVS->endIterator) throw "went too far";
+    if (currentIt == currentSVS->endIterator) throw std::runtime_error("went too far");
     ++currentIt;
     if (currentIt == currentSVS->variables.cend() && currentSVS->parent != nullptr)
     {

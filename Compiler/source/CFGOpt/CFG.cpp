@@ -19,7 +19,7 @@ CFGNode* ControlFlowGraph::getNode(const string& name)
 
 NodeMapIterator ControlFlowGraph::removeNode(NodeMapIterator it)
 {
-    if (it == currentNodes.end()) throw "Check";
+    if (it == currentNodes.end()) throw std::runtime_error("Check");
     unique_ptr<CFGNode>& nodePointer = it->second;
     if (nodePointer->isLastNode())
     {
@@ -170,7 +170,7 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
         {
             auto it = find_if(predecessors.begin(), predecessors.end(),
                 [&, parent] (const SourceNode* con) {return parent->name == con->name;});
-            if (it == predecessors.end()) throw "could not find parent";
+            if (it == predecessors.end()) throw std::runtime_error("could not find parent");
             predecessors.erase(it);
         }
 
@@ -178,7 +178,7 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
         {
             auto it = find_if(successors.begin(), successors.end(),
                               [&, kid] (const SourceNode* con) {return kid->name == con->name;});
-            if (it == successors.end()) throw "could not find successor";
+            if (it == successors.end()) throw std::runtime_error("could not find successor");
             successors.erase(it);
         }
 
@@ -195,7 +195,7 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
 
         bool tryBypass()
         {
-            if (instructions.empty()) throw "shouldnt happen";
+            if (instructions.empty()) throw std::runtime_error("shouldnt happen");
 
             unique_ptr<AbstractCommand>& lastInstr = instructions.back();
             if (lastInstr->getType() == CommandType::JUMP
@@ -203,11 +203,11 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
                 && lastInstr->getState() != name)
             {
                 unique_ptr<SourceNode>& swallowing = outputMap[lastInstr->getState()];
-                if (swallowing == nullptr) throw "cant find jumped to node";
+                if (swallowing == nullptr) throw std::runtime_error("cant find jumped to node");
                 else if (swallowing->predecessors.size() > 1) return false; //todo improve this by detecting cycles
 
                 vector<unique_ptr<AbstractCommand>>& swallowingInstrs = swallowing->instructions;
-                if (swallowingInstrs.empty()) throw "this shouldn't be";
+                if (swallowingInstrs.empty()) throw std::runtime_error("this shouldn't be");
                 else if(swallowingInstrs.back()->getType() == CommandType::JUMP
                         && swallowingInstrs.back()->getState() == name) return false;
 
@@ -216,7 +216,7 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
                 const string& swallowingName = swallowing->name;
                 auto swallowingIt = find_if(successors.begin(), successors.end(),
                 [&, swallowingName] (const auto& child) {return child->name == swallowingName;});
-                if (swallowingIt == successors.end()) throw "child should be in";
+                if (swallowingIt == successors.end()) throw std::runtime_error("child should be in");
                 (*swallowingIt)->loseParent(this);
                 successors.erase(swallowingIt);
 
@@ -288,7 +288,7 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
                         if (!found && (onlyInstr->getState() != "return" || parentInstructions.empty()
                                        || (*parentInstructions.rend())->getState() != "return"))
                         {
-                            throw "bad parent";
+                            throw std::runtime_error("bad parent");
                         }
 
                         parentNode->loseKid(sn.get());
@@ -387,13 +387,13 @@ Reporter& ControlFlowGraph::getReporter() const
 void ControlFlowGraph::setFirst(const string& firstName)
 {
     auto it = currentNodes.find(firstName);
-    if (it == currentNodes.end()) throw "Check";
+    if (it == currentNodes.end()) throw std::runtime_error("Check");
     first = it->second.get();
 }
 
 void ControlFlowGraph::setLast(const string& lastName)
 {
     auto it = currentNodes.find(lastName);
-    if (it == currentNodes.end()) throw "Check";
+    if (it == currentNodes.end()) throw std::runtime_error("Check");
     last = it->second.get();
 }

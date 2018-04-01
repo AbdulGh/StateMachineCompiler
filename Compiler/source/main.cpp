@@ -2,9 +2,9 @@
 #include "compile/Compiler.h"
 #include "compile/Lexer.h"
 #include "symbolic/SymbolicArray.h"
+#include <limits>
 using namespace std;
 
-//todo convert thrown strings to runtime_errors
 int main()
 {
     Lexer lexer;

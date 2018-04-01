@@ -96,7 +96,7 @@ bool SDByArrayIndex::check(SymbolicExecution::SymbolicExecutionFringe* sef) cons
 
 void SDByArrayIndex::setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv)
 {
-    if (sv->getType() != DOUBLE) throw "should be double";
+    if (sv->getType() != DOUBLE) throw std::runtime_error("should be double");
     SymbolicDouble* sd = static_cast<SymbolicDouble*>(sv);
     SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
     if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
@@ -164,7 +164,7 @@ bool SDByIndexVar::check(SymbolicExecution::SymbolicExecutionFringe* sef) const
 
 void SDByIndexVar::setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv)
 {
-    if (sv->getType() != DOUBLE) throw "should be double";
+    if (sv->getType() != DOUBLE) throw std::runtime_error("should be double");
     SymbolicDouble* sd = static_cast<SymbolicDouble*>(sv);
     SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
     if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");

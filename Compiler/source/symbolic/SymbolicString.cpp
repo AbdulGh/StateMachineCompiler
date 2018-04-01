@@ -125,7 +125,7 @@ bool SymbolicString::unionUpperBound(const string& ub, bool closed)
 
 bool SymbolicString::unionVar(const SymbolicVariable* other)
 {
-    if (other->getType() != STRING) throw "wrong";
+    if (other->getType() != STRING) throw std::runtime_error("wrong");
     const SymbolicString* sd = static_cast<const SymbolicString*>(other);
     bool ret = unionTLowerBound(sd->getTUpperBound());
     if (unionTLowerBound(sd->getTLowerBound())) ret = true;

@@ -80,7 +80,7 @@ namespace Optimise
                             {
                                 throw runtime_error("Guaranteed crash around line " + current->getJumpline());
                             }
-                            if (!parentit.second->swallowNode(current)) throw "should swallow";
+                            if (!parentit.second->swallowNode(current)) throw std::runtime_error("should swallow");
                         }
                         current->prepareToDie();
                         pair = nodes.erase(pair);

@@ -60,7 +60,7 @@ public:
     std::vector<std::pair<const std::string, SymbolicVariable*>> getAllVars();
     std::vector<std::pair<const std::string, SymbolicArray*>> getAllArrays();
 
-    SVSIterator begin() const {throw "not working";}// return {this, variables.cbegin()};} (todo)
+    SVSIterator begin() const {throw std::runtime_error("not working");}// return {this, variables.cbegin()};} (todo)
     SVSIterator end() const {return parent == nullptr ? SVSIterator(this, variables.cend()) : parent->end();} //end only called once when iterating
 
     friend class SVSIterator;

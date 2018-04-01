@@ -25,7 +25,7 @@ StringType getStringType(const std::string& str)
 
 unique_ptr<VarWrapper> parseAccess(const string& toParse, StringType* st = nullptr)
 {
-    if (toParse.empty()) throw "Can't parse an empty string";
+    if (toParse.empty()) throw std::runtime_error("Can't parse an empty string");
     if (toParse[0] == '\"')
     {
         if (st) *st = StringType::STRINGLIT;
@@ -51,7 +51,7 @@ unique_ptr<VarWrapper> parseAccess(const string& toParse, StringType* st = nullp
         catch (invalid_argument&)
         {
             unique_ptr<VarWrapper> indexWrapper = parseAccess(index);
-            if (!indexWrapper) throw "went wrong";
+            if (!indexWrapper) throw std::runtime_error("went wrong");
             return make_unique<SDByIndexVar>(toParse.substr(0, first), move(indexWrapper));
         }
     }
@@ -282,7 +282,7 @@ void Term::parse(const string& toParse)
             vg = move(up);
             break;
         default:
-            throw "not allowed";
+            throw std::runtime_error("not allowed");
     }
 }
 

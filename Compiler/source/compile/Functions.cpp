@@ -16,7 +16,7 @@ void FunctionSymbol::FunctionVars::addVar(VarWrapper* varN)
 
 unique_ptr<FunctionSymbol::FunctionVars> FunctionSymbol::FunctionVars::moveScope()
 {
-    if (parent == nullptr) throw "moved bottom scope";
+    if (parent == nullptr) throw std::runtime_error("moved bottom scope");
     return move(parent);
 }
 
@@ -48,7 +48,7 @@ FunctionSymbol::FunctionSymbol(VariableType rt, vector<VariableType> types, stri
 bool FunctionSymbol::mergeInto(FunctionSymbol* to)
 {
     if (to->getPrefix() == getPrefix()) return false;
-    else if (calls.size() != 1) throw "can only have one call";
+    else if (calls.size() != 1) throw std::runtime_error("can only have one call");
 
     const unique_ptr<FunctionCall>& functionCall = *calls.begin();
     vector<unique_ptr<AbstractCommand>>& callingInstrs = functionCall->caller->getInstrs();
@@ -56,10 +56,10 @@ bool FunctionSymbol::mergeInto(FunctionSymbol* to)
     //must push parameters + local vars + the state
     unsigned int localVarPushes = functionCall->numPushedVars;
     unsigned int totalNumPushes = localVarPushes + paramTypes.size() + 1;
-    if (callingInstrs.size() < totalNumPushes) throw "not enough pushes in calling state";
+    if (callingInstrs.size() < totalNumPushes) throw std::runtime_error("not enough pushes in calling state");
     auto callingIt = callingInstrs.begin() + (callingInstrs.size() - paramTypes.size()) - 1;
 
-    if ((*callingIt)->getState() != functionCall->returnTo->getName()) throw "should push called state";
+    if ((*callingIt)->getState() != functionCall->returnTo->getName()) throw std::runtime_error("should push called state");
     callingIt = callingInstrs.erase(callingIt);
 
     //remove pushes/pops of parameters
@@ -67,15 +67,15 @@ bool FunctionSymbol::mergeInto(FunctionSymbol* to)
     {
         unsigned int numParams = paramTypes.size();
         vector<unique_ptr<AbstractCommand>>& firstInstrs = firstNode->getInstrs();
-        if (firstNode->getInstrs().size() < numParams * 2) throw "not enough declarations and pops";
+        if (firstNode->getInstrs().size() < numParams * 2) throw std::runtime_error("not enough declarations and pops");
         auto firstIt = firstInstrs.begin();
 
         while (numParams > 0)
         {
-            if ((*firstIt)->getType() != CommandType::DECLAREVAR) throw "should declare and pop";
+            if ((*firstIt)->getType() != CommandType::DECLAREVAR) throw std::runtime_error("should declare and pop");
             ++firstIt; //will be optimised by assignment propogation later
-            if ((*firstIt)->getType() != CommandType::POP) throw "should declare and pop";
-            else if ((*callingIt)->getType() != CommandType::PUSH) throw "pushes and pops should match";
+            if ((*firstIt)->getType() != CommandType::POP) throw std::runtime_error("should declare and pop");
+            else if ((*callingIt)->getType() != CommandType::PUSH) throw std::runtime_error("pushes and pops should match");
             unique_ptr<AbstractCommand> ac(new AssignVarCommand((*firstIt)->getVarWrapper()->clone(), (*callingIt)->getAtom(), (*firstIt)->getLineNum()));
             (*firstIt) = move(ac);
             ++firstIt;
@@ -88,7 +88,7 @@ bool FunctionSymbol::mergeInto(FunctionSymbol* to)
     if (localVarPushes > 0)
     {
         auto& retInstrs = functionCall->returnTo->getInstrs();
-        if (retInstrs.size() < localVarPushes) throw "should pop local vars";
+        if (retInstrs.size() < localVarPushes) throw std::runtime_error("should pop local vars");
         auto returnIt = retInstrs.begin();
 
         do
@@ -99,7 +99,7 @@ bool FunctionSymbol::mergeInto(FunctionSymbol* to)
 
             if (cinstr->getType() != CommandType::PUSH || rinstr->getType() != CommandType::POP
                 || (rinstr->getVarWrapper()
-                    && cinstr->getAtom().getVarWrapper()->getFullName() != rinstr->getVarWrapper()->getFullName())) throw "should match";
+                    && cinstr->getAtom().getVarWrapper()->getFullName() != rinstr->getVarWrapper()->getFullName())) throw std::runtime_error("should match");
             callingInstrs.erase(callingIt);
             returnIt = retInstrs.erase(returnIt);
             --localVarPushes;
@@ -130,7 +130,7 @@ CFGNode* FunctionSymbol::getLastNode()
 
 void FunctionSymbol::setLastNode(CFGNode* ln)
 {
-    if (ln->getParentFunction()->getPrefix() != getPrefix()) throw "not my node";
+    if (ln->getParentFunction()->getPrefix() != getPrefix()) throw std::runtime_error("not my node");
 
     if (lastNode != nullptr)
     {
@@ -229,7 +229,7 @@ FunctionCall* FunctionSymbol::addFunctionCall(CFGNode* calling, CFGNode* returnT
 {
     unique_ptr<FunctionCall> fc = make_unique<FunctionCall>(calling, returnTo, numPushedVars, this);
     FunctionCall* rawPointer = fc.get();
-    if (!calls.insert(move(fc)).second) throw "already know about this call";
+    if (!calls.insert(move(fc)).second) throw std::runtime_error("already know about this call");
     returnTo->addParent(getLastNode());
     return rawPointer;
 }
@@ -269,7 +269,7 @@ void FunctionSymbol::replaceReturnState(CFGNode* going, CFGNode* replaceWith)
                 }
                 ++instrIt;
             }
-            if (!found) throw "could not find push in pushing state";
+            if (!found) throw std::runtime_error("could not find push in pushing state");
 
             addFunctionCall((*callsIt)->caller, replaceWith, (*callsIt)->numPushedVars);
             replaceWith->addFunctionCall((*callsIt)->caller, this);
@@ -279,7 +279,7 @@ void FunctionSymbol::replaceReturnState(CFGNode* going, CFGNode* replaceWith)
         }
         ++callsIt;
     }
-    throw "could not find function call";
+    throw std::runtime_error("could not find function call");
 }
 
 void FunctionSymbol::clearFunctionCalls()
@@ -298,7 +298,7 @@ vector<CFGNode*> FunctionSymbol::getNodesReturnedTo()
 
 FunctionCall* FunctionSymbol::getOnlyFunctionCall()
 {
-    if (calls.size() != 1) throw "should have exactly one call";
+    if (calls.size() != 1) throw std::runtime_error("should have exactly one call");
     return calls.begin()->get();
 }
 
@@ -341,7 +341,7 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
                 if (foundLeavingNode->getNumPushingStates() == 1 && numParams > 0)
                 {
                     vector<unique_ptr<AbstractCommand>>& returnToInstrs = foundLeavingNode->getInstrs();
-                    if (returnToInstrs.size() < numParams) throw "should have popped local vars";
+                    if (returnToInstrs.size() < numParams) throw std::runtime_error("should have popped local vars");
                     returnToInstrs.erase(returnToInstrs.begin(), returnToInstrs.begin() + numParams);
                 }
 
@@ -361,15 +361,15 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
                             auto pc = static_cast<PushCommand*>(ac);
                             if (pc->pushesState())
                             {
-                                if (pc->calledFunction->getIdent() != ident) throw "should be me";
+                                if (pc->calledFunction->getIdent() != ident) throw std::runtime_error("should be me");
 
                                 //firstly erase stuff in calling node
                                 unsigned int beginEraseIndex = instrIndex - (*callsIterator)->numPushedVars;
-                                if (beginEraseIndex < 0) throw "should have pushed local vars beforehand";
+                                if (beginEraseIndex < 0) throw std::runtime_error("should have pushed local vars beforehand");
                                 unsigned int stopEraseIndex = instrIndex + numParams + 1;
                                 if (instrIndex + numParams > pushingInstrs.size())
                                 {
-                                    throw "should have pushed function params afterhand";
+                                    throw std::runtime_error("should have pushed function params afterhand");
                                 }
 
                                 pushingInstrs.erase(pushingInstrs.begin() + beginEraseIndex,
@@ -381,7 +381,7 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
                         }
                         ++instrIndex;
                     }
-                    if (!found) throw "couldnt find push in pushing state";
+                    if (!found) throw std::runtime_error("couldnt find push in pushing state");
                 }
                 callsIterator = calls.erase(callsIterator);
                 iteratorIncremented = true;
@@ -389,7 +389,7 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
         }
         if (!iteratorIncremented) ++callsIterator;
     }
-    if (!foundLeavingNode) throw "couldnt find function call";
+    if (!foundLeavingNode) throw std::runtime_error("couldnt find function call");
     if (numRet == 1) foundLeavingNode->removeParent(lastNode);
 }
 
@@ -399,26 +399,26 @@ void FunctionSymbol::forgetFunctionCall(const string& calling, const string& ret
     {
         if ((*it)->caller->getName() == calling)
         {
-            if ((*it)->returnTo->getName() != ret) throw "should be";
+            if ((*it)->returnTo->getName() != ret) throw std::runtime_error("should be");
             (*it)->returnTo->removeParent(lastNode);
             calls.erase(it);
             return;
         }
     }
-    throw "couldnt find call";
+    throw std::runtime_error("couldnt find call");
 }
 
 //generation
 void FunctionSymbol::genNewState(string n)
 {
-    if (!endedState) throw "Unfinished state";
+    if (!endedState) throw std::runtime_error("Unfinished state");
     currentNode = cfg.createNode(n, true, false, this);
     endedState = false;
 }
 
 void FunctionSymbol::genEndState()
 {
-    if (endedState) throw "No state to end";
+    if (endedState) throw std::runtime_error("No state to end");
     currentNode->setInstructions(currentInstrs);
     currentInstrs.clear();
     endedState = true;
@@ -426,64 +426,64 @@ void FunctionSymbol::genEndState()
 
 void FunctionSymbol::genJump(string s, int linenum)
 {
-    if (endedState) throw "No state to add to";
+    if (endedState) throw std::runtime_error("No state to add to");
     currentInstrs.push_back(make_unique<JumpCommand>(s, linenum));
 }
 
 void FunctionSymbol::genPrint(Atom s, int linenum)
 {
-    if (endedState) throw "No state to add to";
+    if (endedState) throw std::runtime_error("No state to add to");
     currentInstrs.push_back(make_unique<PrintCommand>(move(s), linenum));
 }
 
 void FunctionSymbol::genConditionalJump(string state, unique_ptr<VarWrapper> lh, Relations::Relop r,
                                         unique_ptr<VarWrapper> rh, int linenum)
 {
-    if (endedState) throw "No state to add to";
+    if (endedState) throw std::runtime_error("No state to add to");
     currentInstrs.push_back(make_unique<JumpOnComparisonCommand>(state, move(lh), move(rh), r, linenum));
 }
 
 void FunctionSymbol::genPop(unique_ptr<VarWrapper> s, int linenum)
 {
-    if (endedState) throw "No state to add to";
+    if (endedState) throw std::runtime_error("No state to add to");
     currentInstrs.push_back(make_unique<PopCommand>(move(s), linenum));
 }
 
 void FunctionSymbol::genReturn(int linenum)
 {
-    if (endedState) throw "No state to add to";
+    if (endedState) throw std::runtime_error("No state to add to");
     if (lastNode == nullptr) lastNode = cfg.createNode(prefix + "fin", false, true, this);
     currentInstrs.push_back(make_unique<JumpCommand>(lastNode->getName(), linenum));
 }
 
 void FunctionSymbol::genPush(std::string s, int linenum, FunctionSymbol* calledFunction)
 {
-    if (endedState) throw "No state to add to";
+    if (endedState) throw std::runtime_error("No state to add to");
     currentInstrs.push_back(make_unique<PushCommand>(move(s), linenum, calledFunction));
 }
 
 void FunctionSymbol::genPush(unique_ptr<VarWrapper> vw, int linenum)
 {
-    if (endedState) throw "No state to add to";
+    if (endedState) throw std::runtime_error("No state to add to");
     currentInstrs.push_back(make_unique<PushCommand>(move(vw), linenum));
 }
 
 void FunctionSymbol::genInput(unique_ptr<VarWrapper> s, int linenum)
 {
-    if (endedState) throw "No state to add to";
+    if (endedState) throw std::runtime_error("No state to add to");
     currentInstrs.push_back(make_unique<InputVarCommand>(move(s), linenum));
 }
 
 void FunctionSymbol::genExpr(unique_ptr<VarWrapper> lh, Term& t1,
                              ArithOp o, Term& t2, int linenum)
 {
-    if (endedState) throw "No state to add to";
+    if (endedState) throw std::runtime_error("No state to add to");
     currentInstrs.push_back(make_unique<EvaluateExprCommand>(move(lh), move(t1), o, move(t2), linenum));
 }
 
 void FunctionSymbol::genVariableDecl(VariableType t, string n, int linenum)
 {
-    if (endedState) throw "No state to add to";
+    if (endedState) throw std::runtime_error("No state to add to");
     currentInstrs.push_back(make_unique<DeclareVarCommand>(t, n, linenum));
 
     //find wont work for whatever reason
@@ -492,32 +492,32 @@ void FunctionSymbol::genVariableDecl(VariableType t, string n, int linenum)
 
 void FunctionSymbol::genArrayDecl(string name, unsigned long int size, int linenum)
 {
-    if (endedState) throw "No state to add to";
+    if (endedState) throw std::runtime_error("No state to add to");
     currentInstrs.push_back(make_unique<DeclareArrayCommand>(move(name), size, linenum));
 }
 
 void FunctionSymbol::addCommand(unique_ptr<AbstractCommand> ac)
 {
-    if (endedState) throw "No state to add to";
+    if (endedState) throw std::runtime_error("No state to add to");
     currentInstrs.push_back(move(ac));
 }
 
 void FunctionSymbol::genAssignment(unique_ptr<VarWrapper> LHS, string RHS, int linenum)
 {
-    if (endedState) throw "No state to add to";
-    else if(getStringType(RHS) == StringType::ID) throw "use other constructor";
+    if (endedState) throw std::runtime_error("No state to add to");
+    else if(getStringType(RHS) == StringType::ID) throw std::runtime_error("use other constructor");
     currentInstrs.push_back(make_unique<AssignVarCommand>(move(LHS), move(RHS), linenum));
 }
 
 void FunctionSymbol::genAssignment(unique_ptr<VarWrapper> LHS, unique_ptr<VarWrapper> RHS, int linenum)
 {
-    if (endedState) throw "No state to add to";
+    if (endedState) throw std::runtime_error("No state to add to");
     currentInstrs.push_back(make_unique<AssignVarCommand>(move(LHS), move(RHS), linenum));
 }
 
 void FunctionSymbol::addCommands(vector<unique_ptr<AbstractCommand>>& acs)
 {
-    if (endedState) throw "No state to add to";
+    if (endedState) throw std::runtime_error("No state to add to");
     currentInstrs.reserve(currentInstrs.size() + acs.size());
     currentInstrs.insert(currentInstrs.end(), make_move_iterator(acs.begin()), make_move_iterator(acs.end()));
 }

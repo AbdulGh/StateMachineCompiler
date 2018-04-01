@@ -124,7 +124,7 @@ std::unique_ptr<VarWrapper> ExpressionCodeGenerator::genTemp(FunctionSymbol* fs,
         fs->genVariableDecl(DOUBLE, s, parent.lookahead.line);
         return make_unique<SVByName>(s);
     }
-    if (i > nextTemp) throw "Something went wrong somehow";
+    if (i > nextTemp) throw std::runtime_error("Something went wrong somehow");
     return make_unique<SVByName>("temp" + to_string(i));
 }
 
@@ -139,7 +139,7 @@ std::unique_ptr<VarWrapper> ExpressionCodeGenerator::genUnique(FunctionSymbol* f
         parent.cfg.getFirst()->getInstrs().push_back(make_unique<DeclareVarCommand>(DOUBLE, s, -1));
         return make_unique<SVByName>(s);
     }
-    else if (currentUnique > nextUnique) throw "Something went wrong somehow";
+    else if (currentUnique > nextUnique) throw std::runtime_error("Something went wrong somehow");
     return make_unique<SVByName>("unique" + to_string(currentUnique++));
 }
 

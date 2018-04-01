@@ -80,7 +80,7 @@ void OperatorNode::addNode(AbstractExprNode* p)
                 left = newP;
             }
 
-            if (left->getVarsRequired() < right->getVarsRequired()) throw "Disaster";
+            if (left->getVarsRequired() < right->getVarsRequired()) throw std::runtime_error("Disaster");
             else if (left->getVarsRequired() == right->getVarsRequired()) varsRequired = left->getVarsRequired() + 1;
             else varsRequired = left->getVarsRequired();
         }
@@ -133,7 +133,7 @@ AbstractExprNode* AtomNode::getRight()
 
 void AtomNode::addNode(AbstractExprNode*)
 {
-    throw "Atoms have no children";
+    throw std::runtime_error("Atoms have no children");
 }
 
 const unique_ptr<VarWrapper>& AtomNode::getVarWrapper() const

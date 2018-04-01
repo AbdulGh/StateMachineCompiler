@@ -88,7 +88,7 @@ string CFGNode::getDotEdges()
     }
     else
     {
-        if (!isLast) throw "should be last";
+        if (!isLast) throw std::runtime_error("should be last");
         for (CFGNode* nodePointer : parentFunction->getNodesReturnedTo())
         {
             outs << name << "->" << nodePointer->getName()
@@ -234,7 +234,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                         {
                             const std::string& nodename = *pushc->getAtom().getString();
                             CFGNode* node = parentGraph.getNode(nodename);
-                            if (node == nullptr) throw "found a bad state";
+                            if (node == nullptr) throw std::runtime_error("found a bad state");
                             pushc->calledFunction->removeFunctionCall(name, nodename);
                             node->removeFunctionCall(name, pushc->calledFunction);
                         }
@@ -317,7 +317,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                 if (isTrue)
                 {
                     if (getCompFail() != nullptr) getCompFail()->removeParent(getName());
-                    else throw "shouldnt happen at the end of a function call";
+                    else throw std::runtime_error("shouldnt happen at the end of a function call");
                     setCompFail(getCompSuccess());
                 }
                 else getCompSuccess()->removeParent(this);
@@ -333,7 +333,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
 
 bool CFGNode::swallowNode(CFGNode* other)
 {
-    if (other->getName() == name) throw "cant swallow self";
+    if (other->getName() == name) throw std::runtime_error("cant swallow self");
 
     const set<unique_ptr<FunctionCall>>& returnTo = parentFunction->getFunctionCalls();
 
@@ -365,9 +365,9 @@ bool CFGNode::swallowNode(CFGNode* other)
                     if (pc->pushesState())
                     {
                         CFGNode* node = parentGraph.getNode(string(pc->getAtom()));
-                        if (node == nullptr) throw "pushing nonexistent node";
-                        else if (calledFunctionSymbol && !needlessFunctionCall) throw "can only call one function";
-                        if (!other->calledFunctionSymbol) throw "other is pushing states w/out calling";
+                        if (node == nullptr) throw std::runtime_error("pushing nonexistent node");
+                        else if (calledFunctionSymbol && !needlessFunctionCall) throw std::runtime_error("can only call one function");
+                        if (!other->calledFunctionSymbol) throw std::runtime_error("other is pushing states w/out calling");
                         calledFunctionSymbol = other->calledFunctionSymbol;
                         node->addFunctionCall(this, pc->calledFunction);
                         pc->calledFunction->addFunctionCall(this, node, pc->pushedVars);
@@ -419,7 +419,7 @@ bool CFGNode::swallowNode(CFGNode* other)
 
         else if (compFail != nullptr)
         {
-            if (compFail->getName() != other->getName())  throw "should be compfail";
+            if (compFail->getName() != other->getName())  throw std::runtime_error("should be compfail");
             setCompFail(other->getCompFail());
         }
 
@@ -496,9 +496,9 @@ void CFGNode::setInstructions(vector<unique_ptr<AbstractCommand>>& in)
             if (compFail == nullptr) compFail = parentGraph.createNode(jumpto, false, false);
             compFail->addParent(this);
         }
-        if (++it != in.cend()) throw "Should end here";
+        if (++it != in.cend()) throw std::runtime_error("Should end here");
     }
-    else throw "Can only end w/ <=2 jumps";
+    else throw std::runtime_error("Can only end w/ <=2 jumps");
 }
 
 void CFGNode::setFunctionCall(FunctionSymbol* fc)
@@ -547,7 +547,7 @@ vector<CFGNode*> CFGNode::getSuccessorVector() const
     if (getCompFail() != nullptr) successors.push_back(getCompFail());
     else
     {
-        if (!isLastNode()) throw "only last node can return";
+        if (!isLastNode()) throw std::runtime_error("only last node can return");
         for (const auto& retSucc : getParentFunction()->getNodesReturnedTo()) successors.push_back(retSucc);
     }
     return successors;
@@ -579,7 +579,7 @@ void CFGNode::setCompSuccess(CFGNode* compsucc)
     compSuccess = compsucc;
     if (compSuccess != nullptr)
     {
-        if (comp == nullptr) throw "comp should be set";
+        if (comp == nullptr) throw std::runtime_error("comp should be set");
         compSuccess->addParent(this);
         comp->setState(compSuccess->getName());
     }
@@ -615,7 +615,7 @@ void CFGNode::setLast(bool last)
     isLast = last;
     if (isLast && (parentFunction->getLastNode() == nullptr || parentFunction->getLastNode()->getName() != name))
     {
-        throw "must be function last";
+        throw std::runtime_error("must be function last");
     }
 }
 
@@ -665,7 +665,7 @@ void CFGNode::removePushes()
     while (it != pushingStates.end())
     {
         auto& firstInstrs = it->first->getInstrs();
-        if (!it->first->calledFunction()) throw "not right";
+        if (!it->first->calledFunction()) throw std::runtime_error("not right");
         unsigned int i = 0;
         bool done = false;
         while (i < firstInstrs.size())
@@ -675,7 +675,7 @@ void CFGNode::removePushes()
                 PushCommand* pc = static_cast<PushCommand*>(firstInstrs[i].get());
                 if (pc->pushesState()) //found it
                 {
-                    if (pc->pushedVars > i) throw "not enough pushes";
+                    if (pc->pushedVars > i) throw std::runtime_error("not enough pushes");
                     pc->calledFunction->forgetFunctionCall(it->first->getName(), name);
 
                     pc->calledFunction = nullptr;
@@ -712,12 +712,12 @@ void CFGNode::removeFunctionCall(const string& bye, FunctionSymbol* fs)
         return bye == p.first->getName() && fs->getIdent() == p.second->getIdent();
     });
     if (it != pushingStates.end()) pushingStates.erase(it);
-    else throw "couldnt find call";
+    else throw std::runtime_error("couldnt find call");
 }
 
 void CFGNode::prepareToDie()
 {
-    if (isLastNode() || name == parentGraph.getLast()->getName()) throw "cant delete last node";
+    if (isLastNode() || name == parentGraph.getLast()->getName()) throw std::runtime_error("cant delete last node");
     if (getCompFail() != nullptr) getCompFail()->removeParent(name);
     if (getCompSuccess() != nullptr) getCompSuccess()->removeParent(name);
 
@@ -733,7 +733,7 @@ void CFGNode::prepareToDie()
             {
                 const string& nodename = pc->getState();
                 CFGNode* pushedNode = parentGraph.getNode(nodename);
-                if (!pushedNode) throw "could not find node";
+                if (!pushedNode) throw std::runtime_error("could not find node");
                 pc->calledFunction->removeFunctionCall(name, nodename, false);
                 pushedNode->removeFunctionCall(name, pc->calledFunction);
             }

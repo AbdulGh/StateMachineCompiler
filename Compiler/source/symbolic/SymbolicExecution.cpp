@@ -191,18 +191,18 @@ unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& Symbo
 
 bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, JumpOnComparisonCommand* jocc, bool negate)
 {
-    if (hasSeen(nodeName)) throw "cant visit node twice";
-    else if (jocc->term1.getType() != StringType::ID) throw "lhs should be ID";
+    if (hasSeen(nodeName)) throw std::runtime_error("cant visit node twice");
+    else if (jocc->term1.getType() != StringType::ID) throw std::runtime_error("lhs should be ID");
     visitOrder.push_back(nodeName);
     Relations::Relop op = negate ? Relations::negateRelop(jocc->op) : jocc->op;
     pathConditions.insert({nodeName, Condition(jocc->term1, op, jocc->term2)});
     auto t1var = jocc->term1.getVarWrapper()->getSymbolicVariable(this);
-    if (!t1var) throw "comparing unknown var or constants";
+    if (!t1var) throw std::runtime_error("comparing unknown var or constants");
     bool t1constructed = jocc->term1.getVarWrapper()->getSymbolicVariable(this).constructed();
     if (jocc->term2.getType() == StringType::ID)
     {
         auto t2var = jocc->term2.getVarWrapper()->getSymbolicVariable(this);
-        if (!t2var) throw "comparing unknown var";
+        if (!t2var) throw std::runtime_error("comparing unknown var");
         switch(op)
         {
             case Relations::LT:
@@ -218,7 +218,7 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
             case Relations::NEQ:
                 return t1var->addNEQ(jocc->term2.getVarWrapper(), this, t1constructed);
             default:
-                throw "unknown op";
+                throw std::runtime_error("unknown op");
         }
     }
     else
@@ -243,7 +243,7 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
                 t1var->addNEQConst(string(jocc->term2));
                 return true;
             default:
-                throw "unknown relop";
+                throw std::runtime_error("unknown relop");
         }
     }
 }
@@ -255,18 +255,18 @@ CFGNode* SymbolicExecutionManager::getFailNode(shared_ptr<SymbolicExecutionFring
     {
         if (returningSEF->symbolicStack->isEmpty())
         {
-            if (!n->isLastNode()) throw "returns too early";
+            if (!n->isLastNode()) throw std::runtime_error("returns too early");
             return nullptr;
         }
 
-        if (returningSEF->symbolicStack->peekTopType() != SymbolicStackMemberType::STATE) throw "tried to jump to non-state";
+        if (returningSEF->symbolicStack->peekTopType() != SymbolicStackMemberType::STATE) throw std::runtime_error("tried to jump to non-state");
 
         failNode = n->getParentGraph().getNode(returningSEF->symbolicStack->popState());
-        if (failNode == nullptr) throw "tried to jump to a nonexisting state";
+        if (failNode == nullptr) throw std::runtime_error("tried to jump to a nonexisting state");
         else //check its in successors of n
         if (find(n->getSuccessorVector().begin(), n->getSuccessorVector().end(), failNode) == n->getSuccessorVector().end())
         {
-            throw "should be successor";
+            throw std::runtime_error("should be successor");
         }
     }
     return failNode;
@@ -291,7 +291,7 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
     if (jocc != nullptr) //is a conditional jump
     {
         //const comparisons were caught during compilation
-        if (jocc->term1.getType() != StringType::ID) throw "fail";
+        if (jocc->term1.getType() != StringType::ID) throw std::runtime_error("fail");
 
         //note: JOCC constructor ensures that if there is a var there is a var on the LHS
         auto LHS = jocc->term1.getVarWrapper()->getSymbolicVariable(sef.get());

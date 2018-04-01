@@ -32,7 +32,7 @@ bool FunctionTable::containsFunctionPrefix(const std::string& funcName)
 //assumes it's in the right format
 std::string FunctionTable::removeUnderscoreWrappers(std::string underscored)
 {
-    if (underscored.empty()) throw "not good";
+    if (underscored.empty()) throw std::runtime_error("not good");
     unsigned long underscore = 0;
     while (underscored[underscore] != '_') ++underscore;
     underscored.erase(0, underscore+1);
@@ -54,6 +54,6 @@ void FunctionTable::removeFunction(const std::string& ident)
     //string ident = removeUnderscoreWrappers(bye);
     auto it = functionTable.find(ident);
     (*it->second).clearFunctionCalls();
-    if (it == functionTable.cend()) throw "cant find function to remove";
+    if (it == functionTable.cend()) throw std::runtime_error("cant find function to remove");
     functionTable.erase(it);
 }

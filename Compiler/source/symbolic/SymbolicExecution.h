@@ -92,7 +92,7 @@ namespace SymbolicExecution
 
             void incrementPoppedCounter()
             {
-                if (poppedCounter >= pseudoStack.size()) throw "went too far";
+                if (poppedCounter >= pseudoStack.size()) throw std::runtime_error("went too far");
                 ++poppedCounter;
             }
 
@@ -100,7 +100,7 @@ namespace SymbolicExecution
 
             std::unique_ptr<SymbolicVariable> popVar()
             {
-                if (!hasPop()) throw "popped empty stack";
+                if (!hasPop()) throw std::runtime_error("popped empty stack");
                 return pseudoStack[poppedCounter++]->varptr->clone();
             }
         };

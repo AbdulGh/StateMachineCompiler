@@ -180,8 +180,8 @@ public:
     std::unique_ptr<SymbolicDouble> cloneSD();
     SymbolicVariable* cloneRaw() override;
 
-    void maxUpperBound();
-    void minLowerBound();
+    void maxUpperBound(); void removeUpperBound();
+    void minLowerBound(); void removeLowerBound();
     bool setTLowerBound(const double& d, bool closed = true) override;
     bool setTUpperBound(const double& d, bool closed = true) override;
     bool clipTLowerBound(const double& d, bool closed = true) override;
@@ -265,8 +265,8 @@ public:
     bool unionLowerBound(const std::string& lb, bool closed = true) override;
     bool setUpperBound(const std::string& ub, bool closed = true) override;
     bool setLowerBound(const std::string& lb, bool closed = true) override;
-    void iterateTo(const std::string& to, bool closed) {throw "not changing";};
-    void iterateTo(SymbolicVariable* sv, bool closed) {throw "not changing";}
+    void iterateTo(const std::string& to, bool closed) {throw std::runtime_error("not changing");};
+    void iterateTo(SymbolicVariable* sv, bool closed) {throw std::runtime_error("not changing");}
 
     //I am pretending string don't exist
     void setTRepeatLowerBound(const std::string& lb, bool closed) {};

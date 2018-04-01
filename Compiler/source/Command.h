@@ -71,12 +71,12 @@ public:
     //returns true if the symbolic execution of this command went through
     virtual bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat = false);
 
-    virtual const std::string& getState() const {throw "no state";}
-    virtual void setState(const std::string& data) {throw "no state";}
-    virtual Atom& getAtom() {throw "no atom";}
-    virtual void setAtom(Atom data) {throw "no atom";}
-    virtual const std::unique_ptr<VarWrapper>& getVarWrapper() const {throw "doesn't set var";}
-    virtual void setVarWrapper(std::unique_ptr<VarWrapper> sv) {throw "doesn't set var";}
+    virtual const std::string& getState() const {throw std::runtime_error("no state");}
+    virtual void setState(const std::string& data) {throw std::runtime_error("no state");}
+    virtual Atom& getAtom() {throw std::runtime_error("no atom");}
+    virtual void setAtom(Atom data) {throw std::runtime_error("no atom");}
+    virtual const std::unique_ptr<VarWrapper>& getVarWrapper() const {throw std::runtime_error("doesn't set var");}
+    virtual void setVarWrapper(std::unique_ptr<VarWrapper> sv) {throw std::runtime_error("doesn't set var");}
 
     CommandType getType() const
     {
@@ -259,13 +259,13 @@ public:
 
     const std::string& getState() const override
     {
-        if (!pushesState()) throw "doesn't push state";
+        if (!pushesState()) throw std::runtime_error("doesn't push state");
         return state;
     }
 
     Atom& getAtom() override
     {
-        if (pushesState()) throw "doesn't push atom";
+        if (pushesState()) throw std::runtime_error("doesn't push atom");
         return *atom;
     }
 
@@ -398,7 +398,7 @@ public:
     DeclareArrayCommand(std::string n, const unsigned long& s, int linenum):
             DeclareCommand(DeclareType::ARRAY, DOUBLE, linenum), name(move(n)), size(s)
     {
-        if (size == 0) throw "arrays have size >0";
+        if (size == 0) throw std::runtime_error("arrays have size >0");
     }
 
     std::unique_ptr<AbstractCommand> clone() override
