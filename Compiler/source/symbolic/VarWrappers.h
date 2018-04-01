@@ -14,8 +14,6 @@ class SymbolicArray;
 class SymbolicDouble;
 namespace SymbolicExecution{class SymbolicExecutionFringe;};
 
-enum class AccessType{DIRECT, BYARRAY};
-
 template <typename T>
 class GottenVarPtr
 {
@@ -139,7 +137,7 @@ public:
     void setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv) override;
     void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv) override;
     void nondet(SymbolicExecution::SymbolicExecutionFringe* sef) override;
-    bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const override; //todo check to make sure return gets used
+    bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     std::string getFullName() const override;
     std::unique_ptr<VarWrapper> clone() const override;
 };

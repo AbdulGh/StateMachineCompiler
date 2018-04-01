@@ -2,7 +2,7 @@
 #include "../symbolic/VarWrappers.h"
 
 using namespace std;
-void Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType, unique_ptr<VarWrapper> uid) //todo remember why this returns a vtype
+void Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType, unique_ptr<VarWrapper> uid)
 {
     match(Type::CALL);
     string fid = plainIdent();

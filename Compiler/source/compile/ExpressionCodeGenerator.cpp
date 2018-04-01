@@ -113,7 +113,7 @@ AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
     else parent.error("Expected identifier or double in expression");
 }
 
-unsigned int ExpressionCodeGenerator::nextTemp = 0; //todo quick make next two return SVByName
+unsigned int ExpressionCodeGenerator::nextTemp = 0;
 std::unique_ptr<VarWrapper> ExpressionCodeGenerator::genTemp(FunctionSymbol* fs, unsigned int i)
 {
     if (i == 0) return goingto->clone();

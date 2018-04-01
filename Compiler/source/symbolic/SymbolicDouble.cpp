@@ -172,7 +172,7 @@ void SymbolicDouble::removeUpperBound()
     upperBound = numeric_limits<double>::max();
 }
 
-bool SymbolicDouble::clipTLowerBound(const double& d, bool closed) //todo forgetting stuff
+bool SymbolicDouble::clipTLowerBound(const double& d, bool closed)
 {
     if (d > getTLowerBound()) return setTLowerBound(d, closed);
     else return isFeasable();
@@ -291,6 +291,12 @@ void SymbolicDouble::setTRepeatLowerBound(const double& lb, bool closed)
 void SymbolicDouble::setRepeatLowerBound(const std::string& lb, bool closed)
 {
     setTRepeatLowerBound(stod(lb), closed);
+}
+
+void SymbolicDouble::resetRepeatBounds()
+{
+    repeatLower = numeric_limits<double>::lowest();
+    repeatUpper = numeric_limits<double>::max();
 }
 
 void SymbolicDouble::clipTRepeatUpperBound(const double& ub, bool closed)
@@ -487,7 +493,7 @@ void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other, bool increment)
     addConstToLower(otherLowerBound);
     addConstToUpper(otherUpperBound);
 
-    if (increment)
+    if (!increment)
     {
         minChange += other.minChange;
         maxChange += other.maxChange;

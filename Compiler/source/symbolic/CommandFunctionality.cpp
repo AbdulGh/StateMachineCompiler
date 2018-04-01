@@ -3,6 +3,7 @@
 //
 
 #include "../Command.h"
+#include "SymbolicVariables.h"
 #include "VarWrappers.h"
 
 using namespace std;
@@ -216,10 +217,9 @@ bool Atom::operator==(const Atom& right) const
     else return (*sptr) == *(right.sptr);
 }
 
-
 bool Atom::isHolding() const {return holding;}
 
-const std::string* Atom::getString() const //todo make this return string ref directly
+const std::string* Atom::getString() const
 {
     return sptr;
 }
@@ -235,6 +235,14 @@ Atom::operator std::string() const
 {
     if (holding) return vptr->getFullName();
     else return *sptr;
+}
+
+void Atom::resetRepeatBounds(SymbolicExecution::SymbolicExecutionFringe* sef)
+{
+    if (!isHolding()) throw runtime_error("not holding unique ptr");
+    GottenVarPtr<SymbolicVariable> gsv = vptr->getSymbolicVariable(sef);
+    gsv->resetRepeatBounds();
+    if (gsv.constructed()) vptr->setSymbolicVariable(sef, gsv.get());
 }
 
 //JumpOnComparisonCommand

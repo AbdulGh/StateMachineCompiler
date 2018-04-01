@@ -199,14 +199,13 @@ public:
 
     bool set(unsigned int n, double v)
     {
-        SymbolicDouble sd("constDouble", reporter);
-        sd.setTConstValue(v);
-        set(n, &sd); //todo this gets built and immediately cloned
+        std::unique_ptr<SymbolicDouble> sd = std::make_unique<SymbolicDouble>("constDouble", reporter);
+        sd->setTConstValue(v);
+        set(n, std::move(sd));
     }
 
-    bool set(unsigned int n, SymbolicDouble* sdr) //todo check if we need to clone sdr
+    bool set(unsigned int n, std::unique_ptr<SymbolicDouble> sd)
     {
-        std::unique_ptr<SymbolicDouble> sd = sdr->cloneSD();
         if (n >= size)
         {
             reporter.error(Reporter::ARRAY_BOUNDS,
@@ -239,6 +238,12 @@ public:
             }
         }
         throw std::runtime_error("shouldnt reach here");
+    }
+
+    bool set(unsigned int n, SymbolicDouble* sdr)
+    {
+        std::unique_ptr<SymbolicDouble> sd = sdr->cloneSD();
+        set(n, std::move(sd));
     }
 
     bool set(SymbolicDouble* index, SymbolicDouble* sdr)
@@ -337,9 +342,9 @@ public:
 
     void nondet(unsigned int i)
     {
-        SymbolicDouble undet("undet", reporter);
-        undet.nondet();
-        set(i, &undet);
+        std::unique_ptr<SymbolicDouble> undet = std::make_unique<SymbolicDouble>("undet", reporter);
+        undet->nondet();
+        set(i, move(undet));
     }
 
     void nondet(SymbolicDouble* index)

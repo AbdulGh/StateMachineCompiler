@@ -52,6 +52,9 @@ void Compiler::compile(stringstream& out)
     unordered_map<string, SRPointer>& tags
             = symbolicExecutionManager.search();
 
+    cout << cfg.getDotGraph();
+    return;
+
     vector<unique_ptr<Loop>> loops = LengTarj(cfg).findLoops();
     for (auto& loop : loops) loop->validate(tags);
     return;

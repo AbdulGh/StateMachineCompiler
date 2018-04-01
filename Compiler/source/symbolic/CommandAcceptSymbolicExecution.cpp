@@ -189,13 +189,13 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
             double constTerm; VarWrapper* varWrapper;
             if (!term1.isLit)
             {
-                term1.vg->check(sef.get());
+                if (!term1.vg->check(sef.get())) return false;
                 varWrapper = term1.vg.get();
                 constTerm = term2.d;
             }
             else
             {
-                term2.vg->check(sef.get());
+                if (!term2.vg->check(sef.get())) return false;
                 varWrapper = term2.vg.get();
                 constTerm = term1.d;
             }
@@ -329,10 +329,10 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 return true;
             }
 
-            term1.vg->check(sef.get());
+            if (!term1.vg->check(sef.get())) return false;
             if (!term2.isLit) //var and var
             {
-                term2.vg->check(sef.get());
+                if (!term2.vg->check(sef.get())) return false;
                 GottenVarPtr<SymbolicDouble> t2 = term2.vg->getSymbolicDouble(sef.get());
 
                 if (op == MINUS) result->minusSymbolicDouble(*t2, vs->getFullName() == term1.vg->getFullName());

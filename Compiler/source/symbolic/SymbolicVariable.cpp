@@ -185,7 +185,6 @@ bool SymbolicVariable::addNEQ(const VarWrapper* vg, SymbolicExecutionFringe* sef
     return isFeasable() && sv->isFeasable();
 }
 
-//todo wrapper for seen sets
 bool SymbolicVariable::guaranteedLT(SymbolicVariable* searchFor, SymbolicVariable* searchInit, set<SymbolicVariable*>& seen)
 {
     auto addLT = [&, this, searchFor] () -> void
@@ -487,7 +486,10 @@ template <typename T>
 void SymbolicVariableTemplate<T>::setTConstValue(const T &cv)
 {
     define();
-    clearAll(); //todo make forgetting more intelligent
+    if (isDetermined() && cv == getTConstValue()) return;
+    if (cv >= upperBound) clearGreater();
+    else if (cv <= lowerBound) clearLess();
+    else clearAll();
     upperBound = lowerBound = cv;
 }
 

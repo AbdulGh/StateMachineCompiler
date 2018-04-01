@@ -41,6 +41,7 @@ public:
     void become(const Atom& a);
     void set(const std::string& sptr);
     void set(std::unique_ptr<VarWrapper> sptr);
+    void resetRepeatBounds(SymbolicExecution::SymbolicExecutionFringe* sef);
     operator std::string() const;
     //used to put assignments in maps in dataflow
     bool operator<(const Atom& right) const;
@@ -48,7 +49,6 @@ public:
     ~Atom();
 };
 
-//todo move type into AC constructor
 class AbstractCommand
 {
 private:

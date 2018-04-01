@@ -355,7 +355,7 @@ string ControlFlowGraph::getDotGraph()
     }
     outs << "}\n";
 
-    //if you define edgen within subgraphs, nodes get placed in the wrong clusters
+    //if you define edges within subgraphs, nodes get placed in the wrong clusters
     for (auto& it : ordered)
     {
         outs << it.second->getDotEdges();

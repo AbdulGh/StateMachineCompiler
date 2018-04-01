@@ -101,7 +101,7 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
     for (auto pair: nodes) varChanges.emplace(pair.first, NodeChangeMap());
 
     string badExample;
-    searchNode(headerNode, varChanges, tags, sef, badExample, false);
+    searchNode(headerNode, varChanges, tags, sef, badExample, nullptr, false);
 
     if (!goodPathFound)
     {
@@ -138,11 +138,23 @@ inline void mergeMaps(NodeChangeMap& intoMap, NodeChangeMap& fromMap)
     }
 }
 
+
+
 bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string, unique_ptr<SearchResult>>& tags,
-                      SEFPointer sef, string& badExample, bool headerSeen)
+                      SEFPointer sef, string& badExample, JumpOnComparisonCommand* prevJocc, bool headerSeen)
 {
     auto it = nodes.find(node);
     if (it == nodes.end()) throw std::runtime_error("asked to search outside of loop");
+
+    auto resetInwardVars = [&, prevJocc] (SymbolicExecution::SymbolicExecutionFringe* sef) -> void
+    {
+        if (prevJocc)
+        {
+            if (prevJocc->term1.isHolding()) prevJocc->term1.resetRepeatBounds(sef);
+            if (prevJocc->term2.isHolding()) prevJocc->term2.resetRepeatBounds(sef);
+        }
+    };
+
     unique_ptr<SearchResult>& thisNodeSR = tags[node->getName()];
     thisNodeSR->resetPoppedCounter();
 
@@ -255,7 +267,6 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                     if (condition.rhs.isHolding())
                     {
                         long double slowest; long double fastest;
-                        auto debug = static_cast<SymbolicDouble*>(sef->symbolicVarSet->findVar("RHS"));
                         const VarWrapper* rhsVW = condition.rhs.getVarWrapper();
                         GottenVarPtr<SymbolicDouble> rhs = rhsVW->getSymbolicDouble(sef.get());
                         varInQuestion->getRelativeVelocity(rhs.get(), slowest, fastest);
@@ -330,7 +341,8 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                         if (it == nodes.end() || inNested && it->second != nullptr) goodPathFound = true;
                         else
                         {
-                            searchNode(nextNode, varChanges, tags, newSEF, badExample);
+                            resetInwardVars(newSEF.get());
+                            searchNode(nextNode, varChanges, tags, newSEF, badExample, nullptr);
                             mergeMaps(varChanges.at(node), varChanges.at(nextNode));
                         }
                     }
@@ -339,7 +351,8 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             else
             {
                 if (nodes.find(failNode) == nodes.end()) throw std::runtime_error("unconditional jump should be in the loop");
-                bool t = searchNode(failNode, varChanges, tags, sef, badExample);
+                resetInwardVars(sef.get());
+                bool t = searchNode(failNode, varChanges, tags, sef, badExample, nullptr);
                 mergeMaps(varChanges.at(node), varChanges.at(failNode));
                 return t;
             }
@@ -383,41 +396,49 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                 generateNodeChanges();
                                 goodPathFound = true;
                             }
-                            else if (searchNode(succNode, varChanges, tags, sefSucc, newBadExample))
+                            else
                             {
-                                mergeMaps(varChanges.at(node), varChanges.at(succNode));
-
-                                //check if we can move out of must 'MUST'
-                                if (lhVar->isIncrementable())
+                                resetInwardVars(sefSucc.get());
+                                if (searchNode(succNode, varChanges, tags, sefSucc, newBadExample, jocc))
                                 {
-                                    unsigned short int termChange = varChanges.at(node)[string(jocc->term1)];
-                                    bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) && termChange & FDECREASING != 0 ||
-                                                     (jocc->op == Relations::LT || jocc->op == Relations::LE) && termChange & FINCREASING != 0 ||
-                                                     (jocc->op == Relations::EQ && termChange & FFRESH != 0);
-                                    if (goingAway)
+                                    mergeMaps(varChanges.at(node), varChanges.at(succNode));
+
+                                    //check if we can move out of must 'MUST'
+                                    if (lhVar->isIncrementable())
                                     {
-                                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFailure
-                                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                                        if (sefFailure->addPathCondition(node->getName(), jocc, true))
+                                        unsigned short int termChange = varChanges.at(node)[string(jocc->term1)];
+                                        bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) &&
+                                                         termChange & FDECREASING != 0 ||
+                                                         (jocc->op == Relations::LT || jocc->op == Relations::LE) &&
+                                                         termChange & FINCREASING != 0 ||
+                                                         (jocc->op == Relations::EQ && termChange & FFRESH != 0);
+                                        if (goingAway)
                                         {
-                                            it = nodes.find(failNode);
-                                            if (it == nodes.end() || inNested && it->second != nullptr)
+                                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFailure
+                                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                                            if (sefFailure->addPathCondition(node->getName(), jocc, true))
                                             {
-                                                generateNodeChanges();
-                                                goodPathFound = true;
-                                            }
-                                            else
-                                            {
-                                                jocc->term1.getVarWrapper()->getSymbolicVariable(sefFailure.get())->iterateTo(RHS);
-                                                if (searchNode(failNode, varChanges, tags, sef, badExample))
+                                                it = nodes.find(failNode);
+                                                if (it == nodes.end() || inNested && it->second != nullptr)
                                                 {
-                                                    mergeMaps(varChanges.at(node), varChanges.at(failNode));
+                                                    generateNodeChanges();
+                                                    goodPathFound = true;
+                                                }
+                                                else
+                                                {
+                                                    jocc->term1.getVarWrapper()->getSymbolicVariable(
+                                                            sefFailure.get())->iterateTo(RHS);
+                                                    resetInwardVars(sefFailure.get());
+                                                    if (searchNode(failNode, varChanges, tags, sef, badExample, jocc))
+                                                    {
+                                                        mergeMaps(varChanges.at(node), varChanges.at(failNode));
+                                                    }
                                                 }
                                             }
                                         }
+                                        if (badExample.empty()) badExample = newBadExample;
+                                        break;
                                     }
-                                    if (badExample.empty()) badExample = newBadExample;
-                                    break;
                                 }
                             }
                         }
@@ -434,39 +455,46 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                 generateNodeChanges();
                                 goodPathFound = true;
                             }
-                            else if (searchNode(failNode, varChanges, tags, sefFailure, newBadExample))
+                            else
                             {
-                                mergeMaps(varChanges.at(node), varChanges.at(failNode));
-
-                                if (lhVar->isIncrementable())
+                                resetInwardVars(sefFailure.get());
+                                if (searchNode(failNode, varChanges, tags, sefFailure, newBadExample, jocc))
                                 {
-                                    unsigned short int termChange = varChanges.at(node)[string(jocc->term1)];
-                                    bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) && termChange & FINCREASING != 0 ||
-                                                     (jocc->op == Relations::LT || jocc->op == Relations::LE) && termChange & FDECREASING != 0 ||
-                                                     (jocc->op == Relations::EQ && termChange & FFRESH != 0);
-                                    if (goingAway)
+                                    mergeMaps(varChanges.at(node), varChanges.at(failNode));
+
+                                    if (lhVar->isIncrementable())
                                     {
-                                        shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
-                                                = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                                        if (sefSucc->addPathCondition(node->getName(), jocc))
+                                        unsigned short int termChange = varChanges.at(node)[string(jocc->term1)];
+                                        bool goingAway = (jocc->op == Relations::GT || jocc->op == Relations::GE) &&
+                                                         termChange & FINCREASING != 0 ||
+                                                         (jocc->op == Relations::LT || jocc->op == Relations::LE) &&
+                                                         termChange & FDECREASING != 0 ||
+                                                         (jocc->op == Relations::EQ && termChange & FFRESH != 0);
+                                        if (goingAway)
                                         {
-                                            it = nodes.find(succNode);
-                                            if (it == nodes.end() || inNested && it->second != nullptr)
+                                            shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
+                                                    = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                                            if (sefSucc->addPathCondition(node->getName(), jocc))
                                             {
-                                                generateNodeChanges();
-                                                goodPathFound = true;
-                                            }
-                                            else
-                                            {
-                                                jocc->term1.getVarWrapper()->getSymbolicVariable(sefSucc.get())->iterateTo(RHS);
-                                                if (searchNode(succNode, varChanges, tags, sefSucc, badExample))
+                                                it = nodes.find(succNode);
+                                                if (it == nodes.end() || inNested && it->second != nullptr)
                                                 {
-                                                    mergeMaps(varChanges.at(node), varChanges.at(succNode));
+                                                    generateNodeChanges();
+                                                    goodPathFound = true;
+                                                } else
+                                                {
+                                                    jocc->term1.getVarWrapper()->getSymbolicVariable(
+                                                            sefSucc.get())->iterateTo(RHS);
+                                                    resetInwardVars(sefSucc.get());
+                                                    if (searchNode(succNode, varChanges, tags, sefSucc, badExample, jocc))
+                                                    {
+                                                        mergeMaps(varChanges.at(node), varChanges.at(succNode));
+                                                    }
                                                 }
                                             }
                                         }
+                                        if (badExample.empty()) badExample = newBadExample;
                                     }
-                                    if (badExample.empty()) badExample = newBadExample;
                                 }
                             }
                         }
@@ -487,7 +515,9 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                             }
                             else
                             {
-                                if (firstSearched = searchNode(failNode, varChanges, tags, sefFailure, badExample))
+                                resetInwardVars(sefFailure.get());
+                                if (firstSearched = searchNode(failNode, varChanges, tags,
+                                                               sefFailure, badExample, jocc))
                                 {
                                     mergeMaps(varChanges.at(node), varChanges.at(failNode));
                                 }
@@ -504,10 +534,14 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                 generateNodeChanges();
                                 goodPathFound = true;
                             }
-                            else if (searchNode(succNode, varChanges, tags, sefSucc, badExample))
+                            else
                             {
-                                if (firstSearched) mergeMaps(varChanges.at(node), varChanges.at(succNode));
-                                else mergeMaps(varChanges.at(node), varChanges.at(succNode));
+                                resetInwardVars(sefSucc.get());
+                                if (searchNode(succNode, varChanges, tags, sefSucc, badExample, jocc))
+                                {
+                                    if (firstSearched) mergeMaps(varChanges.at(node), varChanges.at(succNode));
+                                    else mergeMaps(varChanges.at(node), varChanges.at(succNode));
+                                }
                             }
                         }
                         break;
@@ -516,7 +550,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                         throw std::runtime_error("weird enum");
                 }
             }
-            else //todo next make this two sided
+            else
             {
                 long double slowestApproach;
                 long double fastestApproach;
@@ -538,7 +572,8 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                     = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
                             if (sefSucc->addPathCondition(node->getName(), jocc))
                             {
-                                searchNode(succNode, varChanges, tags, sefSucc, badExample);
+                                resetInwardVars(sefSucc.get());
+                                searchNode(succNode, varChanges, tags, sefSucc, badExample, jocc);
                                 mergeMaps(varChanges.at(node), varChanges.at(succNode));
                             }
                         }
@@ -562,7 +597,8 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                             jocc->term1.getVarWrapper()->getSymbolicVariable(sefFail.get())->iterateTo(rhVar.get(), closed);
                             if (sefFail->addPathCondition(node->getName(), jocc, true))
                             {
-                                searchNode(failNode, varChanges, tags, sefFail, badExample);
+                                resetInwardVars(sefFail.get());
+                                searchNode(failNode, varChanges, tags, sefFail, badExample, jocc);
                                 mergeMaps(varChanges.at(node), varChanges.at(failNode));
                             }
                         }
@@ -583,7 +619,8 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                     = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
                             if (sefFail->addPathCondition(node->getName(), jocc, true))
                             {
-                                searchNode(node->getCompFail(), varChanges, tags, sefFail, badExample);
+                                resetInwardVars(sefFail.get());
+                                searchNode(node->getCompFail(), varChanges, tags, sefFail, badExample, jocc);
                                 mergeMaps(varChanges.at(node), varChanges.at(failNode));
                             }
                         }
@@ -606,7 +643,8 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                 jocc->term1.getVarWrapper()->getSymbolicVariable(sefSucc.get())->iterateTo(rhVar.get(), closed);
                                 if (sefSucc->addPathCondition(node->getName(), jocc))
                                 {
-                                    searchNode(succNode, varChanges, tags, sefSucc, badExample);
+                                    resetInwardVars(sefSucc.get());
+                                    searchNode(succNode, varChanges, tags, sefSucc, badExample, jocc);
                                     mergeMaps(varChanges.at(node), varChanges.at(succNode));
                                 }
                             }
@@ -626,8 +664,9 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                         {
                             shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
                                     = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
+                            resetInwardVars(sefSucc.get());
                             if (sefSucc->addPathCondition(node->getName(), jocc)
-                                && searchNode(node->getCompSuccess(), varChanges, tags, sefSucc, badExample))
+                                && searchNode(node->getCompSuccess(), varChanges, tags, sefSucc, badExample, jocc))
                             {
                                 mergeMaps(varChanges.at(node), varChanges.at(node->getCompSuccess()));
                             }
@@ -645,7 +684,8 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                     = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
                             if (sefFail->addPathCondition(node->getName(), jocc, true))
                             {
-                                searchNode(node->getCompFail(), varChanges, tags, sefFail, badExample);
+                                resetInwardVars(sefFail.get());
+                                searchNode(node->getCompFail(), varChanges, tags, sefFail, badExample, jocc);
                                 mergeMaps(varChanges.at(node), varChanges.at(failNode));
                             }
                         }

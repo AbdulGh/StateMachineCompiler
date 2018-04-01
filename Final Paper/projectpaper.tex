@@ -530,7 +530,7 @@ This is noted by the program and it is classified as termiating. Inverting the c
 results in a nonterminating program that is detected.
 
 \pagebreak
-\subsubsection{Multiplication \cite[C.1]{tra}}
+\subsubsection{Multiplication \cite[C.1]{tra}} \label{mult}
 
 \begin{wrapfigure}{r}{0.35\textwidth}
 \centering
@@ -601,21 +601,17 @@ itself can me used to further optimise code, for example by detecting infeasible
 
 Finally this method is very easy to use, as the only input it requires from the user is the source program, and it runs automatically in the background. It does
 not require any modifications to the source code (i.e. annotations given in first order logic), and it does not have any learning curve (i.e. it is not a separate
-program with many commands and operating modes à la Valgrind/GDB). 
+program with many commands and operating modes \`a la Valgrind/GDB). 
 
 \subsubsection{Minuses}
-\textbf{Path dependencies.} 
-
-Currently, as long as we think we can leave a path we call it terminating. Consider now two paths that can alternate forever, or
-one path that once entered will be revisited infinitely often - our method accepts these cases as terminating.
+\textbf{Path dependencies.} As long as we think we can leave a path we call it terminating. Consider now two paths that can alternate forever, or
+one path that once entered can be left but will be revisited infinitely often - our method falsely accepts these cases as terminating.
 
 An approach discussed earlier \citep{loopster} builds a graph where the nodes are loop paths and the edges possible transitions between the paths, annotated with
 conditions that must be met for this transition to take place. Our method ony looks for nodes with only self loops - a better approach would look for feasible cycles.
 
 \textbf{Short sightedness.} Our method extrapolates as much as possible by inspecting the behaviour of the variables only on the first iteration. Complicated loops can exhibit behaviour that requires more work to uncover. For example, a variable may be decremented by another variable that is begins positive but is itself
 decreasing:
-
-\textbf{Division and multiplication}.
 
 \begin{center}
 \begin{minipage}{5.5cm}
@@ -629,7 +625,7 @@ while (x < y){
 \end{minipage}
 \end{center}
 
-The solution would declare $x$ decreasing and the loop nonterminating, although this is not the case.
+The solution would declare $x$ decreasing and the loop nonterminating, although this is not the case.\\
 
 \textbf{Integers and equalities/inequalities.} Our method currently deals with every numerical type as if it was a double. This introduces innacuracies. For example, it accepts as halting
 the probematic code fragment
@@ -641,11 +637,15 @@ while (x != 0) x = x - 2;
 \end{lstlisting}
 \end{minipage}
 \end{center}
-as $x$ begins above the inequality and moves towards it.
+as $x$ begins above the inequality and moves towards it.\\
 
 \textbf{Type 1 and 2 errors.} In this paper we have given an example of a nonterminating fragment that the program accepts as terminating (our modification to the
 Ackermann function) and a terminating fragment we deem nonterminating (\cref{lst:termin}). This unfortunately means that you cannot believe either decision and must
-inspect any diagnostic output manually. 
+inspect any diagnostic output manually.\\
+
+\textbf{Division and multiplication.} Our method works well with linear increments. It does not perform as well with multiplication and division, as it only extrapolates
+from the change that occurs first iteration. For example, in the multiplication example given above (\cref{mult}) it sees that $y$ increases from $1$ to $2$
+and assumes wrongly this will continue forever. More generally, if a variable must be in the range $[l, u]$ and it is multiplied by a nonnegative constant $c$ it is now in the range $[cl, cu]$. If $l$ is nonnegative the method will correctly deduce that that variable is increasing but incorrectly proceed as if that variable is increasing by the same increment each loop. This is an area where a true, high resolution, symbolic representation would be useful.
 
 \subsection{Evaluation of the implementation and development process. Lessons learned.}
 

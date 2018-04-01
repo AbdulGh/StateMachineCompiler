@@ -85,10 +85,11 @@ public:
     virtual bool setUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setLowerBound(const std::string& ub, bool closed=true) = 0;
 
-    virtual void clipRepeatLowerBound(const std::string& lb, bool closed=true) = 0;
-    virtual void clipRepeatUpperBound(const std::string& ub, bool closed=true) = 0;
-    virtual void setRepeatUpperBound(const std::string& ub, bool closed=true) = 0;
-    virtual void setRepeatLowerBound(const std::string& ub, bool closed=true) = 0;
+    virtual void clipRepeatLowerBound(const std::string& lb, bool closed=true) {}
+    virtual void clipRepeatUpperBound(const std::string& ub, bool closed=true) {}
+    virtual void setRepeatUpperBound(const std::string& ub, bool closed=true) {}
+    virtual void setRepeatLowerBound(const std::string& ub, bool closed=true) {}
+    virtual void resetRepeatBounds() {}
 
     virtual bool unionVar(const SymbolicVariable* unionFrom) = 0;
     virtual void iterateTo(const std::string& to, bool closed=true) = 0;
@@ -140,12 +141,7 @@ public:
     virtual bool unionTUpperBound(const T& up, bool closed) = 0;
     virtual void unionTConstValue(const T& cv, bool closed) = 0;
     virtual void setTConstValue(const T& cv);
-
-    virtual void setTRepeatLowerBound(const T& lb, bool closed) = 0;
-    virtual void setTRepeatUpperBound(const T& up, bool closed) = 0;
-    virtual void clipTRepeatLowerBound(const T& lb, bool closed) = 0;
-    virtual void clipTRepeatUpperBound(const T& up, bool closed) = 0;
-
+    
     const T& getTConstValue();
     const T& getTUpperBound() const;
     const T& getTLowerBound() const;
@@ -203,14 +199,15 @@ public:
     void iterateTo(SymbolicVariable* to, bool closed=true);
     bool getRelativeVelocity(SymbolicVariable* other, long double& slowest, long double& fastest) const override;
 
-    void setTRepeatLowerBound(const double& lb, bool closed) override;
-    void setTRepeatUpperBound(const double& up, bool closed) override;
-    void clipTRepeatLowerBound(const double& lb, bool closed) override;
-    void clipTRepeatUpperBound(const double& up, bool closed) override;
+    void setTRepeatLowerBound(const double& lb, bool closed);
+    void setTRepeatUpperBound(const double& up, bool closed);
+    void clipTRepeatLowerBound(const double& lb, bool closed);
+    void clipTRepeatUpperBound(const double& up, bool closed);
     void clipRepeatLowerBound(const std::string& lb, bool closed=true) override;
     void clipRepeatUpperBound(const std::string& ub, bool closed=true) override;
     void setRepeatUpperBound(const std::string& ub, bool closed=true) override;
     void setRepeatLowerBound(const std::string& ub, bool closed=true) override;
+    void resetRepeatBounds() override;
 
     void userInput() override;
     void nondet() override;
@@ -267,16 +264,6 @@ public:
     bool setLowerBound(const std::string& lb, bool closed = true) override;
     void iterateTo(const std::string& to, bool closed) {throw std::runtime_error("not changing");};
     void iterateTo(SymbolicVariable* sv, bool closed) {throw std::runtime_error("not changing");}
-
-    //I am pretending string don't exist
-    void setTRepeatLowerBound(const std::string& lb, bool closed) {};
-    void setTRepeatUpperBound(const std::string& up, bool closed) {};
-    void clipTRepeatLowerBound(const std::string& lb, bool closed) {};
-    void clipTRepeatUpperBound(const std::string& up, bool closed) {};
-    void clipRepeatLowerBound(const std::string& lb, bool closed=true) {};
-    void clipRepeatUpperBound(const std::string& ub, bool closed=true) {};
-    void setRepeatUpperBound(const std::string& ub, bool closed=true) {};
-    void setRepeatLowerBound(const std::string& ub, bool closed=true) {};
 
     void userInput() override;
     void nondet() override;
