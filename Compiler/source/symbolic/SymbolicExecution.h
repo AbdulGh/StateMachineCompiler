@@ -123,47 +123,47 @@ namespace SymbolicExecution
         //a path is feasable if it visits itself or reaches the last state
         void visitNode(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n);
         //the below don't check if the ranges are disjoint - this is done in visitNode
-        void branch(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n, std::string lhsvar,
+        void branch(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n, VarWrapper* lhsvar,
                     Relations::Relop op, const std::string& rhsconst, bool reverse = false);
         
         void branchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      std::string lhsvar, const std::string& rhsconst, bool reverse = false);
+                      VarWrapper* lhsvar, const std::string& rhsconst, bool reverse = false);
         
         void branchNE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      std::string lhsvar, const std::string& rhsconst, bool reverse = false);
+                      VarWrapper* lhsvar, const std::string& rhsconst, bool reverse = false);
         
         void branchLE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      std::string lhsvar, const std::string& rhsconst, bool reverse = false);
+                      VarWrapper* lhsvar, const std::string& rhsconst, bool reverse = false);
         
         void branchLT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      std::string lhsvar, const std::string& rhsconst, bool reverse = false);
+                      VarWrapper* lhsvar, const std::string& rhsconst, bool reverse = false);
         
         void branchGE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                           std::string lhsvar, const std::string& rhsconst, bool reverse = false);
+                           VarWrapper* lhsvar, const std::string& rhsconst, bool reverse = false);
         
         void branchGT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      std::string lhsvar, const std::string& rhsconst, bool reverse = false);
+                      VarWrapper* lhsvar, const std::string& rhsconst, bool reverse = false);
         
         void varBranch(std::shared_ptr<SymbolicExecutionFringe>& sef, CFGNode* n,
-                       const VarWrapper* lhsvar, Relations::Relop op, const VarWrapper* rhsvar);
+                       VarWrapper* lhsvar, Relations::Relop op, const VarWrapper* rhsvar);
         
         void varBranchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      const VarWrapper* lhsvar, const VarWrapper* rhsvar);
+                      VarWrapper* lhsvar, const VarWrapper* rhsvar);
         
         void varBranchNE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      const VarWrapper* lhsvar, const VarWrapper* rhsvar);
+                      VarWrapper* lhsvar, const VarWrapper* rhsvar);
         
         void varBranchLE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      const VarWrapper* lhsvar, const VarWrapper* rhsvar);
+                      VarWrapper* lhsvar, const VarWrapper* rhsvar);
         
         void varBranchLT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      const VarWrapper* lhsvar, const VarWrapper* rhsvar);
+                      VarWrapper* lhsvar, const VarWrapper* rhsvar);
         
         void varBranchGE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      const VarWrapper* lhsvar, const VarWrapper* rhsvar);
+                      VarWrapper* lhsvar, const VarWrapper* rhsvar);
         
         void varBranchGT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      const VarWrapper* lhsvar, const VarWrapper* rhsvar);
+                      VarWrapper* lhsvar, const VarWrapper* rhsvar);
 
         static CFGNode* getFailNode(std::shared_ptr<SymbolicExecutionFringe> returningSEF, CFGNode* n);
     };
