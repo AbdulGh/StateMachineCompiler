@@ -1,0 +1,30 @@
+WARNING : ARRAY BOUNDS : Asked to access possibly negative index
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Asked to access possibly negative index
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : OVERFLOW : _3_0_y could possibly exceed double limits
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : OVERFLOW : _3_0_y could possibly exceed double limits
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : OVERFLOW : _3_0_y could possibly exceed double limits
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : OVERFLOW : _3_0_y could possibly exceed double limits
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100

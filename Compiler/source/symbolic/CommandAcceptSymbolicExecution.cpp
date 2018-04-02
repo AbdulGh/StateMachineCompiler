@@ -100,12 +100,7 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
         if (!svp->isFeasable()) return false;
         vs->setSymbolicVariable(sef.get(), svp.get());
     }
-    else
-    {
-        GottenVarPtr<SymbolicVariable> svp = vs->getSymbolicVariable(sef.get());
-        svp->setConstValue(*atom.getString());
-        if (svp.constructed()) vs->setSymbolicVariable(sef.get(), svp.get());
-    }
+    else vs->getSymbolicVariable(sef.get())->setConstValue(*atom.getString());
 
     return true;
 }
@@ -300,7 +295,6 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                         return true;*/
                     }
                 }
-                else t2c = term2.d;
 
                 if (op == MINUS)
                 {

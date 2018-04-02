@@ -351,13 +351,7 @@ template <typename T>
 SymbolicVariableTemplate<T>::SymbolicVariableTemplate(string name, const T lower, const T upper, const T repeatLow, const T repeatUp,
                                       Reporter& r, VariableType t, bool init, bool incrementable):
         SymbolicVariable(name, t, r, init, lower <= upper, incrementable), lowerBound(lower),
-        upperBound(upper), repeatLower(repeatLow), repeatUpper(repeatUp) {
-    if (name == "_2_0_x")
-    {
-        int debug;
-        debug = 2;
-    }
-}
+        upperBound(upper), repeatLower(repeatLow), repeatUpper(repeatUp) {}
 
 template<typename T>
 bool SymbolicVariableTemplate<T>::isDisjointFrom(shared_ptr<SymbolicVariableTemplate<T>> other)
