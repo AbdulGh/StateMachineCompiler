@@ -224,7 +224,7 @@ const std::string* Atom::getString() const
     return sptr;
 }
 
-const VarWrapper* Atom::getVarWrapper() const
+VarWrapper* Atom::getVarWrapper() const
 {
     return vptr;
 }

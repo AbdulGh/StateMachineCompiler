@@ -91,8 +91,7 @@ SymbolicExecutionFringe::SymbolicExecutionFringe(shared_ptr<SymbolicExecutionFri
         symbolicStack(make_shared<SymbolicStack>(p->symbolicStack)),
         symbolicVarSet(make_shared<SymbolicVarSet>(p->symbolicVarSet))
         {seenFunctionCalls = p->seenFunctionCalls;}
-
-
+        
 void SymbolicExecutionFringe::error(Reporter::AlertType a, string s, int linenum)
 {
     if (linenum != -1) s += " (line " + to_string(linenum) + ")";
@@ -332,7 +331,7 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
                 }
                 case SymbolicVariable::MAY:
                 {
-                    branch(sef, n, LHS->getName(), jocc->op, rhs);
+                    branch(sef, n, jocc->term1.getVarWrapper(), jocc->op, rhs);
                     return;
                 }
                 case SymbolicVariable::MUST:
@@ -382,13 +381,13 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
                 else //rhs undetermined, lhs determined
                 {
                     Relations::Relop mirroredOp = Relations::mirrorRelop(jocc->op);
-                    branch(sef, n, RHS->getName(), mirroredOp, LHS->getConstString(), true);
+                    branch(sef, n, jocc->term2.getVarWrapper(), mirroredOp, LHS->getConstString(), true);
                     return;
                 }
             }
             else if (RHS->isDetermined())
             {
-                branch(sef, n, LHS->getName(), jocc->op, RHS->getConstString(), false);
+                branch(sef, n, jocc->term1.getVarWrapper(), jocc->op, RHS->getConstString(), false);
                 return;
             }
 
@@ -405,7 +404,7 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
 
 //these things below will usually be called when we already have
 //a ptr to the vars but we want to copy that var into the 'new scope'
-void SymbolicExecutionManager::branch(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n, string lhsvar,
+void SymbolicExecutionManager::branch(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n, VarWrapper* lhsvar,
                                       Relations::Relop op, const std::string& rhsconst, bool reverse)
 {
     switch(op)
@@ -434,10 +433,12 @@ void SymbolicExecutionManager::branch(shared_ptr<SymbolicExecutionFringe> sef, C
 }
 
 void SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                        string lhsvar, const std::string& rhsconst, bool reverse)
+                                        VarWrapper* lhsvar, const std::string& rhsconst, bool reverse)
 {
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst, false);
+    GottenVarPtr<SymbolicVariable> gvpLT = lhsvar->getSymbolicVariable(seflt.get());
+    gvpLT->setUpperBound(rhsconst, false);
+    if (gvpLT.constructed()) lhsvar->setSymbolicVariable(seflt.get(), gvpLT.get());
     if (reverse) {visitNode(seflt, n->getCompSuccess());}
     else
     {
@@ -450,7 +451,9 @@ void SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
     seflt.reset();
 
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
-    sefeq->symbolicVarSet->findVar(lhsvar)->setConstValue(rhsconst);
+    GottenVarPtr<SymbolicVariable> gvpEQ = lhsvar->getSymbolicVariable(sefeq.get());
+    gvpEQ->setConstValue(rhsconst);
+    if (gvpEQ.constructed()) lhsvar->setSymbolicVariable(sefeq.get(), gvpEQ.get());
     if (reverse)
     {
         if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
@@ -464,7 +467,9 @@ void SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
     sefeq.reset();
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, true);
+    GottenVarPtr<SymbolicVariable> gvpGT = lhsvar->getSymbolicVariable(seflt.get());
+    gvpGT->setLowerBound(rhsconst, false);
+    if (gvpGT.constructed()) lhsvar->setSymbolicVariable(sefgt.get(), gvpGT.get());
 
     if (reverse) {visitNode(sefgt, n->getCompSuccess());}
     else
@@ -479,10 +484,12 @@ void SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
 
 
 void SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                        string lhsvar, const std::string& rhsconst, bool reverse)
+                                        VarWrapper* lhsvar, const std::string& rhsconst, bool reverse)
 {
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst, false);
+    GottenVarPtr<SymbolicVariable> gvpLT = lhsvar->getSymbolicVariable(seflt.get());
+    gvpLT->setUpperBound(rhsconst, false);
+    if (gvpLT.constructed()) lhsvar->setSymbolicVariable(seflt.get(), gvpLT.get());
     if (reverse)
     {
         if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
@@ -495,7 +502,9 @@ void SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
     seflt.reset();
 
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
-    sefeq->symbolicVarSet->findVar(lhsvar)->setConstValue(rhsconst);
+    GottenVarPtr<SymbolicVariable> gvpEQ = lhsvar->getSymbolicVariable(sefeq.get());
+    gvpEQ->setConstValue(rhsconst);
+    if (gvpEQ.constructed()) lhsvar->setSymbolicVariable(sefeq.get(), gvpEQ.get());
     if (reverse) {visitNode(seflt, n->getCompSuccess());}
     else
     {
@@ -507,9 +516,10 @@ void SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
     }
     sefeq.reset();
 
-
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, true);
+    GottenVarPtr<SymbolicVariable> gvpGT = lhsvar->getSymbolicVariable(seflt.get());
+    gvpGT->setLowerBound(rhsconst, false);
+    if (gvpGT.constructed()) lhsvar->setSymbolicVariable(sefgt.get(), gvpGT.get());
     if (reverse)
     {
         if (!(n->isLastNode() && sef->symbolicStack->isEmpty())) {
@@ -522,10 +532,12 @@ void SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
 
 
 void SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                        string lhsvar, const std::string& rhsconst, bool reverse)
+                                        VarWrapper* lhsvar, const std::string& rhsconst, bool reverse)
 {
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst, false);
+    GottenVarPtr<SymbolicVariable> gvpLT = lhsvar->getSymbolicVariable(seflt.get());
+    gvpLT->setUpperBound(rhsconst, false);
+    if (gvpLT.constructed()) lhsvar->setSymbolicVariable(seflt.get(), gvpLT.get());
 
     if (reverse)
     {
@@ -539,7 +551,9 @@ void SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef,
     seflt.reset();
 
     shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
-    sefge->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst);
+    GottenVarPtr<SymbolicVariable> gvpGE = lhsvar->getSymbolicVariable(sefge.get());
+    gvpGE->setLowerBound(rhsconst);
+    if (gvpGE.constructed()) lhsvar->setSymbolicVariable(sefge.get(), gvpGE.get());
     if (reverse) {visitNode(sefge, n->getCompSuccess());}
     else
     {
@@ -553,10 +567,12 @@ void SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef,
 
 
 void SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                        string lhsvar, const std::string& rhsconst, bool reverse)
+                                        VarWrapper* lhsvar, const std::string& rhsconst, bool reverse)
 {
     shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
-    sefle->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst);
+    GottenVarPtr<SymbolicVariable> gvpLE = lhsvar->getSymbolicVariable(sefle.get());
+    gvpLE->setUpperBound(rhsconst);
+    if (gvpLE.constructed()) lhsvar->setSymbolicVariable(sefle.get(), gvpLE.get());
 
     if (reverse)
     {
@@ -570,7 +586,9 @@ void SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef,
     sefle.reset();
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, true);
+    GottenVarPtr<SymbolicVariable> gvpGT = lhsvar->getSymbolicVariable(sefgt.get());
+    gvpGT->setLowerBound(rhsconst, false);
+    if (gvpGT.constructed()) lhsvar->setSymbolicVariable(sefgt.get(), gvpGT.get());
     if (reverse) {visitNode(sefgt, n->getCompSuccess());}
     else
     {
@@ -584,10 +602,12 @@ void SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef,
 
 
 void SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                        string lhsvar, const std::string& rhsconst, bool reverse)
+                                        VarWrapper* lhsvar, const std::string& rhsconst, bool reverse)
 {
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
-    sefgt->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst, false);
+    GottenVarPtr<SymbolicVariable> gvpGT = lhsvar->getSymbolicVariable(sefgt.get());
+    gvpGT->setLowerBound(rhsconst, false);
+    if (gvpGT.constructed()) lhsvar->setSymbolicVariable(sefgt.get(), gvpGT.get());
     if (reverse)
     {
         if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
@@ -600,8 +620,9 @@ void SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef,
     sefgt.reset();
 
     shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
-    sefle->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst);
-
+    GottenVarPtr<SymbolicVariable> gvpLE = lhsvar->getSymbolicVariable(sefle.get());
+    gvpLE->setUpperBound(rhsconst);
+    if (gvpLE.constructed()) lhsvar->setSymbolicVariable(sefle.get(), gvpLE.get());
     if (reverse) {visitNode(sefle, n->getCompSuccess());}
     else
     {
@@ -615,10 +636,12 @@ void SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef,
 
 
 void SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                        string lhsvar, const std::string& rhsconst, bool reverse)
+                                        VarWrapper* lhsvar, const std::string& rhsconst, bool reverse)
 {
     shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
-    sefge->symbolicVarSet->findVar(lhsvar)->setLowerBound(rhsconst);
+    GottenVarPtr<SymbolicVariable> gvpGE = lhsvar->getSymbolicVariable(sefge.get());
+    gvpGE->setLowerBound(rhsconst);
+    if (gvpGE.constructed()) lhsvar->setSymbolicVariable(sefge.get(), gvpGE.get());
 
     if (reverse)
     {
@@ -631,9 +654,10 @@ void SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
     else visitNode(sefge, n->getCompSuccess());
     sefge.reset();
 
-
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
-    seflt->symbolicVarSet->findVar(lhsvar)->setUpperBound(rhsconst, true);
+    GottenVarPtr<SymbolicVariable> gvpLT = lhsvar->getSymbolicVariable(seflt.get());
+    gvpLT->setUpperBound(rhsconst, false);
+    if (gvpLT.constructed()) lhsvar->setSymbolicVariable(seflt.get(), gvpLT.get());
     if (reverse) {visitNode(seflt, n->getCompSuccess());}
     else
     {
@@ -647,7 +671,7 @@ void SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
 
 //branching on var comparison
 void SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe>& sef, CFGNode* n,
-                                         const VarWrapper* LHS, Relations::Relop op, const VarWrapper* RHS)
+                                         VarWrapper* LHS, Relations::Relop op, VarWrapper* RHS)
 {
     switch(op)
     {
@@ -675,7 +699,7 @@ void SymbolicExecutionManager::varBranch(shared_ptr<SymbolicExecutionFringe>& se
 }
 
 void SymbolicExecutionManager::varBranchGE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                           const VarWrapper* lhsvar, const VarWrapper* rhsvar)
+                                           VarWrapper* lhsvar, VarWrapper* rhsvar)
 {
     if (!(n->isLastNode() && sef->symbolicStack->isEmpty())) 
     {
@@ -696,7 +720,7 @@ void SymbolicExecutionManager::varBranchGE(shared_ptr<SymbolicExecutionFringe> s
 
 
 void SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                              const VarWrapper* lhsvar, const VarWrapper* rhsvar)
+                                              VarWrapper* lhsvar, VarWrapper* rhsvar)
 {
     if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
     {
@@ -713,7 +737,7 @@ void SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> s
 }
 
 void SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                              const VarWrapper* lhsvar, const VarWrapper* rhsvar)
+                                              VarWrapper* lhsvar, VarWrapper* rhsvar)
 {
     if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
     {
@@ -730,7 +754,7 @@ void SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> s
 
 
 void SymbolicExecutionManager::varBranchLE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                              const VarWrapper* lhsvar, const VarWrapper* rhsvar)
+                                              VarWrapper* lhsvar, VarWrapper* rhsvar)
 {
     if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
     {
@@ -747,7 +771,7 @@ void SymbolicExecutionManager::varBranchLE(shared_ptr<SymbolicExecutionFringe> s
 
 
 void SymbolicExecutionManager::varBranchNE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                           const VarWrapper* lhsvar, const VarWrapper* rhsvar)
+                                           VarWrapper* lhsvar, VarWrapper* rhsvar)
 {
     if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
     {
@@ -770,7 +794,7 @@ void SymbolicExecutionManager::varBranchNE(shared_ptr<SymbolicExecutionFringe> s
 
 
 void SymbolicExecutionManager::varBranchEQ(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                                           const VarWrapper* lhsvar, const VarWrapper* rhsvar)
+                                           VarWrapper* lhsvar, VarWrapper* rhsvar)
 {
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
     CFGNode* failNode = getFailNode(sefeq, n);
