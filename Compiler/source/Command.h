@@ -36,7 +36,7 @@ public:
     bool isHolding() const;
     StringType getType() const;
     const std::string* getString() const;
-    VarWrapper* getVarWrapper() const;
+    const VarWrapper* getVarWrapper() const;
     void swap(Atom& a);
     void become(const Atom& a);
     void set(const std::string& sptr);
