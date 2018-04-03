@@ -6,6 +6,7 @@
 #include "SymbolicVariables.h"
 
 //todo uniformly changing when set/clip/union is called
+//todo update repeat bounds on arithmetic ops
 
 using namespace std;
 
@@ -326,6 +327,34 @@ void SymbolicDouble::setTRepeatUpperBound(const double& ub, bool closed)
 void SymbolicDouble::setRepeatUpperBound(const std::string& ub, bool closed)
 {
     setTRepeatUpperBound(stod(ub), closed);
+}
+
+void SymbolicDouble::getRepeatBoundsFromComparison(Relations::Relop r, const std::string& rhs)
+{
+    double d = stod(rhs);
+    switch(r)
+    {
+        case Relations::EQ:
+            setTRepeatLowerBound(d, true);
+            setTRepeatUpperBound(d, true);
+            break;
+        case Relations::NEQ:
+            break;
+        case Relations::LT:
+            setTRepeatUpperBound(d, false);
+            break;
+        case Relations::LE:
+            setTRepeatUpperBound(d, true);
+            break;
+        case Relations::GT:
+            setTRepeatUpperBound(d, false);
+            break;
+        case Relations::GE:
+            setTRepeatLowerBound(d, true);
+            break;
+        default:
+            throw runtime_error("bad relop");
+    }
 }
 
 void SymbolicDouble::iterateTo(double toD, bool closed)

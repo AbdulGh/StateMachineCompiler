@@ -91,7 +91,7 @@ SymbolicExecutionFringe::SymbolicExecutionFringe(shared_ptr<SymbolicExecutionFri
         symbolicStack(make_shared<SymbolicStack>(p->symbolicStack)),
         symbolicVarSet(make_shared<SymbolicVarSet>(p->symbolicVarSet))
         {seenFunctionCalls = p->seenFunctionCalls;}
-        
+
 void SymbolicExecutionFringe::error(Reporter::AlertType a, string s, int linenum)
 {
     if (linenum != -1) s += " (line " + to_string(linenum) + ")";
@@ -326,7 +326,11 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
                 case SymbolicVariable::CANT:
                 {
                     CFGNode* nextNode = getFailNode(sef, n);
-                    if (nextNode != nullptr) visitNode(sef, nextNode);
+                    if (nextNode != nullptr)
+                    {
+                        LHS->getRepeatBoundsFromComparison(Relations::negateRelop(jocc->op), rhs);
+                        visitNode(sef, nextNode);
+                    }
                     return;
                 }
                 case SymbolicVariable::MAY:
@@ -336,6 +340,7 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
                 }
                 case SymbolicVariable::MUST:
                 {
+                    LHS->getRepeatBoundsFromComparison(Relations::negateRelop(jocc->op), rhs);
                     visitNode(sef, n->getCompSuccess());
                     return;
                 }
@@ -437,22 +442,27 @@ void SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
 {
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicVariable> gvpLT = lhsvar->getSymbolicVariable(seflt.get());
-    gvpLT->setUpperBound(rhsconst, false);
-    if (gvpLT.constructed()) lhsvar->setSymbolicVariable(seflt.get(), gvpLT.get());
-    if (reverse) {visitNode(seflt, n->getCompSuccess());}
-    else
+    if (gvpLT->setUpperBound(rhsconst, false))
     {
-        if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+        gvpLT->setRepeatUpperBound(rhsconst, false);
+        if (gvpLT.constructed()) lhsvar->setSymbolicVariable(seflt.get(), gvpLT.get());
+        if (reverse) {visitNode(seflt, n->getCompSuccess());}
+        else
         {
-            CFGNode* failNode = getFailNode(seflt, n);
-            if (failNode != nullptr) visitNode(seflt, failNode);
+            if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+            {
+                CFGNode* failNode = getFailNode(seflt, n);
+                if (failNode != nullptr) visitNode(seflt, failNode);
+            }
         }
+        seflt.reset();
     }
-    seflt.reset();
 
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicVariable> gvpEQ = lhsvar->getSymbolicVariable(sefeq.get());
     gvpEQ->setConstValue(rhsconst);
+    gvpEQ->setRepeatUpperBound(rhsconst);
+    gvpEQ->setRepeatLowerBound(rhsconst);
     if (gvpEQ.constructed()) lhsvar->setSymbolicVariable(sefeq.get(), gvpEQ.get());
     if (reverse)
     {
@@ -468,16 +478,19 @@ void SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicVariable> gvpGT = lhsvar->getSymbolicVariable(seflt.get());
-    gvpGT->setLowerBound(rhsconst, false);
-    if (gvpGT.constructed()) lhsvar->setSymbolicVariable(sefgt.get(), gvpGT.get());
-
-    if (reverse) {visitNode(sefgt, n->getCompSuccess());}
-    else
+    if (gvpGT->setLowerBound(rhsconst, false))
     {
-        if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+        gvpGT->setRepeatLowerBound(rhsconst, false);
+        if (gvpGT.constructed()) lhsvar->setSymbolicVariable(sefgt.get(), gvpGT.get());
+
+        if (reverse) {visitNode(sefgt, n->getCompSuccess());}
+        else
         {
-            CFGNode* failNode = getFailNode(sefgt, n);
-            if (failNode != nullptr) visitNode(sefgt, failNode);
+            if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+            {
+                CFGNode* failNode = getFailNode(sefgt, n);
+                if (failNode != nullptr) visitNode(sefgt, failNode);
+            }
         }
     }
 }
@@ -488,22 +501,27 @@ void SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
 {
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicVariable> gvpLT = lhsvar->getSymbolicVariable(seflt.get());
-    gvpLT->setUpperBound(rhsconst, false);
-    if (gvpLT.constructed()) lhsvar->setSymbolicVariable(seflt.get(), gvpLT.get());
-    if (reverse)
+    if (gvpLT->setUpperBound(rhsconst, false))
     {
-        if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+        gvpLT->setRepeatUpperBound(rhsconst, false);
+        if (gvpLT.constructed()) lhsvar->setSymbolicVariable(seflt.get(), gvpLT.get());
+        if (reverse)
         {
-            CFGNode* failNode = getFailNode(seflt, n);
-            if (failNode != nullptr) visitNode(seflt, failNode);
+            if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+            {
+                CFGNode* failNode = getFailNode(seflt, n);
+                if (failNode != nullptr) visitNode(seflt, failNode);
+            }
         }
+        else visitNode(seflt, n->getCompSuccess());
+        seflt.reset();
     }
-    else visitNode(seflt, n->getCompSuccess());
-    seflt.reset();
 
     shared_ptr<SymbolicExecutionFringe> sefeq = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicVariable> gvpEQ = lhsvar->getSymbolicVariable(sefeq.get());
     gvpEQ->setConstValue(rhsconst);
+    gvpEQ->setRepeatUpperBound(rhsconst);
+    gvpEQ->setRepeatLowerBound(rhsconst);
     if (gvpEQ.constructed()) lhsvar->setSymbolicVariable(sefeq.get(), gvpEQ.get());
     if (reverse) {visitNode(seflt, n->getCompSuccess());}
     else
@@ -518,16 +536,19 @@ void SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicVariable> gvpGT = lhsvar->getSymbolicVariable(seflt.get());
-    gvpGT->setLowerBound(rhsconst, false);
-    if (gvpGT.constructed()) lhsvar->setSymbolicVariable(sefgt.get(), gvpGT.get());
-    if (reverse)
+    if (gvpGT->setLowerBound(rhsconst, false))
     {
-        if (!(n->isLastNode() && sef->symbolicStack->isEmpty())) {
-            CFGNode* failNode = getFailNode(seflt, n);
-            if (failNode != nullptr) visitNode(seflt, failNode);
+        gvpGT->setRepeatLowerBound(rhsconst, false);
+        if (gvpGT.constructed()) lhsvar->setSymbolicVariable(sefgt.get(), gvpGT.get());
+        if (reverse)
+        {
+            if (!(n->isLastNode() && sef->symbolicStack->isEmpty())) {
+                CFGNode* failNode = getFailNode(seflt, n);
+                if (failNode != nullptr) visitNode(seflt, failNode);
+            }
         }
+        else visitNode(seflt, n->getCompSuccess());
     }
-    else visitNode(seflt, n->getCompSuccess());
 }
 
 
@@ -536,31 +557,37 @@ void SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef,
 {
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicVariable> gvpLT = lhsvar->getSymbolicVariable(seflt.get());
-    gvpLT->setUpperBound(rhsconst, false);
-    if (gvpLT.constructed()) lhsvar->setSymbolicVariable(seflt.get(), gvpLT.get());
-
-    if (reverse)
+    if (gvpLT->setUpperBound(rhsconst, false))
     {
-        if (!(n->isLastNode() && sef->symbolicStack->isEmpty())) 
+        gvpLT->setRepeatUpperBound(rhsconst, false);
+        if (gvpLT.constructed()) lhsvar->setSymbolicVariable(seflt.get(), gvpLT.get());
+
+        if (reverse)
         {
-            CFGNode* failNode = getFailNode(seflt, n);
-            if (failNode != nullptr) visitNode(seflt, failNode);
+            if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+            {
+                CFGNode* failNode = getFailNode(seflt, n);
+                if (failNode != nullptr) visitNode(seflt, failNode);
+            }
         }
+        else visitNode(seflt, n->getCompSuccess());
+        seflt.reset();
     }
-    else visitNode(seflt, n->getCompSuccess());
-    seflt.reset();
 
     shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicVariable> gvpGE = lhsvar->getSymbolicVariable(sefge.get());
-    gvpGE->setLowerBound(rhsconst);
-    if (gvpGE.constructed()) lhsvar->setSymbolicVariable(sefge.get(), gvpGE.get());
-    if (reverse) {visitNode(sefge, n->getCompSuccess());}
-    else
+    if (gvpGE->setLowerBound(rhsconst))
     {
-        if (!(n->isLastNode() && sef->symbolicStack->isEmpty())) 
+        gvpGE->setRepeatLowerBound(rhsconst);
+        if (gvpGE.constructed()) lhsvar->setSymbolicVariable(sefge.get(), gvpGE.get());
+        if (reverse) {visitNode(sefge, n->getCompSuccess());}
+        else
         {
-            CFGNode* failNode = getFailNode(sefge, n);
-            if (failNode != nullptr) visitNode(sefge, failNode);
+            if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+            {
+                CFGNode* failNode = getFailNode(sefge, n);
+                if (failNode != nullptr) visitNode(sefge, failNode);
+            }
         }
     }
 }
@@ -571,31 +598,37 @@ void SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef,
 {
     shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicVariable> gvpLE = lhsvar->getSymbolicVariable(sefle.get());
-    gvpLE->setUpperBound(rhsconst);
-    if (gvpLE.constructed()) lhsvar->setSymbolicVariable(sefle.get(), gvpLE.get());
-
-    if (reverse)
+    if (gvpLE->setUpperBound(rhsconst))
     {
-        if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+        gvpLE->setRepeatUpperBound(rhsconst);
+        if (gvpLE.constructed()) lhsvar->setSymbolicVariable(sefle.get(), gvpLE.get());
+
+        if (reverse)
         {
-            CFGNode* failNode = getFailNode(sefle, n);
-            if (failNode != nullptr) visitNode(sefle, failNode);
+            if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+            {
+                CFGNode* failNode = getFailNode(sefle, n);
+                if (failNode != nullptr) visitNode(sefle, failNode);
+            }
         }
+        else visitNode(sefle, n->getCompSuccess());
+        sefle.reset();
     }
-    else visitNode(sefle, n->getCompSuccess());
-    sefle.reset();
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicVariable> gvpGT = lhsvar->getSymbolicVariable(sefgt.get());
-    gvpGT->setLowerBound(rhsconst, false);
-    if (gvpGT.constructed()) lhsvar->setSymbolicVariable(sefgt.get(), gvpGT.get());
-    if (reverse) {visitNode(sefgt, n->getCompSuccess());}
-    else
+    if (gvpGT->setLowerBound(rhsconst, false))
     {
-        if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+        gvpGT->setRepeatLowerBound(rhsconst, false);
+        if (gvpGT.constructed()) lhsvar->setSymbolicVariable(sefgt.get(), gvpGT.get());
+        if (reverse) {visitNode(sefgt, n->getCompSuccess());}
+        else
         {
-            CFGNode* failNode = getFailNode(sefgt, n);
-            if (failNode != nullptr) visitNode(sefgt, failNode);
+            if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+            {
+                CFGNode* failNode = getFailNode(sefgt, n);
+                if (failNode != nullptr) visitNode(sefgt, failNode);
+            }
         }
     }
 }
@@ -606,65 +639,75 @@ void SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef,
 {
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicVariable> gvpGT = lhsvar->getSymbolicVariable(sefgt.get());
-    gvpGT->setLowerBound(rhsconst, false);
-    if (gvpGT.constructed()) lhsvar->setSymbolicVariable(sefgt.get(), gvpGT.get());
-    if (reverse)
+    if (gvpGT->setLowerBound(rhsconst, false))
     {
-        if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+        gvpGT->setRepeatLowerBound(rhsconst, false);
+        if (gvpGT.constructed()) lhsvar->setSymbolicVariable(sefgt.get(), gvpGT.get());
+        if (reverse)
         {
-            CFGNode* failNode = getFailNode(sefgt, n);
-            if (failNode != nullptr) visitNode(sefgt, failNode);
+            if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+            {
+                CFGNode* failNode = getFailNode(sefgt, n);
+                if (failNode != nullptr) visitNode(sefgt, failNode);
+            }
         }
+        else visitNode(sefgt, n->getCompSuccess());
+        sefgt.reset();
     }
-    else visitNode(sefgt, n->getCompSuccess());
-    sefgt.reset();
 
     shared_ptr<SymbolicExecutionFringe> sefle = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicVariable> gvpLE = lhsvar->getSymbolicVariable(sefle.get());
-    gvpLE->setUpperBound(rhsconst);
-    if (gvpLE.constructed()) lhsvar->setSymbolicVariable(sefle.get(), gvpLE.get());
-    if (reverse) {visitNode(sefle, n->getCompSuccess());}
-    else
+    if (gvpLE->setUpperBound(rhsconst))
     {
-        if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+        gvpLE->setRepeatUpperBound(rhsconst);
+        if (gvpLE.constructed()) lhsvar->setSymbolicVariable(sefle.get(), gvpLE.get());
+        if (reverse) {visitNode(sefle, n->getCompSuccess());}
+        else
         {
-            CFGNode* failNode = getFailNode(sefle, n);
-            if (failNode != nullptr) visitNode(sefle, failNode);
+            if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+            {
+                CFGNode* failNode = getFailNode(sefle, n);
+                if (failNode != nullptr) visitNode(sefle, failNode);
+            }
         }
     }
 }
-
 
 void SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                         VarWrapper* lhsvar, const std::string& rhsconst, bool reverse)
 {
     shared_ptr<SymbolicExecutionFringe> sefge = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicVariable> gvpGE = lhsvar->getSymbolicVariable(sefge.get());
-    gvpGE->setLowerBound(rhsconst);
-    if (gvpGE.constructed()) lhsvar->setSymbolicVariable(sefge.get(), gvpGE.get());
-
-    if (reverse)
+    if (gvpGE->setLowerBound(rhsconst))
     {
-        if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+        if (gvpGE.constructed()) lhsvar->setSymbolicVariable(sefge.get(), gvpGE.get());
+
+        if (reverse)
         {
-            CFGNode* failNode = getFailNode(sefge, n);
-            if (failNode != nullptr) visitNode(sefge, failNode);
+            if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+            {
+                CFGNode* failNode = getFailNode(sefge, n);
+                if (failNode != nullptr) visitNode(sefge, failNode);
+            }
         }
+        else visitNode(sefge, n->getCompSuccess());
+        sefge.reset();
     }
-    else visitNode(sefge, n->getCompSuccess());
-    sefge.reset();
 
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicVariable> gvpLT = lhsvar->getSymbolicVariable(seflt.get());
-    gvpLT->setUpperBound(rhsconst, false);
-    if (gvpLT.constructed()) lhsvar->setSymbolicVariable(seflt.get(), gvpLT.get());
-    if (reverse) {visitNode(seflt, n->getCompSuccess());}
-    else
+    if (gvpLT->setUpperBound(rhsconst, false))
     {
-        if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+        gvpLT->setRepeatUpperBound(rhsconst, false);
+        if (gvpLT.constructed()) lhsvar->setSymbolicVariable(seflt.get(), gvpLT.get());
+        if (reverse) {visitNode(seflt, n->getCompSuccess());}
+        else
         {
-            CFGNode* failNode = getFailNode(seflt, n);
-            if (failNode != nullptr) visitNode(seflt, failNode);
+            if (!(n->isLastNode() && sef->symbolicStack->isEmpty()))
+            {
+                CFGNode* failNode = getFailNode(seflt, n);
+                if (failNode != nullptr) visitNode(seflt, failNode);
+            }
         }
     }
 }
@@ -718,7 +761,6 @@ void SymbolicExecutionManager::varBranchGE(shared_ptr<SymbolicExecutionFringe> s
     if (lhgv->addGE(rhsvar, sefge.get(), lhgv.constructed())) visitNode(sefge, n->getCompSuccess());
 }
 
-
 void SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
                                               VarWrapper* lhsvar, VarWrapper* rhsvar)
 {
@@ -749,7 +791,7 @@ void SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> s
 
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicVariable> lhgv = lhsvar->getSymbolicVariable(seflt.get());
-    if (lhgv->addGE(rhsvar, seflt.get(), lhgv.constructed())) visitNode(seflt, n->getCompSuccess());
+    if (lhgv->addLT(rhsvar, seflt.get(), lhgv.constructed())) visitNode(seflt, n->getCompSuccess());
 }
 
 

@@ -71,6 +71,7 @@ bool SymbolicVariable::isFeasable()
     return feasable;
 }
 
+
 bool SymbolicVariable::addGT(const VarWrapper* vg, SymbolicExecutionFringe* sef, bool constructed)
 {
     GottenVarPtr<SymbolicVariable> other = vg->getSymbolicVariable(sef);
@@ -83,8 +84,18 @@ bool SymbolicVariable::addGT(const VarWrapper* vg, SymbolicExecutionFringe* sef,
         gt.insert(sv);
     }
     if (!constructed) sv->lt.insert(this);
-    if (sv->isBoundedBelow()) clipLowerBound(sv->getLowerBound(), false);
-    if (isBoundedAbove()) sv->clipUpperBound(getUpperBound());
+    if (sv->isBoundedBelow())
+    {
+        clipLowerBound(sv->getLowerBound(), false);
+        setRepeatLowerBound(sv->getLowerBound(), false);
+    }
+    else removeRepeatLowerBound();
+    if (isBoundedAbove())
+    {
+        sv->clipUpperBound(getUpperBound());
+        sv->setRepeatLowerBound(getUpperBound());
+    }
+    else sv->removeRepeatUpperBound();
     return isFeasable() && sv->isFeasable();
 }
 
@@ -102,8 +113,18 @@ bool SymbolicVariable::addGE(const VarWrapper* vg, SymbolicExecutionFringe* sef,
     }
     if (!constructed) sv->le.insert(this);
     
-    if (sv->isBoundedBelow()) clipLowerBound(sv->getLowerBound());
-    if (isBoundedAbove()) sv->clipUpperBound(getUpperBound());
+    if (sv->isBoundedBelow())
+    {
+        clipLowerBound(sv->getLowerBound());
+        setRepeatLowerBound(sv->getLowerBound());
+    }
+    else removeRepeatLowerBound();
+    if (isBoundedAbove())
+    {
+        sv->clipUpperBound(getUpperBound());
+        sv->setRepeatUpperBound(getUpperBound());
+    }
+    else sv->removeRepeatUpperBound();
     return isFeasable() && sv->isFeasable();
 }
 
@@ -113,17 +134,25 @@ bool SymbolicVariable::addLT(const VarWrapper* vg, SymbolicExecutionFringe* sef,
     SymbolicVariable* sv = other.get();
     if (!constructed && !other.constructed())
     {
-        setRepeatUpperBound(sv->getUpperBound(), false);
-        sv->setRepeatLowerBound(getLowerBound(), false);
-        
         set<SymbolicVariable*> seen;
         if (guaranteedLT(sv, this, seen)) return isFeasable() && sv->isFeasable();
         lt.insert(sv);
         sv->gt.insert(this);
     }
 
-    if (sv->isBoundedAbove()) clipUpperBound(sv->getUpperBound(), false);
-    if (isBoundedBelow()) sv->clipLowerBound(getLowerBound());
+    if (sv->isBoundedAbove())
+    {
+        clipUpperBound(sv->getUpperBound(), false);
+        setRepeatLowerBound(sv->getUpperBound(), false);
+    }
+    else removeRepeatLowerBound();
+    if (isBoundedBelow())
+    {
+        sv->clipLowerBound(getLowerBound());
+        sv->setRepeatLowerBound(getLowerBound());
+    }
+    else sv->removeRepeatLowerBound();
+
     return isFeasable() && sv->isFeasable();
 }
 
@@ -141,8 +170,19 @@ bool SymbolicVariable::addLE(const VarWrapper* vg, SymbolicExecutionFringe* sef,
         lt.insert(sv);
         sv->gt.insert(this);
     }
-    if (sv->isBoundedAbove()) clipUpperBound(sv->getUpperBound());
-    if (isBoundedBelow()) sv->clipLowerBound(getLowerBound());
+    if (sv->isBoundedAbove())
+    {
+        clipUpperBound(sv->getUpperBound());
+        setRepeatUpperBound(sv->getUpperBound());
+    }
+    else removeRepeatUpperBound();
+    if (isBoundedBelow())
+    {
+        sv->clipLowerBound(getLowerBound());
+        sv->setRepeatLowerBound(getLowerBound());
+    }
+    else sv->removeRepeatLowerBound();
+
     return isFeasable() && sv->isFeasable();
 }
 
@@ -152,21 +192,36 @@ bool SymbolicVariable::addEQ(const VarWrapper* vg, SymbolicExecutionFringe* sef,
     SymbolicVariable* sv = other.get();
     if (!other.constructed() && !constructed)
     {
-        setRepeatUpperBound(sv->getUpperBound());
-        setRepeatLowerBound(sv->getLowerBound());
-        sv->setRepeatUpperBound(getUpperBound());
-        sv->setRepeatLowerBound(getLowerBound());
         set<SymbolicVariable*> seen;
-        if (guaranteedEQ(sv, this, seen)) isFeasable() && sv->isFeasable();
+        if (guaranteedEQ(sv, this, seen)) return isFeasable() && sv->isFeasable();
         eq.insert(sv);
         sv->eq.insert(this);
     }
 
     if (sv->isDetermined()) setConstValue(sv->getConstString());
+    else if (isDetermined()) sv->setConstValue(getConstString());
     else
     {
-        clipUpperBound(sv->getUpperBound());
-        clipLowerBound(sv->getLowerBound());
+        if (sv->isBoundedAbove())
+        {
+            clipUpperBound(sv->getUpperBound());
+            setRepeatUpperBound(sv->getUpperBound());
+        }
+        if (sv->isBoundedBelow())
+        {
+            clipLowerBound(sv->getLowerBound());
+            setRepeatLowerBound(sv->getLowerBound());
+        }
+        if (isBoundedAbove())
+        {
+            sv->clipUpperBound(getUpperBound());
+            sv->setRepeatUpperBound(getUpperBound());
+        }
+        if (isBoundedBelow())
+        {
+            sv->clipLowerBound(getLowerBound());
+            sv->setRepeatLowerBound(getLowerBound());
+        }
     }
 
     return isFeasable() && sv->isFeasable();

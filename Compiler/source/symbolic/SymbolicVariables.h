@@ -7,6 +7,7 @@
 
 #include "../compile/Reporter.h"
 #include "../compile/Token.h"
+#include "../Command.h"
 //SymbolicVariable.cpp
 
 class VarWrapper;
@@ -85,10 +86,14 @@ public:
     virtual bool setUpperBound(const std::string& ub, bool closed=true) = 0;
     virtual bool setLowerBound(const std::string& ub, bool closed=true) = 0;
 
+    //todo make these all clip
+    virtual void getRepeatBoundsFromComparison(Relations::Relop r, const std::string& rhs) {}
     virtual void clipRepeatLowerBound(const std::string& lb, bool closed=true) {}
     virtual void clipRepeatUpperBound(const std::string& ub, bool closed=true) {}
     virtual void setRepeatUpperBound(const std::string& ub, bool closed=true) {}
     virtual void setRepeatLowerBound(const std::string& ub, bool closed=true) {}
+    virtual void removeRepeatUpperBound() {};
+    virtual void removeRepeatLowerBound() {};
     virtual void resetRepeatBounds() {}
 
     virtual bool unionVar(const SymbolicVariable* unionFrom) = 0;
@@ -199,6 +204,8 @@ public:
     void iterateTo(SymbolicVariable* to, bool closed=true);
     bool getRelativeVelocity(SymbolicVariable* other, long double& slowest, long double& fastest) const override;
 
+    //todo move these into template above
+    void getRepeatBoundsFromComparison(Relations::Relop r, const std::string& rhs) override;
     void setTRepeatLowerBound(const double& lb, bool closed);
     void setTRepeatUpperBound(const double& up, bool closed);
     void clipTRepeatLowerBound(const double& lb, bool closed);
