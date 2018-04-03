@@ -31,7 +31,7 @@ void SymbolicString::setTConstValue(const string& cv)
     boundedUpper = boundedLower = true;
     lowerBound = upperBound = cv;
 }
-void SymbolicString::unionTConstValue(const string& cv, bool closed)
+void SymbolicString::unionTConstValue(const string& cv, short direction)
 {
     if (closed)
     {
@@ -49,7 +49,7 @@ void SymbolicString::setConstValue(const string &s)
     setTConstValue(s);
 }
 
-bool SymbolicString::setTLowerBound(const string& lb, bool closed)
+bool SymbolicString::setTLowerBound(const string& lb, short direction)
 {
     if (!closed) upperBound = decrementString(lb);
     else lowerBound = lb;
@@ -57,12 +57,12 @@ bool SymbolicString::setTLowerBound(const string& lb, bool closed)
     boundedLower = true;
     return isFeasable();
 }
-bool SymbolicString::setLowerBound(const string& lb, bool closed)
+bool SymbolicString::setLowerBound(const string& lb, short direction)
 {
     return setTLowerBound(lb, closed);
 }
 
-bool SymbolicString::setTUpperBound(const string& ub, bool closed)
+bool SymbolicString::setTUpperBound(const string& ub, short direction)
 {
     if (!closed) upperBound = incrementString(ub);
     else upperBound = ub;
@@ -70,32 +70,32 @@ bool SymbolicString::setTUpperBound(const string& ub, bool closed)
     boundedUpper = true;
     return isFeasable();
 }
-bool SymbolicString::setUpperBound(const string& ub, bool closed)
+bool SymbolicString::setUpperBound(const string& ub, short direction)
 {
     return setTUpperBound(ub, closed);
 }
 
-bool SymbolicString::clipTLowerBound(const string& lb, bool closed)
+bool SymbolicString::clipTLowerBound(const string& lb, short direction)
 {
     if (!isBoundedBelow() || getLowerBound() > lb) return setLowerBound(lb, closed);
     else return isFeasable();
 }
-bool SymbolicString::clipLowerBound(const string& lb, bool closed)
+bool SymbolicString::clipLowerBound(const string& lb, short direction)
 {
     return clipTLowerBound(lb, closed);
 }
 
-bool SymbolicString::clipTUpperBound(const string& ub, bool closed)
+bool SymbolicString::clipTUpperBound(const string& ub, short direction)
 {
     if (!isBoundedAbove() || getUpperBound() < ub) return setLowerBound(ub, closed);
     else return isFeasable();
 }
-bool SymbolicString::clipUpperBound(const string& ub, bool closed)
+bool SymbolicString::clipUpperBound(const string& ub, short direction)
 {
     return clipTUpperBound(ub, closed);
 }
 
-bool SymbolicString::unionTLowerBound(const string& lb, bool closed)
+bool SymbolicString::unionTLowerBound(const string& lb, short direction)
 {
     if (!isBoundedBelow() && lb < lowerBound)
     {
@@ -104,12 +104,12 @@ bool SymbolicString::unionTLowerBound(const string& lb, bool closed)
     }
     else return false;
 }
-bool SymbolicString::unionLowerBound(const string& lb, bool closed)
+bool SymbolicString::unionLowerBound(const string& lb, short direction)
 {
     return unionTLowerBound(lb);
 }
 
-bool SymbolicString::unionTUpperBound(const string& ub, bool closed)
+bool SymbolicString::unionTUpperBound(const string& ub, short direction)
 {
     if (!isBoundedAbove() && ub > upperBound)
     {
@@ -118,7 +118,7 @@ bool SymbolicString::unionTUpperBound(const string& ub, bool closed)
     }
     else return false;
 }
-bool SymbolicString::unionUpperBound(const string& ub, bool closed)
+bool SymbolicString::unionUpperBound(const string& ub, short direction)
 {
     return unionTUpperBound(ub);
 }

@@ -593,7 +593,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                         {
                             shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFail
                                     = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                            bool closed = jocc->op == Relations::LE || jocc->op == Relations::GE;
+                            short direction = jocc->op == Relations::LE || jocc->op == Relations::GE;
                             jocc->term1.getVarWrapper()->getSymbolicVariable(sefFail.get())->iterateTo(rhVar.get(), closed);
                             if (sefFail->addPathCondition(node->getName(), jocc, true))
                             {
@@ -639,7 +639,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                             {
                                 shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
                                         = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
-                                bool closed = jocc->op == Relations::LE || jocc->op == Relations::GE;
+                                short direction = jocc->op == Relations::LE || jocc->op == Relations::GE;
                                 jocc->term1.getVarWrapper()->getSymbolicVariable(sefSucc.get())->iterateTo(rhVar.get(), closed);
                                 if (sefSucc->addPathCondition(node->getName(), jocc))
                                 {

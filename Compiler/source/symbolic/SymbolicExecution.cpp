@@ -222,7 +222,7 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
     }
     else
     {
-        bool closed = true;
+        short direction = true;
         switch(op)
         {
             case Relations::LT:

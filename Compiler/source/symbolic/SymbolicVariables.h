@@ -81,28 +81,28 @@ public:
     virtual bool isBoundedBelow() const = 0;
     virtual bool isBoundedAbove() const = 0;
     virtual bool isDetermined() const = 0;
-    virtual bool clipLowerBound(const std::string& lb, bool closed=true) = 0;
-    virtual bool clipUpperBound(const std::string& ub, bool closed=true) = 0;
-    virtual bool setUpperBound(const std::string& ub, bool closed=true) = 0;
-    virtual bool setLowerBound(const std::string& ub, bool closed=true) = 0;
+    virtual bool clipLowerBound(const std::string& lb, short direction=true) = 0;
+    virtual bool clipUpperBound(const std::string& ub, short direction=true) = 0;
+    virtual bool setUpperBound(const std::string& ub, short direction=true) = 0;
+    virtual bool setLowerBound(const std::string& ub, short direction=true) = 0;
 
     //todo make these all clip
     virtual void getRepeatBoundsFromComparison(Relations::Relop r, const std::string& rhs) {}
-    virtual void clipRepeatLowerBound(const std::string& lb, bool closed=true) {}
-    virtual void clipRepeatUpperBound(const std::string& ub, bool closed=true) {}
-    virtual void setRepeatUpperBound(const std::string& ub, bool closed=true) {}
-    virtual void setRepeatLowerBound(const std::string& ub, bool closed=true) {}
+    virtual void clipRepeatLowerBound(const std::string& lb, short direction=true) {}
+    virtual void clipRepeatUpperBound(const std::string& ub, short direction=true) {}
+    virtual void setRepeatUpperBound(const std::string& ub, short direction=true) {}
+    virtual void setRepeatLowerBound(const std::string& ub, short direction=true) {}
     virtual void removeRepeatUpperBound() {};
     virtual void removeRepeatLowerBound() {};
     virtual void resetRepeatBounds() {}
 
     virtual bool unionVar(const SymbolicVariable* unionFrom) = 0;
-    virtual void iterateTo(const std::string& to, bool closed=true) = 0;
-    virtual void iterateTo(SymbolicVariable* to, bool closed=true) = 0;
+    virtual void iterateTo(const std::string& to, short direction=true) = 0;
+    virtual void iterateTo(SymbolicVariable* to, short direction=true) = 0;
 
     //these return true if there has been a change
-    virtual bool unionLowerBound(const std::string& lb, bool closed=true) = 0;
-    virtual bool unionUpperBound(const std::string& ub, bool closed=true) = 0;
+    virtual bool unionLowerBound(const std::string& lb, short direction=true) = 0;
+    virtual bool unionUpperBound(const std::string& ub, short direction=true) = 0;
 
     virtual std::string getUpperBound() const = 0;
     virtual std::string getLowerBound() const = 0;
@@ -138,13 +138,12 @@ public:
     void clearEQ() override;
 
     //set/clip bounds returns true if var is feasable after
-    virtual bool setTLowerBound(const T& lb, bool closed) = 0;
-    virtual bool setTUpperBound(const T& ub, bool closed) = 0;
-    virtual bool clipTLowerBound(const T& lb, bool closed) = 0;
-    virtual bool clipTUpperBound(const T& up, bool closed) = 0;
-    virtual bool unionTLowerBound(const T& lb, bool closed) = 0;
-    virtual bool unionTUpperBound(const T& up, bool closed) = 0;
-    virtual void unionTConstValue(const T& cv, bool closed) = 0;
+    virtual bool setTLowerBound(const T& lb, short direction) = 0;
+    virtual bool setTUpperBound(const T& ub, short direction) = 0;
+    virtual bool clipTLowerBound(const T& lb, short direction) = 0;
+    virtual bool clipTUpperBound(const T& up, short direction) = 0;
+    virtual bool unionTLowerBound(const T& lb, short direction) = 0;
+    virtual bool unionTUpperBound(const T& up, short direction) = 0;
     virtual void setTConstValue(const T& cv);
     
     const T& getTConstValue();
@@ -183,37 +182,36 @@ public:
 
     void maxUpperBound(); void removeUpperBound();
     void minLowerBound(); void removeLowerBound();
-    bool setTLowerBound(const double& d, bool closed = true) override;
-    bool setTUpperBound(const double& d, bool closed = true) override;
-    bool clipTLowerBound(const double& d, bool closed = true) override;
-    bool clipTUpperBound(const double& d, bool closed = true) override;
+    bool setTLowerBound(const double& d, short direction = true) override;
+    bool setTUpperBound(const double& d, short direction = true) override;
+    bool clipTLowerBound(const double& d, short direction = true) override;
+    bool clipTUpperBound(const double& d, short direction = true) override;
     void setTConstValue(const double& d) override;
-    bool unionTLowerBound(const double& lb, bool closed = true) override;
-    bool unionTUpperBound(const double& up, bool closed = true) override;
+    bool unionTLowerBound(const double& lb, short direction = true) override;
+    bool unionTUpperBound(const double& up, short direction = true) override;
     bool unionVar(const SymbolicVariable* other) override;
     void setConstValue(const std::string&) override;
-    bool clipUpperBound(const std::string& ub, bool closed = true) override;
-    bool clipLowerBound(const std::string& lb, bool closed = true) override;
-    bool unionUpperBound(const std::string& ub, bool closed = true) override;
-    bool unionLowerBound(const std::string& lb, bool closed = true) override;
-    void unionTConstValue(const double& cv, bool closed=true) override;
-    bool setUpperBound(const std::string& ub, bool closed = true) override;
-    bool setLowerBound(const std::string& lb, bool closed = true) override;
-    void iterateTo(double to, bool closed=true);
-    void iterateTo(const std::string& to, bool closed=true);
-    void iterateTo(SymbolicVariable* to, bool closed=true);
+    bool clipUpperBound(const std::string& ub, short direction = true) override;
+    bool clipLowerBound(const std::string& lb, short direction = true) override;
+    bool unionUpperBound(const std::string& ub, short direction = true) override;
+    bool unionLowerBound(const std::string& lb, short direction = true) override;
+    bool setUpperBound(const std::string& ub, short direction = true) override;
+    bool setLowerBound(const std::string& lb, short direction = true) override;
+    void iterateTo(double to, short direction=true);
+    void iterateTo(const std::string& to, short direction=true);
+    void iterateTo(SymbolicVariable* to, short direction=true);
     bool getRelativeVelocity(SymbolicVariable* other, long double& slowest, long double& fastest) const override;
 
     //todo move these into template above
     void getRepeatBoundsFromComparison(Relations::Relop r, const std::string& rhs) override;
-    void setTRepeatLowerBound(const double& lb, bool closed);
-    void setTRepeatUpperBound(const double& up, bool closed);
-    void clipTRepeatLowerBound(const double& lb, bool closed);
-    void clipTRepeatUpperBound(const double& up, bool closed);
-    void clipRepeatLowerBound(const std::string& lb, bool closed=true) override;
-    void clipRepeatUpperBound(const std::string& ub, bool closed=true) override;
-    void setRepeatUpperBound(const std::string& ub, bool closed=true) override;
-    void setRepeatLowerBound(const std::string& ub, bool closed=true) override;
+    void setTRepeatLowerBound(const double& lb, short direction);
+    void setTRepeatUpperBound(const double& up, short direction);
+    void clipTRepeatLowerBound(const double& lb, short direction);
+    void clipTRepeatUpperBound(const double& up, short direction);
+    void clipRepeatLowerBound(const std::string& lb, short direction=true) override;
+    void clipRepeatUpperBound(const std::string& ub, short direction=true) override;
+    void setRepeatUpperBound(const std::string& ub, short direction=true) override;
+    void setRepeatLowerBound(const std::string& ub, short direction=true) override;
     void resetRepeatBounds() override;
 
     void userInput() override;
@@ -253,24 +251,24 @@ public:
     std::unique_ptr<SymbolicVariable> clone() override;
     SymbolicVariable* cloneRaw() override;
 
-    bool setTLowerBound(const std::string&, bool closed = true) override;
-    bool setTUpperBound(const std::string&, bool closed = true) override;
-    bool clipTLowerBound(const std::string&, bool closed = true) override;
-    bool clipTUpperBound(const std::string&, bool closed = true) override;
-    bool unionTLowerBound(const std::string& lb, bool closed = true) override;
-    bool unionTUpperBound(const std::string& up, bool closed = true) override;
+    bool setTLowerBound(const std::string&, short direction = true) override;
+    bool setTUpperBound(const std::string&, short direction = true) override;
+    bool clipTLowerBound(const std::string&, short direction = true) override;
+    bool clipTUpperBound(const std::string&, short direction = true) override;
+    bool unionTLowerBound(const std::string& lb, short direction = true) override;
+    bool unionTUpperBound(const std::string& up, short direction = true) override;
     void setTConstValue(const std::string& s) override;
-    void unionTConstValue(const std::string& s, bool closed=true) override;
+    void unionTConstValue(const std::string& s, short direction=true) override;
     bool unionVar(const SymbolicVariable* other) override;
     void setConstValue(const std::string&) override;
-    bool clipUpperBound(const std::string& ub, bool closed = true) override;
-    bool clipLowerBound(const std::string& lb, bool closed = true) override;
-    bool unionUpperBound(const std::string& ub, bool closed = true) override;
-    bool unionLowerBound(const std::string& lb, bool closed = true) override;
-    bool setUpperBound(const std::string& ub, bool closed = true) override;
-    bool setLowerBound(const std::string& lb, bool closed = true) override;
-    void iterateTo(const std::string& to, bool closed) {throw std::runtime_error("not changing");};
-    void iterateTo(SymbolicVariable* sv, bool closed) {throw std::runtime_error("not changing");}
+    bool clipUpperBound(const std::string& ub, short direction = true) override;
+    bool clipLowerBound(const std::string& lb, short direction = true) override;
+    bool unionUpperBound(const std::string& ub, short direction = true) override;
+    bool unionLowerBound(const std::string& lb, short direction = true) override;
+    bool setUpperBound(const std::string& ub, short direction = true) override;
+    bool setLowerBound(const std::string& lb, short direction = true) override;
+    void iterateTo(const std::string& to, short direction) {throw std::runtime_error("not changing");};
+    void iterateTo(SymbolicVariable* sv, short direction) {throw std::runtime_error("not changing");}
 
     void userInput() override;
     void nondet() override;

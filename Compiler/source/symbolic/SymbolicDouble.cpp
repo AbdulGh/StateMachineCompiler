@@ -127,32 +127,34 @@ SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, const s
     }
 }
 
-bool SymbolicDouble::setTLowerBound(const double& d, bool closed)
+bool SymbolicDouble::setTLowerBound(const double& d, short direction)
 {
     if (d < lowerBound) clearGreater();
-    if (!closed && d != numeric_limits<double>::lowest()) lowerBound = nextafter(d, numeric_limits<double>::lowest());
+    if (direction == -1 && d != numeric_limits<double>::lowest()) lowerBound = nextafter(d, numeric_limits<double>::lowest());
+    else if (direction == 1 && d != numeric_limits<double>::max()) lowerBound = nextafter(d, numeric_limits<double>::max());
     else lowerBound = d;
 
     if (lowerBound > upperBound) feasable = false;
     return isFeasable();
 }
-bool SymbolicDouble::setLowerBound(const std::string& lb, bool closed)
+bool SymbolicDouble::setLowerBound(const std::string& lb, short direction)
 {
-    setTLowerBound(stod(lb), closed);
+    setTLowerBound(stod(lb), direction);
 }
 
-bool SymbolicDouble::setTUpperBound(const double& d, bool closed)
+bool SymbolicDouble::setTUpperBound(const double& d, short direction)
 {
     if (d > upperBound) clearLess();
-    if (!closed && d != numeric_limits<double>::max()) upperBound = nextafter(d, numeric_limits<double>::max());
+    if (direction == -1 && d != numeric_limits<double>::lowest()) upperBound = nextafter(d, numeric_limits<double>::lowest());
+    else if (direction == 1 && d != numeric_limits<double>::max()) upperBound = nextafter(d, numeric_limits<double>::max());
     else upperBound = d;
 
     if (lowerBound > upperBound) feasable = false;
     return isFeasable();
 }
-bool SymbolicDouble::setUpperBound(const std::string& ub, bool closed)
+bool SymbolicDouble::setUpperBound(const std::string& ub, short direction)
 {
-    return setTUpperBound(stod(ub), closed);
+    return setTUpperBound(stod(ub), direction);
 }
 
 void SymbolicDouble::minLowerBound()
@@ -173,54 +175,82 @@ void SymbolicDouble::removeUpperBound()
     upperBound = numeric_limits<double>::max();
 }
 
-bool SymbolicDouble::clipTLowerBound(const double& d, bool closed)
+bool SymbolicDouble::clipTLowerBound(const double& d, short direction)
 {
-    if (d > getTLowerBound()) return setTLowerBound(d, closed);
+    if (d > getTLowerBound()) return setTLowerBound(d, direction);
     else return isFeasable();
 }
-bool SymbolicDouble::clipUpperBound(const std::string& ub, bool closed)
+bool SymbolicDouble::clipUpperBound(const std::string& ub, short direction)
 {
-    return clipTUpperBound(stod(ub), closed);
+    return clipTUpperBound(stod(ub), direction);
 }
 
-bool SymbolicDouble::clipTUpperBound(const double& d, bool closed)
+bool SymbolicDouble::clipTUpperBound(const double& d, short direction)
 {
-    if (d < getTUpperBound()) return setTUpperBound(d, closed);
+    if (d < getTUpperBound()) return setTUpperBound(d, direction);
     else return isFeasable();
 }
-bool SymbolicDouble::clipLowerBound(const std::string& lb, bool closed)
+bool SymbolicDouble::clipLowerBound(const std::string& lb, short direction)
 {
-    return clipTLowerBound(stod(lb), closed);
+    return clipTLowerBound(stod(lb), direction);
 }
 
-bool SymbolicDouble::unionTLowerBound(const double& d, bool closed)
+bool SymbolicDouble::unionTLowerBound(const double& d, short direction)
 {
-    if (closed && d < getTLowerBound()
-        || !closed && d <= getTLowerBound())
+    if (direction != 0)
     {
-        setTLowerBound(d, closed);
+        double d2;
+        if (direction == -1 && d2 != numeric_limits<double>::lowest()) d2 = nextafter(d2, numeric_limits<double>::lowest());
+        else if (direction == 1 && d2 != numeric_limits<double>::max()) d2 = nextafter(d2, numeric_limits<double>::max());
+        else throw runtime_error("direction in [-1, 1]");
+
+        if (d2 < lowerBound)
+        {
+            lowerBound = d2;
+            return true;
+        }
+        else return false;
+    }
+
+    if (d < getTLowerBound())
+    {
+        setTLowerBound(d);
         return true;
     }
     else return false;
 }
-bool SymbolicDouble::unionUpperBound(const std::string& ub, bool closed)
+bool SymbolicDouble::unionUpperBound(const std::string& ub, short direction)
 {
-    return unionTUpperBound(stod(ub), closed);
+    return unionTUpperBound(stod(ub), direction);
 }
 
-bool SymbolicDouble::unionTUpperBound(const double& d, bool closed)
+bool SymbolicDouble::unionTUpperBound(const double& d, short direction)
 {
-    if (closed && d > getTUpperBound()
-        || !closed && d >= getTUpperBound())
+    if (direction != 0)
     {
-        setTUpperBound(d, closed);
+        double d2;
+        if (direction == -1 && d2 != numeric_limits<double>::lowest()) d2 = nextafter(d2, numeric_limits<double>::lowest());
+        else if (direction == 1 && d2 != numeric_limits<double>::max()) d2 = nextafter(d2, numeric_limits<double>::max());
+        else throw runtime_error("direction in [-1, 1]");
+
+        if (d2 > upperBound)
+        {
+            upperBound = d2;
+            return true;
+        }
+        else return false;
+    }
+
+    if (d > upperBound)
+    {
+        upperBound = d;
         return true;
     }
     else return false;
 }
-bool SymbolicDouble::unionLowerBound(const std::string& lb, bool closed)
+bool SymbolicDouble::unionLowerBound(const std::string& lb, short direction)
 {
-    return unionTLowerBound(stod(lb), closed);
+    return unionTLowerBound(stod(lb), direction);
 }
 
 bool SymbolicDouble::unionVar(const SymbolicVariable* other)
@@ -238,7 +268,7 @@ void SymbolicDouble::setTConstValue(const double& d)
     SymbolicVariableTemplate<double>::setTConstValue(d);
     uniformlyChanging = false;
 }
-void SymbolicDouble::unionTConstValue(const double& cv, bool closed)
+void SymbolicDouble::unionTConstValue(const double& cv, short direction)
 {
     clearAll();
     if (closed)
@@ -265,7 +295,7 @@ void SymbolicDouble::setConstValue(const std::string& c)
     setTConstValue(cd);
 }
 
-void SymbolicDouble::clipTRepeatLowerBound(const double& lb, bool closed)
+void SymbolicDouble::clipTRepeatLowerBound(const double& lb, short direction)
 {
     if (!closed)
     {
@@ -275,12 +305,12 @@ void SymbolicDouble::clipTRepeatLowerBound(const double& lb, bool closed)
     }
     else repeatLower = max(lb, repeatLower);
 }
-void SymbolicDouble::clipRepeatLowerBound(const std::string& lb, bool closed)
+void SymbolicDouble::clipRepeatLowerBound(const std::string& lb, short direction)
 {
-    clipTRepeatLowerBound(stod(lb), closed);
+    clipTRepeatLowerBound(stod(lb), direction);
 }
 
-void SymbolicDouble::setTRepeatLowerBound(const double& lb, bool closed)
+void SymbolicDouble::setTRepeatLowerBound(const double& lb, short direction)
 {
     if (!closed)
     {
@@ -289,9 +319,9 @@ void SymbolicDouble::setTRepeatLowerBound(const double& lb, bool closed)
     }
     else repeatLower = lb;
 }
-void SymbolicDouble::setRepeatLowerBound(const std::string& lb, bool closed)
+void SymbolicDouble::setRepeatLowerBound(const std::string& lb, short direction)
 {
-    setTRepeatLowerBound(stod(lb), closed);
+    setTRepeatLowerBound(stod(lb), direction);
 }
 
 void SymbolicDouble::resetRepeatBounds()
@@ -300,7 +330,7 @@ void SymbolicDouble::resetRepeatBounds()
     repeatUpper = numeric_limits<double>::max();
 }
 
-void SymbolicDouble::clipTRepeatUpperBound(const double& ub, bool closed)
+void SymbolicDouble::clipTRepeatUpperBound(const double& ub, short direction)
 {
     if (!closed)
     {
@@ -310,12 +340,12 @@ void SymbolicDouble::clipTRepeatUpperBound(const double& ub, bool closed)
     }
     else repeatUpper = min(ub, repeatUpper);
 }
-void SymbolicDouble::clipRepeatUpperBound(const std::string& ub, bool closed)
+void SymbolicDouble::clipRepeatUpperBound(const std::string& ub, short direction)
 {
-    clipTRepeatUpperBound(stod(ub), closed);
+    clipTRepeatUpperBound(stod(ub), direction);
 }
 
-void SymbolicDouble::setTRepeatUpperBound(const double& ub, bool closed)
+void SymbolicDouble::setTRepeatUpperBound(const double& ub, short direction)
 {
     if (!closed)
     {
@@ -324,9 +354,9 @@ void SymbolicDouble::setTRepeatUpperBound(const double& ub, bool closed)
     }
     else repeatUpper = ub;
 }
-void SymbolicDouble::setRepeatUpperBound(const std::string& ub, bool closed)
+void SymbolicDouble::setRepeatUpperBound(const std::string& ub, short direction)
 {
-    setTRepeatUpperBound(stod(ub), closed);
+    setTRepeatUpperBound(stod(ub), direction);
 }
 
 void SymbolicDouble::getRepeatBoundsFromComparison(Relations::Relop r, const std::string& rhs)
@@ -357,7 +387,7 @@ void SymbolicDouble::getRepeatBoundsFromComparison(Relations::Relop r, const std
     }
 }
 
-void SymbolicDouble::iterateTo(double toD, bool closed)
+void SymbolicDouble::iterateTo(double toD, short direction)
 {
     if (toD < lowerBound)
     {
@@ -378,18 +408,18 @@ void SymbolicDouble::iterateTo(double toD, bool closed)
         else upperBound = toD + maxChange;
     }
 }
-void SymbolicDouble::iterateTo(const std::string& to, bool closed)
+void SymbolicDouble::iterateTo(const std::string& to, short direction)
 {
     double toD;
     try {toD = stod(to);}
     catch (invalid_argument&) {throw std::runtime_error("double asked to iterate to something else");}
     iterateTo(toD, closed);
 }
-void SymbolicDouble::iterateTo(SymbolicVariable* to, bool closed)
+void SymbolicDouble::iterateTo(SymbolicVariable* to, short direction)
 {
     SymbolicDouble* sd = static_cast<SymbolicDouble*>(to);
-    if (upperBound <= sd->getTLowerBound()) iterateTo(sd->getTLowerBound(), closed);
-    else if (lowerBound >= sd->getTUpperBound()) iterateTo(sd->getTUpperBound(), closed);
+    if (upperBound <= sd->getTLowerBound()) iterateTo(sd->getTLowerBound(), direction);
+    else if (lowerBound >= sd->getTUpperBound()) iterateTo(sd->getTUpperBound(), direction);
     else throw runtime_error("should have been one of those");
 }
 
