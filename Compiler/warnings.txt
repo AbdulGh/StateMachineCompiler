@@ -22,3 +22,23 @@ WARNING : OVERFLOW : _3_0_y could possibly exceed double limits
 WARNING : UNINITIALISED USE : 'uninit' used before being defined (line 11)
 WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 99
 OPTIMISATION : DEAD CODE : State 'F0_main_11' is unreachable and will be removed
+WARNING : UNINITIALISED USE : _2_0_x used before explicitly initialised
+WARNING : UNINITIALISED USE : _2_0_x used before explicitly initialised
+WARNING : UNINITIALISED USE : _2_0_x used before explicitly initialised
+Potential bad path through the following loop:
+------------
+|Header: F0_main_1
+|Nodes:
+|F0_main_1
+|F0_main_2
+|F0_main_6 (nested)
+|F0_main_7 (nested)
+|F0_main_8
+|F0_main_12 (nested)
+
+Example:
+Visit F0_main_1 - branch _2_0_x > 0.000000
+Visit F0_main_6 - branch _3_0_y >= _2_0_x
+(_3_0_y unchanging compared to RHS)
+ exit loop
+-----

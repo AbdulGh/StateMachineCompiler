@@ -110,7 +110,7 @@ Atom::Atom(Atom&& o): type(o.type)
     o.vptr = nullptr;
 }
 
-Atom& Atom::operator=(const Atom& o)
+/*Atom& Atom::operator=(const Atom& o)
 {
     type = o.type;
     if (o.holding)
@@ -124,13 +124,14 @@ Atom& Atom::operator=(const Atom& o)
         holding = false;
     }
     return *this;
-}
+}*/
 
 Atom& Atom::operator=(Atom&& o)
 {
     if (o.holding)
     {
         vptr = o.vptr;
+        o.vptr = nullptr;
         holding = true;
         type = StringType::ID;
     }

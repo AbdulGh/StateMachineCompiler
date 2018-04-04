@@ -647,9 +647,11 @@ inspect any diagnostic output manually.\\
 from the change that occurs first iteration. For example, in the multiplication example given above (\cref{mult}) it sees that $y$ increases from $1$ to $2$
 and assumes wrongly this will continue forever. More generally, if a variable must be in the range $[l, u]$ and it is multiplied by a nonnegative constant $c$ it is now in the range $[cl, cu]$. If $l$ is nonnegative the method will correctly deduce that that variable is increasing but incorrectly proceed as if that variable is increasing by the same increment each loop. This is an area where a true, high resolution, symbolic representation would be useful.
 
-\subsection{Evaluation of the implementation and development process. Lessons learned.}
+\subsection{Issues during the implementation and development process. Lessons learned.}
+This section is more personal and I have changed my tone of voice accordingly.\\
 
-The biggest and most painful lesson I learned during the project was the harm caused by the addition of extraneous and unnecessary features (known in the SE community
+
+\textbf{Adding unused generality.} The biggest and most painful lesson I learned during the project was the harm caused by the addition of extraneous and unnecessary features (known in the SE community
 by various related dicta such as Feature Creep, Keep It Simple Stupid, and You Ain't Gonna Need It).
 
 Initially I planned to only allow programs with the single variable type
@@ -658,19 +660,25 @@ data type that can be ordered. This was indeed true and the implementation of th
 
 The issues began when I came to implement the loop validation phase. In this phase we try to determine the motion of variables - however not every ordered type can be `incremented' in the way doubles can (i.e. strings). This lead to the use of type flags, downcasting to subclasses according those type flags, and methods in the
 base class which have empty implementations in derived classes. This probably could have been prevented via more thoughtful OOP design, but the best solution would
-have been to not implement them in the first place.\\
+have been to not implement them in the first place.
 
-For this project I decided to write my own compiler. This was a valuable learning experience. It also did not take much time and effort, as the compiler is small
+At the very end of the development of the project I decided to remove the functionality entirely. The relevant git commit registers
+$1349$ insertions and $2199$ deletions - such an invasive surgery has left its scars on the quality of the code.
+\\
+
+\textbf{Implementing a compiler.} For this project I decided to write my own compiler. This was a valuable learning experience. It also did not take much time and effort, as the compiler is small
 and uncomplicated. However, using an existing compilation toolkit (such as LLVM) would have taken a similar level of effort and would have provided several benefits,
 stemming from the ability to parse `real' languages.
 
 The simplicity of the compiler means that the source language is necessarily constrained, For example, my compiler doesn't support 
 expressions in function parameters or array indicies. Verifying programs written in real, practical languages would have made collecting results easier, and more 
-importantly could have found immediate real-world use.
+importantly could have found immediate real-world use (especially if it was built into a popular toolchain).
 
 Also, for comparison purposes it would have been interesting to see how this method
 compares to other methods. The benchmark of choice is SV-COMP \citep{svcomp}, which publishes their test set as well as previous results and running times. These
-test sets are written in C, which I could have tried the method on if I used a toolchain.
+test sets are written in C, which I could have tried the method on if I used a toolchain.\\
+
+My supervisor was sceptical about both of these things - there is probably a third lesson to be learned here, too.
 
 \section{Conclusions}
 This paper has described a method that catches a wide range of program errors. For diagnostic and correction purposes it produces annotated execution traces that lead

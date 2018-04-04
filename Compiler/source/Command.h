@@ -31,7 +31,7 @@ public:
     explicit Atom(std::unique_ptr<VarWrapper>);
     Atom(const Atom& o);
     Atom(Atom&& o);
-    Atom& operator=(const Atom& o);
+    Atom& operator=(const Atom& o) = delete;
     Atom& operator=(Atom&& o);
     bool isHolding() const;
     StringType getType() const; //todo replace this w/ isHolding

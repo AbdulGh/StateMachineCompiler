@@ -84,7 +84,7 @@ void AssignmentPropogationDataFlow::transfer(set<Assignment>& in, CFGNode* node)
     }
     for (auto& kill : killSets[node->getName()])
     {
-        auto it = find_if(in.begin(), in.end(), [kill] (const Assignment& ass) {return ass.lhs == kill;});
+        auto it = find_if(in.begin(), in.end(), [&, kill] (const Assignment& ass) {return ass.lhs == kill;});
         if (it != in.end()) in.erase(it);
     }
 }

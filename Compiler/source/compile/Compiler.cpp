@@ -45,7 +45,11 @@ void Compiler::compile(stringstream& out)
     cfg.setFirst(mainFuncSym->getFirstNode()->getName());
     cfg.setLast(mainFuncSym->getLastNode()->getName());
 
+    auto debug1 = cfg.getNode("F0_main_6")->getComp();
+
     Optimise::optimise(symbolTable, functionTable, cfg);
+
+    auto debug2 = cfg.getNode("F0_main_6")->getComp();
 
     SymbolicExecution::SymbolicExecutionManager symbolicExecutionManager
             = SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter);
@@ -53,7 +57,6 @@ void Compiler::compile(stringstream& out)
             = symbolicExecutionManager.search();
 
     cout << cfg.getDotGraph();
-    return;
 
     vector<unique_ptr<Loop>> loops = LengTarj(cfg).findLoops();
     for (auto& loop : loops) loop->validate(tags);

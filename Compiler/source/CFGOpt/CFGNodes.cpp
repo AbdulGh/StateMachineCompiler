@@ -103,6 +103,8 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
 {
     stack<vector<unique_ptr<AbstractCommand>>::iterator> pushedThings;
 
+    printf("%s\n", getSource().c_str());
+
     auto it = instrs.begin();
     vector<unique_ptr<AbstractCommand>> newInstrs;
     newInstrs.reserve(instrs.size()); //avoid reallocation to keep iterators in pushedThings valid
@@ -125,6 +127,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                 if (!avc->getAtom().isHolding()) assignments.emplace(lhsname, Atom(avc->getAtom()));
                 else
                 {
+                    printf("--------\n%s\n", avc->translation("").c_str());
                     const string& vname = avc->getAtom().getVarWrapper()->getFullName();
                     unordered_map<string, Atom>::const_iterator constit = assignments.find(vname);
                     if (constit != assignments.end())
@@ -132,6 +135,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                         Atom found = constit->second;
                         assignments.emplace(lhsname, Atom(found));
                         avc->getAtom().become(found);
+                        printf("-> %s\n", avc->translation("").c_str());
                     }
                     else assignments.emplace(lhsname, Atom(avc->getAtom()));
                 }
@@ -148,16 +152,16 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                 if (eec->term1.isHolding())
                 {
                     unordered_map<string, Atom>::const_iterator t1it = assignments.find(eec->term1.getVarWrapper()->getFullName());
-                    if (t1it != assignments.end()) eec->term1 = t1it->second;
+                    if (t1it != assignments.end()) eec->term1 = Atom(t1it->second);
                 }
     
                 if (eec->term2.isHolding())
                 {
                     unordered_map<string, Atom>::const_iterator t2it = assignments.find(eec->term2.getVarWrapper()->getFullName());
-                    if (t2it != assignments.end()) eec->term2 = t2it->second;
+                    if (t2it != assignments.end()) eec->term2 = Atom(t2it->second);
                 }
     
-                if (eec->term1 == eec->term2 && !eec->term1.isHolding())
+                if (eec->term1 == eec->term2 && eec->term1.isHolding())
                 {
                     switch (eec->op)
                     {
@@ -268,22 +272,27 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
 
     if (comp != nullptr)
     {
-        if (comp->term1.getType() == StringType::ID)
+        auto debug1 = comp->translation("");
+        if (comp->term1.isHolding())
         {
-            string t1str = string(comp->term1);
-            if (assignments.find(t1str) != assignments.end())
+            auto it = assignments.find(comp->term1.getVarWrapper()->getFullName());
+            if (it != assignments.end())
             {
-                comp->term1.become(assignments.at(t1str));
+                auto& debug = it->second;
+                comp->term1.become(it->second);
             }
         }
         if (comp->term2.getType() == StringType::ID)
         {
-            string t2str = string(comp->term2);
-            if (assignments.find(t2str) != assignments.end())
+            auto it = assignments.find(comp->term2.getVarWrapper()->getFullName());
+            if (it != assignments.end())
             {
-                comp->term2.become(assignments.at(t2str));
+                auto& debug = it->second;
+                comp->term2.become(it->second);
             }
         }
+        auto debug2 = comp->translation("");
+
 
         //check for const comparison
         if (comp->term1.getType() != StringType::ID
@@ -303,16 +312,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                                                 comp->getLineNum());
 
                 //replace conditionals with true/false
-                bool isTrue;
-                if (comp->term1.getType() == StringType::DOUBLELIT)
-                {
-                    double d1 = stod(string(comp->term1));
-                    double d2 = stod(string(comp->term2));
-                    isTrue = Relations::evaluateRelop<double>(d1, comp->op, d2);
-                }
-                else isTrue = Relations::evaluateRelop<string>(string(comp->term1), comp->op, string(comp->term2));
-
-                if (isTrue)
+                if (Relations::evaluateRelop<double>(comp->term1.getLiteral(), comp->op, comp->term2.getLiteral()))
                 {
                     if (getCompFail() != nullptr) getCompFail()->removeParent(getName());
                     else throw std::runtime_error("shouldnt happen at the end of a function call");
