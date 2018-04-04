@@ -17,7 +17,7 @@ void ExpressionCodeGenerator::compileExpression(FunctionSymbol *fs)
 {
     AbstractExprNode* tree = expression(fs);
     double df;
-    if (translateTree(tree, fs,  0, df)) fs->genAssignment(move(goingto), to_string(df), parent.lookahead.line);
+    if (translateTree(tree, fs,  0, df)) fs->genAssignment(move(goingto), df, parent.lookahead.line);
     delete tree;
 }
 
@@ -121,7 +121,7 @@ std::unique_ptr<VarWrapper> ExpressionCodeGenerator::genTemp(FunctionSymbol* fs,
     if (i == nextTemp)
     {
         string s = "temp" + to_string(nextTemp++);
-        fs->genVariableDecl(DOUBLE, s, parent.lookahead.line);
+        fs->genVariableDecl(s, parent.lookahead.line);
         return make_unique<SVByName>(s);
     }
     if (i > nextTemp) throw std::runtime_error("Something went wrong somehow");
@@ -136,7 +136,7 @@ std::unique_ptr<VarWrapper> ExpressionCodeGenerator::genUnique(FunctionSymbol* f
         string s = "unique" + to_string(nextUnique++);
         ++currentUnique;
 
-        parent.cfg.getFirst()->getInstrs().push_back(make_unique<DeclareVarCommand>(DOUBLE, s, -1));
+        parent.cfg.getFirst()->getInstrs().push_back(make_unique<DeclareVarCommand>(s, -1));
         return make_unique<SVByName>(s);
     }
     else if (currentUnique > nextUnique) throw std::runtime_error("Something went wrong somehow");
@@ -198,20 +198,20 @@ bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol*
     {
         if (leftlit)
         {
-            auto tl = Term(dl);
-            auto tr = Term(move(right));
+            auto tl = Atom(dl);
+            auto tr = Atom(move(right));
             fs->genExpr(genTemp(fs, reg), tl, p->getOp(), tr, parent.lookahead.line);
         }
         else if (rightlit)
         {
-            auto tl = Term(move(left));
-            auto tr = Term(dr);
+            auto tl = Atom(move(left));
+            auto tr = Atom(dr);
             fs->genExpr(genTemp(fs, reg), tl, p->getOp(), tr, parent.lookahead.line);
         }
         else
         {
-            auto tl = Term(move(left));
-            auto tr = Term(move(right));
+            auto tl = Atom(move(left));
+            auto tr = Atom(move(right));
             fs->genExpr(genTemp(fs, reg), tl, p->getOp(), tr, parent.lookahead.line);
         }
         return false;

@@ -24,15 +24,15 @@ bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symb
 
 bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
-    if (calledFunction != nullptr) sef->symbolicStack->pushState(state);
+    if (calledFunction != nullptr) sef->symbolicStack->pushState(s);
 
     else switch(stringType)
     {
         case StringType::ID:
         {
-            if (atom->getVarWrapper()->check(sef.get()))
+            if (vw->check(sef.get()))
             {
-                GottenVarPtr<SymbolicVariable> found = atom->getVarWrapper()->getSymbolicVariable(sef.get());
+                GottenVarPtr<SymbolicDouble> found = vw->getSymbolicDouble(sef.get());
 
                 if (!found->isFeasable()) throw std::runtime_error("should be feasable");
                 else if (!found->isDefined())
@@ -47,14 +47,11 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
         }
         case StringType::DOUBLELIT:
         {
-            sef->symbolicStack->pushDouble(stod(*atom->getString()));
+            sef->symbolicStack->pushDouble(stod(s));
             break;
         }
         case StringType::STRINGLIT:
-        {
-            sef->symbolicStack->pushString(*atom->getString());
-            break;
-        }
+            throw std::runtime_error("I fall over");
         default:
             throw std::runtime_error("unfamiliar string type");
     };
@@ -81,10 +78,10 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
         return false;
     }
 
-    unique_ptr<SymbolicVariable> popped = sef->symbolicStack->popVar();
+    unique_ptr<SymbolicDouble> popped = sef->symbolicStack->popVar();
     if (vs->check(sef.get()))
     {
-        vs->setSymbolicVariable(sef.get(), popped.get());
+        vs->setSymbolicDouble(sef.get(), popped.get());
         return true;
     }
     else return false;
@@ -96,11 +93,11 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
     if (atom.isHolding())
     {
         if (!atom.getVarWrapper()->check(sef.get())) return false;
-        GottenVarPtr<SymbolicVariable> svp = atom.getVarWrapper()->getSymbolicVariable(sef.get());
+        GottenVarPtr<SymbolicDouble> svp = atom.getVarWrapper()->getSymbolicDouble(sef.get());
         if (!svp->isFeasable()) return false;
-        vs->setSymbolicVariable(sef.get(), svp.get());
+        vs->setSymbolicDouble(sef.get(), svp.get());
     }
-    else vs->getSymbolicVariable(sef.get())->setConstValue(*atom.getString());
+    else vs->getSymbolicDouble(sef.get())->setConstValue(atom.getLiteral());
 
     return true;
 }
@@ -113,7 +110,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
         auto multConst = [&, this, sef, repeat] (SymbolicDouble* result, double c) -> void
         {
             double absc = abs(c);
-            if (absc == 0) result->setTConstValue(0);
+            if (absc == 0) result->setConstValue(0);
             else if (absc == 1) return;
 
 
@@ -127,8 +124,8 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 }
                 else
                 {
-                    if (result->getTLowerBound() > 0) result->setTLowerBound(0);
-                    if (result->getTUpperBound() < 0) result->setTUpperBound(0);
+                    if (result->getLowerBound() > 0) result->setLowerBound(0);
+                    if (result->getUpperBound() < 0) result->setUpperBound(0);
                 }
             }
             else result->multConst(c);
@@ -145,67 +142,67 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
             result->addConst(c);
         };
 
-        if (!term1.isLit && !term2.isLit)
+        if (term1.isHolding() && term2.isHolding())
         {
-            if (!term1.vg->check(sef.get()) || !term2.vg->check(sef.get())) return false;
+            if (!term1.getVarWrapper()->check(sef.get()) || !term2.getVarWrapper()->check(sef.get())) return false;
 
-            unique_ptr<SymbolicDouble> result = term1.vg->getSymbolicDouble(sef.get())->cloneSD();
-            GottenVarPtr<SymbolicDouble> t2 = term2.vg->getSymbolicDouble(sef.get());
+            unique_ptr<SymbolicDouble> result = term1.getVarWrapper()->getSymbolicDouble(sef.get())->clone();
+            GottenVarPtr<SymbolicDouble> t2 = term2.getVarWrapper()->getSymbolicDouble(sef.get());
 
             if (result->isDetermined())
             {
-                if (op == PLUS) addConst(t2.get(), result->getTConstValue());
-                else multConst(t2.get(), result->getTConstValue());
+                if (op == PLUS) addConst(t2.get(), result->getConstValue());
+                else multConst(t2.get(), result->getConstValue());
             }
             else if (t2->isDetermined())
             {
-                if (op == PLUS) addConst(result.get(), t2->getTConstValue());
-                else multConst(result.get(), t2->getTConstValue());
+                if (op == PLUS) addConst(result.get(), t2->getConstValue());
+                else multConst(result.get(), t2->getConstValue());
             }
             else
             {
                 if (repeat)
                 {
-                    if (t2->getTUpperBound() > 0) result->maxUpperBound();
-                    if (t2->getTLowerBound() < 0) result->minLowerBound();
+                    if (t2->getUpperBound() > 0) result->maxUpperBound();
+                    if (t2->getLowerBound() < 0) result->minLowerBound();
                 }
                 else
                 {
                     if (op == PLUS)
                     {
                         std::string vsName = vs->getFullName();
-                        bool increment = vsName == term1.vg->getFullName() || vsName == term2.vg->getFullName();
+                        bool increment = vsName == term1.getVarWrapper()->getFullName() || vsName == term2.getVarWrapper()->getFullName();
                         result->addSymbolicDouble(*t2, increment);
                     }
                     else result->multSymbolicDouble(*t2);
                 }
             }
 
-            vs->setSymbolicVariable(sef.get(), result.get());
+            vs->setSymbolicDouble(sef.get(), result.get());
             return true;
         }
         else
         {
             double constTerm; VarWrapper* varWrapper;
-            if (!term1.isLit)
+            if (term1.isHolding())
             {
-                if (!term1.vg->check(sef.get())) return false;
-                varWrapper = term1.vg.get();
-                constTerm = term2.d;
+                if (!term1.getVarWrapper()->check(sef.get())) return false;
+                varWrapper = term1.getVarWrapper();
+                constTerm = term2.getLiteral();
             }
             else
             {
-                if (!term2.vg->check(sef.get())) return false;
-                varWrapper = term2.vg.get();
-                constTerm = term1.d;
+                if (!term2.getVarWrapper()->check(sef.get())) return false;
+                varWrapper = term2.getVarWrapper();
+                constTerm = term1.getLiteral();
             }
 
-            unique_ptr<SymbolicDouble> result = varWrapper->getSymbolicDouble(sef.get())->cloneSD();
+            unique_ptr<SymbolicDouble> result = varWrapper->getSymbolicDouble(sef.get())->clone();
 
             if (op == PLUS) addConst(result.get(), constTerm);
             else multConst(result.get(), constTerm);
 
-            vs->setSymbolicVariable(sef.get(), result.get());
+            vs->setSymbolicDouble(sef.get(), result.get());
             return true;
         }
     }
@@ -214,44 +211,50 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
     {
         auto varModVar = [&sef, this] (SymbolicDouble* result, SymbolicDouble* t2v) -> void
         {
-            if (t2v->getTLowerBound() <= 0 && t2v->getTUpperBound() >= 0)
+            if (t2v->getLowerBound() <= 0 && t2v->getUpperBound() >= 0)
             {
                 sef->warn(Reporter::ZERODIVISION, "RHS could potentially be 0", getLineNum());
             }
 
-            result->clipTLowerBound(0);
-            result->clipTUpperBound(max(abs(t2v->getTLowerBound()), abs(t2v->getTUpperBound())));
+            result->clipLowerBound(0);
+            result->clipUpperBound(max(abs(t2v->getLowerBound()), abs(t2v->getUpperBound())));
         };
 
-        if (!term1.isLit)
+        if (term1.isHolding())
         {
-            unique_ptr<SymbolicDouble> result = term1.vg->getSymbolicDouble(sef.get())->cloneSD();
+            unique_ptr<SymbolicDouble> result = term1.getVarWrapper()->getSymbolicDouble(sef.get())->clone();
             if (repeat)
             {
+               result->minLowerBound();
+               result->maxUpperBound();
+
                 double t2c;
 
-                if (!term2.isLit)
+                if (term2.isHolding())
                 {
-                    if (!term2.vg->check(sef.get())) return false;
-                    GottenVarPtr<SymbolicDouble> t2v = term2.vg->getSymbolicDouble(sef.get());
-                    if (t2v->isDetermined()) t2c = t2v->getTConstValue();
+                    if (!term2.getVarWrapper()->check(sef.get())) return false;
+                    GottenVarPtr<SymbolicDouble> t2v = term2.getVarWrapper()->getSymbolicDouble(sef.get());
+                    if (t2v->isDetermined()) t2c = t2v->getConstValue();
                     else
                     {
                         if (op == MINUS)
                         {
-                            if (t2v->getTUpperBound() > 0) result->minLowerBound();
-                            else if (t2v->getTLowerBound() < 0) result->maxUpperBound();
+                            if (t2v->getUpperBound() > 0) result->minLowerBound();
+                            else if (t2v->getLowerBound() < 0) result->maxUpperBound();
                         }
                         else if (op == MOD) varModVar(result.get(), t2v.get());
                         else if (op == DIV) //todo this is wrong if the rhs can be negative
                         {
-                            if (t2v->getTLowerBound() <= 0 && t2v->getTUpperBound() >= 0)
+                            if (t2v->getLowerBound() <= 0 && t2v->getUpperBound() >= 0)
                             {
                                 sef->warn(Reporter::ZERODIVISION, "RHS could potentially be 0", getLineNum());
                             }
 
-                            double abslb = abs(t2v->getTLowerBound());
-                            double absub = abs(t2v->getTUpperBound());
+                            result->minLowerBound();
+                            result->maxUpperBound();
+
+                            /*double abslb = abs(t2v->getLowerBound());
+                            double absub = abs(t2v->getUpperBound());
                             double minabs, maxabs;
                             if (abslb > absub)
                             {
@@ -266,35 +269,30 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
 
                             if (minabs < 1)
                             {
-                                if (result->getTLowerBound() > 0)
+                                if (result->getLowerBound() > 0)
                                 {
-                                    result->setTLowerBound(max(result->getTRepeatLowerBound(), 0.0));
+                                    result->minLowerBound()
+                                    result->setLowerBound(max(result->getRepeatLowerBound(), 0.0)); //todo next this
                                 }
 
-                                if (result->getTUpperBound() < 0)
+                                if (result->getUpperBound() < 0)
                                 {
-                                    result->setTUpperBound(min(result->getTRepeatUpperBound(), 0.0));
+                                    result->setUpperBound(min(result->getTRepeatUpperBound(), 0.0));
                                 }
                             }
                             if (maxabs > 1)
                             {
                                 result->minLowerBound();
                                 result->maxUpperBound();
-                            }
+                            }*/
                         }
                         else throw runtime_error("Strange op encountered");
 
-                        vs->setSymbolicVariable(sef.get(), result.get());
+                        vs->setSymbolicDouble(sef.get(), result.get());
                         return true;
-
-
-                        /*unique_ptr<SymbolicDouble> result = term1.vg->getSymbolicDouble(sef.get())->cloneSD();
-                        result->maxUpperBound();
-                        result->minLowerBound();
-                        vs->setSymbolicVariable(sef.get(), result.get());
-                        return true;*/
                     }
                 }
+                else t2c = term2.getLiteral();
 
                 if (op == MINUS)
                 {
@@ -313,9 +311,9 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                     {
                         if (t2c < -1)
                         {
-                            double maxAbs = max(abs(result->getTLowerBound()), abs(result->getTUpperBound()));
-                            result->setTLowerBound(-maxAbs);
-                            result->setTUpperBound(maxAbs);
+                            double maxAbs = max(abs(result->getLowerBound()), abs(result->getUpperBound()));
+                            result->setLowerBound(-maxAbs);
+                            result->setUpperBound(maxAbs);
                         }
                         else
                         {
@@ -325,59 +323,59 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                     }
                 }
                 else throw runtime_error("Strange op encountered");
-                vs->setSymbolicVariable(sef.get(), result.get());
+                vs->setSymbolicDouble(sef.get(), result.get());
                 return true;
             }
 
-            if (!term1.vg->check(sef.get())) return false;
-            if (!term2.isLit) //var and var
+            if (!term1.getVarWrapper()->check(sef.get())) return false;
+            if (term2.isHolding()) //var and var
             {
-                if (!term2.vg->check(sef.get())) return false;
-                GottenVarPtr<SymbolicDouble> t2 = term2.vg->getSymbolicDouble(sef.get());
+                if (!term2.getVarWrapper()->check(sef.get())) return false;
+                GottenVarPtr<SymbolicDouble> t2 = term2.getVarWrapper()->getSymbolicDouble(sef.get());
 
-                if (op == MINUS) result->minusSymbolicDouble(*t2, vs->getFullName() == term1.vg->getFullName());
+                if (op == MINUS) result->minusSymbolicDouble(*t2, vs->getFullName() == term1.getVarWrapper()->getFullName());
                 else if (op == MOD) result->modSymbolicDouble(*t2);
                 else if (op == DIV) result->divSymbolicDouble(*t2);
                 else throw runtime_error("Strange op encountered");
 
-                vs->setSymbolicVariable(sef.get(), result.get());
+                vs->setSymbolicDouble(sef.get(), result.get());
                 return true;
             }
             else //var and const
             {
-                if (op == MINUS) result->addConst(-term2.d);
-                else if (op == MOD) result->modConst(term2.d);
+                if (op == MINUS) result->addConst(-term2.getLiteral());
+                else if (op == MOD) result->modConst(term2.getLiteral());
                 else if (op == DIV)
                 {
-                    if (term2.d == 0)
+                    if (term2.getLiteral() == 0)
                     {
                         sef->error(Reporter::ZERODIVISION, "", getLineNum());
                         return false;
                     }
-                    else result->divConst(term2.d);
+                    else result->divConst(term2.getLiteral());
                 }
                 else throw runtime_error("Strange op encountered");
 
-                vs->setSymbolicVariable(sef.get(), result.get());
+                vs->setSymbolicDouble(sef.get(), result.get());
                 return true;
             }
         }
         else //const and var
         {
-            if (!term2.vg->check(sef.get())) return false;
-            GottenVarPtr<SymbolicDouble> rhs = term2.vg->getSymbolicDouble(sef.get());
+            if (!term2.getVarWrapper()->check(sef.get())) return false;
+            GottenVarPtr<SymbolicDouble> rhs = term2.getVarWrapper()->getSymbolicDouble(sef.get());
             GottenVarPtr<SymbolicDouble> result = vs->getSymbolicDouble(sef.get());
 
             if (op == MINUS)
             {
-                result->clipTUpperBound(term1.d - rhs->getTLowerBound());
-                result->clipTLowerBound(term2.d - rhs->getTUpperBound());
+                result->clipUpperBound(term1.getLiteral() - rhs->getLowerBound());
+                result->clipLowerBound(term2.getLiteral() - rhs->getUpperBound());
             }
             else if (op == MOD)
             {
                 double lb, ub;
-                lb = rhs->getTLowerBound();
-                ub = rhs->getTUpperBound();
+                lb = rhs->getLowerBound();
+                ub = rhs->getUpperBound();
                 if (lb == ub)
                 {
                     if (lb == 0)
@@ -385,21 +383,21 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                         sef->error(Reporter::ZERODIVISION, "RHS must be zero", getLineNum());
                         return false;
                     }
-                    result->setTConstValue(fmod(term1.d, lb));
+                    result->setConstValue(fmod(term1.getLiteral(), lb));
                 }
                 else
                 {
                     if (lb <= 0 && ub >= 0) sef->warn(Reporter::ZERODIVISION, "RHS could be zero", getLineNum());
-                    result->setTLowerBound(0);
-                    result->clipTUpperBound(max(abs(lb), abs(ub)));
+                    result->setLowerBound(0);
+                    result->clipUpperBound(max(abs(lb), abs(ub)));
                 }
             }
             else if (op == DIV)
             {
-                //term1.d should be positive
+                //term1.getLiteral() should be positive
                 double lb, ub;
-                lb = rhs->getTLowerBound();
-                ub = rhs->getTUpperBound();
+                lb = rhs->getLowerBound();
+                ub = rhs->getUpperBound();
                 if (lb == ub)
                 {
                     if (lb == 0)
@@ -407,7 +405,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                         sef->error(Reporter::ZERODIVISION, "RHS must be zero", getLineNum());
                         return false;
                     }
-                    result->setTConstValue(term1.d / lb);
+                    result->setConstValue(term1.getLiteral() / lb);
                 }
                 else
                 {
@@ -417,28 +415,28 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                         if (ub <= 0)
                         {
                             if (lb == 0) result->removeLowerBound();
-                            else result->setTUpperBound(term2.d / lb);
+                            else result->setUpperBound(term2.getLiteral() / lb);
                             if (ub == 0) result->removeLowerBound();
-                            else result->setTLowerBound(term2.d / ub);
+                            else result->setLowerBound(term2.getLiteral() / ub);
                         }
                         else
                         {
                             if (ub == 0) result->removeUpperBound();
-                            else result->setTUpperBound(term2.d / ub);
+                            else result->setUpperBound(term2.getLiteral() / ub);
                             if (lb == 0) result->removeLowerBound();
-                            result->setTLowerBound(term2.d / lb);
+                            result->setLowerBound(term2.getLiteral() / lb);
                         }
                     }
                     else
                     {
-                        result->setTLowerBound(term2.d / ub);
-                        result->setTUpperBound(term2.d / lb);
+                        result->setLowerBound(term2.getLiteral() / ub);
+                        result->setUpperBound(term2.getLiteral() / lb);
                     }
                 }
             }
             else throw runtime_error("Strange op encountered");
 
-            vs->setSymbolicVariable(sef.get(), result.get());
+            vs->setSymbolicDouble(sef.get(), result.get());
         }
     }
 
@@ -447,9 +445,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
 
 bool DeclareVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
-    if (vt == STRING) sef->symbolicVarSet->addVar(make_unique<SymbolicString>(name, sef->reporter));
-    else if (vt == DOUBLE) sef->symbolicVarSet->addVar(make_unique<SymbolicDouble>(name, sef->reporter));
-    else throw runtime_error("Bad type in DeclareVarCommand");
+    sef->symbolicVarSet->addVar(make_unique<SymbolicDouble>(name, sef->reporter));
     return true;
 }
 

@@ -8,41 +8,24 @@
 #include "SymbolicExecution.h"
 
 //SVByName
-GottenVarPtr<SymbolicVariable> SVByName::getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const
-{
-    SymbolicVariable* foundsv = sef->symbolicVarSet->findVar(name);
-    return GottenVarPtr<SymbolicVariable>(foundsv);
-}
-
 GottenVarPtr<SymbolicDouble> SVByName::getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const
 {
-    SymbolicVariable* sv = sef->symbolicVarSet->findVar(name);
-    if (sv == nullptr) throw std::runtime_error("Var '" + name + "' undeclared");
-    if (sv->getType() != DOUBLE) throw std::runtime_error("wrong type");
-    SymbolicDouble* sd = static_cast<SymbolicDouble*>(sv);
-
-    return GottenVarPtr<SymbolicDouble>(sd);
+    SymbolicDouble* foundsv = sef->symbolicVarSet->findVar(name);
+    return GottenVarPtr<SymbolicDouble>(foundsv);
 }
 
-VariableType SVByName::getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const
+void SVByName::setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sv)
 {
-    SymbolicVariable* sv = sef->symbolicVarSet->findVar(name);
-    if (sv == nullptr) throw std::runtime_error("Var '" + name + "' undeclared");
-    return sv->getType();
-}
-
-void SVByName::setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv)
-{
-    std::unique_ptr<SymbolicVariable> sv2 = sv->clone();
+    std::unique_ptr<SymbolicDouble> sv2 = sv->clone();
     sv2->setName(name);
     sef->symbolicVarSet->addVar(move(sv2));
 }
 
-void SVByName::setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv)
+void SVByName::setConstValue(SymbolicExecution::SymbolicExecutionFringe *sef, double d)
 {
     auto var = sef->symbolicVarSet->findVar(name);
     if (!var) throw std::runtime_error("Undefined variable '" + name + "'");
-    var->setConstValue(sv);
+    var->setConstValue(d);
 }
 
 void SVByName::nondet(SymbolicExecution::SymbolicExecutionFringe* sef)
@@ -69,13 +52,6 @@ std::unique_ptr<VarWrapper> SVByName::clone() const
 }
 
 //SDByArrayIndex
-GottenVarPtr<SymbolicVariable> SDByArrayIndex::getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const
-{
-    SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
-    if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
-    return GottenVarPtr<SymbolicVariable>(move(sa->operator[](index)));
-}
-
 GottenVarPtr<SymbolicDouble> SDByArrayIndex::getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const
 {
     SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
@@ -94,20 +70,15 @@ bool SDByArrayIndex::check(SymbolicExecution::SymbolicExecutionFringe* sef) cons
     sa->checkIndex(index);
 }
 
-void SDByArrayIndex::setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv)
+void SDByArrayIndex::setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sd)
 {
-    if (sv->getType() != DOUBLE) throw std::runtime_error("should be double");
-    SymbolicDouble* sd = static_cast<SymbolicDouble*>(sv);
     SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
     if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
     sa->set(index, sd);
 }
 
-void SDByArrayIndex::setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv)
+void SDByArrayIndex::setConstValue(SymbolicExecution::SymbolicExecutionFringe *sef, double d)
 {
-    double d;
-    try {d = std::stod(sv);}
-    catch (std::invalid_argument&) {throw std::runtime_error("Arrays hold only doubles");}
     SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
     if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
     sa->set(index, d);
@@ -118,11 +89,6 @@ void SDByArrayIndex::nondet(SymbolicExecution::SymbolicExecutionFringe* sef)
     SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
     if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
     sa->nondet(index);
-}
-
-VariableType SDByArrayIndex::getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const
-{
-    return DOUBLE;
 }
 
 std::unique_ptr<VarWrapper> SDByArrayIndex::clone() const
@@ -136,16 +102,7 @@ GottenVarPtr<SymbolicDouble> SDByIndexVar::getSymbolicDouble(SymbolicExecution::
     SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
     if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
     auto sv = index->getSymbolicDouble(sef);
-    if (sv->getType() != DOUBLE) throw std::runtime_error("wrong type");
     return GottenVarPtr<SymbolicDouble>(sa->operator[](sv.get()));
-}
-
-GottenVarPtr<SymbolicVariable> SDByIndexVar::getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const
-{
-    SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
-    if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
-    auto sv = index->getSymbolicDouble(sef);
-    return GottenVarPtr<SymbolicVariable>(sa->operator[](sv.get()));
 }
 
 bool SDByIndexVar::check(SymbolicExecution::SymbolicExecutionFringe* sef) const
@@ -158,29 +115,25 @@ bool SDByIndexVar::check(SymbolicExecution::SymbolicExecutionFringe* sef) const
     }
 
     auto sv = index->getSymbolicDouble(sef);
-    if (sv->isDetermined()) return sa->checkIndex(sv->getTConstValue());
-    else return sa->checkBounds(sv->getTLowerBound(), sv->getTUpperBound());
+    if (sv->isDetermined()) return sa->checkIndex(sv->getConstValue());
+    else return sa->checkBounds(sv->getLowerBound(), sv->getUpperBound());
 }
 
-void SDByIndexVar::setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv)
+void SDByIndexVar::setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sd)
 {
-    if (sv->getType() != DOUBLE) throw std::runtime_error("should be double");
-    SymbolicDouble* sd = static_cast<SymbolicDouble*>(sv);
     SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
     if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
     SymbolicDouble* ind = index->getSymbolicDouble(sef).get();
     sa->set(ind, sd);
 }
 
-void SDByIndexVar::setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv)
+void SDByIndexVar::setConstValue(SymbolicExecution::SymbolicExecutionFringe *sef, double d)
 {
-    double d;
-    try {d = std::stod(sv);}
-    catch (std::invalid_argument&) {throw std::runtime_error("Arrays hold only doubles");}
+
     SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
     if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
     SymbolicDouble val("val", sef->reporter);
-    val.setTConstValue(d);
+    val.setConstValue(d);
     sa->set(index->getSymbolicDouble(sef).get(), &val);
 }
 
@@ -189,11 +142,6 @@ void SDByIndexVar::nondet(SymbolicExecution::SymbolicExecutionFringe* sef)
     SymbolicArray* sa = sef->symbolicVarSet->findArray(name);
     if (sa == nullptr) throw std::runtime_error("Array '" + name + "' undeclared");
     sa->nondet(index->getSymbolicDouble(sef).get());
-}
-
-VariableType SDByIndexVar::getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const
-{
-    return DOUBLE;
 }
 
 std::unique_ptr<VarWrapper> SDByIndexVar::clone() const

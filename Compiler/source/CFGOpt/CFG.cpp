@@ -199,17 +199,17 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
 
             unique_ptr<AbstractCommand>& lastInstr = instructions.back();
             if (lastInstr->getType() == CommandType::JUMP
-                && lastInstr->getState() != "return"
-                && lastInstr->getState() != name)
+                && lastInstr->getString() != "return"
+                && lastInstr->getString() != name)
             {
-                unique_ptr<SourceNode>& swallowing = outputMap[lastInstr->getState()];
+                unique_ptr<SourceNode>& swallowing = outputMap[lastInstr->getString()];
                 if (swallowing == nullptr) throw std::runtime_error("cant find jumped to node");
                 else if (swallowing->predecessors.size() > 1) return false; //todo improve this by detecting cycles
 
                 vector<unique_ptr<AbstractCommand>>& swallowingInstrs = swallowing->instructions;
                 if (swallowingInstrs.empty()) throw std::runtime_error("this shouldn't be");
                 else if(swallowingInstrs.back()->getType() == CommandType::JUMP
-                        && swallowingInstrs.back()->getState() == name) return false;
+                        && swallowingInstrs.back()->getString() == name) return false;
 
                 instructions.pop_back();
 
@@ -275,18 +275,18 @@ string ControlFlowGraph::destroyStructureAndGetFinalSource()
                         for (unsigned int parentInstIndex = 0; parentInstIndex < parentInstructions.size(); ++parentInstIndex)
                         {
                             unique_ptr<AbstractCommand>& instr = parentInstructions.at(parentInstIndex);
-                            if (instr->getState() == sn->name)
+                            if (instr->getString() == sn->name)
                             {
-                                if (onlyInstr->getState() == "return")
+                                if (onlyInstr->getString() == "return")
                                 {
                                     parentInstructions[parentInstIndex] = make_unique<ReturnCommand>(instr->getLineNum());
                                 }
-                                else instr->setState(onlyInstr->getState());
+                                else instr->setString(onlyInstr->getString());
                                 found = true;
                             }
                         }
-                        if (!found && (onlyInstr->getState() != "return" || parentInstructions.empty()
-                                       || (*parentInstructions.rend())->getState() != "return"))
+                        if (!found && (onlyInstr->getString() != "return" || parentInstructions.empty()
+                                       || (*parentInstructions.rend())->getString() != "return"))
                         {
                             throw std::runtime_error("bad parent");
                         }

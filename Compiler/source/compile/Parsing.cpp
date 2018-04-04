@@ -38,7 +38,7 @@ void Compiler::body()
             vid->setDefined();
             const string& vidName = vid->getUniqueID();
             argumentStack.push(make_unique<PopCommand>(make_unique<SVByName>(vidName), lookahead.line));
-            argumentStack.push(make_unique<DeclareVarCommand>(t, vidName, lookahead.line));
+            argumentStack.push(make_unique<DeclareVarCommand>(vidName, lookahead.line));
             fs->addVar(new SVByName(vid->getUniqueID()));
             if (lookahead.type == COMMA)
             {
@@ -88,22 +88,15 @@ bool Compiler::statement(FunctionSymbol* fs)
         match(LPAREN);
         while (lookahead.type != RPAREN)
         {
-            if (lookahead.type == STRINGLIT)
+            if (lookahead.type == NUMBER)
             {
-                Atom a(quoteString(lookahead.lexemeString));
-                fs->genPrint(a, lookahead.line);
-                match(STRINGLIT);
-            }
-            else if (lookahead.type == NUMBER)
-            {
-                Atom a(lookahead.lexemeString);
-                fs->genPrint(a, lookahead.line);
+                fs->genPrintLiteral(lookahead.lexemeString, lookahead.line);
                 match(NUMBER);
             }
             else
             {
                 Atom a(wrappedIdent());
-                fs->genPrint(a,  lookahead.line);
+                fs->genPrintAtom(a, lookahead.line);
             }
 
             if (lookahead.type == COMMA)
@@ -134,24 +127,14 @@ bool Compiler::statement(FunctionSymbol* fs)
         {
             Identifier* idPtr = symbolTable.declare(t, id, lookahead.line);
             if (t == ARRAY) fs->genArrayDecl(idPtr->getUniqueID(), size, lookahead.line);
-            else fs->genVariableDecl(t, idPtr->getUniqueID(), lookahead.line);
+            else fs->genVariableDecl(idPtr->getUniqueID(), lookahead.line);
 
             if (lookahead.type == ASSIGN)
             {
                 if (t == ARRAY) error("Cannot assign into entire array");
                 match(ASSIGN);
                 unique_ptr<VarWrapper> vs = make_unique<SVByName>(idPtr->getUniqueID());
-
-                if (t == VariableType::STRING)
-                {
-                    if (lookahead.type == CALL) genFunctionCall(fs, STRING, move(vs));
-                    else
-                    {
-                        fs->genAssignment(move(vs), quoteString(lookahead.lexemeString), lookahead.line);
-                        match(STRINGLIT);
-                    }
-                }
-                else expression(fs, move(vs));
+                expression(fs, move(vs));
                 idPtr->setDefined();
             }
         }
@@ -167,17 +150,7 @@ bool Compiler::statement(FunctionSymbol* fs)
         Identifier* idPtr;
         std::unique_ptr<VarWrapper> setter = wrappedIdent(&idPtr);
         match(ASSIGN);
-        if (idPtr->getType() == VariableType::STRING)
-        {
-            if (lookahead.type == STRINGLIT)
-            {
-                fs->genAssignment(move(setter), quoteString(lookahead.lexemeString), lookahead.line);
-                match(STRINGLIT);
-            }
-            else if (lookahead.type == CALL) genFunctionCall(fs, idPtr->getType(), move(setter));
-            else error("Malformed assignment to string");
-        }
-        else expression(fs, move(setter));
+        expression(fs, move(setter));
         idPtr->setDefined();
         match(SEMIC);
     }
@@ -192,16 +165,7 @@ bool Compiler::statement(FunctionSymbol* fs)
     {
         finishedState = true;
         match(RETURN);
-        if (lookahead.type != SEMIC)
-        {
-            if (lookahead.type == STRINGLIT)
-            {
-                if (fs->getReturnType() != STRING) error("Cannot return string in function of type " + fs->getReturnType());
-                fs->genAssignment(make_unique<SVByName>("retS"), quoteString(lookahead.lexemeString), lookahead.line);
-                match(STRINGLIT);
-            }
-            else ExpressionCodeGenerator(*this, make_unique<SVByName>("retD")).compileExpression(fs);
-        }
+        if (lookahead.type != SEMIC) ExpressionCodeGenerator(*this, make_unique<SVByName>("retD")).compileExpression(fs);
         else if (fs->getReturnType() != VOID) error("Void function '" + fs->getIdent() + "' returns some value");
         match(SEMIC);
         fs->genReturn(lookahead.line);

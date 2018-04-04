@@ -122,10 +122,10 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
             {
                 auto avc = static_cast<AssignVarCommand*>(current.get());
                 const string& lhsname = avc->getVarWrapper()->getFullName();
-                if (avc->getAtom().isHolding()) assignments.emplace(lhsname, Atom(avc->getAtom()));
+                if (!avc->getAtom().isHolding()) assignments.emplace(lhsname, Atom(avc->getAtom()));
                 else
                 {
-                    const string& vname = *avc->getAtom().getString();
+                    const string& vname = avc->getAtom().getVarWrapper()->getFullName();
                     unordered_map<string, Atom>::const_iterator constit = assignments.find(vname);
                     if (constit != assignments.end())
                     {
@@ -133,7 +133,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                         assignments.emplace(lhsname, Atom(found));
                         avc->getAtom().become(found);
                     }
-                    else assignments.emplace(lhsname, vname);
+                    else assignments.emplace(lhsname, Atom(avc->getAtom()));
                 }
 
                 if (lhsname != string(avc->getAtom())) newInstrs.push_back(move(current));
@@ -145,35 +145,34 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                 const string& intoVar = eec->getVarWrapper()->getFullName();
 
                 //literals will not be found
-                if (!eec->term1.isLit)
+                if (eec->term1.isHolding())
                 {
-                    unordered_map<string, Atom>::const_iterator t1it = assignments.find(eec->term1.vg->getFullName());
-                    if (t1it != assignments.end()) eec->term1.parse(t1it->second);
+                    unordered_map<string, Atom>::const_iterator t1it = assignments.find(eec->term1.getVarWrapper()->getFullName());
+                    if (t1it != assignments.end()) eec->term1 = t1it->second;
                 }
     
-                if (!eec->term2.isLit)
+                if (eec->term2.isHolding())
                 {
-                    unordered_map<string, Atom>::const_iterator t2it = assignments.find(eec->term2.vg->getFullName());
-                    if (t2it != assignments.end()) eec->term2.parse(t2it->second);
+                    unordered_map<string, Atom>::const_iterator t2it = assignments.find(eec->term2.getVarWrapper()->getFullName());
+                    if (t2it != assignments.end()) eec->term2 = t2it->second;
                 }
     
-                if (eec->term1 == eec->term2 && !eec->term1.isLit)
+                if (eec->term1 == eec->term2 && !eec->term1.isHolding())
                 {
                     switch (eec->op)
                     {
                         case MINUS:
                         {
-                            assignments.emplace(intoVar, "0");
+                            assignments.emplace(intoVar, Atom(0));
                             newInstrs.push_back(make_unique<AssignVarCommand>(eec->getVarWrapper()->clone(),
-                                                                              "0", eec->getLineNum()));
+                                                                              Atom(0), eec->getLineNum()));
                             break;
                         }
                         case PLUS:
                         {
                             assignments.erase(intoVar);
                             eec->op = MULT;
-                            string two = "2";
-                            eec->term2.parse(two);
+                            eec->term2.set(2);
                             newInstrs.push_back(move(current));
                             break;
                         }
@@ -185,15 +184,14 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                     }
                 }//when we leave this at least one term is an ID so we dont enter the next condition
     
-                if (eec->term1.isLit && eec->term2.isLit)
+                if (eec->term1.isHolding() && eec->term2.isHolding())
                 {
-                    double lhs = eec->term1.d;
-                    double rhs = eec->term2.d;;
+                    double lhs = eec->term1.getLiteral();
+                    double rhs = eec->term2.getLiteral();
                     double result = evaluateOp(lhs, eec->op, rhs);
-                    string resultstr = to_string(result);
-                    assignments.emplace(intoVar, resultstr);
+                    assignments.emplace(intoVar, Atom(result));
                     newInstrs.push_back(make_unique<AssignVarCommand>(eec->getVarWrapper()->clone(),
-                                                                      resultstr, eec->getLineNum()));
+                                                                      Atom(result), eec->getLineNum()));
                 }
                 else
                 {
@@ -214,7 +212,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                 auto pushc = static_cast<PushCommand*>(current.get());
                 if (!pushc->pushesState())
                 {
-                    auto pushedVarIt = assignments.find(string(current->getAtom()));
+                    auto pushedVarIt = assignments.find(current->getVarWrapper()->getFullName());
                     if (pushedVarIt != assignments.end()) current->setAtom(pushedVarIt->second);
                 }
                 newInstrs.push_back(move(current));
@@ -232,7 +230,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                     {
                         if (pushc->pushesState())
                         {
-                            const std::string& nodename = *pushc->getAtom().getString();
+                            const std::string& nodename = pushc->getString();
                             CFGNode* node = parentGraph.getNode(nodename);
                             if (node == nullptr) throw std::runtime_error("found a bad state");
                             pushc->calledFunction->removeFunctionCall(name, nodename);
@@ -364,7 +362,7 @@ bool CFGNode::swallowNode(CFGNode* other)
                     PushCommand* pc = static_cast<PushCommand*>(newInst.get());
                     if (pc->pushesState())
                     {
-                        CFGNode* node = parentGraph.getNode(string(pc->getAtom()));
+                        CFGNode* node = parentGraph.getNode(pc->getString());
                         if (node == nullptr) throw std::runtime_error("pushing nonexistent node");
                         else if (calledFunctionSymbol && !needlessFunctionCall) throw std::runtime_error("can only call one function");
                         if (!other->calledFunctionSymbol) throw std::runtime_error("other is pushing states w/out calling");
@@ -409,7 +407,7 @@ bool CFGNode::swallowNode(CFGNode* other)
                 else //swap condition
                 {
                     comp->op = Relations::negateRelop(comp->op);
-                    comp->setState(compFail->getName());
+                    comp->setString(compFail->getName());
                     compSuccess = compFail;
                     compFail = nullptr;
                 }
@@ -438,10 +436,16 @@ bool CFGNode::swallowNode(CFGNode* other)
     return false;
 }
 
-void CFGNode::appendDeclatation(VariableType type, std::string varName)
+void CFGNode::appendDeclatation(std::string varName)
 {
-    instrs.push_back(make_unique<DeclareVarCommand>(type, move(varName), -1));
+    instrs.push_back(make_unique<DeclareVarCommand>(move(varName), -1));
 }
+
+void CFGNode::appendArrayDeclaration(std::string varName, unsigned int size)
+{
+    instrs.push_back(make_unique<DeclareArrayCommand>(move(varName), size, -1));
+}
+
 
 void CFGNode::setInstructions(vector<unique_ptr<AbstractCommand>>& in)
 {
@@ -477,8 +481,8 @@ void CFGNode::setInstructions(vector<unique_ptr<AbstractCommand>>& in)
     if ((*it)->getType() == CommandType::CONDJUMP)
     {
         JumpOnComparisonCommand* jocc = static_cast<JumpOnComparisonCommand*>(it->get());
-        compSuccess = parentGraph.getNode(jocc->getState());
-        if (compSuccess == nullptr) compSuccess = parentGraph.createNode(jocc->getState(), false, false);
+        compSuccess = parentGraph.getNode(jocc->getString());
+        if (compSuccess == nullptr) compSuccess = parentGraph.createNode(jocc->getString(), false, false);
         compSuccess->addParent(this);
         setComp(make_unique<JumpOnComparisonCommand>(*jocc));
 
@@ -487,7 +491,7 @@ void CFGNode::setInstructions(vector<unique_ptr<AbstractCommand>>& in)
 
     if ((*it)->getType() == CommandType::JUMP)
     {
-        string jumpto = (*it)->getState();
+        string jumpto = (*it)->getString();
         jumpline = (*it)->getLineNum();
         if (jumpto == "return") compFail = nullptr;
         else
@@ -581,7 +585,7 @@ void CFGNode::setCompSuccess(CFGNode* compsucc)
     {
         if (comp == nullptr) throw std::runtime_error("comp should be set");
         compSuccess->addParent(this);
-        comp->setState(compSuccess->getName());
+        comp->setString(compSuccess->getName());
     }
     else comp = nullptr;
 }
@@ -731,7 +735,7 @@ void CFGNode::prepareToDie()
             auto pc = static_cast<PushCommand*>(ac.get());
             if (pc->pushesState())
             {
-                const string& nodename = pc->getState();
+                const string& nodename = pc->getString();
                 CFGNode* pushedNode = parentGraph.getNode(nodename);
                 if (!pushedNode) throw std::runtime_error("could not find node");
                 pc->calledFunction->removeFunctionCall(name, nodename, false);

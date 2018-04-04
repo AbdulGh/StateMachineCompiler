@@ -3,7 +3,7 @@
 //
 
 #include "../Command.h"
-#include "SymbolicVariables.h"
+#include "SymbolicDouble.h"
 #include "VarWrappers.h"
 
 using namespace std;
@@ -64,13 +64,9 @@ WrapperHoldingCommand::WrapperHoldingCommand(std::unique_ptr<VarWrapper> vw, int
 
 void WrapperHoldingCommand::setVarWrapper(std::unique_ptr<VarWrapper> nvs) {vs = move(nvs);}
 
-Atom::Atom(const string& s, bool allowEmpty): holding(false)
-{
-    if (allowEmpty && s.empty()) type = StringType::STRINGLIT;
-    else type = getStringType(s);
-    if (type == StringType::ID) throw runtime_error("bad");
-    sptr = new string(s);
-}
+//Atom
+Atom::Atom(double nd):
+    holding(false), type(StringType::DOUBLELIT), d(nd) {}
 
 Atom::Atom(unique_ptr<VarWrapper> vg): holding(true)
 {
@@ -81,7 +77,6 @@ Atom::Atom(unique_ptr<VarWrapper> vg): holding(true)
 Atom::~Atom()
 {
     if (holding) delete vptr;
-    else delete sptr;
 }
 
 Atom::Atom(const Atom& o): type(o.type)
@@ -93,7 +88,7 @@ Atom::Atom(const Atom& o): type(o.type)
     }
     else
     {
-        sptr = new string(*o.sptr);
+        d = o.d;
         holding = false;
     }
 }
@@ -103,32 +98,49 @@ Atom::Atom(Atom&& o): type(o.type)
     if (o.holding)
     {
         vptr = o.vptr;
-        o.vptr = nullptr;
         holding = true;
+        type = StringType::ID;
     }
     else
     {
-        sptr = o.sptr;
-        o.sptr = nullptr;
+        d = o.d;
         holding = false;
+        type = StringType::DOUBLELIT;
     }
+    o.vptr = nullptr;
 }
 
-Atom& Atom::operator=(Atom&& o)
+Atom& Atom::operator=(const Atom& o)
 {
     type = o.type;
     if (o.holding)
     {
-        vptr = o.vptr;
-        o.vptr = nullptr;
+        vptr = o.vptr->clone().release();
         holding = true;
     }
     else
     {
-        sptr = o.sptr;
-        o.sptr = nullptr;
+        d = o.d;
         holding = false;
     }
+    return *this;
+}
+
+Atom& Atom::operator=(Atom&& o)
+{
+    if (o.holding)
+    {
+        vptr = o.vptr;
+        holding = true;
+        type = StringType::ID;
+    }
+    else
+    {
+        d = o.d;
+        holding = false;
+        type = StringType::DOUBLELIT;
+    }
+    o.vptr = nullptr;
     return *this;
 }
 
@@ -145,7 +157,7 @@ void Atom::swap(Atom& a)
         else
         {
             type = a.type;
-            sptr = a.sptr;
+            d = a.d;
             holding = false;
             a.type = StringType::ID;
             a.vptr = vw;
@@ -154,7 +166,7 @@ void Atom::swap(Atom& a)
     }
     else
     {
-        string* s = sptr;
+        double t = d;
         if (a.holding)
         {
             a.type = type;
@@ -162,42 +174,39 @@ void Atom::swap(Atom& a)
             holding = true;
             a.holding = false;
             vptr = a.vptr;
-            a.sptr = s;
+            a.d = t;
         }
         else
         {
-            StringType t = type;
+            StringType ttype = type;
             type = a.type;
-            a.type = t;
-            sptr = a.sptr;
-            a.sptr = s;
+            a.type = ttype;
+            d = a.d;
+            a.d = t;
         }
     }
 }
 
 void Atom::become(const Atom& other)
 {
-    if (holding) delete vptr; else delete sptr;
+    if (holding) delete vptr;
     type = other.type;
     holding = other.holding;
     if (holding) vptr = other.vptr->clone().release();
-    else sptr = new string(*other.sptr);
+    else d = other.d;
 }
 
-void Atom::set(const string& s)
+void Atom::set(double nd)
 {
     if (holding) delete vptr;
-    else delete sptr;
-    type = getStringType(s);
-    if (type == StringType::ID) throw runtime_error("bad");
-    sptr = new string(s);
+    type = StringType::DOUBLELIT;
+    d = nd;
     holding = false;
 }
 
 void Atom::set(unique_ptr<VarWrapper> vg)
 {
     if (holding) delete vptr;
-    else delete sptr;
     type = StringType::ID;
     vptr = vg.release();
     holding = true;
@@ -207,23 +216,22 @@ bool Atom::operator<(const Atom& right) const
 {
     if (holding != right.holding) return holding;
     else if (holding) return vptr->getFullName() < right.vptr->getFullName();
-    else return (*sptr) < *(right.sptr);
+    else return d < right.d;
 }
 
 bool Atom::operator==(const Atom& right) const
 {
     if (holding != right.holding) return false;
     else if (holding) return vptr->getFullName() == right.vptr->getFullName();
-    else return (*sptr) == *(right.sptr);
+    else return d == right.d;
 }
 
 bool Atom::isHolding() const {return holding;}
 
-const std::string* Atom::getString() const
+double Atom::getLiteral() const
 {
-    return sptr;
+    return d;
 }
-
 VarWrapper* Atom::getVarWrapper() const
 {
     return vptr;
@@ -234,112 +242,43 @@ StringType Atom::getType() const {return type;}
 Atom::operator std::string() const
 {
     if (holding) return vptr->getFullName();
-    else return *sptr;
+    else return to_string(d);
 }
 
 void Atom::resetRepeatBounds(SymbolicExecution::SymbolicExecutionFringe* sef)
 {
     if (!isHolding()) throw runtime_error("not holding unique ptr");
-    GottenVarPtr<SymbolicVariable> gsv = vptr->getSymbolicVariable(sef);
+    GottenVarPtr<SymbolicDouble> gsv = vptr->getSymbolicDouble(sef);
     gsv->resetRepeatBounds();
-    if (gsv.constructed()) vptr->setSymbolicVariable(sef, gsv.get());
+    if (gsv.constructed()) vptr->setSymbolicDouble(sef, gsv.get());
 }
 
 //JumpOnComparisonCommand
 JumpOnComparisonCommand::JumpOnComparisonCommand(const string& st, unique_ptr<VarWrapper> t1,
                                                  unique_ptr<VarWrapper> t2, Relations::Relop o, int linenum)
-    :StateHoldingCommand(st, linenum), term1(move(t1)), term2(move(t2))
+    :StringHoldingCommand(st, linenum), term1(move(t1)), term2(move(t2))
 {
     op = o;
     setType(CommandType::CONDJUMP);
 }
 
 JumpOnComparisonCommand::JumpOnComparisonCommand(const string& st, unique_ptr<VarWrapper> t1,
-                                                 const string& t2, Relations::Relop o, int linenum)
-    :StateHoldingCommand(st, linenum), term1(move(t1)), term2(t2)
+                                                 double t2, Relations::Relop o, int linenum)
+    :StringHoldingCommand(st, linenum), term1(move(t1)), term2(t2)
 {
     op = o;
     setType(CommandType::CONDJUMP);
 }
 
 JumpOnComparisonCommand::JumpOnComparisonCommand(const JumpOnComparisonCommand& jocc)
-    :StateHoldingCommand(jocc.getState(), jocc.getLineNum()), term1(jocc.term1), term2(jocc.term2)
+    :StringHoldingCommand(jocc.getString(), jocc.getLineNum()), term1(jocc.term1), term2(jocc.term2)
 {
     op = jocc.op;
     setType(CommandType::CONDJUMP);
 }
 
-//EvaluateExpressionCommand
-Term::Term(const string& toParse) : vg{}
-{
-    parse(toParse);
-}
-
-void Term::parse(const string& toParse)
-{
-    StringType st;
-    auto up = parseAccess(toParse, &st);
-    switch (st)
-    {
-        case StringType::DOUBLELIT:
-            isLit = true;
-            d = stod(toParse);
-            break;
-        case StringType::ID:
-            isLit = false;
-            vg = move(up);
-            break;
-        default:
-            throw std::runtime_error("not allowed");
-    }
-}
-
-Term::Term(const Term& other) : vg{}
-{
-    isLit = other.isLit;
-    if (isLit) d = other.d;
-    else vg = other.vg->clone();
-}
-
-Term::Term(double doub) : vg{}
-{
-    isLit = true;
-    d = doub;
-}
-
-Term::Term(std::unique_ptr<VarWrapper> itmoveit): vg(move(itmoveit)), isLit(false) {}
-
-Term::Term(Term&& other) : vg{}
-{
-    isLit = other.isLit;
-    if (isLit) d = other.d;
-    else vg = move(other.vg);
-}
-
-bool Term::operator==(Term& o)
-{
-    if (isLit)
-    {
-        if (o.isLit) return d == o.d;
-        else return false;
-    }
-    else
-    {
-        if (!o.isLit) return vg->getFullName() == o.vg->getFullName();
-        else return false;
-    }
-}
-
-Term::~Term() {if (!isLit) vg.reset();}
-
-string Term::str() const
-{
-    if (isLit) return to_string(d);
-    else return vg->getFullName();
-}
-
-EvaluateExprCommand::EvaluateExprCommand(unique_ptr<VarWrapper> lh, Term t1,
-                                         ArithOp o, Term t2, int linenum):
+EvaluateExprCommand::EvaluateExprCommand(unique_ptr<VarWrapper> lh, Atom t1,
+                                         ArithOp o, Atom t2, int linenum):
         WrapperHoldingCommand(move(lh), linenum),  op(o), term1(move(t1)), term2(move(t2))
 {
     setType(CommandType::EXPR);
@@ -348,12 +287,6 @@ EvaluateExprCommand::EvaluateExprCommand(unique_ptr<VarWrapper> lh, Term t1,
 EvaluateExprCommand::EvaluateExprCommand(const EvaluateExprCommand& o):
         WrapperHoldingCommand(o.vs->clone(), o.getLineNum()), term1(o.term1), term2(o.term2), op(o.op) {}
 
-EvaluateExprCommand::~EvaluateExprCommand()
-{
-    term1.~Term();
-    term2.~Term();
-}
-
 unique_ptr<AbstractCommand> EvaluateExprCommand::clone()
 {
     return make_unique<EvaluateExprCommand>(*this);
@@ -361,7 +294,7 @@ unique_ptr<AbstractCommand> EvaluateExprCommand::clone()
 
 string EvaluateExprCommand::translation(const string& delim) const
 {
-    return vs->getFullName() + " = " + term1.str() + ' ' + opEnumChars[op]  + ' ' + term2.str() + ";" + delim;
+    return vs->getFullName() + " = " + string(term1) + ' ' + opEnumChars[op]  + ' ' + string(term2) + ";" + delim;
 }
 
 //InputVarCommand
@@ -387,13 +320,7 @@ AssignVarCommand::AssignVarCommand(unique_ptr<VarWrapper> lh, unique_ptr<VarWrap
     setType(CommandType::ASSIGNVAR);
 }
 
-AssignVarCommand::AssignVarCommand(unique_ptr<VarWrapper> lh, const string& rh, int linenum):
-        AbstractCommand(linenum), vs(move(lh)), atom(move(rh))
-{
-    setType(CommandType::ASSIGNVAR);
-}
-
-AssignVarCommand::AssignVarCommand(unique_ptr<VarWrapper> lh, Atom& rh, int linenum):
+AssignVarCommand::AssignVarCommand(unique_ptr<VarWrapper> lh, Atom rh, int linenum):
         AbstractCommand(linenum), vs(move(lh)), atom(move(rh))
 {
     setType(CommandType::ASSIGNVAR);
@@ -440,14 +367,25 @@ unique_ptr<AbstractCommand> PopCommand::clone()
 PushCommand::PushCommand(std::unique_ptr<VarWrapper> in, int linenum):
         AbstractCommand(linenum), calledFunction(nullptr),pushedVars(0), stringType(StringType::ID)
 {
-    atom = make_unique<Atom>(move(in));
+    vw = in.release();
     setType(CommandType::PUSH);
+}
+
+PushCommand::~PushCommand()
+{
+    if (stringType == StringType::ID) delete vw;
+}
+
+std::string PushCommand::translation(const std::string& delim) const
+{
+    if (pushesState()) return "push state " + s + ";" + delim;
+    else if (stringType != StringType::ID) return "push " + s + ";" + delim;
+    else return "push " + vw->getFullName() + ";" + delim;
 }
 
 std::unique_ptr<AbstractCommand> PushCommand::clone()
 {
-    if (pushesState()) return std::make_unique<PushCommand>(state, getLineNum(), calledFunction);
-    else if (atom->isHolding()) return std::make_unique<PushCommand>(atom->getVarWrapper()->clone(), getLineNum());
-    else return std::make_unique<PushCommand>(*(atom->getString()), getLineNum(), nullptr);
+    if (stringType == StringType::ID) return std::make_unique<PushCommand>(vw->clone(), getLineNum());
+    else return std::make_unique<PushCommand>(s, getLineNum(), calledFunction);
 }
 

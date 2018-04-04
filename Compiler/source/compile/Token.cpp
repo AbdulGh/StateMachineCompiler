@@ -14,7 +14,7 @@ string VariableTypeEnumNames[] = {"double", "string", "double array"};
 
 char opEnumChars[] = {'+', '*', '-', '/', '%', '&', '|'};
 
-double evaluateOp(const double& lhs, ArithOp op, const double& rhs)
+double evaluateOp(double lhs, ArithOp op, double rhs)
 {
     switch(op)
     {

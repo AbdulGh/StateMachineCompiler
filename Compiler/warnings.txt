@@ -1,0 +1,24 @@
+WARNING : UNINITIALISED USE : '_2_0_x' used before being defined (line 5)
+WARNING : UNINITIALISED USE : '_3_0_y' used before being defined (line 8)
+WARNING : UNINITIALISED USE : _3_0_y used before explicitly initialised
+WARNING : UNINITIALISED USE : _3_0_y used before explicitly initialised
+WARNING : UNINITIALISED USE : _3_0_y used before explicitly initialised
+WARNING : OVERFLOW : _3_0_y could possibly exceed double limits
+WARNING : UNINITIALISED USE : 'uninit' used before being defined (line 11)
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 99
+WARNING : UNINITIALISED USE : '_3_0_y' used before being defined (line 8)
+WARNING : UNINITIALISED USE : _3_0_y used before explicitly initialised
+WARNING : UNINITIALISED USE : _3_0_y used before explicitly initialised
+WARNING : UNINITIALISED USE : _3_0_y used before explicitly initialised
+WARNING : ARRAY BOUNDS : Could access index up to 99 in array of size 99
+WARNING : UNINITIALISED USE : 'uninit' used before being defined (line 11)
+WARNING : ARRAY BOUNDS : Could access index up to 100 in array of size 99
+WARNING : UNINITIALISED USE : '_2_0_x' used before being defined (line 5)
+WARNING : UNINITIALISED USE : '_3_0_y' used before being defined (line 8)
+WARNING : UNINITIALISED USE : _3_0_y used before explicitly initialised
+WARNING : UNINITIALISED USE : _3_0_y used before explicitly initialised
+WARNING : UNINITIALISED USE : _3_0_y used before explicitly initialised
+WARNING : OVERFLOW : _3_0_y could possibly exceed double limits
+WARNING : UNINITIALISED USE : 'uninit' used before being defined (line 11)
+WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 99
+OPTIMISATION : DEAD CODE : State 'F0_main_11' is unreachable and will be removed

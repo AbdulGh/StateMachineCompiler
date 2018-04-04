@@ -3,39 +3,421 @@
 //
 #include <limits>
 #include <cmath>
-#include "SymbolicVariables.h"
+#include "SymbolicDouble.h"
+#include "SymbolicExecution.h"
 
 //todo uniformly changing when set/clip/union is called
 //todo update repeat bounds on arithmetic ops
 
 using namespace std;
-
-enum ArithResult{OVER, UNDER, FINE};
+using namespace SymbolicExecution;
 
 SymbolicDouble::SymbolicDouble(string name, Reporter& r):
-        SymbolicVariableTemplate(move(name), 0, 0,
-                                 numeric_limits<double>::lowest(), numeric_limits<double>::max(),
-                                 r, DOUBLE, true, true) {}
+    varN(move(name)), reporter(r), upperBound(0), lowerBound(0), repeatLower(numeric_limits<double>::lowest()),
+    repeatUpper(numeric_limits<double>::max()) {}
 
-SymbolicDouble::SymbolicDouble(SymbolicDouble& o):
-        SymbolicVariableTemplate
-                (o.getName(), o.getTLowerBound(), o.getTUpperBound(),
-                 o.getTRepeatLowerBound(), o.getTRepeatUpperBound(), o.reporter, DOUBLE, o.defined, true),
-        minChange(o.minChange), maxChange(o.maxChange), uniformlyChanging(o.uniformlyChanging) {}
+SymbolicDouble::SymbolicDouble(const SymbolicDouble& o):
+    varN(o.varN), reporter(o.reporter), upperBound(o.upperBound), lowerBound(o.lowerBound), repeatLower(o.repeatLower),
+    repeatUpper(o.repeatUpper) {}
 
-SymbolicDouble::SymbolicDouble(SymbolicVariable* other): SymbolicDouble(*static_cast<SymbolicDouble*>(other)) {}
 
-unique_ptr<SymbolicVariable> SymbolicDouble::clone()
+SymbolicDouble::~SymbolicDouble()
+{
+    clearEQ();
+    clearGreater();
+    clearLess();
+}
+
+const string& SymbolicDouble::getName() const
+{
+    return varN;
+}
+
+void SymbolicDouble::setName(const string& newName)
+{
+    varN = newName;
+}
+
+void SymbolicDouble::reportError(Reporter::AlertType type, string err)
+{
+    reporter.error(type, err);
+    feasable = false;
+}
+
+bool SymbolicDouble::isDefined() const
+{
+    return defined;
+}
+
+bool SymbolicDouble::wasUserAffected() const
+{
+    return userAffected;
+}
+
+void SymbolicDouble::define()
+{
+    defined = true;
+}
+
+bool SymbolicDouble::isFeasable()
+{
+    return feasable;
+}
+
+double SymbolicDouble::getLowerBound() const
+{
+    return lowerBound;
+}
+
+double SymbolicDouble::getUpperBound() const
+{
+    return upperBound;
+}
+
+bool SymbolicDouble::isDetermined() const
+{
+    return lowerBound == upperBound;
+}
+
+double SymbolicDouble::getConstValue() const
+{
+    if (!isDetermined()) throw runtime_error("asked to get cvalue of indetermined var");
+    return lowerBound;
+}
+
+void SymbolicDouble::removeRepeatUpperBound()
+{
+    repeatUpper = numeric_limits<double>::max();
+}
+
+void SymbolicDouble::removeRepeatLowerBound()
+{
+    repeatLower = numeric_limits<double>::lowest();
+}
+
+bool SymbolicDouble::addGT(const VarWrapper* vg, SymbolicExecutionFringe* sef, bool constructed)
+{
+    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef);
+    SymbolicDouble* sv = other.get();
+    if (!other.constructed())
+    {
+        if (!gt.insert(sv).second) return isFeasable() && sv->isFeasable();
+
+    }
+    if (!constructed) sv->lt.insert(this);
+    if (sv->isBoundedBelow())
+    {
+        clipLowerBound(sv->getLowerBound(), false);
+        clipRepeatLowerBound(sv->getLowerBound(), false);
+    }
+    else removeRepeatLowerBound();
+    if (isBoundedAbove())
+    {
+        sv->clipUpperBound(getUpperBound(), -1);
+        sv->clipRepeatLowerBound(getUpperBound(), -1);
+    }
+    else sv->removeRepeatUpperBound();
+    return isFeasable() && sv->isFeasable();
+}
+
+bool SymbolicDouble::addGE(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
+{
+    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef);
+    SymbolicDouble* sv = other.get();
+
+    if (!other.constructed())
+    {
+        if (!ge.insert(sv).second) return isFeasable() && sv->isFeasable();
+    }
+    if (!constructed) sv->le.insert(this);
+
+    if (sv->isBoundedBelow())
+    {
+        clipLowerBound(sv->getLowerBound());
+        clipRepeatLowerBound(sv->getLowerBound());
+    }
+    else removeRepeatLowerBound();
+    if (isBoundedAbove())
+    {
+        sv->clipUpperBound(getUpperBound());
+        sv->clipRepeatUpperBound(getUpperBound());
+    }
+    else sv->removeRepeatUpperBound();
+    return isFeasable() && sv->isFeasable();
+}
+
+bool SymbolicDouble::addLT(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
+{
+    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef);
+    SymbolicDouble* sv = other.get();
+    if (!constructed && !other.constructed())
+    {
+        set<SymbolicDouble*> seen;
+        if (guaranteedLT(sv, this, seen)) return isFeasable() && sv->isFeasable();
+        lt.insert(sv);
+        sv->gt.insert(this);
+    }
+
+    if (sv->isBoundedAbove())
+    {
+        clipUpperBound(sv->getUpperBound(), false);
+        clipRepeatLowerBound(sv->getUpperBound(), false);
+    }
+    else removeRepeatLowerBound();
+    if (isBoundedBelow())
+    {
+        sv->clipLowerBound(getLowerBound());
+        sv->clipRepeatLowerBound(getLowerBound());
+    }
+    else sv->removeRepeatLowerBound();
+
+    return isFeasable() && sv->isFeasable();
+}
+
+bool SymbolicDouble::addLE(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
+{
+    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef);
+    SymbolicDouble* sv = other.get();
+
+    if (!constructed && !other.constructed())
+    {
+        clipRepeatUpperBound(sv->getUpperBound());
+        sv->clipRepeatLowerBound(getLowerBound());
+        set<SymbolicDouble*> seen;
+        if (guaranteedLE(sv, this, seen)) return isFeasable() && sv->isFeasable();
+        lt.insert(sv);
+        sv->gt.insert(this);
+    }
+    if (sv->isBoundedAbove())
+    {
+        clipUpperBound(sv->getUpperBound());
+        clipRepeatUpperBound(sv->getUpperBound());
+    }
+    else removeRepeatUpperBound();
+    if (isBoundedBelow())
+    {
+        sv->clipLowerBound(getLowerBound());
+        sv->clipRepeatLowerBound(getLowerBound());
+    }
+    else sv->removeRepeatLowerBound();
+
+    return isFeasable() && sv->isFeasable();
+}
+
+bool SymbolicDouble::addEQ(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
+{
+    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef);
+    SymbolicDouble* sv = other.get();
+    if (!other.constructed() && !constructed)
+    {
+        set<SymbolicDouble*> seen;
+        if (guaranteedEQ(sv, this, seen)) return isFeasable() && sv->isFeasable();
+        eq.insert(sv);
+        sv->eq.insert(this);
+    }
+
+    if (sv->isDetermined()) setConstValue(sv->getConstValue());
+    else if (isDetermined()) sv->setConstValue(getConstValue());
+    else
+    {
+        if (sv->isBoundedAbove())
+        {
+            clipUpperBound(sv->getUpperBound());
+            clipRepeatUpperBound(sv->getUpperBound());
+        }
+        if (sv->isBoundedBelow())
+        {
+            clipLowerBound(sv->getLowerBound());
+            clipRepeatLowerBound(sv->getLowerBound());
+        }
+        if (isBoundedAbove())
+        {
+            sv->clipUpperBound(getUpperBound());
+            sv->clipRepeatUpperBound(getUpperBound());
+        }
+        if (isBoundedBelow())
+        {
+            sv->clipLowerBound(getLowerBound());
+            sv->clipRepeatLowerBound(getLowerBound());
+        }
+    }
+
+    return isFeasable() && sv->isFeasable();
+}
+
+bool SymbolicDouble::addNEQ(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
+{
+    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef);
+    SymbolicDouble* sv = other.get();
+    if (!other.constructed())
+    {
+        if (!neq.insert(sv).second) return isFeasable() && sv->isFeasable();
+    }
+    if (!constructed) sv->neq.insert(this);
+    return isFeasable() && sv->isFeasable();
+}
+
+bool SymbolicDouble::guaranteedLT(SymbolicDouble* searchFor, SymbolicDouble* searchInit, set<SymbolicDouble*>& seen)
+{
+    auto addLT = [&, this, searchFor] () -> void
+    {
+        lt.insert(searchFor);
+        searchFor->gt.insert(this);
+    };
+
+    if (this == searchInit) return false;
+    else if (searchFor == this) return true;
+
+    if (canMeet(Relations::LT, searchFor) == MeetEnum::MUST)
+    {
+        addLT();
+        return true;
+    }
+    for (SymbolicDouble* optr : lt)
+    {
+        if (optr->getName() == searchFor->getName() || optr->guaranteedLE(searchFor, searchInit, seen))
+        {
+            addLT();
+            return true;
+        }
+    }
+    for (SymbolicDouble* optr : le) if (optr->guaranteedLT(searchFor, searchInit, seen))
+        {
+            addLT();
+            return true;
+        }
+    for (SymbolicDouble* optr : eq) if (optr->guaranteedLT(searchFor, searchInit, seen))
+        {
+            addLT();
+            return true;
+        }
+    return false;
+}
+
+bool SymbolicDouble::guaranteedLE(SymbolicDouble* searchFor, SymbolicDouble* searchInit, set<SymbolicDouble*>& seen)
+{
+    auto addLE = [&, this, searchFor] () -> void
+    {
+        le.insert(searchFor);
+        searchFor->ge.insert(this);
+    };
+
+    if (searchFor == this || searchInit == this) return true;
+    else if (canMeet(Relations::LE, searchFor) == MeetEnum::MUST)
+    {
+        addLE();
+        return true;
+    }
+    for (SymbolicDouble* optr : lt)
+    {
+        if (optr->getName() == searchFor->getName() || optr->guaranteedLE(searchFor, searchInit, seen))
+        {
+            addLE();
+            return true;
+        }
+    }
+    for (SymbolicDouble* optr : le) if (optr->guaranteedLE(searchFor, searchInit, seen))
+        {
+            addLE();
+            return true;
+        }
+    for (SymbolicDouble* optr : eq) if (optr->guaranteedLE(searchFor, searchInit, seen))
+        {
+            addLE();
+            return true;
+        }
+    return false;
+}
+
+bool SymbolicDouble::guaranteedGT(SymbolicDouble* searchFor, SymbolicDouble* searchInit, set<SymbolicDouble*>& seen)
+{
+    if (this == searchInit) return false;
+    return searchFor->guaranteedLT(this, searchFor, seen);
+}
+
+bool SymbolicDouble::guaranteedGE(SymbolicDouble* searchFor, SymbolicDouble* searchInit, set<SymbolicDouble*>& seen)
+{
+    if (this == searchInit) return true;
+    return searchFor->guaranteedLE(this, searchFor, seen);
+}
+
+bool SymbolicDouble::guaranteedEQ(SymbolicDouble* searchFor, SymbolicDouble* searchInit, set<SymbolicDouble*>& seen)
+{
+    if (this == searchInit || this == searchFor) return true;
+    if (canMeet(Relations::EQ, searchFor) == MeetEnum::MUST)
+    {
+        eq.insert(searchFor);
+        searchFor->eq.insert(this);
+        return true;
+    }
+    else for (auto& equal : eq) if (equal->guaranteedEQ(searchFor, searchInit, seen)) return true;
+    return false;
+}
+
+bool SymbolicDouble::guaranteedNEQ(SymbolicDouble* searchFor, SymbolicDouble* searchInit, set<SymbolicDouble*>& seen)
+{
+    if (this == searchInit || this == searchFor) return false;
+
+    auto addNEQ = [&, searchFor, this] () -> void
+    {
+        neq.insert(searchFor);
+        searchFor->neq.insert(this);
+    };
+
+    for (SymbolicDouble* optr : neq) if (optr->guaranteedEQ(searchFor, searchInit, seen))
+        {addNEQ(); return true;}
+    for (SymbolicDouble* optr : gt) if (optr->guaranteedGE(searchFor, searchInit, seen))
+        {addNEQ(); return true;}
+    for (SymbolicDouble* optr : ge) if (optr->guaranteedGT(searchFor, searchInit, seen))
+        {addNEQ(); return true;}
+    for (SymbolicDouble* optr : lt) if (optr->guaranteedLE(searchFor, searchInit, seen))
+        {addNEQ(); return true;}
+    for (SymbolicDouble* optr : le) if (optr->guaranteedLE(searchFor, searchInit, seen))
+        {addNEQ(); return true;}
+    for (SymbolicDouble* optr : eq) if (optr->guaranteedNEQ(searchFor, searchInit, seen))
+        {addNEQ(); return true;}
+    return false;
+}
+
+void SymbolicDouble::clearEQ()
+{
+    for (auto& ptr : eq) ptr->eq.erase(this);
+    eq.clear();
+    for (auto& ptr : neq) ptr->neq.erase(this);
+    neq.clear();
+}
+
+void SymbolicDouble::clearLess()
+{
+    for (auto& ptr : lt) ptr->lt.erase(this);
+    lt.clear();
+    for (auto& ptr : le) ptr->ge.erase(this);
+    le.clear();
+}
+
+void SymbolicDouble::clearAll()
+{
+    clearEQ();
+    clearEQ();
+    clearLess();
+}
+
+void SymbolicDouble::clearGreater()
+{
+    for (auto& ptr : gt) ptr->lt.erase(this);
+    gt.clear();
+    for (auto& ptr : ge) ptr->le.erase(this);
+    ge.clear();
+}
+
+SymbolicDouble::SymbolicDouble(SymbolicDouble* other): SymbolicDouble(*static_cast<SymbolicDouble*>(other)) {}
+
+unique_ptr<SymbolicDouble> SymbolicDouble::clone()
 {
     return make_unique<SymbolicDouble>(this);
 }
 
-unique_ptr<SymbolicDouble> SymbolicDouble::cloneSD()
-{
-    return make_unique<SymbolicDouble>(this);
-}
-
-SymbolicVariable* SymbolicDouble::cloneRaw()
+SymbolicDouble* SymbolicDouble::cloneRaw()
 {
     return new SymbolicDouble(this);
 }
@@ -62,72 +444,71 @@ void SymbolicDouble::loopInit()
     uniformlyChanging = true;
 }
 
-SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, SymbolicVariable* r) const
+SymbolicDouble::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, SymbolicDouble* r) const
 {
-    if (r->isDetermined()) return canMeet(rel, r->getConstString());
+    if (r->isDetermined()) return canMeet(rel, r->getConstValue());
     SymbolicDouble* rhs = static_cast<SymbolicDouble*>(r);
 
     switch(rel)
     {
         case Relations::EQ:
-            if (getTUpperBound() < rhs->getTLowerBound() || (getTLowerBound() > rhs->getTUpperBound())) return CANT;
+            if (getUpperBound() < rhs->getLowerBound() || (getLowerBound() > rhs->getUpperBound())) return CANT;
             return MAY;
         case Relations::NEQ:
-            if (getTUpperBound() < rhs->getTLowerBound() || (getTLowerBound() > rhs->getTUpperBound())) return MUST;
+            if (getUpperBound() < rhs->getLowerBound() || (getLowerBound() > rhs->getUpperBound())) return MUST;
             return MAY;
         case Relations::LE:
-            if (getTUpperBound() <= rhs->getTLowerBound()) return MUST;
-            else if (getTLowerBound() > rhs->getTUpperBound()) return CANT;
+            if (getUpperBound() <= rhs->getLowerBound()) return MUST;
+            else if (getLowerBound() > rhs->getUpperBound()) return CANT;
             return MAY;
         case Relations::LT:
-            if (getTUpperBound() < rhs->getTLowerBound()) return MUST;
-            else if (getTLowerBound() >= rhs->getTUpperBound()) return CANT;
+            if (getUpperBound() < rhs->getLowerBound()) return MUST;
+            else if (getLowerBound() >= rhs->getUpperBound()) return CANT;
             return MAY;
         case Relations::GE:
-            if (getTLowerBound() >= rhs->getTUpperBound()) return MUST;
-            else if (getTUpperBound() < rhs->getTLowerBound()) return CANT;
+            if (getLowerBound() >= rhs->getUpperBound()) return MUST;
+            else if (getUpperBound() < rhs->getLowerBound()) return CANT;
             return MAY;
         case Relations::GT:
-            if (getTLowerBound() > rhs->getTUpperBound()) return MUST;
-            else if (getTUpperBound() <= rhs->getTLowerBound()) return CANT;
+            if (getLowerBound() > rhs->getUpperBound()) return MUST;
+            else if (getUpperBound() <= rhs->getLowerBound()) return CANT;
             return MAY;
         default:
             throw std::runtime_error("weird enum");
     }
 }
 
-SymbolicVariable::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, const std::string& rhstring) const
+SymbolicDouble::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, double rhs) const
 {
-    double rhs = stod(rhstring);
     switch(rel)
     {
         case Relations::EQ:
-            if (isDetermined() && getTLowerBound() == rhs) return MUST;
-            else if (rhs >= getTLowerBound() && rhs <= getTUpperBound()) return MAY;
+            if (isDetermined() && getLowerBound() == rhs) return MUST;
+            else if (rhs >= getLowerBound() && rhs <= getUpperBound()) return MAY;
             else return CANT;
         case Relations::NEQ:
-            if (isDetermined()) return (getTLowerBound() != rhs) ? MUST : CANT;
+            if (isDetermined()) return (getLowerBound() != rhs) ? MUST : CANT;
             else return MAY;
         case Relations::LE:
-            if (getTUpperBound() <= rhs) return MUST;
-            else if (getTLowerBound() > rhs) return CANT;
+            if (getUpperBound() <= rhs) return MUST;
+            else if (getLowerBound() > rhs) return CANT;
             return MAY;
         case Relations::LT:
-            if (getTUpperBound() < rhs) return MUST;
-            else if (getTLowerBound() >= rhs) return CANT;
+            if (getUpperBound() < rhs) return MUST;
+            else if (getLowerBound() >= rhs) return CANT;
             return MAY;
         case Relations::GE:
-            if (getTLowerBound() >= rhs) return MUST;
-            else if (getTUpperBound() < rhs) return CANT;
+            if (getLowerBound() >= rhs) return MUST;
+            else if (getUpperBound() < rhs) return CANT;
             return MAY;
         case Relations::GT:
-            if (getTLowerBound() > rhs) return MUST;
-            else if (getTUpperBound() <= rhs) return CANT;
+            if (getLowerBound() > rhs) return MUST;
+            else if (getUpperBound() <= rhs) return CANT;
             return MAY;
     }
 }
 
-bool SymbolicDouble::setTLowerBound(const double& d, short direction)
+bool SymbolicDouble::setLowerBound(double d, short direction)
 {
     if (d < lowerBound) clearGreater();
     if (direction == -1 && d != numeric_limits<double>::lowest()) lowerBound = nextafter(d, numeric_limits<double>::lowest());
@@ -137,12 +518,8 @@ bool SymbolicDouble::setTLowerBound(const double& d, short direction)
     if (lowerBound > upperBound) feasable = false;
     return isFeasable();
 }
-bool SymbolicDouble::setLowerBound(const std::string& lb, short direction)
-{
-    setTLowerBound(stod(lb), direction);
-}
 
-bool SymbolicDouble::setTUpperBound(const double& d, short direction)
+bool SymbolicDouble::setUpperBound(double d, short direction)
 {
     if (d > upperBound) clearLess();
     if (direction == -1 && d != numeric_limits<double>::lowest()) upperBound = nextafter(d, numeric_limits<double>::lowest());
@@ -151,10 +528,6 @@ bool SymbolicDouble::setTUpperBound(const double& d, short direction)
 
     if (lowerBound > upperBound) feasable = false;
     return isFeasable();
-}
-bool SymbolicDouble::setUpperBound(const std::string& ub, short direction)
-{
-    return setTUpperBound(stod(ub), direction);
 }
 
 void SymbolicDouble::minLowerBound()
@@ -175,67 +548,52 @@ void SymbolicDouble::removeUpperBound()
     upperBound = numeric_limits<double>::max();
 }
 
-bool SymbolicDouble::clipTLowerBound(const double& d, short direction)
+bool SymbolicDouble::clipLowerBound(double d, short direction)
 {
-    if (d > getTLowerBound()) return setTLowerBound(d, direction);
+    if (d > getLowerBound()) return setLowerBound(d, direction);
     else return isFeasable();
 }
-bool SymbolicDouble::clipUpperBound(const std::string& ub, short direction)
-{
-    return clipTUpperBound(stod(ub), direction);
-}
 
-bool SymbolicDouble::clipTUpperBound(const double& d, short direction)
+bool SymbolicDouble::clipUpperBound(double d, short direction)
 {
-    if (d < getTUpperBound()) return setTUpperBound(d, direction);
+    if (d < getUpperBound()) return setUpperBound(d, direction);
     else return isFeasable();
 }
-bool SymbolicDouble::clipLowerBound(const std::string& lb, short direction)
-{
-    return clipTLowerBound(stod(lb), direction);
-}
 
-bool SymbolicDouble::unionTLowerBound(const double& d, short direction)
+bool SymbolicDouble::unionLowerBound(double d, short direction)
 {
     if (direction != 0)
     {
-        double d2;
-        if (direction == -1 && d2 != numeric_limits<double>::lowest()) d2 = nextafter(d2, numeric_limits<double>::lowest());
-        else if (direction == 1 && d2 != numeric_limits<double>::max()) d2 = nextafter(d2, numeric_limits<double>::max());
+        if (direction == -1 && d != numeric_limits<double>::lowest()) d = nextafter(d, numeric_limits<double>::lowest());
+        else if (direction == 1 && d != numeric_limits<double>::max()) d = nextafter(d, numeric_limits<double>::max());
         else throw runtime_error("direction in [-1, 1]");
 
-        if (d2 < lowerBound)
+        if (d < lowerBound)
         {
-            lowerBound = d2;
+            lowerBound = d;
             return true;
         }
         else return false;
     }
 
-    if (d < getTLowerBound())
+    if (d < getLowerBound())
     {
-        setTLowerBound(d);
+        setLowerBound(d);
         return true;
     }
     else return false;
 }
-bool SymbolicDouble::unionUpperBound(const std::string& ub, short direction)
-{
-    return unionTUpperBound(stod(ub), direction);
-}
 
-bool SymbolicDouble::unionTUpperBound(const double& d, short direction)
+bool SymbolicDouble::unionUpperBound(double d, short direction)
 {
     if (direction != 0)
     {
-        double d2;
-        if (direction == -1 && d2 != numeric_limits<double>::lowest()) d2 = nextafter(d2, numeric_limits<double>::lowest());
-        else if (direction == 1 && d2 != numeric_limits<double>::max()) d2 = nextafter(d2, numeric_limits<double>::max());
-        else throw runtime_error("direction in [-1, 1]");
+        if (direction == -1 && d != numeric_limits<double>::lowest()) d = nextafter(d, numeric_limits<double>::lowest());
+        else if (direction == 1 && d != numeric_limits<double>::max()) d = nextafter(d, numeric_limits<double>::max());
 
-        if (d2 > upperBound)
+        if (d > upperBound)
         {
-            upperBound = d2;
+            upperBound = d;
             return true;
         }
         else return false;
@@ -248,80 +606,50 @@ bool SymbolicDouble::unionTUpperBound(const double& d, short direction)
     }
     else return false;
 }
-bool SymbolicDouble::unionLowerBound(const std::string& lb, short direction)
-{
-    return unionTLowerBound(stod(lb), direction);
-}
 
-bool SymbolicDouble::unionVar(const SymbolicVariable* other)
+bool SymbolicDouble::unionVar(const SymbolicDouble* other)
 {
-    if (other->getType() != DOUBLE) throw std::runtime_error("wrong");
-    const SymbolicDouble* sd = static_cast<const SymbolicDouble*>(other);
-    bool ret = unionTLowerBound(sd->getTLowerBound());
-    if (unionTUpperBound(sd->getTUpperBound())) ret = true;
+    bool ret = unionLowerBound(other->getLowerBound());
+    if (unionUpperBound(other->getUpperBound())) ret = true;
     return ret;
 }
 
-void SymbolicDouble::setTConstValue(const double& d)
+void SymbolicDouble::setConstValue(double d)
 {
     clearAll();
-    SymbolicVariableTemplate<double>::setTConstValue(d);
+    lowerBound = upperBound = d;
     uniformlyChanging = false;
 }
-void SymbolicDouble::unionTConstValue(const double& cv, short direction)
+
+bool SymbolicDouble::unionConstValue(double cv, short direction)
 {
     clearAll();
-    if (closed)
+    bool change = false;
+    if (cv < lowerBound)
     {
-        if (cv < lowerBound) lowerBound = cv;
-        else if (cv > upperBound) upperBound = cv;
+        change = true;
+        lowerBound = cv;
     }
-    else
+    else if (cv > upperBound)
     {
-        if (cv != numeric_limits<double>::lowest() && cv <= lowerBound)
-        {
-            lowerBound = nextafter(cv, numeric_limits<double>::lowest());
-        }
-        else if (cv != numeric_limits<double>::max() && cv >= upperBound)
-        {
-            lowerBound = nextafter(cv, numeric_limits<double>::max());
-        }
+        change = true;
+        upperBound = cv;
     }
-}
-void SymbolicDouble::setConstValue(const std::string& c)
-{
-    clearAll();
-    double cd = stod(c);
-    setTConstValue(cd);
+    return change;
 }
 
-void SymbolicDouble::clipTRepeatLowerBound(const double& lb, short direction)
+void SymbolicDouble::clipRepeatLowerBound(double lb, short direction)
 {
-    if (!closed)
-    {
-        double d = (lb == numeric_limits<double>::lowest() ?
-                       numeric_limits<double>::lowest() : nextafter(lb, numeric_limits<double>::lowest()));
-        repeatLower = max(d, repeatLower);
-    }
-    else repeatLower = max(lb, repeatLower);
-}
-void SymbolicDouble::clipRepeatLowerBound(const std::string& lb, short direction)
-{
-    clipTRepeatLowerBound(stod(lb), direction);
+    if (direction == -1 && lb != numeric_limits<double>::lowest()) lb = nextafter(lb, numeric_limits<double>::lowest());
+    else if (direction == 1 && lb != numeric_limits<double>::max()) lb = nextafter(lb, numeric_limits<double>::max());
+    repeatLower = max(lb, repeatLower);
 }
 
-void SymbolicDouble::setTRepeatLowerBound(const double& lb, short direction)
+void SymbolicDouble::setRepeatLowerBound(double lb, short direction)
 {
-    if (!closed)
-    {
-        repeatLower = (lb == numeric_limits<double>::lowest() ?
-                      numeric_limits<double>::lowest() : nextafter(lb, numeric_limits<double>::lowest()));
-    }
-    else repeatLower = lb;
-}
-void SymbolicDouble::setRepeatLowerBound(const std::string& lb, short direction)
-{
-    setTRepeatLowerBound(stod(lb), direction);
+    if (direction == -1 && lb != numeric_limits<double>::lowest()) lb = nextafter(lb, numeric_limits<double>::lowest());
+    else if (direction == 1 && lb != numeric_limits<double>::max()) lb = nextafter(lb, numeric_limits<double>::max());
+    repeatLower = lb;
 }
 
 void SymbolicDouble::resetRepeatBounds()
@@ -330,57 +658,41 @@ void SymbolicDouble::resetRepeatBounds()
     repeatUpper = numeric_limits<double>::max();
 }
 
-void SymbolicDouble::clipTRepeatUpperBound(const double& ub, short direction)
+void SymbolicDouble::clipRepeatUpperBound(double ub, short direction)
 {
-    if (!closed)
-    {
-        double d = (ub == numeric_limits<double>::max() ?
-                    numeric_limits<double>::max() : nextafter(ub, numeric_limits<double>::max()));
-        repeatUpper = min(d, repeatUpper);
-    }
-    else repeatUpper = min(ub, repeatUpper);
-}
-void SymbolicDouble::clipRepeatUpperBound(const std::string& ub, short direction)
-{
-    clipTRepeatUpperBound(stod(ub), direction);
+    if (direction == -1 && ub != numeric_limits<double>::lowest()) ub = nextafter(ub, numeric_limits<double>::lowest());
+    else if (direction == 1 && ub != numeric_limits<double>::max()) ub = nextafter(ub, numeric_limits<double>::max());
+    repeatUpper = min(ub, repeatUpper);
 }
 
-void SymbolicDouble::setTRepeatUpperBound(const double& ub, short direction)
+void SymbolicDouble::setRepeatUpperBound(double ub, short direction)
 {
-    if (!closed)
-    {
-        repeatUpper = (ub == numeric_limits<double>::max() ?
-                       numeric_limits<double>::lowest() : nextafter(ub, numeric_limits<double>::max()));
-    }
-    else repeatUpper = ub;
-}
-void SymbolicDouble::setRepeatUpperBound(const std::string& ub, short direction)
-{
-    setTRepeatUpperBound(stod(ub), direction);
+    if (direction == -1 && ub != numeric_limits<double>::lowest()) ub = nextafter(ub, numeric_limits<double>::lowest());
+    else if (direction == 1 && ub != numeric_limits<double>::max()) ub = nextafter(ub, numeric_limits<double>::max());
+    repeatUpper = ub;
 }
 
-void SymbolicDouble::getRepeatBoundsFromComparison(Relations::Relop r, const std::string& rhs)
+void SymbolicDouble::setRepeatBoundsFromComparison(Relations::Relop r, double d)
 {
-    double d = stod(rhs);
     switch(r)
     {
         case Relations::EQ:
-            setTRepeatLowerBound(d, true);
-            setTRepeatUpperBound(d, true);
+            setRepeatLowerBound(d, true);
+            setRepeatUpperBound(d, true);
             break;
         case Relations::NEQ:
             break;
         case Relations::LT:
-            setTRepeatUpperBound(d, false);
+            setRepeatUpperBound(d, false);
             break;
         case Relations::LE:
-            setTRepeatUpperBound(d, true);
+            setRepeatUpperBound(d, true);
             break;
         case Relations::GT:
-            setTRepeatUpperBound(d, false);
+            setRepeatUpperBound(d, false);
             break;
         case Relations::GE:
-            setTRepeatLowerBound(d, true);
+            setRepeatLowerBound(d, true);
             break;
         default:
             throw runtime_error("bad relop");
@@ -396,7 +708,18 @@ void SymbolicDouble::iterateTo(double toD, short direction)
         {
             lowerBound = numeric_limits<double>::lowest();
         }
-        else lowerBound = toD + minChange;
+        else
+        {
+            lowerBound = toD + minChange;
+            if (direction == -1 && lowerBound != numeric_limits<double>::lowest())
+            {
+                lowerBound = nextafter(lowerBound, numeric_limits<double>::lowest());
+            }
+            else if (direction == 1 && lowerBound != numeric_limits<double>::max())
+            {
+                lowerBound = nextafter(lowerBound, numeric_limits<double>::max());
+            }
+        }
     }
     else if (toD > upperBound)
     {
@@ -405,30 +728,31 @@ void SymbolicDouble::iterateTo(double toD, short direction)
         {
             upperBound = numeric_limits<double>::max();
         }
-        else upperBound = toD + maxChange;
+        else
+        {
+            if (direction == -1 && upperBound != numeric_limits<double>::lowest())
+            {
+                upperBound = nextafter(upperBound, numeric_limits<double>::lowest());
+            }
+            else if (direction == 1 && upperBound != numeric_limits<double>::max())
+            {
+                upperBound = nextafter(upperBound, numeric_limits<double>::max());
+            }
+        }
     }
 }
-void SymbolicDouble::iterateTo(const std::string& to, short direction)
+
+void SymbolicDouble::iterateTo(SymbolicDouble* sd, short direction) //todo check usages for direction
 {
-    double toD;
-    try {toD = stod(to);}
-    catch (invalid_argument&) {throw std::runtime_error("double asked to iterate to something else");}
-    iterateTo(toD, closed);
-}
-void SymbolicDouble::iterateTo(SymbolicVariable* to, short direction)
-{
-    SymbolicDouble* sd = static_cast<SymbolicDouble*>(to);
-    if (upperBound <= sd->getTLowerBound()) iterateTo(sd->getTLowerBound(), direction);
-    else if (lowerBound >= sd->getTUpperBound()) iterateTo(sd->getTUpperBound(), direction);
+    if (upperBound <= sd->getLowerBound()) iterateTo(sd->getLowerBound(), direction);
+    else if (lowerBound >= sd->getUpperBound()) iterateTo(sd->getUpperBound(), direction);
     else throw runtime_error("should have been one of those");
 }
 
-bool SymbolicDouble::getRelativeVelocity(SymbolicVariable* other, long double& slowest, long double& fastest) const
+bool SymbolicDouble::getRelativeVelocity(SymbolicDouble* other, long double& slowest, long double& fastest) const
 {
-    if (other->getType() != DOUBLE) throw runtime_error("should be double");
-    SymbolicDouble* sd = static_cast<SymbolicDouble*>(other);
-    fastest = maxChange - sd->minChange;
-    slowest = minChange - sd->maxChange;
+    fastest = maxChange - other->minChange;
+    slowest = minChange - other->maxChange;
     return true;
 }
 
@@ -442,7 +766,7 @@ bool SymbolicDouble::isBoundedBelow() const
     return upperBound != numeric_limits<double>::lowest();
 }
 
-SymbolicVariable::MonotoneEnum SymbolicDouble::getMonotonicity() const
+SymbolicDouble::MonotoneEnum SymbolicDouble::getMonotonicity() const
 {
     if (!uniformlyChanging) return NONE;
     else if (minChange > 0) return INCREASING;
@@ -540,14 +864,14 @@ void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other, bool increment)
 
     if (other.isDetermined())
     {
-        addConst(other.getTConstValue());
+        addConst(other.getConstValue());
         return;
     }
 
     if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
-    double otherLowerBound = other.getTLowerBound();
-    double otherUpperBound = other.getTUpperBound();
+    double otherLowerBound = other.getLowerBound();
+    double otherUpperBound = other.getUpperBound();
 
     addConstToLower(otherLowerBound);
     addConstToUpper(otherUpperBound);
@@ -559,8 +883,8 @@ void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other, bool increment)
     }
     else
     {
-        minChange += other.getTLowerBound();
-        maxChange += other.getTUpperBound();
+        minChange += other.getLowerBound();
+        maxChange += other.getUpperBound();
     }
 }
 
@@ -570,14 +894,14 @@ void SymbolicDouble::minusSymbolicDouble(SymbolicDouble& other, bool increment)
 
     if (other.isDetermined())
     {
-        addConst(other.getTConstValue());
+        addConst(other.getConstValue());
         return;
     }
 
     if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
-    double otherLowerBound = other.getTLowerBound();
-    double otherUpperBound = other.getTUpperBound();
+    double otherLowerBound = other.getLowerBound();
+    double otherUpperBound = other.getUpperBound();
 
     addConstToLower(-otherUpperBound);
     addConstToUpper(-otherLowerBound);
@@ -589,11 +913,12 @@ void SymbolicDouble::minusSymbolicDouble(SymbolicDouble& other, bool increment)
     }
     else
     {
-        minChange -= other.getTLowerBound();
-        maxChange -= other.getTUpperBound();
+        minChange -= other.getLowerBound();
+        maxChange -= other.getUpperBound();
     }
 }
 
+enum ArithResult{OVER, UNDER, FINE};
 ArithResult safeMultiply(double a, double b, double& result)
 {
     long double al = (long double) a;
@@ -637,16 +962,16 @@ void SymbolicDouble::multConst(double mul)
     }
 
     if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
-    if (mul == 0) setTConstValue(0);
+    if (mul == 0) setConstValue(0);
     else if (mul == 1) reporter.warn(Reporter::AlertType::USELESS_OP, varN + "multiplied by 1");
     else
     {
         if (isDetermined())
         {
             double temp;
-            ArithResult result = safeMultiply(getTConstValue(), mul, temp);
-            if (result != FINE) reportError(Reporter::AlertType::RANGE, to_string(getTConstValue()) + " * " + to_string(mul) + " = overflow");
-            else setTConstValue(temp);
+            ArithResult result = safeMultiply(getConstValue(), mul, temp);
+            if (result != FINE) reportError(Reporter::AlertType::RANGE, to_string(getConstValue()) + " * " + to_string(mul) + " = overflow");
+            else setConstValue(temp);
         }
         else
         {
@@ -679,13 +1004,13 @@ void SymbolicDouble::multConst(double mul)
 
             if (lowerResult <= upperResult)
             {
-                setTLowerBound(lowerResult);
-                setTUpperBound(upperResult);
+                setLowerBound(lowerResult);
+                setUpperBound(upperResult);
             }
             else
             {
-                setTLowerBound(upperResult);
-                setTUpperBound(lowerResult);
+                setLowerBound(upperResult);
+                setUpperBound(lowerResult);
             }
         }
     }
@@ -699,13 +1024,13 @@ void SymbolicDouble::multSymbolicDouble(SymbolicDouble &other)
     }
     if (other.isDetermined())
     {
-        multConst(other.getTConstValue());
+        multConst(other.getConstValue());
         return;
     }
     if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
-    double otherLowerBound = other.getTLowerBound();
-    double otherUpperBound = other.getTUpperBound();
+    double otherLowerBound = other.getLowerBound();
+    double otherUpperBound = other.getUpperBound();
 
     bool bad = false; //can overflow
     bool alwaysabove = true; //always overflow
@@ -774,8 +1099,8 @@ void SymbolicDouble::multSymbolicDouble(SymbolicDouble &other)
     double oldLower = lowerBound;
     double oldUpper = upperBound;
 
-    setTLowerBound(min(lowerlower, min(lowerupper, min(upperlower, upperupper))));
-    setTUpperBound(max(lowerlower, max(lowerupper, max(upperlower, upperupper))));
+    setLowerBound(min(lowerlower, min(lowerupper, min(upperlower, upperupper))));
+    setUpperBound(max(lowerlower, max(lowerupper, max(upperlower, upperupper))));
 
     //todo make this more accurate
     minChange += upperBound - oldUpper;
@@ -793,15 +1118,15 @@ void SymbolicDouble::modConst(double modulus)
     if (lowerBound < 0 || upperBound > modulus) uniformlyChanging = false;
     if (isDetermined())
     {
-        setTConstValue(fmod(getTConstValue(),modulus));
+        setConstValue(fmod(getConstValue(),modulus));
         return;
     }
     else
     {
-        setTLowerBound(0);
+        setLowerBound(0);
         modulus = abs(modulus);
-        if (upperBound >= 0) setTUpperBound(min(upperBound, modulus));
-        else setTUpperBound(modulus);
+        if (upperBound >= 0) setUpperBound(min(upperBound, modulus));
+        else setUpperBound(modulus);
     }
 }
 
@@ -809,7 +1134,7 @@ void SymbolicDouble::modSymbolicDouble(SymbolicDouble &other)
 {
     if (other.isDetermined())
     {
-        double otherVal = other.getTConstValue();
+        double otherVal = other.getConstValue();
         if (otherVal == 0)
         {
             reportError(Reporter::ZERODIVISION, varN + " divided by " + other.varN + " ( = 0)");
@@ -821,12 +1146,12 @@ void SymbolicDouble::modSymbolicDouble(SymbolicDouble &other)
     else
     {
         if (lowerBound < 0 || upperBound > other.lowerBound) uniformlyChanging = false;
-        setTLowerBound(0);
+        setLowerBound(0);
         if (other.lowerBound <= 0 && other.upperBound >= 0)
         {
             reporter.warn(Reporter::ZERODIVISION,  varN + " divided by " + other.varN + " which could possibly be zero");
         }
-        setTUpperBound(max(upperBound, max(abs(other.lowerBound), abs(other.upperBound))));
+        setUpperBound(max(upperBound, max(abs(other.lowerBound), abs(other.upperBound))));
     }
 }
 
@@ -873,9 +1198,9 @@ void SymbolicDouble::divConst(double denom)
     else if (isDetermined())
     {
         double temp;
-        ArithResult result = safeDivide(getTConstValue(), denom, temp);
-        if (result != FINE) reportError(Reporter::AlertType::RANGE, to_string(getTConstValue()) + " / " + to_string(denom) + " = overflow");
-        else setTConstValue(temp);
+        ArithResult result = safeDivide(getConstValue(), denom, temp);
+        if (result != FINE) reportError(Reporter::AlertType::RANGE, to_string(getConstValue()) + " / " + to_string(denom) + " = overflow");
+        else setConstValue(temp);
     }
     else
     {
@@ -910,13 +1235,13 @@ void SymbolicDouble::divConst(double denom)
 
         if (lowerResult <= upperResult)
         {
-            setTLowerBound(lowerResult);
-            setTUpperBound(upperResult);
+            setLowerBound(lowerResult);
+            setUpperBound(upperResult);
         }
         else
         {
-            setTLowerBound(upperResult);
-            setTUpperBound(lowerResult);
+            setLowerBound(upperResult);
+            setUpperBound(lowerResult);
         }
 
     }
@@ -927,13 +1252,13 @@ void SymbolicDouble::divSymbolicDouble(SymbolicDouble &other)
     if (!other.defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
     if (other.isDetermined())
     {
-        divConst(other.getTConstValue());
+        divConst(other.getConstValue());
         return;
     }
     if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
 
-    double otherLowerBound = other.getTLowerBound();
-    double otherUpperBound = other.getTUpperBound();
+    double otherLowerBound = other.getLowerBound();
+    double otherUpperBound = other.getUpperBound();
 
     double oldUpper = upperBound;
     double oldLower = lowerBound;
@@ -983,8 +1308,8 @@ void SymbolicDouble::divSymbolicDouble(SymbolicDouble &other)
     else if (bad) reporter.warn(Reporter::AlertType::RANGE, varN + " might overflow when divided by " + other.varN);
 
 
-    setTLowerBound(min(lowerlower, min(lowerupper, min(upperlower, upperupper))));
-    setTUpperBound(max(lowerlower, max(lowerupper, max(upperlower, upperupper))));
+    setLowerBound(min(lowerlower, min(lowerupper, min(upperlower, upperupper))));
+    setUpperBound(max(lowerlower, max(lowerupper, max(upperlower, upperupper))));
 
     //todo make this more accurate
     minChange += upperBound - oldUpper;

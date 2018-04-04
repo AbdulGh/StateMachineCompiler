@@ -11,7 +11,6 @@ Lexer::Lexer()
     resWords["if"] = Token(IF);
     resWords["while"] = Token(WHILE);
     resWords["function"] = Token(FUNCTION);
-    resWords["string"] = Token(STRING);
     resWords["double"] = Token(DOUBLE);
     resWords["call"] = Token(CALL);
     resWords["input"] = Token(INPUT);
@@ -125,13 +124,6 @@ Token Lexer::parseToken()
                 unget();
                 return Token(NOT);
             }
-        case '"': case '\'':
-        {
-            char delim = c;
-            string lit;
-            while ((c = getChar()) && c != delim) lit += c;
-            return Token(STRINGLIT, lit);
-        }
         default:
             string str(1, c);
             while ((c = getChar()) && isalnum(c)) str += c;

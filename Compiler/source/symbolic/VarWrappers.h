@@ -9,11 +9,12 @@
 #include <vector>
 #include "../compile/Token.h"
 
-class SymbolicVariable;
+class SymbolicDouble;
 class SymbolicArray;
 class SymbolicDouble;
 namespace SymbolicExecution{class SymbolicExecutionFringe;};
 
+//todo remove template
 template <typename T>
 class GottenVarPtr
 {
@@ -105,13 +106,11 @@ public:
     virtual std::string getFullName() const {return name;}
     virtual const std::string& getBaseName() const {return name;}
     bool isCompound() const {return compound;}
-    virtual GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const = 0;
     virtual GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const  = 0; //todo clone symbolic double
     virtual bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const = 0;
     virtual std::unique_ptr<VarWrapper> clone() const  = 0;
-    virtual VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const = 0;
-    virtual void setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv) = 0;
-    virtual void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv) = 0;
+    virtual void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sv) = 0;
+    virtual void setConstValue(SymbolicExecution::SymbolicExecutionFringe *sef, double d) = 0;
     virtual std::vector<const std::string*> getAllNames() const = 0;
 
     virtual void nondet(SymbolicExecution::SymbolicExecutionFringe* sef) = 0;
@@ -131,11 +130,9 @@ public:
         toRet.push_back(&name);
         return toRet;
     }
-    GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
-    VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
-    void setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv) override;
-    void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv) override;
+    void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sv) override;
+    void setConstValue(SymbolicExecution::SymbolicExecutionFringe *sef, double d) override;
     void nondet(SymbolicExecution::SymbolicExecutionFringe* sef) override;
     bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     std::string getFullName() const override;
@@ -156,18 +153,16 @@ public:
     {
         return name + "[" + std::to_string(index) + "]";
     }
-    VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     std::vector<const std::string*> getAllNames() const override
     {
         std::vector<const std::string*> toRet;
         toRet.push_back(&name);
         return toRet;
     }
-    GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
-    void setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv) override;
-    void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv) override;
+    void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sv) override;
+    void setConstValue(SymbolicExecution::SymbolicExecutionFringe *sef, double d) override;
     void nondet(SymbolicExecution::SymbolicExecutionFringe* sef) override;
     std::unique_ptr<VarWrapper> clone() const override;
 };
@@ -196,12 +191,10 @@ public:
         return names;
     }
 
-    GottenVarPtr<SymbolicVariable> getSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
-    VariableType getVariableType(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
     bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
-    void setSymbolicVariable(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicVariable* sv) override;
-    void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, std::string sv) override;
+    void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sv) override;
+    void setConstValue(SymbolicExecution::SymbolicExecutionFringe *sef, double d) override;
     void nondet(SymbolicExecution::SymbolicExecutionFringe* sef) override;
     std::unique_ptr<VarWrapper> clone() const override;
 };

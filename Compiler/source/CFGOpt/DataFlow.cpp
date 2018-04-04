@@ -63,8 +63,7 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
                                       [&, lhs](const Assignment& ass)
                                       { return ass.lhs == lhs; });
                     if (it != genSet.end()) genSet.erase(it);
-                    string defaultStr = dvc->vt == DOUBLE ? "0" : "";
-                    genSet.insert(Assignment(lhs, Atom(defaultStr, true)));
+                    genSet.insert(Assignment(lhs, Atom(0)));
                     killSet.erase(lhs);
                     break;
                 }
@@ -189,8 +188,8 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 {
                     EvaluateExprCommand* eec = static_cast<EvaluateExprCommand*>(instr.get());
                     killSet.insert(eec->getVarWrapper()->getBaseName());
-                    if (!eec->term1.isLit) insertAndCheckUpwardExposed(eec->term1.vg.get());
-                    if (!eec->term2.isLit) insertAndCheckUpwardExposed(eec->term2.vg.get());
+                    if (eec->term1.isHolding()) insertAndCheckUpwardExposed(eec->term1.getVarWrapper());
+                    if (eec->term2.isHolding()) insertAndCheckUpwardExposed(eec->term2.getVarWrapper());
                 }
             }
         }
@@ -261,11 +260,15 @@ void LiveVariableDataFlow::finish()
             
             if (isDead(name))
             {
-                if (ac->getType() == CommandType::DECLAREVAR && usedVars.find(name) != usedVars.end())
+                if (ac->getType() == CommandType::DECLAREVAR && usedVars.find(name) != usedVars.end()) //look past this bit
                 {
-                    DeclareVarCommand* dvc = static_cast<DeclareVarCommand*>(ac.get());
-                    VariableType vt = dvc->dt == DeclareCommand::DeclareType::ARRAY ? VariableType::ARRAY : dvc->vt;
-                    toDeclare.insert({vt, name});
+                    DeclareCommand* dvc = static_cast<DeclareCommand*>(ac.get());
+                    if (dvc->dt == DeclareCommand::DeclareType::ARRAY)
+                    {
+                        DeclareArrayCommand* dvc = static_cast<DeclareArrayCommand*>(ac.get());
+                        //todo next toDeclare stuff for arrays
+
+                    }
                 }
             }
 
@@ -284,5 +287,5 @@ void LiveVariableDataFlow::finish()
     }
 
     CFGNode* startNode = cfg.getFirst();
-    for (auto& var: toDeclare) startNode->appendDeclatation(var.first, var.second);
+    for (auto& var: toDeclare) startNode->appendDeclatation(var.second);
 }

@@ -8,7 +8,7 @@
 #include <vector>
 
 #include "VarWrappers.h"
-#include "SymbolicVariables.h"
+#include "SymbolicDouble.h"
 
 enum class SymbolicStackMemberType {STATE, VAR};
 
@@ -31,21 +31,21 @@ public:
 class SymVarStackMember : public StackMember
 {
 public:
-    std::unique_ptr<SymbolicVariable> varptr;
+    std::unique_ptr<SymbolicDouble> varptr;
 
-    explicit SymVarStackMember(std::unique_ptr<SymbolicVariable> vp):
+    explicit SymVarStackMember(std::unique_ptr<SymbolicDouble> vp):
             varptr(move(vp))
     {
         setType(SymbolicStackMemberType::VAR);
     }
 
-    explicit SymVarStackMember(SymbolicVariable* toPush)
+    explicit SymVarStackMember(SymbolicDouble* toPush)
     {
         varptr = move(toPush->clone());
         setType(SymbolicStackMemberType::VAR);
     }
 
-    explicit SymVarStackMember(GottenVarPtr<SymbolicVariable> toPush)
+    explicit SymVarStackMember(GottenVarPtr<SymbolicDouble> toPush)
     {
         setType(SymbolicStackMemberType::VAR);
         if (toPush.constructed()) varptr = toPush.get()->clone();
@@ -55,15 +55,8 @@ public:
     explicit SymVarStackMember(double toPush, Reporter& r)
     {
         std::unique_ptr<SymbolicDouble> sd = std::make_unique<SymbolicDouble>("constDouble", r);
-        sd->setTConstValue(toPush);
+        sd->setConstValue(toPush);
         varptr = std::move(sd);
-        setType(SymbolicStackMemberType::VAR);
-    }
-
-    explicit SymVarStackMember(const std::string& toPush, Reporter& r)
-    {
-        varptr = std::make_unique<SymbolicString>("constString", r);
-        varptr->setConstValue(toPush);
         setType(SymbolicStackMemberType::VAR);
     }
 
@@ -93,7 +86,8 @@ public:
     
     std::string diagString() override
     {
-        return "var " + varptr->getLowerBound() + " - " + varptr->getUpperBound() + " " + varptr->getName();
+        return "var [" + std::to_string(varptr->getLowerBound()) + ", "
+                       + std::to_string(varptr->getUpperBound()) + "] " + varptr->getName();
     }
     const std::string& getName() override {return varptr->getName();}
 };
@@ -167,11 +161,10 @@ public:
     SymbolicStack(std::shared_ptr<SymbolicStack> parent);
     SymbolicStack(const SymbolicStack&) = delete;
     void setLoopInit();
-    //void push(std::unique_ptr<SymbolicVariable> pushedVar);
-    void pushVar(SymbolicVariable* pushedVar);
-    void pushVar(GottenVarPtr<SymbolicVariable> pushedVar);
+    //void push(std::unique_ptr<SymbolicDouble> pushedVar);
+    void pushVar(SymbolicDouble* pushedVar);
+    void pushVar(GottenVarPtr<SymbolicDouble> pushedVar);
     void pushState(const std::string& pushedState);
-    void pushString(std::string toPush);
     void pushDouble(double toPush);
     std::string popState();
     std::shared_ptr<SymbolicStack>& getParent() {return parent;}
@@ -179,8 +172,8 @@ public:
     const std::string getReturnState();
     void copyStack(SymbolicStack* other);
     bool assimilateChanges(SymbolicStack* other); //only until last state
-    std::unique_ptr<SymbolicVariable> popVar();
-    SymbolicVariable* peekTopVar();
+    std::unique_ptr<SymbolicDouble> popVar();
+    SymbolicDouble* peekTopVar();
     const std::string& peekTopName();
     void pop();
     bool isEmpty();

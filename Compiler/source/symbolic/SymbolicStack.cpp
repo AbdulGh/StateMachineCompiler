@@ -42,22 +42,17 @@ void SymbolicStack::pushState(const string& pushedState)
     currentStack.emplace_back(make_unique<StateStackMember>(pushedState));
 }
 
-void SymbolicStack::pushVar(SymbolicVariable* pushedVar)
+void SymbolicStack::pushVar(SymbolicDouble* pushedVar)
 {
     currentStack.emplace_back(make_unique<SymVarStackMember>(pushedVar));
 }
 
-void SymbolicStack::pushVar(GottenVarPtr<SymbolicVariable> pushedVar)
+void SymbolicStack::pushVar(GottenVarPtr<SymbolicDouble> pushedVar)
 {
     currentStack.emplace_back(make_unique<SymVarStackMember>(move(pushedVar)));
 }
 
 void SymbolicStack::pushDouble(double toPush)
-{
-    currentStack.emplace_back(make_unique<SymVarStackMember>(toPush, reporter));
-}
-
-void SymbolicStack::pushString(std::string toPush)
 {
     currentStack.emplace_back(make_unique<SymVarStackMember>(toPush, reporter));
 }
@@ -93,7 +88,7 @@ string SymbolicStack::popState()
     return popped->getName();
 }
 
-unique_ptr<SymbolicVariable> SymbolicStack::popVar()
+unique_ptr<SymbolicDouble> SymbolicStack::popVar()
 {
     unique_ptr<StackMember> popped = popMember();
     if (popped->getType() != SymbolicStackMemberType::VAR) throw runtime_error("wrong");
@@ -185,7 +180,7 @@ void SymbolicStack::pop()
     currentStack.pop_back();
 }
 
-SymbolicVariable* SymbolicStack::peekTopVar()
+SymbolicDouble* SymbolicStack::peekTopVar()
 {
     while (currentStack.empty())
     {

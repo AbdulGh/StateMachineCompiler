@@ -84,7 +84,8 @@ public:
     //codegen
     void genNewState(std::string);
     void genEndState();
-    void genPrint(Atom a, int linenum);
+    void genPrintAtom(Atom a, int linenum);
+    void genPrintLiteral(std::string s, int linenum);
     void genJump(std::string, int linenum);
     void genConditionalJump(std::string state, std::unique_ptr<VarWrapper> lh,
                             Relations::Relop r, std::unique_ptr<VarWrapper> rh, int linenum);
@@ -93,10 +94,10 @@ public:
     void genPop(std::unique_ptr<VarWrapper> vs, int linenum);
     void genReturn(int linenum);
     void genInput(std::unique_ptr<VarWrapper>, int linenum);
-    void genExpr(std::unique_ptr<VarWrapper> lh, Term& t1, ArithOp o, Term& t2, int linenum);
-    void genVariableDecl(VariableType t, std::string n, int linenum);
+    void genExpr(std::unique_ptr<VarWrapper> lh, Atom& t1, ArithOp o, Atom& t2, int linenum);
+    void genVariableDecl(std::string n, int linenum);
     void genArrayDecl(std::string name, unsigned long int size, int linenum);
-    void genAssignment(std::unique_ptr<VarWrapper> LHS, std::string RHS, int linenum);
+    void genAssignment(std::unique_ptr<VarWrapper> LHS, double RHS, int linenum);
     void genAssignment(std::unique_ptr<VarWrapper> LHS, std::unique_ptr<VarWrapper> RHS, int linenum);
     void addCommand(std::unique_ptr<AbstractCommand> ac);
     void addCommands(std::vector<std::unique_ptr<AbstractCommand>>& acs);

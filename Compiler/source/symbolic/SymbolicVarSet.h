@@ -5,12 +5,12 @@
 #include <stack>
 #include <memory>
 
-#include "SymbolicVariables.h"
+#include "SymbolicDouble.h"
 #include "SymbolicArray.h"
 
 
-typedef std::unique_ptr<SymbolicVariable> SymbolicVariablePointer;
-typedef std::unordered_map<std::string, SymbolicVariablePointer> VarMap;
+typedef std::unique_ptr<SymbolicDouble> SymbolicDoublePointer;
+typedef std::unordered_map<std::string, SymbolicDoublePointer> VarMap;
 typedef std::unique_ptr<SymbolicArray> SymbolicArrayPointer;
 typedef std::unordered_map<std::string, SymbolicArrayPointer> ArrayMap;
 
@@ -27,7 +27,7 @@ public:
             : currentSVS(start), currentIt(cit) {}
 
     bool operator!=(const SVSIterator& other);
-    const std::pair<const std::string, SymbolicVariablePointer>& operator*();
+    const std::pair<const std::string, SymbolicDoublePointer>& operator*();
     SVSIterator& operator++();
 };
 
@@ -47,17 +47,17 @@ public:
         parent = move(p);
     }
     SymbolicVarSet(const SymbolicVarSet&) = delete;
-    SymbolicVariable* findVar(std::string name);
+    SymbolicDouble* findVar(std::string name);
     SymbolicArray* findArray(std::string name);
-    //const std::unordered_map<std::string, SymbolicVariablePointer>& getVars() const {return variables;}
-    void addVar(SymbolicVariablePointer newvar);
+    //const std::unordered_map<std::string, SymbolicDoublePointer>& getVars() const {return variables;}
+    void addVar(SymbolicDoublePointer newvar);
     void addArray(const std::string& name, SymbolicArrayPointer sap);
     bool unionSVS(SymbolicVarSet* other);
     bool isFeasable();
 
     void setLoopInit();
 
-    std::vector<std::pair<const std::string, SymbolicVariable*>> getAllVars();
+    std::vector<std::pair<const std::string, SymbolicDouble*>> getAllVars();
     std::vector<std::pair<const std::string, SymbolicArray*>> getAllArrays();
 
     SVSIterator begin() const {throw std::runtime_error("not working");}// return {this, variables.cbegin()};} (todo)

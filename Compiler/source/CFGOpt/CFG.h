@@ -71,7 +71,8 @@ public:
 
     void setInstructions(std::vector<std::unique_ptr<AbstractCommand>>& in);
     void setFunctionCall(FunctionSymbol* fc);
-    void appendDeclatation(VariableType type, std::string varName);
+    void appendDeclatation(std::string varName);
+    void appendArrayDeclaration(std::string varName, unsigned int size);
     void setCompSuccess(CFGNode* compSuccess);
     void setCompFail(CFGNode* compFail);
     void setComp(std::unique_ptr<JumpOnComparisonCommand> comp);

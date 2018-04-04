@@ -5,7 +5,7 @@
 #include <stack>
 
 #include "../CFGOpt/CFG.h"
-#include "SymbolicVariables.h"
+#include "SymbolicDouble.h"
 #include "SymbolicStack.h"
 #include "SymbolicVarSet.h"
 #include "../compile/Token.h" //relop
@@ -98,7 +98,7 @@ namespace SymbolicExecution
 
             inline bool hasPop() const {return poppedCounter < pseudoStack.size();}
 
-            std::unique_ptr<SymbolicVariable> popVar()
+            std::unique_ptr<SymbolicDouble> popVar()
             {
                 if (!hasPop()) throw std::runtime_error("popped empty stack");
                 return pseudoStack[poppedCounter++]->varptr->clone();
@@ -124,25 +124,25 @@ namespace SymbolicExecution
         void visitNode(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n);
         //the below don't check if the ranges are disjoint - this is done in visitNode
         void branch(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n, VarWrapper* lhsvar,
-                    Relations::Relop op, const std::string& rhsconst, bool reverse = false);
+                    Relations::Relop op, double rhsconst, bool reverse = false);
         
         void branchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, const std::string& rhsconst, bool reverse = false);
+                      VarWrapper* lhsvar, double rhsconst, bool reverse = false);
         
         void branchNE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, const std::string& rhsconst, bool reverse = false);
+                      VarWrapper* lhsvar, double rhsconst, bool reverse = false);
         
         void branchLE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, const std::string& rhsconst, bool reverse = false);
+                      VarWrapper* lhsvar, double rhsconst, bool reverse = false);
         
         void branchLT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, const std::string& rhsconst, bool reverse = false);
+                      VarWrapper* lhsvar, double rhsconst, bool reverse = false);
         
         void branchGE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                           VarWrapper* lhsvar, const std::string& rhsconst, bool reverse = false);
+                           VarWrapper* lhsvar, double rhsconst, bool reverse = false);
         
         void branchGT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, const std::string& rhsconst, bool reverse = false);
+                      VarWrapper* lhsvar, double rhsconst, bool reverse = false);
         
         void varBranch(std::shared_ptr<SymbolicExecutionFringe>& sef, CFGNode* n,
                        VarWrapper* lhsvar, Relations::Relop op, VarWrapper* rhsvar);

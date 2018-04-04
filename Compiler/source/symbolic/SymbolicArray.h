@@ -9,7 +9,7 @@
 #include <map>
 #include <iomanip>
 
-#include "SymbolicVariables.h"
+#include "SymbolicDouble.h"
 
 class SymbolicArray
 {
@@ -39,7 +39,7 @@ public:
 
         for (const auto& otherVar : other.myVars)
         {
-            std::unique_ptr<SymbolicDouble> clone = otherVar->cloneSD();
+            std::unique_ptr<SymbolicDouble> clone = otherVar->clone();
             cloneMap[otherVar.get()] = clone.get();
             myVars.push_back(move(clone));
         }
@@ -155,7 +155,7 @@ public:
         auto varit = indexVars.begin();
         while (it != indicies.end() && varit != indexVars.end())
         {
-            if (*it > n) return (*varit)->cloneSD();
+            if (*it > n) return (*varit)->clone();
             else
             {
                 ++it;
@@ -169,7 +169,7 @@ public:
     {
         double lb, ub;
 
-        if (!checkBounds(index->getTLowerBound(), index->getTUpperBound(), lb, ub)) return nullptr;
+        if (!checkBounds(index->getLowerBound(), index->getUpperBound(), lb, ub)) return nullptr;
 
         auto it = indicies.begin();
         auto varit = indexVars.begin();
@@ -181,7 +181,7 @@ public:
             if (it == indicies.end() || varit == indexVars.end()) throw std::runtime_error("bad");
         }
 
-        std::unique_ptr<SymbolicDouble> cp = (*varit)->cloneSD();
+        std::unique_ptr<SymbolicDouble> cp = (*varit)->clone();
 
         while (it != indicies.end() || varit != indexVars.end())
         {
@@ -200,7 +200,7 @@ public:
     bool set(unsigned int n, double v)
     {
         std::unique_ptr<SymbolicDouble> sd = std::make_unique<SymbolicDouble>("constDouble", reporter);
-        sd->setTConstValue(v);
+        sd->setConstValue(v);
         set(n, std::move(sd));
     }
 
@@ -242,7 +242,7 @@ public:
 
     bool set(unsigned int n, SymbolicDouble* sdr)
     {
-        std::unique_ptr<SymbolicDouble> sd = sdr->cloneSD();
+        std::unique_ptr<SymbolicDouble> sd = sdr->clone();
         set(n, std::move(sd));
     }
 
@@ -251,17 +251,17 @@ public:
         if (index->isDetermined())
         {
             double intpart;
-            if (modf(index->getTConstValue(), &intpart) != 0.0)
+            if (modf(index->getConstValue(), &intpart) != 0.0)
             {
                 reporter.error(Reporter::ARRAY_BOUNDS, "Asked to get non integral index '"
-                               + std::to_string(index->getTConstValue())
+                               + std::to_string(index->getConstValue())
                                + "' in array");
                 return false;
             }
             return set(intpart, sdr);
         }
-        double lb = ceil(index->getTLowerBound());
-        double ub = floor(index->getTUpperBound());
+        double lb = ceil(index->getLowerBound());
+        double ub = floor(index->getUpperBound());
         if (ub < 0)
         {
             std::ostringstream precision;
@@ -308,7 +308,7 @@ public:
                 if (it == indicies.end() || varit == indexVars.end()) throw std::runtime_error("bad");
             }
             it = indicies.insert(it, lb);
-            std::unique_ptr<SymbolicDouble> newD = (*varit)->cloneSD();
+            std::unique_ptr<SymbolicDouble> newD = (*varit)->clone();
             varit = indexVars.insert(varit, newD.get());
             myVars.push_back(move(newD));
             ++it; ++varit;
@@ -324,7 +324,7 @@ public:
             else if (*it > ub)
             {
                 indicies.insert(it, ub + 1);
-                std::unique_ptr<SymbolicDouble> newSD = (*varit)->cloneSD();
+                std::unique_ptr<SymbolicDouble> newSD = (*varit)->clone();
                 newSD->unionVar(sdr);
                 indexVars.insert(varit, newSD.get());
                 myVars.push_back(move(newSD));
@@ -367,7 +367,7 @@ public:
         {
             if (*myIndexIt > *theirIndexIt)
             {
-                std::unique_ptr<SymbolicDouble> newVar = (*myVarsIt)->cloneSD();
+                std::unique_ptr<SymbolicDouble> newVar = (*myVarsIt)->clone();
                 if (newVar->unionVar(*theirVarsIt))
                 {
                     change = true;
@@ -406,7 +406,7 @@ public:
         while (indIt != indicies.end())
         {
             out += "[" + std::to_string(lastIndex) + ", " + std::to_string(*indIt) + "): ";
-            out += std::to_string((*varIt)->getTLowerBound()) + " - " + std::to_string((*varIt)->getTUpperBound());
+            out += std::to_string((*varIt)->getLowerBound()) + " - " + std::to_string((*varIt)->getUpperBound());
             out += "\n";
 
             lastIndex = *indIt;

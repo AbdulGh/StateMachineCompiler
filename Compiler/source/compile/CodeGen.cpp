@@ -34,13 +34,6 @@ void Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType
                 paramTypes.push_back(VariableType::DOUBLE);
                 fromFS->genPush(toPush, lookahead.line);
             }
-            else if (lookahead.type == Type::STRINGLIT)
-            {
-                string toPush = lookahead.lexemeString;
-                match(Type::STRINGLIT);
-                paramTypes.push_back(VariableType::STRING);
-                fromFS->genPush(quoteString(toPush), lookahead.line);
-            }
             else
             {
                 Identifier* id;
@@ -77,17 +70,12 @@ void Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType
 
     if (uid)
     {
-        switch (toFS->getReturnType())
+        if (toFS->getReturnType() != DOUBLE)
         {
-            case DOUBLE:
-                fromFS->genAssignment(move(uid), Atom("retD"), lookahead.line);
-                break;
-            case STRING:
-                fromFS->genAssignment(move(uid), Atom("retS"), lookahead.line);
-                break;
-            default:
-                throw runtime_error("Unaccounted for variable type");
+            throw runtime_error("Trying to assign output of void function '" + toFS->getIdent() + "' into var '"
+                                  + uid->getFullName() + "'");
         }
+        fromFS->genAssignment(move(uid), make_unique<SVByName>("retD"), lookahead.line);
     }
 }
 

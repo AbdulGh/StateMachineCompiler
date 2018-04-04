@@ -82,13 +82,12 @@ Identifier* Compiler::findVariable(VarWrapper* vg, VariableType* vtype)
 void Compiler::findGlobalsAndMakeStates()
 {
     vector<unique_ptr<AbstractCommand>> initialState;
-    string initialNames[NUM_INITIAL] = {"LHS", "RHS", "retD", "retS"};
-    VariableType initialTypes[NUM_INITIAL] = {DOUBLE, DOUBLE, DOUBLE, STRING};
+    string initialNames[NUM_INITIAL] = {"LHS", "RHS", "retD"};
 
     for (int i = 0; i < NUM_INITIAL; ++i)
     {
-        initialState.push_back(make_unique<DeclareVarCommand>(initialTypes[i], initialNames[i], -1));
-        symbolTable.declare(initialTypes[i], initialNames[i], -1);
+        initialState.push_back(make_unique<DeclareVarCommand>(initialNames[i], -1));
+        symbolTable.declare(DOUBLE, initialNames[i], -1);
     }
 
     lookahead = nextToken();
@@ -146,29 +145,33 @@ void Compiler::findGlobalsAndMakeStates()
 
             else //must be a global variable declaration
             {
-                VariableType t = vtype();
+                unsigned int size;
+                VariableType t = vtype(&size);
                 string id = plainIdent();
 
                 Identifier* i = symbolTable.declare(t, id, lookahead.line);
-                initialState.push_back(make_unique<DeclareVarCommand>(t, i->getUniqueID(), lookahead.line));
+                if (t == DOUBLE)
+                {
+                    initialState.push_back(make_unique<DeclareVarCommand>(i->getUniqueID(), lookahead.line));
+                }
+                else if (t == ARRAY)
+                {
+                    initialState.push_back(make_unique<DeclareArrayCommand>(i->getUniqueID(), size, lookahead.line));
+                }
+                else throw runtime_error("Only support DOUBLE and ARRAY");
+
                 if (lookahead.type == ASSIGN)
                 {
                     match(ASSIGN);
                     i->setDefined();
                     auto iptr = make_unique<SVByName>(i->getUniqueID());
-                    if (t == STRING && lookahead.type == STRINGLIT)
+                    if (t == DOUBLE && lookahead.type == NUMBER)
                     {
                         initialState.push_back(make_unique<AssignVarCommand>
-                                                       (move(iptr), lookahead.lexemeString, lookahead.line));
-                        match(STRINGLIT);
-                    }
-                    else if (t == DOUBLE && lookahead.type == NUMBER)
-                    {
-                        initialState.push_back(make_unique<AssignVarCommand>
-                                                       (move(iptr), lookahead.lexemeString, lookahead.line));
+                                                       (move(iptr), Atom(stod(lookahead.lexemeString)), lookahead.line));
                         match(NUMBER);
                     }
-                    else error("Can only assign literals in global scope");
+                    else error("Can only assign double literals in global scope");
                 }
                 match(SEMIC);
             }

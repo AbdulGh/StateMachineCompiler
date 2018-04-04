@@ -18,7 +18,7 @@ class Atom
 private:
     union
     {
-        std::string* sptr;
+        double d;
         VarWrapper* vptr;
     };
 
@@ -27,19 +27,19 @@ private:
 
 
 public:
-    explicit Atom(const std::string&, bool allowEmpty = false);
+    explicit Atom(double d);
     explicit Atom(std::unique_ptr<VarWrapper>);
     Atom(const Atom& o);
     Atom(Atom&& o);
-    Atom& operator=(Atom& o) = delete;
+    Atom& operator=(const Atom& o);
     Atom& operator=(Atom&& o);
     bool isHolding() const;
-    StringType getType() const;
-    const std::string* getString() const;
+    StringType getType() const; //todo replace this w/ isHolding
+    double getLiteral() const;
     VarWrapper* getVarWrapper() const;
     void swap(Atom& a);
     void become(const Atom& a);
-    void set(const std::string& sptr);
+    void set(double sptr);
     void set(std::unique_ptr<VarWrapper> sptr);
     void resetRepeatBounds(SymbolicExecution::SymbolicExecutionFringe* sef);
     operator std::string() const;
@@ -71,8 +71,8 @@ public:
     //returns true if the symbolic execution of this command went through
     virtual bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat = false);
 
-    virtual const std::string& getState() const {throw std::runtime_error("no state");}
-    virtual void setState(const std::string& data) {throw std::runtime_error("no state");}
+    virtual const std::string& getString() const {throw std::runtime_error("no state");}
+    virtual void setString(const std::string& data) {throw std::runtime_error("no state");}
     virtual Atom& getAtom() {throw std::runtime_error("no atom");}
     virtual void setAtom(Atom data) {throw std::runtime_error("no atom");}
     virtual const std::unique_ptr<VarWrapper>& getVarWrapper() const {throw std::runtime_error("doesn't set var");}
@@ -89,14 +89,14 @@ public:
     }
 };
 
-class StateHoldingCommand : public AbstractCommand
+class StringHoldingCommand : public AbstractCommand
 {
 protected:
     std::string state;
 public:
-    StateHoldingCommand(std::string s, int linenum): AbstractCommand(linenum), state(s) {}
-    const std::string& getState() const override {return state;}
-    void setState(const std::string& data) override {state = data;}
+    StringHoldingCommand(std::string s, int linenum): AbstractCommand(linenum), state(s) {}
+    const std::string& getString() const override {return state;}
+    void setString(const std::string& data) override {state = data;}
 };
 
 class AtomHoldingCommand : public AbstractCommand
@@ -120,10 +120,10 @@ public:
     void setVarWrapper(std::unique_ptr<VarWrapper> nvs) override;
 };
 
-class PrintCommand: public AtomHoldingCommand
+class PrintAtomCommand: public AtomHoldingCommand
 {
 public:
-    PrintCommand(Atom atom, int linenum) : AtomHoldingCommand(atom, linenum)
+    PrintAtomCommand(Atom atom, int linenum) : AtomHoldingCommand(atom, linenum)
     {
         setType(CommandType::PRINT);
     }
@@ -132,14 +132,30 @@ public:
 
     std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_unique<PrintCommand>(atom, getLineNum());
+        return std::make_unique<PrintAtomCommand>(atom, getLineNum());
     }
 };
 
-class ReturnCommand: public StateHoldingCommand
+class PrintLiteralCommand: public StringHoldingCommand
 {
 public:
-    ReturnCommand(int linenum) : StateHoldingCommand("return", linenum)
+    PrintLiteralCommand(std::string s, int linenum) : StringHoldingCommand(move(s), linenum)
+    {
+        setType(CommandType::PRINT);
+    }
+
+    std::string translation(const std::string& delim) const override {return "print " + getString() + ";" + delim;}
+
+    std::unique_ptr<AbstractCommand> clone() override
+    {
+        return std::make_unique<PrintLiteralCommand>(getString(), getLineNum());
+    }
+};
+
+class ReturnCommand: public StringHoldingCommand
+{
+public:
+    ReturnCommand(int linenum) : StringHoldingCommand("return", linenum)
     {
         setType(CommandType::RETURN);
     }
@@ -151,10 +167,10 @@ public:
     }
 };
 
-class JumpCommand: public StateHoldingCommand
+class JumpCommand: public StringHoldingCommand
 {
 public:
-    JumpCommand(const std::string& to, int linenum): StateHoldingCommand(to, linenum)
+    JumpCommand(const std::string& to, int linenum): StringHoldingCommand(to, linenum)
     {
         setType(CommandType::JUMP);
     }
@@ -166,7 +182,7 @@ public:
     }
 };
 
-class JumpOnComparisonCommand: public StateHoldingCommand
+class JumpOnComparisonCommand: public StringHoldingCommand
 {
 public:
     Atom term1;
@@ -178,7 +194,7 @@ public:
                             std::unique_ptr<VarWrapper> t2, Relations::Relop o, int linenum);
 
     JumpOnComparisonCommand(const std::string& st, std::unique_ptr<VarWrapper> t1,
-                            const std::string& t2, Relations::Relop o, int linenum);
+                            double t2, Relations::Relop o, int linenum);
 
     JumpOnComparisonCommand(const JumpOnComparisonCommand& jocc);
 
@@ -226,19 +242,21 @@ class FunctionSymbol;
 class PushCommand: public AbstractCommand
 {
 private:
-    std::unique_ptr<Atom> atom;
-    std::string state;
+    union
+    {
+        VarWrapper* vw;
+        std::string s;
+    };
 
 public:
     StringType stringType;
     FunctionSymbol* calledFunction;
     unsigned int pushedVars;
+    ~PushCommand();
 
     PushCommand(const std::string& in, int linenum, FunctionSymbol* cf = nullptr, unsigned int numPushedLocalVars = 0):
-            AbstractCommand(linenum), calledFunction(cf), pushedVars(numPushedLocalVars), stringType(getStringType(in))
+            AbstractCommand(linenum), s(in), calledFunction(cf), pushedVars(numPushedLocalVars), stringType(getStringType(in))
     {
-        if (!calledFunction) atom = std::make_unique<Atom>(in);
-        else state = in;
         setType(CommandType::PUSH);
     }
 
@@ -251,25 +269,27 @@ public:
         return calledFunction != nullptr;
     }
 
-    std::string translation(const std::string& delim) const override
-    {
-        if (pushesState()) return "push state " + state + ";" + delim;
-        else return "push " + std::string(*atom) + ";" + delim;
-    }
+    std::string translation(const std::string& delim) const override;
 
-    const std::string& getState() const override
+    const std::string& getString() const override
     {
         if (!pushesState()) throw std::runtime_error("doesn't push state");
-        return state;
+        return s;
     }
 
-    Atom& getAtom() override
+    void setAtom(Atom data) override //this could be done better
     {
-        if (pushesState()) throw std::runtime_error("doesn't push atom");
-        return *atom;
+        if (data.isHolding())
+        {
+            vw = data.getVarWrapper();
+            stringType = StringType::ID;
+        }
+        else
+        {
+            s = std::to_string(data.getLiteral());
+            stringType = getStringType(s);
+        }
     }
-
-    void setAtom(Atom data) override {atom = std::make_unique<Atom>(data);}
 
 };
 
@@ -291,9 +311,8 @@ private:
     std::unique_ptr<VarWrapper> vs;
 
 public:
-    AssignVarCommand(std::unique_ptr<VarWrapper> lh, Atom& at, int linenum);
+    AssignVarCommand(std::unique_ptr<VarWrapper> lh, Atom at, int linenum);
     AssignVarCommand(std::unique_ptr<VarWrapper> lh, std::unique_ptr<VarWrapper> rh, int linenum);
-    AssignVarCommand(std::unique_ptr<VarWrapper> lh, const std::string& rh, int linenum);
     Atom& getAtom() override {return atom;}
     void setAtom(Atom data) override {atom = std::move(data);}
     const std::unique_ptr<VarWrapper>& getVarWrapper() const override {return vs;}
@@ -303,45 +322,17 @@ public:
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 };
 
-class Term
-{
-public:
-    bool isLit;
-
-    union
-    {
-        std::unique_ptr<VarWrapper> vg;
-        double d;
-    };
-
-    Term(const std::string& toParse);
-    Term(double doub);
-    Term(const Term& other);
-    Term(std::unique_ptr<VarWrapper> vg);
-    Term(Term&& other);
-    ~Term();
-    Term& operator=(Term& o) = delete;
-    Term& operator=(Term&& o) = delete;
-
-    void parse(const std::string& toParse);
-
-    bool operator==(Term& o);
-
-    std::string str() const;
-};
-
 class
 EvaluateExprCommand: public WrapperHoldingCommand
 {
 public:
-    Term term1;
-    Term term2;
+    Atom term1;
+    Atom term2;
 
     ArithOp op;
 
-    EvaluateExprCommand(std::unique_ptr<VarWrapper> lh, Term t1, ArithOp o, Term t2, int linenum);
+    EvaluateExprCommand(std::unique_ptr<VarWrapper> lh, Atom t1, ArithOp o, Atom t2, int linenum);
     EvaluateExprCommand(const EvaluateExprCommand& o);
-    ~EvaluateExprCommand() override;
     EvaluateExprCommand(EvaluateExprCommand&& o) = delete;
     EvaluateExprCommand& operator=(EvaluateExprCommand& o) = delete;
     EvaluateExprCommand& operator=(EvaluateExprCommand&& o) = delete;
@@ -353,11 +344,10 @@ public:
 class DeclareCommand: public AbstractCommand
 {
 public:
-    enum class DeclareType {VAR, ARRAY, POINTER};
+    enum class DeclareType {VAR, ARRAY};
     const DeclareType dt;
-    const VariableType vt;
-    DeclareCommand(DeclareType declareType, VariableType variableType, int linenum)
-            :AbstractCommand(linenum), dt(declareType), vt(variableType)
+    DeclareCommand(DeclareType declareType, int linenum)
+            :AbstractCommand(linenum), dt(declareType)
     {
         setType(CommandType::DECLAREVAR);
     }
@@ -369,18 +359,18 @@ class DeclareVarCommand: public DeclareCommand
 private:
     std::string name;
 public:
-    DeclareVarCommand(VariableType t, std::string n, int linenum)
-            :DeclareCommand(DeclareType::VAR, t, linenum), name(move(n))
+    DeclareVarCommand(std::string n, int linenum)
+            :DeclareCommand(DeclareType::VAR, linenum), name(move(n))
     {}
 
     std::unique_ptr<AbstractCommand> clone() override
     {
-        return std::make_unique<DeclareVarCommand>(vt, name, AbstractCommand::getLineNum());
+        return std::make_unique<DeclareVarCommand>( name, AbstractCommand::getLineNum());
     }
 
     std::string translation(const std::string& delim) const override
     {
-        return VariableTypeEnumNames[vt] + " " + name + ";" + delim;
+        return "double " + name + ";" + delim;
     }
 
     const std::string& getBaseName() const override {return name;}
@@ -396,7 +386,7 @@ public:
     const unsigned long size;
 
     DeclareArrayCommand(std::string n, const unsigned long& s, int linenum):
-            DeclareCommand(DeclareType::ARRAY, DOUBLE, linenum), name(move(n)), size(s)
+            DeclareCommand(DeclareType::ARRAY, linenum), name(move(n)), size(s)
     {
         if (size == 0) throw std::runtime_error("arrays have size >0");
     }

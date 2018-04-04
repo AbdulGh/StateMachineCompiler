@@ -59,7 +59,7 @@ bool FunctionSymbol::mergeInto(FunctionSymbol* to)
     if (callingInstrs.size() < totalNumPushes) throw std::runtime_error("not enough pushes in calling state");
     auto callingIt = callingInstrs.begin() + (callingInstrs.size() - paramTypes.size()) - 1;
 
-    if ((*callingIt)->getState() != functionCall->returnTo->getName()) throw std::runtime_error("should push called state");
+    if ((*callingIt)->getString() != functionCall->returnTo->getName()) throw std::runtime_error("should push called state");
     callingIt = callingInstrs.erase(callingIt);
 
     //remove pushes/pops of parameters
@@ -254,16 +254,12 @@ void FunctionSymbol::replaceReturnState(CFGNode* going, CFGNode* replaceWith)
             while (instrIt != instrs.end())
             {
                 AbstractCommand* ac = (*instrIt).get();
-                if (ac->getType() == CommandType::PUSH
-                    && ac->getAtom().getType() != StringType::ID
-                    && *ac->getAtom().getString() == going->getName())
+                if (ac->getType() == CommandType::PUSH)
                 {
                     PushCommand* pc = static_cast<PushCommand*>(ac);
-                    if (pc->pushesState())
+                    if (pc->pushesState() && pc->getString() == going->getName())
                     {
-                        found = true;
-                        Atom newAtom(replaceWith->getName());
-                        pc->setAtom(newAtom);
+                        pc->setString(replaceWith->getName());
                         break;
                     }
                 }
@@ -354,12 +350,10 @@ void FunctionSymbol::removeFunctionCall(const string& calling, const string& ret
                     while (instrIndex < pushingInstrs.size())
                     {
                         AbstractCommand* ac = pushingInstrs[instrIndex].get();
-                        if (ac->getType() == CommandType::PUSH
-                            && ac->getAtom().getType() != StringType::ID
-                            && *ac->getAtom().getString() == ret)
+                        if (ac->getType() == CommandType::PUSH)
                         {
                             auto pc = static_cast<PushCommand*>(ac);
-                            if (pc->pushesState())
+                            if (pc->pushesState() && pc->getString() == ret)
                             {
                                 if (pc->calledFunction->getIdent() != ident) throw std::runtime_error("should be me");
 
@@ -430,10 +424,16 @@ void FunctionSymbol::genJump(string s, int linenum)
     currentInstrs.push_back(make_unique<JumpCommand>(s, linenum));
 }
 
-void FunctionSymbol::genPrint(Atom s, int linenum)
+void FunctionSymbol::genPrintAtom(Atom s, int linenum)
 {
     if (endedState) throw std::runtime_error("No state to add to");
-    currentInstrs.push_back(make_unique<PrintCommand>(move(s), linenum));
+    currentInstrs.push_back(make_unique<PrintAtomCommand>(move(s), linenum));
+}
+
+void FunctionSymbol::genPrintLiteral(string s, int linenum)
+{
+    if (endedState) throw std::runtime_error("No state to add to");
+    currentInstrs.push_back(make_unique<PrintLiteralCommand>(move(s), linenum));
 }
 
 void FunctionSymbol::genConditionalJump(string state, unique_ptr<VarWrapper> lh, Relations::Relop r,
@@ -474,17 +474,17 @@ void FunctionSymbol::genInput(unique_ptr<VarWrapper> s, int linenum)
     currentInstrs.push_back(make_unique<InputVarCommand>(move(s), linenum));
 }
 
-void FunctionSymbol::genExpr(unique_ptr<VarWrapper> lh, Term& t1,
-                             ArithOp o, Term& t2, int linenum)
+void FunctionSymbol::genExpr(unique_ptr<VarWrapper> lh, Atom& t1,
+                             ArithOp o, Atom& t2, int linenum)
 {
     if (endedState) throw std::runtime_error("No state to add to");
     currentInstrs.push_back(make_unique<EvaluateExprCommand>(move(lh), move(t1), o, move(t2), linenum));
 }
 
-void FunctionSymbol::genVariableDecl(VariableType t, string n, int linenum)
+void FunctionSymbol::genVariableDecl( string n, int linenum)
 {
     if (endedState) throw std::runtime_error("No state to add to");
-    currentInstrs.push_back(make_unique<DeclareVarCommand>(t, n, linenum));
+    currentInstrs.push_back(make_unique<DeclareVarCommand>(n, linenum));
 
     //find wont work for whatever reason
     currentVarScope->addVar(new SVByName(n));
@@ -502,11 +502,10 @@ void FunctionSymbol::addCommand(unique_ptr<AbstractCommand> ac)
     currentInstrs.push_back(move(ac));
 }
 
-void FunctionSymbol::genAssignment(unique_ptr<VarWrapper> LHS, string RHS, int linenum)
+void FunctionSymbol::genAssignment(unique_ptr<VarWrapper> LHS, double RHS, int linenum)
 {
     if (endedState) throw std::runtime_error("No state to add to");
-    else if(getStringType(RHS) == StringType::ID) throw std::runtime_error("use other constructor");
-    currentInstrs.push_back(make_unique<AssignVarCommand>(move(LHS), move(RHS), linenum));
+    currentInstrs.push_back(make_unique<AssignVarCommand>(move(LHS), Atom(RHS), linenum));
 }
 
 void FunctionSymbol::genAssignment(unique_ptr<VarWrapper> LHS, unique_ptr<VarWrapper> RHS, int linenum)
