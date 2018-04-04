@@ -16,7 +16,7 @@ void Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType
 
     //push all vars
     const set<VarWrapper*>& fromVars = fromFS->getVars(); //sets are ordered
-    for (auto& s : fromVars) fromFS->genPush(s->clone(), lookahead.line);
+    for (auto& s : fromVars) fromFS->genPush(Atom(s->clone()), lookahead.line);
 
     string nextState = fromFS->newStateName();
     fromFS->genPush(nextState, lookahead.line, toFS);
@@ -29,10 +29,9 @@ void Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType
         {
             if (lookahead.type == Type::NUMBER)
             {
-                string toPush = lookahead.lexemeString;
-                match(Type::NUMBER);
                 paramTypes.push_back(VariableType::DOUBLE);
-                fromFS->genPush(toPush, lookahead.line);
+                fromFS->genPush(Atom(stod(lookahead.lexemeString)), lookahead.line);
+                match(Type::NUMBER);
             }
             else
             {
@@ -40,7 +39,7 @@ void Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType
                 unique_ptr<VarWrapper> vg = wrappedIdent(&id);
                 VariableType type = id->getType();
                 paramTypes.push_back(type == ARRAY ? DOUBLE : type);
-                fromFS->genPush(move(vg), lookahead.line);
+                fromFS->genPush(Atom(move(vg)), lookahead.line);
             }
             if (lookahead.type == Type::COMMA)
             {

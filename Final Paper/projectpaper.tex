@@ -512,7 +512,7 @@ This example was correctly detected as terminating. It also picked up the potent
 The comparison in line $3$ is compiled into the three-address-code \texttt{RHS = y + z, jumpif x > RHS ...}
 We then need to use `transitivity properties' to classify this sample as halting - the inequalities \texttt{x > RHS = y + z},
 and the fact that if \texttt{y} and \texttt{z} are increasing then so is \texttt{RHS.}
-Changing any of the increments in lines $4-5$ to decrements, and inverting the inequality in line $3$, are detected as infinite loops with good reasons given.
+Changing any of the increments in lines $2-3$ to decrements, and inverting the inequality in line $1$, are detected as infinite loops with good reasons given.
 
 \subsubsection{Relative change \cite[A.8]{tra}}
 

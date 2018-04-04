@@ -36,6 +36,7 @@ namespace Optimise
 {
     void optimise(SymbolTable& symbolTable, FunctionTable& functionTable, ControlFlowGraph& controlFlowGraph)
     {
+
         bool changes = true;
         while (changes)
         {

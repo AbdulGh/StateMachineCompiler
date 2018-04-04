@@ -88,13 +88,13 @@ public:
 
     void maxUpperBound(); void removeUpperBound();
     void minLowerBound(); void removeLowerBound();
-    bool setLowerBound(double d, short direction = true);
-    bool setUpperBound(double d, short direction = true);
-    bool clipLowerBound(double d, short direction = true);
-    bool clipUpperBound(double d, short direction = true);
+    bool setLowerBound(double d, short direction = 0);
+    bool setUpperBound(double d, short direction = 0);
+    bool clipLowerBound(double d, short direction = 0);
+    bool clipUpperBound(double d, short direction = 0);
     void setConstValue(double d);
-    bool unionLowerBound(double lb, short direction = true);
-    bool unionUpperBound(double up, short direction = true);
+    bool unionLowerBound(double lb, short direction = 0);
+    bool unionUpperBound(double up, short direction = 0);
     bool unionVar(const SymbolicDouble* other);
     bool unionConstValue(double cv, short direction);
     void iterateTo(double to, short direction=true);

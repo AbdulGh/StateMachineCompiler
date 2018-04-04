@@ -76,6 +76,7 @@ Atom::Atom(unique_ptr<VarWrapper> vg): holding(true)
 
 Atom::~Atom()
 {
+    printf("%p\n", this);
     if (holding) delete vptr;
 }
 
@@ -319,12 +320,22 @@ AssignVarCommand::AssignVarCommand(unique_ptr<VarWrapper> lh, unique_ptr<VarWrap
         AbstractCommand(linenum), vs(move(lh)), atom(move(rh))
 {
     setType(CommandType::ASSIGNVAR);
+    if (vs->getFullName() == "LHS" && string(atom) == "_3_0_y")
+    {
+        int debug;
+        debug = 2;
+    }
 }
 
 AssignVarCommand::AssignVarCommand(unique_ptr<VarWrapper> lh, Atom rh, int linenum):
         AbstractCommand(linenum), vs(move(lh)), atom(move(rh))
 {
     setType(CommandType::ASSIGNVAR);
+    if (vs->getFullName() == "LHS" && string(atom) == "_3_0_y")
+    {
+        int debug;
+        debug = 2;
+    }
 }
 
 void AssignVarCommand::setVarWrapper(std::unique_ptr<VarWrapper> sv)
@@ -365,28 +376,28 @@ unique_ptr<AbstractCommand> PopCommand::clone()
 }
 
 //PushCommand
-PushCommand::PushCommand(std::unique_ptr<VarWrapper> in, int linenum):
-        AbstractCommand(linenum), calledFunction(nullptr),pushedVars(0), stringType(StringType::ID)
+PushCommand::PushCommand(Atom in, int linenum):
+        AbstractCommand(linenum), calledFunction(nullptr),pushedVars(0)
 {
-    vw = in.release();
+    atom = move(in);
     setType(CommandType::PUSH);
 }
 
 PushCommand::~PushCommand()
 {
-    if (stringType == StringType::ID) delete vw;
+    if (!pushesState()) atom.~Atom();
 }
 
 std::string PushCommand::translation(const std::string& delim) const
 {
     if (pushesState()) return "push state " + s + ";" + delim;
-    else if (stringType != StringType::ID) return "push " + s + ";" + delim;
-    else return "push " + vw->getFullName() + ";" + delim;
+    else if (!atom.isHolding()) return "push " + to_string(atom.getLiteral()) + ";" + delim;
+    else return "push " + atom.getVarWrapper()->getFullName() + ";" + delim;
 }
 
 std::unique_ptr<AbstractCommand> PushCommand::clone()
 {
-    if (stringType == StringType::ID) return std::make_unique<PushCommand>(vw->clone(), getLineNum());
-    else return std::make_unique<PushCommand>(s, getLineNum(), calledFunction);
+    if (pushesState()) return std::make_unique<PushCommand>(s, getLineNum(), calledFunction);
+    else return std::make_unique<PushCommand>(atom, getLineNum());
 }
 

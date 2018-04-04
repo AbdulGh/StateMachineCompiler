@@ -27,12 +27,13 @@ private:
 
 
 public:
+    Atom() = default;
     explicit Atom(double d);
     explicit Atom(std::unique_ptr<VarWrapper>);
-    Atom(const Atom& o);
+    Atom(const Atom& o) = delete;
     Atom(Atom&& o);
     Atom& operator=(const Atom& o) = delete;
-    Atom& operator=(Atom&& o);
+    Atom& operator=(Atom&& o) = delete;
     bool isHolding() const;
     StringType getType() const; //todo replace this w/ isHolding
     double getLiteral() const;
@@ -244,23 +245,23 @@ class PushCommand: public AbstractCommand
 private:
     union
     {
-        VarWrapper* vw;
+        Atom atom;
         std::string s;
     };
 
 public:
-    StringType stringType;
     FunctionSymbol* calledFunction;
     unsigned int pushedVars;
-    ~PushCommand();
 
-    PushCommand(const std::string& in, int linenum, FunctionSymbol* cf = nullptr, unsigned int numPushedLocalVars = 0):
-            AbstractCommand(linenum), s(in), calledFunction(cf), pushedVars(numPushedLocalVars), stringType(getStringType(in))
+    PushCommand(std::string in, int linenum, FunctionSymbol* cf = nullptr, unsigned int numPushedLocalVars = 0):
+            AbstractCommand(linenum), s(move(in)), calledFunction(cf), pushedVars(numPushedLocalVars)
     {
         setType(CommandType::PUSH);
+        if (calledFunction == nullptr) throw std::runtime_error("use other constructor");
     }
 
-    PushCommand(std::unique_ptr<VarWrapper> in, int linenum);
+    PushCommand(Atom in, int linenum);
+    ~PushCommand();
     std::unique_ptr<AbstractCommand> clone() override;
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 
@@ -279,16 +280,14 @@ public:
 
     void setAtom(Atom data) override //this could be done better
     {
-        if (data.isHolding())
-        {
-            vw = data.getVarWrapper();
-            stringType = StringType::ID;
-        }
-        else
-        {
-            s = std::to_string(data.getLiteral());
-            stringType = getStringType(s);
-        }
+        if (pushesState()) throw std::runtime_error("no atom");
+        atom = std::move(data);
+    }
+
+    Atom& getAtom() override
+    {
+        if (pushesState()) throw std::runtime_error("no atom");
+        return atom;
     }
 
 };

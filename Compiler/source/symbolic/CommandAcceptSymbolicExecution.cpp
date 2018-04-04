@@ -24,37 +24,25 @@ bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symb
 
 bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
-    if (calledFunction != nullptr) sef->symbolicStack->pushState(s);
+    if (pushesState()) sef->symbolicStack->pushState(s);
 
-    else switch(stringType)
+    else if (atom.isHolding())
     {
-        case StringType::ID:
+        if (atom.getVarWrapper()->check(sef.get()))
         {
-            if (vw->check(sef.get()))
+            GottenVarPtr<SymbolicDouble> found = atom.getVarWrapper()->getSymbolicDouble(sef.get());
+
+            if (!found->isFeasable()) throw std::runtime_error("should be feasable");
+            else if (!found->isDefined())
             {
-                GottenVarPtr<SymbolicDouble> found = vw->getSymbolicDouble(sef.get());
-
-                if (!found->isFeasable()) throw std::runtime_error("should be feasable");
-                else if (!found->isDefined())
-                {
-                    sef->warn(Reporter::UNINITIALISED_USE, "'" + found->getName() + "' pushed without being defined", getLineNum());
-                }
-
-                sef->symbolicStack->pushVar(move(found));
+                sef->warn(Reporter::UNINITIALISED_USE, "'" + found->getName() + "' pushed without being defined", getLineNum());
             }
-            else return false;
-            break;
+
+            sef->symbolicStack->pushVar(move(found));
         }
-        case StringType::DOUBLELIT:
-        {
-            sef->symbolicStack->pushDouble(stod(s));
-            break;
-        }
-        case StringType::STRINGLIT:
-            throw std::runtime_error("I fall over");
-        default:
-            throw std::runtime_error("unfamiliar string type");
-    };
+        else return false;
+    }
+    else sef->symbolicStack->pushDouble(atom.getLiteral());
     return true;
 }
 
@@ -104,6 +92,7 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
 
 bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
+    auto debug = translation("");
     if (op == AND || op == OR) throw runtime_error("Bitwise operations not supported by verifier");
     else if (op == PLUS || op == MULT)
     {
@@ -225,9 +214,6 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
             unique_ptr<SymbolicDouble> result = term1.getVarWrapper()->getSymbolicDouble(sef.get())->clone();
             if (repeat)
             {
-               result->minLowerBound();
-               result->maxUpperBound();
-
                 double t2c;
 
                 if (term2.isHolding())
@@ -298,6 +284,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 {
                     if (t2c > 0) result->minLowerBound();
                     else if (t2c < 0) result->maxUpperBound();
+                    result->addConst(-t2c);
                 }
                 else if (op == MOD) result->modConst(t2c);
                 else if (op == DIV)

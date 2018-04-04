@@ -194,7 +194,7 @@ bool FunctionSymbol::checkTypes(vector<VariableType>& potential)
     return ((potential.size() == paramTypes.size()) && paramTypes == potential);
 }
 
-const string FunctionSymbol::newStateName()
+string FunctionSymbol::newStateName()
 {
     return prefix + to_string(currentStateNum++);
 }
@@ -464,10 +464,10 @@ void FunctionSymbol::genPush(std::string s, int linenum, FunctionSymbol* calledF
     currentInstrs.push_back(make_unique<PushCommand>(move(s), linenum, calledFunction));
 }
 
-void FunctionSymbol::genPush(unique_ptr<VarWrapper> vw, int linenum)
+void FunctionSymbol::genPush(Atom toPush, int linenum)
 {
     if (endedState) throw std::runtime_error("No state to add to");
-    currentInstrs.push_back(make_unique<PushCommand>(move(vw), linenum));
+    currentInstrs.push_back(make_unique<PushCommand>(move(toPush), linenum));
 }
 
 void FunctionSymbol::genInput(unique_ptr<VarWrapper> s, int linenum)

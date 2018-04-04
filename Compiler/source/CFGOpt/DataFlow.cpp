@@ -167,8 +167,8 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                 case CommandType::PUSH:
                 {
                     PushCommand* pc = static_cast<PushCommand*>(instr.get());
-                    if (pc->pushesState()) continue;
-                    else killSet.insert(instr->getVarWrapper()->getBaseName());
+                    if (pc->pushesState() || !pc->getAtom().isHolding()) continue;
+                    else killSet.insert(pc->getAtom().getVarWrapper()->getBaseName());
 
                 }
                 case CommandType::PRINT:

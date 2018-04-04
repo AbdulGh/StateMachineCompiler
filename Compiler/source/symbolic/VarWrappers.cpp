@@ -17,6 +17,11 @@ GottenVarPtr<SymbolicDouble> SVByName::getSymbolicDouble(SymbolicExecution::Symb
 void SVByName::setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sv)
 {
     std::unique_ptr<SymbolicDouble> sv2 = sv->clone();
+    if (sv->getName() == "_2_0_x")
+    {
+        int debug;
+        debug = 2;
+    }
     sv2->setName(name);
     sef->symbolicVarSet->addVar(move(sv2));
 }

@@ -103,6 +103,7 @@ protected:
     void setCompound(bool c) {compound = c;}
 
 public:
+    virtual ~VarWrapper() {};
     virtual std::string getFullName() const {return name;}
     virtual const std::string& getBaseName() const {return name;}
     bool isCompound() const {return compound;}

@@ -103,8 +103,6 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
 {
     stack<vector<unique_ptr<AbstractCommand>>::iterator> pushedThings;
 
-    printf("%s\n", getSource().c_str());
-
     auto it = instrs.begin();
     vector<unique_ptr<AbstractCommand>> newInstrs;
     newInstrs.reserve(instrs.size()); //avoid reallocation to keep iterators in pushedThings valid
@@ -127,15 +125,14 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                 if (!avc->getAtom().isHolding()) assignments.emplace(lhsname, Atom(avc->getAtom()));
                 else
                 {
-                    printf("--------\n%s\n", avc->translation("").c_str());
                     const string& vname = avc->getAtom().getVarWrapper()->getFullName();
                     unordered_map<string, Atom>::const_iterator constit = assignments.find(vname);
                     if (constit != assignments.end())
                     {
                         Atom found = constit->second;
+                        if (found.isHolding()) break; //todo
                         assignments.emplace(lhsname, Atom(found));
                         avc->getAtom().become(found);
-                        printf("-> %s\n", avc->translation("").c_str());
                     }
                     else assignments.emplace(lhsname, Atom(avc->getAtom()));
                 }
@@ -152,13 +149,21 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                 if (eec->term1.isHolding())
                 {
                     unordered_map<string, Atom>::const_iterator t1it = assignments.find(eec->term1.getVarWrapper()->getFullName());
-                    if (t1it != assignments.end()) eec->term1 = Atom(t1it->second);
+                    if (t1it != assignments.end())
+                    {
+                        auto debug = string(t1it->second);
+                        eec->term1 = Atom(t1it->second);
+                    }
                 }
     
                 if (eec->term2.isHolding())
                 {
                     unordered_map<string, Atom>::const_iterator t2it = assignments.find(eec->term2.getVarWrapper()->getFullName());
-                    if (t2it != assignments.end()) eec->term2 = Atom(t2it->second);
+                    if (t2it != assignments.end())
+                    {
+                        auto debug = string(t2it->second);
+                        eec->term2 = Atom(t2it->second);
+                    }
                 }
     
                 if (eec->term1 == eec->term2 && eec->term1.isHolding())
@@ -188,7 +193,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                     }
                 }//when we leave this at least one term is an ID so we dont enter the next condition
     
-                if (eec->term1.isHolding() && eec->term2.isHolding())
+                if (!eec->term1.isHolding() && !eec->term2.isHolding())
                 {
                     double lhs = eec->term1.getLiteral();
                     double rhs = eec->term2.getLiteral();
@@ -216,8 +221,12 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                 auto pushc = static_cast<PushCommand*>(current.get());
                 if (!pushc->pushesState())
                 {
-                    auto pushedVarIt = assignments.find(current->getVarWrapper()->getFullName());
-                    if (pushedVarIt != assignments.end()) current->setAtom(pushedVarIt->second);
+                    if (pushc->getAtom().isHolding())
+                    {
+                        auto debug = pushc->getAtom();
+                        auto pushedVarIt = assignments.find(pushc->getAtom().getVarWrapper()->getFullName());
+                        if (pushedVarIt != assignments.end()) current->setAtom(pushedVarIt->second);
+                    }
                 }
                 newInstrs.push_back(move(current));
                 pushedThings.push(prev(newInstrs.end()));
@@ -288,6 +297,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
             if (it != assignments.end())
             {
                 auto& debug = it->second;
+                auto& dname = it->first;
                 comp->term2.become(it->second);
             }
         }

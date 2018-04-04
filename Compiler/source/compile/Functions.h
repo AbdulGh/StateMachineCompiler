@@ -49,7 +49,7 @@ private:
 
 public:
     FunctionSymbol(VariableType returnType, std::vector<VariableType> types, std::string ident, std::string prefix, ControlFlowGraph& cfg);
-    const std::string newStateName();
+    std::string newStateName();
     const std::string& getPrefix() const;
     const std::string& getIdent() const;
     bool checkTypes(std::vector<VariableType>& potential);
@@ -90,7 +90,7 @@ public:
     void genConditionalJump(std::string state, std::unique_ptr<VarWrapper> lh,
                             Relations::Relop r, std::unique_ptr<VarWrapper> rh, int linenum);
     void genPush(std::string toPush, int, FunctionSymbol* calledFuntion = nullptr);
-    void genPush(std::unique_ptr<VarWrapper> toPush, int linenum);
+    void genPush(Atom toPush, int linenum);
     void genPop(std::unique_ptr<VarWrapper> vs, int linenum);
     void genReturn(int linenum);
     void genInput(std::unique_ptr<VarWrapper>, int linenum);

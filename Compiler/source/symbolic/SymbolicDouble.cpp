@@ -18,7 +18,7 @@ SymbolicDouble::SymbolicDouble(string name, Reporter& r):
 
 SymbolicDouble::SymbolicDouble(const SymbolicDouble& o):
     varN(o.varN), reporter(o.reporter), upperBound(o.upperBound), lowerBound(o.lowerBound), repeatLower(o.repeatLower),
-    repeatUpper(o.repeatUpper) {}
+    repeatUpper(o.repeatUpper), minChange(o.minChange), maxChange(o.maxChange) {}
 
 
 SymbolicDouble::~SymbolicDouble()
@@ -107,8 +107,8 @@ bool SymbolicDouble::addGT(const VarWrapper* vg, SymbolicExecutionFringe* sef, b
     if (!constructed) sv->lt.insert(this);
     if (sv->isBoundedBelow())
     {
-        clipLowerBound(sv->getLowerBound(), false);
-        clipRepeatLowerBound(sv->getLowerBound(), false);
+        clipLowerBound(sv->getLowerBound(), 1);
+        clipRepeatLowerBound(sv->getLowerBound(), 1);
     }
     else removeRepeatLowerBound();
     if (isBoundedAbove())
@@ -160,8 +160,8 @@ bool SymbolicDouble::addLT(const VarWrapper* vg, SymbolicExecutionFringe* sef,  
 
     if (sv->isBoundedAbove())
     {
-        clipUpperBound(sv->getUpperBound(), false);
-        clipRepeatLowerBound(sv->getUpperBound(), false);
+        clipUpperBound(sv->getUpperBound(), -1);
+        clipRepeatLowerBound(sv->getUpperBound(), -1);
     }
     else removeRepeatLowerBound();
     if (isBoundedBelow())
@@ -677,22 +677,22 @@ void SymbolicDouble::setRepeatBoundsFromComparison(Relations::Relop r, double d)
     switch(r)
     {
         case Relations::EQ:
-            setRepeatLowerBound(d, true);
-            setRepeatUpperBound(d, true);
+            setRepeatLowerBound(d);
+            setRepeatUpperBound(d);
             break;
         case Relations::NEQ:
             break;
         case Relations::LT:
-            setRepeatUpperBound(d, false);
+            setRepeatUpperBound(d, 1);
             break;
         case Relations::LE:
-            setRepeatUpperBound(d, true);
+            setRepeatUpperBound(d);
             break;
         case Relations::GT:
-            setRepeatUpperBound(d, false);
+            setRepeatLowerBound(d, -1);
             break;
         case Relations::GE:
-            setRepeatLowerBound(d, true);
+            setRepeatLowerBound(d);
             break;
         default:
             throw runtime_error("bad relop");
@@ -853,6 +853,9 @@ void SymbolicDouble::addConst(double diff)
         else if (diff < 0 && oldT < numeric_limits<double>::lowest() - diff)  reportError(Reporter::AlertType::RANGE, varN + " will overflow");
         upperBound = lowerBound = oldT + diff;
     }
+
+    repeatLower += diff;
+    repeatUpper += diff;
 
     minChange += diff;
     maxChange += diff;

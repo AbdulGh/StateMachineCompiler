@@ -166,7 +166,22 @@ vector<unique_ptr<Loop>> LengTarj::findNesting(std::vector<unique_ptr<Loop>>& lo
 
     radixSort(radixSort, 0, 0, numLoops);
 
+    auto debugDiag = [&, numCFGNodes, numLoops, bitVectors] () -> void
+    {
+        for (int i = 0; i < numCFGNodes; ++i)
+        {
+            printf("%s\t\t", verticies[i+1]->node->getName().c_str());
+            for (int j = 0; j < numLoops; ++j)
+            {
+                printf(" %d", bitVectors[j][i]);
+            }
+            printf("\n");
+        }
+    };
+
     vector<unique_ptr<Loop>> unnested;
+
+    debugDiag();
 
     for (int i = numLoops - 1; i >= 0; --i)
     {

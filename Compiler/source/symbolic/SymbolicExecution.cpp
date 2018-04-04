@@ -427,9 +427,9 @@ void SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
 {
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicDouble> gvpLT = lhsvar->getSymbolicDouble(seflt.get());
-    if (gvpLT->setUpperBound(rhsconst, false))
+    if (gvpLT->setUpperBound(rhsconst, -1))
     {
-        gvpLT->setRepeatUpperBound(rhsconst, false);
+        gvpLT->setRepeatUpperBound(rhsconst, -1);
         if (gvpLT.constructed()) lhsvar->setSymbolicDouble(seflt.get(), gvpLT.get());
         if (reverse) {visitNode(seflt, n->getCompSuccess());}
         else
@@ -463,9 +463,9 @@ void SymbolicExecutionManager::branchEQ(shared_ptr<SymbolicExecutionFringe> sef,
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicDouble> gvpGT = lhsvar->getSymbolicDouble(seflt.get());
-    if (gvpGT->setLowerBound(rhsconst, false))
+    if (gvpGT->setLowerBound(rhsconst, 1))
     {
-        gvpGT->setRepeatLowerBound(rhsconst, false);
+        gvpGT->setRepeatLowerBound(rhsconst, 1);
         if (gvpGT.constructed()) lhsvar->setSymbolicDouble(sefgt.get(), gvpGT.get());
 
         if (reverse) {visitNode(sefgt, n->getCompSuccess());}
@@ -486,9 +486,9 @@ void SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
 {
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicDouble> gvpLT = lhsvar->getSymbolicDouble(seflt.get());
-    if (gvpLT->setUpperBound(rhsconst, false))
+    if (gvpLT->setUpperBound(rhsconst, -1))
     {
-        gvpLT->setRepeatUpperBound(rhsconst, false);
+        gvpLT->setRepeatUpperBound(rhsconst, -1);
         if (gvpLT.constructed()) lhsvar->setSymbolicDouble(seflt.get(), gvpLT.get());
         if (reverse)
         {
@@ -521,9 +521,9 @@ void SymbolicExecutionManager::branchNE(shared_ptr<SymbolicExecutionFringe> sef,
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicDouble> gvpGT = lhsvar->getSymbolicDouble(seflt.get());
-    if (gvpGT->setLowerBound(rhsconst, false))
+    if (gvpGT->setLowerBound(rhsconst, 1))
     {
-        gvpGT->setRepeatLowerBound(rhsconst, false);
+        gvpGT->setRepeatLowerBound(rhsconst, 1);
         if (gvpGT.constructed()) lhsvar->setSymbolicDouble(sefgt.get(), gvpGT.get());
         if (reverse)
         {
@@ -541,9 +541,9 @@ void SymbolicExecutionManager::branchLT(shared_ptr<SymbolicExecutionFringe> sef,
 {
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicDouble> gvpLT = lhsvar->getSymbolicDouble(seflt.get());
-    if (gvpLT->setUpperBound(rhsconst, false))
+    if (gvpLT->setUpperBound(rhsconst, -1))
     {
-        gvpLT->setRepeatUpperBound(rhsconst, false);
+        gvpLT->setRepeatUpperBound(rhsconst, -1);
         if (gvpLT.constructed()) lhsvar->setSymbolicDouble(seflt.get(), gvpLT.get());
 
         if (reverse)
@@ -601,9 +601,9 @@ void SymbolicExecutionManager::branchLE(shared_ptr<SymbolicExecutionFringe> sef,
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicDouble> gvpGT = lhsvar->getSymbolicDouble(sefgt.get());
-    if (gvpGT->setLowerBound(rhsconst, false))
+    if (gvpGT->setLowerBound(rhsconst, 1))
     {
-        gvpGT->setRepeatLowerBound(rhsconst, false);
+        gvpGT->setRepeatLowerBound(rhsconst, 1);
         if (gvpGT.constructed()) lhsvar->setSymbolicDouble(sefgt.get(), gvpGT.get());
         if (reverse) {visitNode(sefgt, n->getCompSuccess());}
         else
@@ -623,9 +623,9 @@ void SymbolicExecutionManager::branchGT(shared_ptr<SymbolicExecutionFringe> sef,
 {
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicDouble> gvpGT = lhsvar->getSymbolicDouble(sefgt.get());
-    if (gvpGT->setLowerBound(rhsconst, false))
+    if (gvpGT->setLowerBound(rhsconst, 1))
     {
-        gvpGT->setRepeatLowerBound(rhsconst, false);
+        gvpGT->setRepeatLowerBound(rhsconst, 1);
         if (gvpGT.constructed()) lhsvar->setSymbolicDouble(sefgt.get(), gvpGT.get());
         if (reverse)
         {
@@ -680,9 +680,9 @@ void SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
 
     shared_ptr<SymbolicExecutionFringe> seflt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicDouble> gvpLT = lhsvar->getSymbolicDouble(seflt.get());
-    if (gvpLT->setUpperBound(rhsconst, false))
+    if (gvpLT->setUpperBound(rhsconst, -1))
     {
-        gvpLT->setRepeatUpperBound(rhsconst, false);
+        gvpLT->setRepeatUpperBound(rhsconst, -1);
         if (gvpLT.constructed()) lhsvar->setSymbolicDouble(seflt.get(), gvpLT.get());
         if (reverse) {visitNode(seflt, n->getCompSuccess());}
         else
