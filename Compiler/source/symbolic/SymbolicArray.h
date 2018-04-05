@@ -25,7 +25,9 @@ private:
 public:
     SymbolicArray(std::string id, unsigned int n, Reporter& r): size(n), reporter(r), name(std::move(id))
     {
-        myVars.emplace_back(std::make_unique<SymbolicDouble>("uninit", reporter));
+        auto uninit = std::make_unique<SymbolicDouble>("uninit", reporter);
+        uninit->define();
+        myVars.push_back(move(uninit));
         indicies.push_back(size);
         indexVars.push_back(myVars.begin()->get());
     }

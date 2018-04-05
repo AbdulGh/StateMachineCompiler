@@ -21,15 +21,26 @@ namespace SymbolicExecution
         Atom lhs;
         Relations::Relop comp;
         Atom rhs;
+        bool unconditional = false;
+        
+        Condition() : unconditional(true) {}
 
         Condition(Atom l, Relations::Relop c, Atom r):
                 lhs(std::move(l)), comp(c), rhs(std::move(r)) {}
 
-        Condition(const Condition& o):
-            lhs(Atom(o.lhs)), comp(o.comp), rhs(Atom(o.rhs)) {}
+        Condition(const Condition& o): unconditional(o.unconditional)
+        {
+            if (!unconditional)
+            {
+                lhs = o.lhs;
+                comp = o.comp;
+                rhs = o.rhs;
+            }
+        }
 
         std::string toString()
         {
+            if (unconditional) return "unconditional";
             return std::string(lhs) + relEnumStrs[comp] + std::string(rhs);
         }
     };

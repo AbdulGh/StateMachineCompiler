@@ -495,7 +495,7 @@ while (x > 0){
 }
 \end{lstlisting}
 \end{wrapfigure}
-This bubblesort implementation was correctly determined as halting. The program obtained by removing any of the update lines, or moving either of the variables the wrong way, was correctly detected as nonterminating with an explanation given. Changing the comparitor in line $3$ from $<$ to $\leq$ results in an out of bounds access, which was successfully picked up.\\
+This bubblesort implementation was correctly determined as halting. The programs obtained by removing any of the update lines, or moving either of the variables the wrong way, or inverting any of the equalities on lines $1$ and $3$, were correctly detected as nonterminating with an explanation given. Changing the comparitor in line $3$ from $<$ to $\leq$ results in an out of bounds access, which was successfully picked up.\\
 
 \subsubsection{Two variables \cite[A.6]{tra}}
 

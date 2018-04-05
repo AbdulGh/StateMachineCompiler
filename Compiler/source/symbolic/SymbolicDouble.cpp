@@ -121,14 +121,14 @@ bool SymbolicDouble::addGT(const VarWrapper* vg, SymbolicExecutionFringe* sef, b
     if (sv->isBoundedBelow())
     {
         clipLowerBound(sv->getLowerBound(), 1);
-        clipRepeatLowerBound(sv->repeatLower, 1);
+        setRepeatLowerBound(sv->repeatLower, 1);
     }
     else removeRepeatLowerBound();
 
     if (isBoundedAbove())
     {
         sv->clipUpperBound(getUpperBound(), -1);
-        sv->clipRepeatLowerBound(repeatUpper, -1);
+        sv->setRepeatLowerBound(repeatUpper, -1);
     }
     else sv->removeRepeatUpperBound();
     return isFeasable() && sv->isFeasable();
@@ -148,13 +148,13 @@ bool SymbolicDouble::addGE(const VarWrapper* vg, SymbolicExecutionFringe* sef,  
     if (sv->isBoundedBelow())
     {
         clipLowerBound(sv->getLowerBound());
-        clipRepeatLowerBound(sv->repeatLower);
+        setRepeatLowerBound(sv->repeatLower);
     }
     else removeRepeatLowerBound();
     if (isBoundedAbove())
     {
         sv->clipUpperBound(getUpperBound());
-        sv->clipRepeatUpperBound(repeatUpper);
+        sv->setRepeatUpperBound(repeatUpper);
     }
     else sv->removeRepeatUpperBound();
     return isFeasable() && sv->isFeasable();
@@ -175,13 +175,13 @@ bool SymbolicDouble::addLT(const VarWrapper* vg, SymbolicExecutionFringe* sef,  
     if (sv->isBoundedAbove())
     {
         clipUpperBound(sv->getUpperBound(), -1);
-        clipRepeatUpperBound(sv->repeatUpper, -1);
+        setRepeatUpperBound(sv->repeatUpper, -1);
     }
     else removeRepeatUpperBound();
     if (isBoundedBelow())
     {
         sv->clipLowerBound(getLowerBound());
-        sv->clipRepeatLowerBound(repeatLower);
+        sv->setRepeatLowerBound(repeatLower);
     }
     else sv->removeRepeatLowerBound();
 
@@ -195,8 +195,8 @@ bool SymbolicDouble::addLE(const VarWrapper* vg, SymbolicExecutionFringe* sef,  
 
     if (!constructed && !other.constructed())
     {
-        clipRepeatUpperBound(sv->getUpperBound());
-        sv->clipRepeatLowerBound(getLowerBound());
+        setRepeatUpperBound(sv->getUpperBound());
+        sv->setRepeatLowerBound(getLowerBound());
         set<SymbolicDouble*> seen;
         if (guaranteedLE(sv, this, seen)) return isFeasable() && sv->isFeasable();
         lt.insert(sv);
@@ -205,13 +205,13 @@ bool SymbolicDouble::addLE(const VarWrapper* vg, SymbolicExecutionFringe* sef,  
     if (sv->isBoundedAbove())
     {
         clipUpperBound(sv->getUpperBound());
-        clipRepeatUpperBound(sv->repeatUpper);
+        setRepeatUpperBound(sv->repeatUpper);
     }
     else removeRepeatUpperBound();
     if (isBoundedBelow())
     {
         sv->clipLowerBound(getLowerBound());
-        sv->clipRepeatLowerBound(repeatLower);
+        sv->setRepeatLowerBound(repeatLower);
     }
     else sv->removeRepeatLowerBound();
 
@@ -237,28 +237,28 @@ bool SymbolicDouble::addEQ(const VarWrapper* vg, SymbolicExecutionFringe* sef,  
         if (sv->isBoundedAbove())
         {
             clipUpperBound(sv->getUpperBound());
-            clipRepeatUpperBound(sv->repeatUpper);
+            setRepeatUpperBound(sv->repeatUpper);
         }
         else removeRepeatUpperBound();
 
         if (sv->isBoundedBelow())
         {
             clipLowerBound(sv->getLowerBound());
-            clipRepeatLowerBound(sv->repeatLower);
+            setRepeatLowerBound(sv->repeatLower);
         }
         else removeRepeatLowerBound();
 
         if (isBoundedAbove())
         {
             sv->clipUpperBound(getUpperBound());
-            sv->clipRepeatUpperBound(getUpperBound());
+            sv->setRepeatUpperBound(getUpperBound());
         }
         else sv->removeRepeatUpperBound();
 
         if (isBoundedBelow())
         {
             sv->clipLowerBound(getLowerBound());
-            sv->clipRepeatLowerBound(getLowerBound());
+            sv->setRepeatLowerBound(getLowerBound());
         }
         else sv->removeRepeatUpperBound();
     }
@@ -638,7 +638,7 @@ bool SymbolicDouble::unionVar(const SymbolicDouble* other)
 void SymbolicDouble::setConstValue(double d)
 {
     clearAll();
-    lowerBound = upperBound = d;
+    lowerBound = upperBound = repeatLower = repeatUpper = d;
     defined = true;
     uniformlyChanging = false;
 }
@@ -660,13 +660,6 @@ bool SymbolicDouble::unionConstValue(double cv, short direction)
     return change;
 }
 
-void SymbolicDouble::clipRepeatLowerBound(double lb, short direction)
-{
-    if (direction == -1 && lb != numeric_limits<double>::lowest()) lb = nextafter(lb, numeric_limits<double>::lowest());
-    else if (direction == 1 && lb != numeric_limits<double>::max()) lb = nextafter(lb, numeric_limits<double>::max());
-    repeatLower = max(lb, repeatLower);
-}
-
 void SymbolicDouble::setRepeatLowerBound(double lb, short direction)
 {
     if (direction == -1 && lb != numeric_limits<double>::lowest()) lb = nextafter(lb, numeric_limits<double>::lowest());
@@ -678,13 +671,6 @@ void SymbolicDouble::resetRepeatBounds()
 {
     repeatLower = numeric_limits<double>::lowest();
     repeatUpper = numeric_limits<double>::max();
-}
-
-void SymbolicDouble::clipRepeatUpperBound(double ub, short direction)
-{
-    if (direction == -1 && ub != numeric_limits<double>::lowest()) ub = nextafter(ub, numeric_limits<double>::lowest());
-    else if (direction == 1 && ub != numeric_limits<double>::max()) ub = nextafter(ub, numeric_limits<double>::max());
-    repeatUpper = min(ub, repeatUpper);
 }
 
 void SymbolicDouble::setRepeatUpperBound(double ub, short direction)
@@ -715,6 +701,33 @@ void SymbolicDouble::setRepeatBoundsFromComparison(Relations::Relop r, double d)
             break;
         case Relations::GE:
             setRepeatLowerBound(d);
+            break;
+        default:
+            throw runtime_error("bad relop");
+    }
+}
+
+void SymbolicDouble::setRepeatBoundsFromComparison(Relations::Relop r, SymbolicDouble *rhs)
+{
+    switch(r)
+    {
+        case Relations::EQ:
+            setRepeatLowerBound(rhs->repeatLower);
+            setRepeatUpperBound(rhs->repeatUpper);
+            break;
+        case Relations::NEQ:
+            break;
+        case Relations::LT:
+            setRepeatUpperBound(rhs->repeatUpper, -1);
+            break;
+        case Relations::LE:
+            setRepeatUpperBound(rhs->repeatUpper);
+            break;
+        case Relations::GT:
+            setRepeatLowerBound(rhs->repeatLower, 1);
+            break;
+        case Relations::GE:
+            setRepeatLowerBound(rhs->repeatLower);
             break;
         default:
             throw runtime_error("bad relop");

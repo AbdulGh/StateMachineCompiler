@@ -202,57 +202,63 @@ unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& Symbo
 bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, JumpOnComparisonCommand* jocc, bool negate)
 {
     if (hasSeen(nodeName)) throw std::runtime_error("cant visit node twice");
-    else if (jocc->term1.getType() != StringType::ID) throw std::runtime_error("lhs should be ID");
+
     visitOrder.push_back(nodeName);
-    Relations::Relop op = negate ? Relations::negateRelop(jocc->op) : jocc->op;
-    pathConditions.insert({nodeName, Condition(jocc->term1, op, jocc->term2)});
-    auto t1var = jocc->term1.getVarWrapper()->getSymbolicDouble(this);
-    if (!t1var) throw std::runtime_error("comparing unknown var or constants");
-    bool t1constructed = jocc->term1.getVarWrapper()->getSymbolicDouble(this).constructed();
-    if (jocc->term2.isHolding())
-    {
-        auto t2var = jocc->term2.getVarWrapper()->getSymbolicDouble(this);
-        if (!t2var) throw std::runtime_error("comparing unknown var");
-        switch(op)
-        {
-            case Relations::LT:
-                return t1var->addLT(jocc->term2.getVarWrapper(), this, t1constructed);
-            case Relations::LE:
-                return t1var->addLE(jocc->term2.getVarWrapper(), this, t1constructed);
-            case Relations::GT:
-                return t1var->addGT(jocc->term2.getVarWrapper(), this, t1constructed);
-            case Relations::GE:
-                return t1var->addGE(jocc->term2.getVarWrapper(), this, t1constructed);
-            case Relations::EQ:
-                return t1var->addEQ(jocc->term2.getVarWrapper(), this, t1constructed);
-            case Relations::NEQ:
-                return t1var->addNEQ(jocc->term2.getVarWrapper(), this, t1constructed);
-            default:
-                throw std::runtime_error("unknown op");
-        }
-    }
+
+    if (!jocc) pathConditions.insert({nodeName, Condition()}); //unconditional
     else
     {
-        short direction = 0;
-        switch(op)
+        if (jocc->term1.getType() != StringType::ID) throw std::runtime_error("lhs should be ID");
+        Relations::Relop op = negate ? Relations::negateRelop(jocc->op) : jocc->op;
+        pathConditions.insert({nodeName, Condition(jocc->term1, op, jocc->term2)});
+        auto t1var = jocc->term1.getVarWrapper()->getSymbolicDouble(this);
+        if (!t1var) throw std::runtime_error("comparing unknown var or constants");
+        bool t1constructed = jocc->term1.getVarWrapper()->getSymbolicDouble(this).constructed();
+        if (jocc->term2.isHolding())
         {
-            case Relations::LT:
-                direction = -1;
-            case Relations::LE:
-                t1var->setRepeatUpperBound(jocc->term2.getLiteral(), direction);
-                return t1var->clipUpperBound(jocc->term2.getLiteral(), direction);
-            case Relations::GT:
-                direction = false;
-            case Relations::GE:
-                t1var->setRepeatLowerBound(jocc->term2.getLiteral(), direction);
-                return t1var->clipLowerBound(jocc->term2.getLiteral(), direction);
-            case Relations::EQ:
-                t1var->setConstValue(jocc->term2.getLiteral());
-                return true;
-            case Relations::NEQ: //todo neq consts
-                return true;
-            default:
-                throw std::runtime_error("unknown relop");
+            auto t2var = jocc->term2.getVarWrapper()->getSymbolicDouble(this);
+            if (!t2var) throw std::runtime_error("comparing unknown var");
+            switch(op)
+            {
+                case Relations::LT:
+                    return t1var->addLT(jocc->term2.getVarWrapper(), this, t1constructed);
+                case Relations::LE:
+                    return t1var->addLE(jocc->term2.getVarWrapper(), this, t1constructed);
+                case Relations::GT:
+                    return t1var->addGT(jocc->term2.getVarWrapper(), this, t1constructed);
+                case Relations::GE:
+                    return t1var->addGE(jocc->term2.getVarWrapper(), this, t1constructed);
+                case Relations::EQ:
+                    return t1var->addEQ(jocc->term2.getVarWrapper(), this, t1constructed);
+                case Relations::NEQ:
+                    return t1var->addNEQ(jocc->term2.getVarWrapper(), this, t1constructed);
+                default:
+                    throw std::runtime_error("unknown op");
+            }
+        }
+        else
+        {
+            short direction = 0;
+            switch(op)
+            {
+                case Relations::LT:
+                    direction = -1;
+                case Relations::LE:
+                    t1var->setRepeatUpperBound(jocc->term2.getLiteral(), direction);
+                    return t1var->clipUpperBound(jocc->term2.getLiteral(), direction);
+                case Relations::GT:
+                    direction = false;
+                case Relations::GE:
+                    t1var->setRepeatLowerBound(jocc->term2.getLiteral(), direction);
+                    return t1var->clipLowerBound(jocc->term2.getLiteral(), direction);
+                case Relations::EQ:
+                    t1var->setConstValue(jocc->term2.getLiteral());
+                    return true;
+                case Relations::NEQ: //todo neq consts
+                    return true;
+                default:
+                    throw std::runtime_error("unknown relop");
+            }
         }
     }
 }
@@ -294,8 +300,12 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
 
     for (const auto& command : n->getInstrs()) if (!command->acceptSymbolicExecution(sef, true)) return;
 
-    auto debug1 = osef->symbolicVarSet->findVar("LHS");
-    auto debug2 = osef->symbolicVarSet->findVar("RHS");
+    if (n->getName() == "F0_main_6")
+    {
+        auto debug = sef->symbolicVarSet->findVar("_3_0_y");
+        int debug2;
+        debug2 =2;
+    }
 
     JumpOnComparisonCommand* jocc = n->getComp();
     if (jocc != nullptr) //is a conditional jump
@@ -365,13 +375,18 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
                 {
                     if (Relations::evaluateRelop<double>(LHS->getConstValue(), jocc->op, RHS->getConstValue()))
                     {
+                        LHS->setRepeatBoundsFromComparison(jocc->op, RHS.get());
                         visitNode(sef, n->getCompSuccess());
                         return;
                     }
                     else
                     {
                         CFGNode* nextnode = getFailNode(sef, n);
-                        if (nextnode != nullptr) visitNode(sef, nextnode);
+                        if (nextnode != nullptr)
+                        {
+                            LHS->setRepeatBoundsFromComparison(Relations::negateRelop(jocc->op), RHS.get());
+                            visitNode(sef, nextnode);
+                        }
                         return;
                     }
                 }

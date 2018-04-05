@@ -211,11 +211,13 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
         {
             string newBadExample;
             bool noGood = true;
-
-            if (sef->getConditions().empty()) newBadExample = "Not even any branches - possibly optimised away.";
+            bool noConditional = true;
 
             for (SymbolicExecution::Condition condition : sef->getConditions())
             {
+                if (condition.unconditional) continue;
+                else noConditional = false;
+
                 GottenVarPtr<SymbolicDouble> varInQuestion
                         = condition.lhs.getVarWrapper()->getSymbolicDouble(sef.get());
                 //check if this is a good path
@@ -285,6 +287,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                     }
                 }
             }
+            if (noConditional) newBadExample = sef->printPathConditions() + "(no conditionals - possibly optimised away)";
             if (noGood) badExample = newBadExample;
             else goodPathFound = true;
         }
@@ -324,6 +327,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             else
             {
                 if (nodes.find(failNode) == nodes.end()) throw std::runtime_error("unconditional jump should be in the loop");
+                sef->addPathCondition(node->getName(), nullptr);
                 bool t = searchNode(failNode, varChanges, tags, sef, badExample);
                 mergeMaps(varChanges.at(node), varChanges.at(failNode));
                 return t;

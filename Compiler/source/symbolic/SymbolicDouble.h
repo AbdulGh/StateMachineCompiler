@@ -110,10 +110,10 @@ public:
     bool isDetermined() const;
 
     void setRepeatBoundsFromComparison(Relations::Relop r, double rhs);
+    void setRepeatBoundsFromComparison(Relations::Relop r, SymbolicDouble* rhs);
+
     void setRepeatLowerBound(double lb, short direction = 0);
     void setRepeatUpperBound(double up, short direction = 0);
-    void clipRepeatLowerBound(double lb, short direction = 0);
-    void clipRepeatUpperBound(double up, short direction = 0);
     void removeRepeatLowerBound();
     void removeRepeatUpperBound();
     void resetRepeatBounds();
