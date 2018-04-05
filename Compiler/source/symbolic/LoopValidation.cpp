@@ -22,22 +22,7 @@ using namespace std;
 Loop::Loop(CFGNode* entry, CFGNode* last, std::map<CFGNode*, Loop*> nodeSet,
            unsigned long tailNumber, ControlFlowGraph& controlFlowGraph):
            headerNode(entry), nodes(move(nodeSet)), cfg(controlFlowGraph),
-           domNum(tailNumber), invalid(false)
-{
-    if (headerNode->getCompSuccess() != nullptr) comparisonNode = headerNode;
-    else if (last->getCompSuccess() != nullptr) comparisonNode = last;
-    else if (headerNode->isLastNode())
-    {
-        comparisonNode = headerNode;
-        stackBased = true;
-    }
-    else if (last->isLastNode())
-    {
-        comparisonNode = last;
-        stackBased = true;
-    }
-    else invalid = true;
-}
+           domNum(tailNumber) {}
 
 string Loop::getInfo(bool nested, string indent)
 {
@@ -70,15 +55,6 @@ void Loop::setNodeNesting(CFGNode* node, Loop* child)
 
 void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
 {
-    if (invalid)
-    {
-        string report;
-        report = "No conditions on the header or backedge in this loop:\n";
-        report += getInfo() + "\n";
-        cfg.getReporter().addText(report);
-        return;
-    }
-
     for (auto& child : children) child->validate(tags);
 
     ChangeMap varChanges; //node->varname->known path through that node where the specified change happens
@@ -138,11 +114,17 @@ inline void mergeMaps(NodeChangeMap& intoMap, NodeChangeMap& fromMap)
     }
 }
 
-
-
 bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string, unique_ptr<SearchResult>>& tags,
                       SEFPointer sef, string& badExample, bool headerSeen)
 {
+    printf("%s\n", node->getName().c_str());
+
+    if (node->getName() == "F1_ack_2")
+    {
+        auto debug2 = sef->symbolicVarSet->findVar("_1_1_y");
+        int debug;
+        debug=2;
+    }
     auto it = nodes.find(node);
     if (it == nodes.end()) throw std::runtime_error("asked to search outside of loop");
 
@@ -159,13 +141,14 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
 
     for (auto& instr : node->getInstrs())
     {
+        auto debug = instr->translation("");
         if (instr->getType() == CommandType::POP && instr->getVarWrapper())
         {
             if (sef->symbolicStack->isEmpty())
             {
                 unique_ptr<SymbolicDouble> popped = thisNodeSR->popVar();
-                popped->setName(instr->getVarWrapper()->getFullName());
-                sef->symbolicVarSet->addVar(move(popped));
+                auto debug = instr->getVarWrapper()->getFullName();
+                instr->getVarWrapper()->setSymbolicDouble(sef.get(), popped.get());
             }
             else
             {
@@ -206,9 +189,8 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
         mergeMaps(varChanges.at(node), thisNodeChange);
     };
 
-    if (headerSeen && node->getName() == comparisonNode->getName())
+    if (headerSeen && node->getName() == headerNode->getName())
     {
-        printf("%s\n", getInfo(true).c_str());
         if (stackBased) //todo check if stack size decreased
         {
             bool returnToNodeInLoop = false;

@@ -684,13 +684,13 @@ void SymbolicDouble::setRepeatBoundsFromComparison(Relations::Relop r, double d)
         case Relations::NEQ:
             break;
         case Relations::LT:
-            setRepeatUpperBound(d, 1);
+            setRepeatUpperBound(d, -1);
             break;
         case Relations::LE:
             setRepeatUpperBound(d);
             break;
         case Relations::GT:
-            setRepeatLowerBound(d, -1);
+            setRepeatLowerBound(d, 1);
             break;
         case Relations::GE:
             setRepeatLowerBound(d);
@@ -801,6 +801,8 @@ void SymbolicDouble::addConstToLower(const double diff)
             else lowerBound += diff;
         }
     }
+
+    repeatUpper += diff;
 }
 
 void SymbolicDouble::addConstToUpper(const double diff)
@@ -829,6 +831,8 @@ void SymbolicDouble::addConstToUpper(const double diff)
             else upperBound += diff;
         }
     }
+
+    repeatUpper += diff;
 }
 
 void SymbolicDouble::addConst(double diff)
@@ -854,9 +858,6 @@ void SymbolicDouble::addConst(double diff)
         else if (diff < 0 && oldT < numeric_limits<double>::lowest() - diff)  reportError(Reporter::AlertType::RANGE, varN + " will overflow");
         upperBound = lowerBound = oldT + diff;
     }
-
-    repeatLower += diff;
-    repeatUpper += diff;
 
     minChange += diff;
     maxChange += diff;

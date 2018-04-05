@@ -103,6 +103,17 @@ namespace SymbolicExecution
                 if (!hasPop()) throw std::runtime_error("popped empty stack");
                 return pseudoStack[poppedCounter++]->varptr->clone();
             }
+
+            std::string printStack()
+            {
+                std::string s;
+                for (auto it = pseudoStack.begin(); it != pseudoStack.end(); ++it)
+                {
+                    s += "-" + (*it)->diagString() + "\n";
+                }
+                s += "\n";
+                return s;
+            }
         };
 
         SymbolicExecutionManager(ControlFlowGraph& cfg, SymbolTable& sTable, Reporter& reporter):

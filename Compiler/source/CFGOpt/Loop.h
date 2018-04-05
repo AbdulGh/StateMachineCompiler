@@ -25,12 +25,10 @@ private:
     typedef SymbolicExecution::SymbolicExecutionManager::SearchResult SearchResult;
     ControlFlowGraph& cfg;
     CFGNode* headerNode;
-    CFGNode* comparisonNode;
     std::map<CFGNode*, Loop*> nodes;
     std::set<std::unique_ptr<Loop>> children;
     bool stackBased = false;
     bool goodPathFound = false;
-    bool invalid;
     const unsigned long domNum;
 
     //returns true if it was a node in the loop on a path to the loop exit

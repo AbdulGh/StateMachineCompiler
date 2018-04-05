@@ -52,8 +52,6 @@ void Compiler::compile(stringstream& out)
     unordered_map<string, SRPointer>& tags
             = symbolicExecutionManager.search();
 
-    cout << cfg.getDotGraph();
-
     vector<unique_ptr<Loop>> loops = LengTarj(cfg).findLoops();
     for (auto& loop : loops) loop->validate(tags);
     return;
@@ -77,7 +75,7 @@ Identifier* Compiler::findVariable(VarWrapper* vg, VariableType* vtype)
     return ret;
 }
 
-#define NUM_INITIAL 4
+#define NUM_INITIAL 3
 void Compiler::findGlobalsAndMakeStates()
 {
     vector<unique_ptr<AbstractCommand>> initialState;

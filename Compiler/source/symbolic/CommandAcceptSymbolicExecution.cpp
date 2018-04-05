@@ -69,6 +69,11 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
     unique_ptr<SymbolicDouble> popped = sef->symbolicStack->popVar();
     if (vs->check(sef.get()))
     {
+        if (vs->getFullName() == "_1_1_y")
+        {
+            int debug;
+            debug = 2;
+        }
         vs->setSymbolicDouble(sef.get(), popped.get());
         return true;
     }

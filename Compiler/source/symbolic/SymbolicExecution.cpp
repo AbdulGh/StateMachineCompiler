@@ -19,9 +19,15 @@ bool SymbolicExecutionManager::SearchResult::unionStack(SymbolicStack* other)
     if (currentCopyFrom->currentStack.empty()) return false;
     auto theirIterator = currentCopyFrom->currentStack.rbegin();
 
-    while (theirIterator != currentCopyFrom->currentStack.rend()
-           && !(theirIterator == currentCopyFrom->currentStack.rend() && currentCopyFrom->getParent() != nullptr))
+    while (true)
     {
+        while (theirIterator == currentCopyFrom->currentStack.rend())
+        {
+            if (!currentCopyFrom->getParent()) return change;
+            currentCopyFrom = currentCopyFrom->getParent().get();
+            theirIterator = currentCopyFrom->currentStack.rbegin();
+        }
+
         if (myIterator == pseudoStack.rend())
         {
             vector<unique_ptr<SymVarStackMember>> newSt;
@@ -31,38 +37,35 @@ bool SymbolicExecutionManager::SearchResult::unionStack(SymbolicStack* other)
                 pseudoStack.pop_back();
             }
 
-            for (auto tempIt = currentCopyFrom->currentStack.rbegin();;) //???
+            while (true)
             {
-                while (tempIt == currentCopyFrom->currentStack.rend())
+                while (theirIterator == currentCopyFrom->currentStack.rend())
                 {
                     if (currentCopyFrom->getParent() == nullptr)
                     {
                         pseudoStack = move(newSt);
                         reverse(pseudoStack.begin(), pseudoStack.end());
-                        return true;
+                        return change;
                     }
                     else
                     {
                         currentCopyFrom = currentCopyFrom->getParent().get();
-                        tempIt = currentCopyFrom->currentStack.rbegin();
+                        theirIterator = currentCopyFrom->currentStack.rbegin();
                     }
                 }
 
-                if ((*tempIt)->getType() == SymbolicStackMemberType::STATE)
+                if ((*theirIterator)->getType() == SymbolicStackMemberType::STATE)
                 {
-                    returnStates.insert((*tempIt)->getName());
+                    if (returnStates.insert((*theirIterator)->getName()).second) change = true;
                     pseudoStack = move(newSt);
                     reverse(pseudoStack.begin(), pseudoStack.end());
-                    return true;
+                    return change;
                 }
-                newSt.push_back(move(static_cast<SymVarStackMember*>((*tempIt)->clone().get())->cloneVarMember()));
-                ++tempIt;
+                newSt.push_back(move(static_cast<SymVarStackMember*>(theirIterator->get())->cloneVarMember()));
+                change = true;
+                ++theirIterator;
             }
-        }
-        if (theirIterator == currentCopyFrom->currentStack.rend() && currentCopyFrom->getParent() != nullptr)
-        {
-            currentCopyFrom = currentCopyFrom->getParent().get();
-            theirIterator = currentCopyFrom->currentStack.rbegin();
+            
         }
 
         while (myIterator != pseudoStack.rend() && theirIterator != currentCopyFrom->currentStack.rend())
@@ -274,11 +277,12 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
     bool change = thisNodeSR->unionSVS(osef->symbolicVarSet.get());
 
     if (thisNodeSR->unionStack(osef->symbolicStack.get())) change = true;
+
     if (!visitedNodes.insert(n->getName()).second && !change) return; //seen before
 
     shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(osef);
 
-    for (const auto& command : n->getInstrs()) if (!command->acceptSymbolicExecution(sef, true));
+    for (const auto& command : n->getInstrs()) if (!command->acceptSymbolicExecution(sef, true)) return;
 
     JumpOnComparisonCommand* jocc = n->getComp();
     if (jocc != nullptr) //is a conditional jump
@@ -304,11 +308,6 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
         {
             double RHS = jocc->term2.getLiteral();
 
-            if (LHS->isDetermined() && Relations::evaluateRelop<double>(LHS->getConstValue(), jocc->op, RHS))
-            {
-                return visitNode(sef, n->getCompSuccess());
-            }
-
             switch (LHS->canMeet(jocc->op, RHS))
             {
                 case SymbolicDouble::CANT:
@@ -328,7 +327,7 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
                 }
                 case SymbolicDouble::MUST:
                 {
-                    LHS->setRepeatBoundsFromComparison(Relations::negateRelop(jocc->op), RHS);
+                    LHS->setRepeatBoundsFromComparison(jocc->op, RHS);
                     visitNode(sef, n->getCompSuccess());
                     return;
                 }
