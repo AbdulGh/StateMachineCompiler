@@ -91,7 +91,7 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
         {
             report += "!!!Could only find bad paths through the following loop!!!\n";
             report += getInfo();
-            report += "Example of a bad path:\n" + badExample + "exit loop\n\n";
+            report += "Example of a bad path:\n" + badExample + "\n-----\n";
         }
         cfg.getReporter().addText(report);
     }
@@ -99,7 +99,7 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
     {
         string report = "Potential bad path through the following loop:\n";
         report += getInfo();
-        report += "\nExample:\n" + badExample + " exit loop\n-----\n";
+        report += "\nExample:\n" + badExample + "\n-----\n";
         cfg.getReporter().addText(report);
     }
 }
@@ -211,6 +211,9 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
         {
             string newBadExample;
             bool noGood = true;
+
+            if (sef->getConditions().empty()) newBadExample = "Not even any branches - possibly optimised away.";
+
             for (SymbolicExecution::Condition condition : sef->getConditions())
             {
                 GottenVarPtr<SymbolicDouble> varInQuestion

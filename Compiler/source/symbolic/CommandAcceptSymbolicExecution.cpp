@@ -69,11 +69,6 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
     unique_ptr<SymbolicDouble> popped = sef->symbolicStack->popVar();
     if (vs->check(sef.get()))
     {
-        if (vs->getFullName() == "_1_1_y")
-        {
-            int debug;
-            debug = 2;
-        }
         vs->setSymbolicDouble(sef.get(), popped.get());
         return true;
     }
@@ -89,7 +84,7 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
         GottenVarPtr<SymbolicDouble> svp = atom.getVarWrapper()->getSymbolicDouble(sef.get());
         if (!svp->isFeasable()) return false;
         svp->define();
-        if (svp.constructed()) vs->setSymbolicDouble(sef.get(), svp.get());
+        vs->setSymbolicDouble(sef.get(), svp.get());
     }
     else vs->getSymbolicDouble(sef.get())->setConstValue(atom.getLiteral());
 
@@ -106,7 +101,6 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
             double absc = abs(c);
             if (absc == 0) result->setConstValue(0);
             else if (absc == 1) return;
-
 
             if (repeat)
             {

@@ -157,31 +157,44 @@ unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& Symbo
     auto it = cfg.getCurrentNodes().begin();
     while (it != cfg.getCurrentNodes().end())
     {
+        auto& debug1 = it->first;
+        auto& debug2 = it->second;
+        bool optimising = true;
         if (!it->second->isLastNode() && visitedNodes.find(it->first) == visitedNodes.end()) //no feasable visits - remove
         {
-            reporter.optimising(Reporter::DEADCODE, "State '" + it->first + "' is unreachable and will be removed");
-            CFGNode* lonelyNode = it->second.get();
-            if (lonelyNode->getCompSuccess() != nullptr) lonelyNode->getCompSuccess()->removeParent(lonelyNode);
-            if (lonelyNode->getCompFail() != nullptr) lonelyNode->getCompFail()->removeParent(lonelyNode);
-            for (auto& parentPair : lonelyNode->getPredecessorMap())
+            string s =  "State '" + it->first + "' is unreachable";
+            if (optimising)
             {
-                CFGNode* parent = parentPair.second;
-                if (parent->getCompSuccess() != nullptr &&
-                    parent->getCompSuccess()->getName() == lonelyNode->getName()) parent->setCompSuccess(nullptr);
-
-                else if (parent->getCompFail() != nullptr && parent->getCompFail()->getName() == lonelyNode->getName())
+                s += " and will be removed.";
+                CFGNode *lonelyNode = it->second.get();
+                if (lonelyNode->getCompSuccess() != nullptr) lonelyNode->getCompSuccess()->removeParent(lonelyNode);
+                if (lonelyNode->getCompFail() != nullptr) lonelyNode->getCompFail()->removeParent(lonelyNode);
+                for (auto& parentPair : lonelyNode->getPredecessorMap())
                 {
-                    parent->setCompFail(parent->getCompSuccess());
-                    parent->setComp(nullptr);
+                    CFGNode *parent = parentPair.second;
+                    if (parent->getCompFail() != nullptr && parent->getCompFail()->getName() == lonelyNode->getName())
+                    {
+                        parent->setCompFail(parent->getCompSuccess());
+                    } else if (!parent->isLastNode() &&
+                               !(parent->getCompSuccess() != nullptr
+                                 && parent->getCompSuccess()->getName() == lonelyNode->getName()))
+                    {
+                        throw runtime_error("bad parent");
+                    }
                     parent->setCompSuccess(nullptr);
+                    parent->setComp(nullptr);
                 }
-                else if (!parent->isLastNode()) throw runtime_error("bad parent");
-                parent->setComp(nullptr);
+                lonelyNode->prepareToDie();
+                it = cfg.removeNode(it->first);
             }
-            lonelyNode->prepareToDie();
-            it = cfg.removeNode(it->first);
+            else
+            {
+                s += ".";
+                ++it;
+            }
+            reporter.optimising(Reporter::DEADCODE, s);
         }
-        ++it;
+        else ++it;
     }
     return tags;
 }
@@ -276,9 +289,13 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
     bool change = thisNodeSR->unionSVS(osef->symbolicVarSet.get());
     if (thisNodeSR->unionStack(osef->symbolicStack.get())) change = true;
     if (!visitedNodes.insert(n->getName()).second && !change) return; //seen before
+
     shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(osef);
 
     for (const auto& command : n->getInstrs()) if (!command->acceptSymbolicExecution(sef, true)) return;
+
+    auto debug1 = osef->symbolicVarSet->findVar("LHS");
+    auto debug2 = osef->symbolicVarSet->findVar("RHS");
 
     JumpOnComparisonCommand* jocc = n->getComp();
     if (jocc != nullptr) //is a conditional jump

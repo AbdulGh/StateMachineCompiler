@@ -41,6 +41,7 @@ public:
     Reporter& getReporter() const;
     void setFirst(const std::string& firstname);
     void setLast(const std::string& lastName);
+    //void keepOnly(std::set<std::string> seenNodes);
 
     friend class CFGNode;
 };

@@ -88,7 +88,7 @@ string CFGNode::getDotEdges()
     }
     else
     {
-        if (!isLast) throw std::runtime_error("should be last");
+        //if (!isLast) throw std::runtime_error("should be last"); debug
         for (CFGNode* nodePointer : parentFunction->getNodesReturnedTo())
         {
             outs << name << "->" << nodePointer->getName()
@@ -613,6 +613,11 @@ FunctionSymbol* CFGNode::calledFunction()
 
 void CFGNode::setCompFail(CFGNode* compareFail)
 {
+    if (name == "F1_ack_3")
+    {
+        int debug;
+        debug = 2;
+    }
     compFail = compareFail;
     if (compFail != nullptr) compFail->addParent(this);
 }

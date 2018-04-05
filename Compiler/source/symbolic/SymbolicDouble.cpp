@@ -74,6 +74,17 @@ double SymbolicDouble::getUpperBound() const
     return upperBound;
 }
 
+double SymbolicDouble::getRepeatLowerBound() const
+{
+    return repeatLower;
+}
+
+double SymbolicDouble::getRepeatUpperBound() const
+{
+    return repeatUpper;
+}
+
+
 bool SymbolicDouble::isDetermined() const
 {
     return lowerBound == upperBound;
@@ -99,22 +110,25 @@ bool SymbolicDouble::addGT(const VarWrapper* vg, SymbolicExecutionFringe* sef, b
 {
     GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef);
     SymbolicDouble* sv = other.get();
+
     if (!other.constructed())
     {
         if (!gt.insert(sv).second) return isFeasable() && sv->isFeasable();
-
     }
+
     if (!constructed) sv->lt.insert(this);
+
     if (sv->isBoundedBelow())
     {
         clipLowerBound(sv->getLowerBound(), 1);
-        clipRepeatLowerBound(sv->getLowerBound(), 1);
+        clipRepeatLowerBound(sv->repeatLower, 1);
     }
     else removeRepeatLowerBound();
+
     if (isBoundedAbove())
     {
         sv->clipUpperBound(getUpperBound(), -1);
-        sv->clipRepeatLowerBound(getUpperBound(), -1);
+        sv->clipRepeatLowerBound(repeatUpper, -1);
     }
     else sv->removeRepeatUpperBound();
     return isFeasable() && sv->isFeasable();
@@ -134,13 +148,13 @@ bool SymbolicDouble::addGE(const VarWrapper* vg, SymbolicExecutionFringe* sef,  
     if (sv->isBoundedBelow())
     {
         clipLowerBound(sv->getLowerBound());
-        clipRepeatLowerBound(sv->getLowerBound());
+        clipRepeatLowerBound(sv->repeatLower);
     }
     else removeRepeatLowerBound();
     if (isBoundedAbove())
     {
         sv->clipUpperBound(getUpperBound());
-        sv->clipRepeatUpperBound(getUpperBound());
+        sv->clipRepeatUpperBound(repeatUpper);
     }
     else sv->removeRepeatUpperBound();
     return isFeasable() && sv->isFeasable();
@@ -161,13 +175,13 @@ bool SymbolicDouble::addLT(const VarWrapper* vg, SymbolicExecutionFringe* sef,  
     if (sv->isBoundedAbove())
     {
         clipUpperBound(sv->getUpperBound(), -1);
-        clipRepeatLowerBound(sv->getUpperBound(), -1);
+        clipRepeatUpperBound(sv->repeatUpper, -1);
     }
-    else removeRepeatLowerBound();
+    else removeRepeatUpperBound();
     if (isBoundedBelow())
     {
         sv->clipLowerBound(getLowerBound());
-        sv->clipRepeatLowerBound(getLowerBound());
+        sv->clipRepeatLowerBound(repeatLower);
     }
     else sv->removeRepeatLowerBound();
 
@@ -191,13 +205,13 @@ bool SymbolicDouble::addLE(const VarWrapper* vg, SymbolicExecutionFringe* sef,  
     if (sv->isBoundedAbove())
     {
         clipUpperBound(sv->getUpperBound());
-        clipRepeatUpperBound(sv->getUpperBound());
+        clipRepeatUpperBound(sv->repeatUpper);
     }
     else removeRepeatUpperBound();
     if (isBoundedBelow())
     {
         sv->clipLowerBound(getLowerBound());
-        sv->clipRepeatLowerBound(getLowerBound());
+        sv->clipRepeatLowerBound(repeatLower);
     }
     else sv->removeRepeatLowerBound();
 
@@ -223,23 +237,30 @@ bool SymbolicDouble::addEQ(const VarWrapper* vg, SymbolicExecutionFringe* sef,  
         if (sv->isBoundedAbove())
         {
             clipUpperBound(sv->getUpperBound());
-            clipRepeatUpperBound(sv->getUpperBound());
+            clipRepeatUpperBound(sv->repeatUpper);
         }
+        else removeRepeatUpperBound();
+
         if (sv->isBoundedBelow())
         {
             clipLowerBound(sv->getLowerBound());
-            clipRepeatLowerBound(sv->getLowerBound());
+            clipRepeatLowerBound(sv->repeatLower);
         }
+        else removeRepeatLowerBound();
+
         if (isBoundedAbove())
         {
             sv->clipUpperBound(getUpperBound());
             sv->clipRepeatUpperBound(getUpperBound());
         }
+        else sv->removeRepeatUpperBound();
+
         if (isBoundedBelow())
         {
             sv->clipLowerBound(getLowerBound());
             sv->clipRepeatLowerBound(getLowerBound());
         }
+        else sv->removeRepeatUpperBound();
     }
 
     return isFeasable() && sv->isFeasable();

@@ -102,6 +102,10 @@ public:
 
     double getLowerBound() const;
     double getUpperBound() const;
+    double getRepeatLowerBound() const;
+    double getRepeatUpperBound() const;
+
+
     double getConstValue() const;
     bool isDetermined() const;
 
