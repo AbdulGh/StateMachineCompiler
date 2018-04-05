@@ -119,12 +119,6 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
 {
     printf("%s\n", node->getName().c_str());
 
-    if (node->getName() == "F1_ack_2")
-    {
-        auto debug2 = sef->symbolicVarSet->findVar("_1_1_y");
-        int debug;
-        debug=2;
-    }
     auto it = nodes.find(node);
     if (it == nodes.end()) throw std::runtime_error("asked to search outside of loop");
 
@@ -157,6 +151,13 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             }
         }
         else instr->acceptSymbolicExecution(sef);
+    }
+
+    if (node->getName() == "F1_ack_2")
+    {
+        auto debug2 = sef->symbolicVarSet->findVar("_1_1_y");
+        int debug;
+        debug=2;
     }
 
     auto generateNodeChanges = [&varChanges, &sef, node] () -> void

@@ -273,13 +273,9 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
     if (!osef->isFeasable()) return;
 
     unique_ptr<SearchResult>& thisNodeSR = tags[n->getName()];
-
     bool change = thisNodeSR->unionSVS(osef->symbolicVarSet.get());
-
     if (thisNodeSR->unionStack(osef->symbolicStack.get())) change = true;
-
     if (!visitedNodes.insert(n->getName()).second && !change) return; //seen before
-
     shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(osef);
 
     for (const auto& command : n->getInstrs()) if (!command->acceptSymbolicExecution(sef, true)) return;

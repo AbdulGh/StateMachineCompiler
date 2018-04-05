@@ -88,20 +88,23 @@ namespace SymbolicExecution
 
             bool unionStack(SymbolicStack* other);
 
-            void resetPoppedCounter() {poppedCounter = 0;}
+            void resetPoppedCounter()
+            {
+                poppedCounter = pseudoStack.size() - 1;
+            }
 
             void incrementPoppedCounter()
             {
-                if (poppedCounter >= pseudoStack.size()) throw std::runtime_error("went too far");
-                ++poppedCounter;
+                if (!hasPop()) throw std::runtime_error("went too far");
+                --poppedCounter;
             }
 
-            inline bool hasPop() const {return poppedCounter < pseudoStack.size();}
+            inline bool hasPop() const {return poppedCounter >= 0;}
 
             std::unique_ptr<SymbolicDouble> popVar()
             {
                 if (!hasPop()) throw std::runtime_error("popped empty stack");
-                return pseudoStack[poppedCounter++]->varptr->clone();
+                return pseudoStack[poppedCounter--]->varptr->clone();
             }
 
             std::string printStack()
