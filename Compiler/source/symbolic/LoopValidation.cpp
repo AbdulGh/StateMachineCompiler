@@ -117,8 +117,6 @@ inline void mergeMaps(NodeChangeMap& intoMap, NodeChangeMap& fromMap)
 bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string, unique_ptr<SearchResult>>& tags,
                       SEFPointer sef, string& badExample, bool headerSeen)
 {
-    printf("%s\n", node->getName().c_str());
-
     auto it = nodes.find(node);
     if (it == nodes.end()) throw std::runtime_error("asked to search outside of loop");
 
@@ -141,7 +139,6 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             if (sef->symbolicStack->isEmpty())
             {
                 unique_ptr<SymbolicDouble> popped = thisNodeSR->popVar();
-                auto debug = instr->getVarWrapper()->getFullName();
                 instr->getVarWrapper()->setSymbolicDouble(sef.get(), popped.get());
             }
             else
@@ -153,9 +150,9 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
         else instr->acceptSymbolicExecution(sef);
     }
 
-    if (node->getName() == "F1_ack_2")
+    if (node->getName() == "F0_gcd_0")
     {
-        auto debug2 = sef->symbolicVarSet->findVar("_1_1_y");
+        auto debug2 = sef->symbolicVarSet->findVar("_1_0_n");
         int debug;
         debug=2;
     }
@@ -215,6 +212,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
 
             for (SymbolicExecution::Condition condition : sef->getConditions())
             {
+                auto debug = condition.toString();
                 if (condition.unconditional) continue;
                 else noConditional = false;
 
@@ -256,7 +254,8 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
 
                     if (change == SymbolicDouble::MonotoneEnum::FRESH)
                     {
-                        newBadExample = sef->printPathConditions() + "(" + string(condition.lhs) + " unchanging compared to RHS)\n";
+                        newBadExample += "Visit " + node->getName() + " - branch " + condition.toString()
+                                        + " (" + string(condition.lhs) + " unchanging compared to RHS)\n";
                     }
                     else
                     {
@@ -264,22 +263,25 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                         {
                             case Relations::LE: case Relations::LT: //needs to be increasing
                                 if (change == SymbolicDouble::MonotoneEnum::INCREASING) noGood = false;
-                                else if (change == SymbolicDouble::MonotoneEnum::DECREASING && newBadExample.empty())
+                                else if (change == SymbolicDouble::MonotoneEnum::DECREASING)
                                 {
-                                    newBadExample = sef->printPathConditions() + "(" + string(condition.lhs) + " decreasing compared to RHS)\n";
+                                    newBadExample += "Visit " + node->getName() + " - branch " + condition.toString()
+                                                    + " (" + string(condition.lhs)+ " decreasing compared to RHS)\n";
                                 }
                                 break;
                             case Relations::GT: case Relations::GE:
                                 if (change == SymbolicDouble::MonotoneEnum::DECREASING) noGood = false;
-                                else if (change == SymbolicDouble::MonotoneEnum::INCREASING && newBadExample.empty())
+                                else if (change == SymbolicDouble::MonotoneEnum::INCREASING)
                                 {
-                                    newBadExample = sef->printPathConditions() + "(" + string(condition.lhs) + " increasing compared to RHS)\n";
+                                    newBadExample += "Visit " + node->getName() + " - branch " + condition.toString()
+                                                    + " (" + string(condition.lhs) + " increasing compared to RHS)\n";
                                 }
                                 break;
                             case Relations::EQ: case Relations::NEQ:
                                 if (change != SymbolicDouble::MonotoneEnum::FRESH
                                     && meetStat == SymbolicDouble::MeetEnum::MAY) noGood = false;
-                                else newBadExample = sef->printPathConditions() + "(" + string(condition.lhs) + " must meet header condition)\n";
+                                else newBadExample += "Visit " + node->getName() + " - branch " + condition.toString()
+                                                      + " (" + string(condition.lhs) + " must meet header condition)\n";
                                 break;
                             default:
                                 throw std::runtime_error("intriguing relop");

@@ -8,7 +8,7 @@ using namespace std;
 int main()
 {
     Lexer lexer;
-    vector<Token> st = lexer.tokenize("/home/abdul/CLionProjects/Compiler/examples/report examples/bubblesort.f");
+    vector<Token> st = lexer.tokenize("/home/abdul/CLionProjects/Compiler/examples/report examples/gcd.f");
     Compiler c(st, "../warnings.txt");
     stringstream pleaseWork;
     c.compile(pleaseWork);

@@ -159,7 +159,7 @@ unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& Symbo
     {
         auto& debug1 = it->first;
         auto& debug2 = it->second;
-        bool optimising = true;
+        bool optimising = false;
         if (!it->second->isLastNode() && visitedNodes.find(it->first) == visitedNodes.end()) //no feasable visits - remove
         {
             string s =  "State '" + it->first + "' is unreachable";
