@@ -166,22 +166,7 @@ vector<unique_ptr<Loop>> LengTarj::findNesting(std::vector<unique_ptr<Loop>>& lo
 
     radixSort(radixSort, 0, 0, numLoops);
 
-    auto debugDiag = [&, numCFGNodes, numLoops, bitVectors] () -> void
-    {
-        for (int i = 0; i < numCFGNodes; ++i)
-        {
-            printf("%s\t\t", verticies[i+1]->node->getName().c_str());
-            for (int j = 0; j < numLoops; ++j)
-            {
-                printf(" %d", bitVectors[j][i]);
-            }
-            printf("\n");
-        }
-    };
-
     vector<unique_ptr<Loop>> unnested;
-
-    debugDiag();
 
     for (int i = numLoops - 1; i >= 0; --i)
     {
@@ -191,7 +176,23 @@ vector<unique_ptr<Loop>> LengTarj::findNesting(std::vector<unique_ptr<Loop>>& lo
             {
                 //scan left until we hit another 1
                 int scan = i - 1;
-                while (scan >= 0 && bitVectors[scan][j] == false) --scan;
+                while (scan >= 0)
+                {
+                    if (bitVectors[scan][j] == true)
+                    {
+                        bool nested = true;
+                        for (int t = j; t < numCFGNodes; ++t)
+                        {
+                            if (bitVectors[scan][t] == false && bitVectors[i][t] == true)
+                            {
+                                nested = false;
+                                break;
+                            }
+                        }
+                        if (nested) break;
+                    }
+                    --scan;
+                }
 
                 if (scan >= 0)
                 {

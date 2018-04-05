@@ -16,24 +16,20 @@ StringType getStringType(const std::string& str);
 class Atom
 {
 private:
-    union
-    {
-        double d;
-        VarWrapper* vptr;
-    };
-
+    double d;
+    std::unique_ptr<VarWrapper> vptr;
     bool holding;
     StringType type;
 
-
 public:
-    Atom() = default;
+    Atom();
+    ~Atom();
     explicit Atom(double d);
     explicit Atom(std::unique_ptr<VarWrapper>);
-    Atom(const Atom& o) = delete;
+    Atom(const Atom& o);
     Atom(Atom&& o);
-    Atom& operator=(const Atom& o) = delete;
-    Atom& operator=(Atom&& o) = delete;
+    Atom& operator=(const Atom& o);
+    Atom& operator=(Atom&& o);
     bool isHolding() const;
     StringType getType() const; //todo replace this w/ isHolding
     double getLiteral() const;
@@ -47,7 +43,6 @@ public:
     //used to put assignments in maps in dataflow
     bool operator<(const Atom& right) const;
     bool operator==(const Atom& right) const;
-    ~Atom();
 };
 
 class AbstractCommand
@@ -95,7 +90,8 @@ class StringHoldingCommand : public AbstractCommand
 protected:
     std::string state;
 public:
-    StringHoldingCommand(std::string s, int linenum): AbstractCommand(linenum), state(s) {}
+    StringHoldingCommand(std::string s, int linenum): AbstractCommand(linenum), state(move(s)) {}
+    virtual ~StringHoldingCommand();
     const std::string& getString() const override {return state;}
     void setString(const std::string& data) override {state = data;}
 };
@@ -105,9 +101,10 @@ class AtomHoldingCommand : public AbstractCommand
 protected:
     Atom atom;
 public:
-    AtomHoldingCommand(Atom a, int linenum): AbstractCommand(linenum), atom(std::move(a)) {}
+    AtomHoldingCommand(Atom a, int linenum): AbstractCommand(linenum), atom{std::move(a)} {}
+    virtual ~AtomHoldingCommand();
     Atom& getAtom() override {return atom;}
-    void setAtom(Atom data) override {atom = std::move(data);}
+    void setAtom(Atom data) override {atom = Atom(data);}
 };
 
 class WrapperHoldingCommand : public AbstractCommand
@@ -116,6 +113,7 @@ protected:
     std::unique_ptr<VarWrapper> vs;
 public:
     WrapperHoldingCommand(std::unique_ptr<VarWrapper> VarWrapper, int linenum);
+    virtual ~WrapperHoldingCommand();
 
     const std::unique_ptr<VarWrapper>& getVarWrapper() const override {return vs;}
     void setVarWrapper(std::unique_ptr<VarWrapper> nvs) override;
@@ -243,11 +241,9 @@ class FunctionSymbol;
 class PushCommand: public AbstractCommand
 {
 private:
-    union
-    {
+
         Atom atom;
         std::string s;
-    };
 
 public:
     FunctionSymbol* calledFunction;
@@ -261,7 +257,6 @@ public:
     }
 
     PushCommand(Atom in, int linenum);
-    ~PushCommand();
     std::unique_ptr<AbstractCommand> clone() override;
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
 

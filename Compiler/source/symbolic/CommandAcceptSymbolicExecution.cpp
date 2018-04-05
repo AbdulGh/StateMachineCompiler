@@ -83,7 +83,8 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
         if (!atom.getVarWrapper()->check(sef.get())) return false;
         GottenVarPtr<SymbolicDouble> svp = atom.getVarWrapper()->getSymbolicDouble(sef.get());
         if (!svp->isFeasable()) return false;
-        vs->setSymbolicDouble(sef.get(), svp.get());
+        svp->define();
+        if (svp.constructed()) vs->setSymbolicDouble(sef.get(), svp.get());
     }
     else vs->getSymbolicDouble(sef.get())->setConstValue(atom.getLiteral());
 
@@ -92,7 +93,6 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
 
 bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
-    auto debug = translation("");
     if (op == AND || op == OR) throw runtime_error("Bitwise operations not supported by verifier");
     else if (op == PLUS || op == MULT)
     {
@@ -166,7 +166,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                     else result->multSymbolicDouble(*t2);
                 }
             }
-
+            result->define();
             vs->setSymbolicDouble(sef.get(), result.get());
             return true;
         }
@@ -191,6 +191,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
             if (op == PLUS) addConst(result.get(), constTerm);
             else multConst(result.get(), constTerm);
 
+            result->define();
             vs->setSymbolicDouble(sef.get(), result.get());
             return true;
         }
@@ -274,6 +275,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                         }
                         else throw runtime_error("Strange op encountered");
 
+                        result->define();
                         vs->setSymbolicDouble(sef.get(), result.get());
                         return true;
                     }
@@ -310,6 +312,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                     }
                 }
                 else throw runtime_error("Strange op encountered");
+                result->define();
                 vs->setSymbolicDouble(sef.get(), result.get());
                 return true;
             }
@@ -325,6 +328,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 else if (op == DIV) result->divSymbolicDouble(*t2);
                 else throw runtime_error("Strange op encountered");
 
+                result->define();
                 vs->setSymbolicDouble(sef.get(), result.get());
                 return true;
             }
@@ -342,6 +346,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                     else result->divConst(term2.getLiteral());
                 }
                 else throw runtime_error("Strange op encountered");
+                result->define();
 
                 vs->setSymbolicDouble(sef.get(), result.get());
                 return true;
@@ -422,12 +427,12 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 }
             }
             else throw runtime_error("Strange op encountered");
+            result->define();
 
             vs->setSymbolicDouble(sef.get(), result.get());
+            return true;
         }
     }
-
-    return sef->isFeasable();
 }
 
 bool DeclareVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)

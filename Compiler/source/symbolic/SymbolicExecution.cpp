@@ -154,12 +154,7 @@ unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& Symbo
     auto it = cfg.getCurrentNodes().begin();
     while (it != cfg.getCurrentNodes().end())
     {
-        if (it->second->isLastNode())
-        {
-            ++it;
-            continue;
-        }
-        if (visitedNodes.find(it->first) == visitedNodes.end()) //no feasable visits - remove
+        if (!it->second->isLastNode() && visitedNodes.find(it->first) == visitedNodes.end()) //no feasable visits - remove
         {
             reporter.optimising(Reporter::DEADCODE, "State '" + it->first + "' is unreachable and will be removed");
             CFGNode* lonelyNode = it->second.get();
@@ -169,7 +164,7 @@ unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& Symbo
             {
                 CFGNode* parent = parentPair.second;
                 if (parent->getCompSuccess() != nullptr &&
-                        parent->getCompSuccess()->getName() == lonelyNode->getName()) parent->setCompSuccess(nullptr);
+                    parent->getCompSuccess()->getName() == lonelyNode->getName()) parent->setCompSuccess(nullptr);
 
                 else if (parent->getCompFail() != nullptr && parent->getCompFail()->getName() == lonelyNode->getName())
                 {
@@ -183,7 +178,7 @@ unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& Symbo
             lonelyNode->prepareToDie();
             it = cfg.removeNode(it->first);
         }
-        else ++it;
+        ++it;
     }
     return tags;
 }

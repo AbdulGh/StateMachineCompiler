@@ -208,6 +208,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
 
     if (headerSeen && node->getName() == comparisonNode->getName())
     {
+        printf("%s\n", getInfo(true).c_str());
         if (stackBased) //todo check if stack size decreased
         {
             bool returnToNodeInLoop = false;

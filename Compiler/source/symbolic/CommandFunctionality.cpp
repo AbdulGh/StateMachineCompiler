@@ -58,9 +58,13 @@ unique_ptr<VarWrapper> parseAccess(const string& toParse, StringType* st = nullp
     }
 }
 
-//VarSetting superclass
+//VarSetting superclasses
 WrapperHoldingCommand::WrapperHoldingCommand(std::unique_ptr<VarWrapper> vw, int linenum):
         AbstractCommand(linenum), vs(std::move(vw)) {}
+
+StringHoldingCommand::~StringHoldingCommand() = default;
+AtomHoldingCommand::~AtomHoldingCommand() = default;
+WrapperHoldingCommand::~WrapperHoldingCommand() = default;
 
 void WrapperHoldingCommand::setVarWrapper(std::unique_ptr<VarWrapper> nvs) {vs = move(nvs);}
 
@@ -68,23 +72,20 @@ void WrapperHoldingCommand::setVarWrapper(std::unique_ptr<VarWrapper> nvs) {vs =
 Atom::Atom(double nd):
     holding(false), type(StringType::DOUBLELIT), d(nd) {}
 
+Atom::Atom() = default;
+Atom::~Atom() = default;
+
 Atom::Atom(unique_ptr<VarWrapper> vg): holding(true)
 {
     type = StringType::ID;
-    vptr = vg.release();
-}
-
-Atom::~Atom()
-{
-    printf("%p\n", this);
-    if (holding) delete vptr;
+    vptr = move(vg);
 }
 
 Atom::Atom(const Atom& o): type(o.type)
 {
     if (o.holding)
     {
-        vptr = o.vptr->clone().release();
+        vptr = o.vptr->clone();
         holding = true;
     }
     else
@@ -98,7 +99,7 @@ Atom::Atom(Atom&& o): type(o.type)
 {
     if (o.holding)
     {
-        vptr = o.vptr;
+        vptr = move(o.vptr);
         holding = true;
         type = StringType::ID;
     }
@@ -111,12 +112,12 @@ Atom::Atom(Atom&& o): type(o.type)
     o.vptr = nullptr;
 }
 
-/*Atom& Atom::operator=(const Atom& o)
+Atom& Atom::operator=(const Atom& o)
 {
     type = o.type;
     if (o.holding)
     {
-        vptr = o.vptr->clone().release();
+        vptr = o.vptr->clone();
         holding = true;
     }
     else
@@ -125,13 +126,13 @@ Atom::Atom(Atom&& o): type(o.type)
         holding = false;
     }
     return *this;
-}*/
+}
 
 Atom& Atom::operator=(Atom&& o)
 {
     if (o.holding)
     {
-        vptr = o.vptr;
+        vptr = move(o.vptr);
         o.vptr = nullptr;
         holding = true;
         type = StringType::ID;
@@ -150,11 +151,11 @@ void Atom::swap(Atom& a)
 {
     if (holding)
     {
-        VarWrapper* vw = vptr;
+        unique_ptr<VarWrapper> vw = move(vptr);
         if (a.holding)
         {
-            vptr = a.vptr;
-            a.vptr = vw;
+            vptr = move(a.vptr);
+            a.vptr = move(vw);
         }
         else
         {
@@ -162,7 +163,7 @@ void Atom::swap(Atom& a)
             d = a.d;
             holding = false;
             a.type = StringType::ID;
-            a.vptr = vw;
+            a.vptr = move(vw);
             a.holding = true;
         }
     }
@@ -175,7 +176,7 @@ void Atom::swap(Atom& a)
             type = StringType::ID;
             holding = true;
             a.holding = false;
-            vptr = a.vptr;
+            vptr = move(a.vptr);
             a.d = t;
         }
         else
@@ -191,16 +192,14 @@ void Atom::swap(Atom& a)
 
 void Atom::become(const Atom& other)
 {
-    if (holding) delete vptr;
     type = other.type;
     holding = other.holding;
-    if (holding) vptr = other.vptr->clone().release();
+    if (holding) vptr = other.vptr->clone();
     else d = other.d;
 }
 
 void Atom::set(double nd)
 {
-    if (holding) delete vptr;
     type = StringType::DOUBLELIT;
     d = nd;
     holding = false;
@@ -208,9 +207,8 @@ void Atom::set(double nd)
 
 void Atom::set(unique_ptr<VarWrapper> vg)
 {
-    if (holding) delete vptr;
     type = StringType::ID;
-    vptr = vg.release();
+    vptr = move(vg);
     holding = true;
 }
 
@@ -236,7 +234,7 @@ double Atom::getLiteral() const
 }
 VarWrapper* Atom::getVarWrapper() const
 {
-    return vptr;
+    return vptr.get();
 }
 
 StringType Atom::getType() const {return type;}
@@ -381,11 +379,6 @@ PushCommand::PushCommand(Atom in, int linenum):
 {
     atom = move(in);
     setType(CommandType::PUSH);
-}
-
-PushCommand::~PushCommand()
-{
-    if (!pushesState()) atom.~Atom();
 }
 
 std::string PushCommand::translation(const std::string& delim) const

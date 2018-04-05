@@ -18,7 +18,7 @@ SymbolicDouble::SymbolicDouble(string name, Reporter& r):
 
 SymbolicDouble::SymbolicDouble(const SymbolicDouble& o):
     varN(o.varN), reporter(o.reporter), upperBound(o.upperBound), lowerBound(o.lowerBound), repeatLower(o.repeatLower),
-    repeatUpper(o.repeatUpper), minChange(o.minChange), maxChange(o.maxChange) {}
+    repeatUpper(o.repeatUpper), minChange(o.minChange), maxChange(o.maxChange), defined(o.defined) {}
 
 
 SymbolicDouble::~SymbolicDouble()
@@ -618,6 +618,7 @@ void SymbolicDouble::setConstValue(double d)
 {
     clearAll();
     lowerBound = upperBound = d;
+    defined = true;
     uniformlyChanging = false;
 }
 
