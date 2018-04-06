@@ -133,7 +133,7 @@ namespace SymbolicExecution
         SymbolicExecutionManager(ControlFlowGraph& cfg, SymbolTable& sTable, Reporter& reporter):
                 cfg(cfg), sTable(sTable), reporter(reporter)
         {};
-        std::unordered_map<std::string, std::unique_ptr<SearchResult>>& search();
+        std::unordered_map<std::string, std::unique_ptr<SearchResult>>& search(bool deadcode);
 
     private:
         std::set<std::string> visitedNodes;

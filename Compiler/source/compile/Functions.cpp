@@ -440,8 +440,6 @@ void FunctionSymbol::genConditionalJump(string state, unique_ptr<VarWrapper> lh,
                                         unique_ptr<VarWrapper> rh, int linenum)
 {
     if (endedState) throw std::runtime_error("No state to add to");
-    auto debug1 = lh->getFullName();
-    auto debug2 = rh->getFullName();
     currentInstrs.push_back(make_unique<JumpOnComparisonCommand>(state, move(lh), move(rh), r, linenum));
 }
 

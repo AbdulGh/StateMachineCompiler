@@ -147,7 +147,7 @@ void SymbolicExecutionFringe::setLoopInit()
 }
 
 //SymbolicExecutionManager
-unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& SymbolicExecutionManager::search()
+unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& SymbolicExecutionManager::search(bool optimising)
 {
     visitedNodes.clear();
     tags.clear();
@@ -157,9 +157,6 @@ unordered_map<string, unique_ptr<SymbolicExecutionManager::SearchResult>>& Symbo
     auto it = cfg.getCurrentNodes().begin();
     while (it != cfg.getCurrentNodes().end())
     {
-        auto& debug1 = it->first;
-        auto& debug2 = it->second;
-        bool optimising = false;
         if (!it->second->isLastNode() && visitedNodes.find(it->first) == visitedNodes.end()) //no feasable visits - remove
         {
             string s =  "State '" + it->first + "' is unreachable";
@@ -299,13 +296,6 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
     shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(osef);
 
     for (const auto& command : n->getInstrs()) if (!command->acceptSymbolicExecution(sef, true)) return;
-
-    if (n->getName() == "F0_main_6")
-    {
-        auto debug = sef->symbolicVarSet->findVar("_3_0_y");
-        int debug2;
-        debug2 =2;
-    }
 
     JumpOnComparisonCommand* jocc = n->getComp();
     if (jocc != nullptr) //is a conditional jump

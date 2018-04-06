@@ -10,7 +10,7 @@ class Loop;
 class Reporter
 {
 private:
-    std::ofstream output;
+    std::ostream output;
 
     const static std::string enumNames[NUM_ALERTS];
     bool toWarn[NUM_ALERTS];
@@ -19,8 +19,8 @@ public:
     enum AlertType {GENERIC, RANGE, UNINITIALISED_USE, UNDECLARED_USE, TYPE,
                     ZERODIVISION, USELESS_OP, BAD_STACK_USE, ARRAY_BOUNDS, COMPILER, DEADCODE, };
 
-    Reporter(std::string filename);
-    ~Reporter();
+    Reporter(std::streambuf* sbuf);
+    Reporter(const Reporter& r);
     void setWarning(AlertType type, bool toReport);
     void warn(AlertType type, const std::string& details, int linenum = -1);
     void error(AlertType type, const std::string& details, int linenum = -1);

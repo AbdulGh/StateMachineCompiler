@@ -19,8 +19,8 @@ class Compiler
     friend class ExpressionCodeGenerator;
 
 public:
-    Compiler(std::vector<Token>& st, std::string filename);
-    void compile(std::stringstream&);
+    Compiler(std::vector<Token>& st, Reporter& r);
+    void compile(bool optimise, bool deadcode, bool verify, std::string graphOutput, bool gb, std::string sourceout);
 
 private:
     std::vector<Token> stream;

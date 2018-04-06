@@ -10,8 +10,9 @@
 
 using namespace std;
 
-Compiler::Compiler(vector<Token>& st, string auxFileName): stream(st), reporter(move(auxFileName)),
-                                                           functionTable(*this), cfg(reporter, functionTable, symbolTable) {}
+Compiler::Compiler(vector<Token>& st, Reporter& r):
+        stream(st), reporter(r), functionTable(*this),
+        cfg(reporter, functionTable, symbolTable) {}
 
 void Compiler::error(string err)
 {
@@ -30,7 +31,12 @@ string Compiler::quoteString(string &s)
     return "\"" + s + "\"";
 }
 
-void Compiler::compile(stringstream& out)
+Token Compiler::nextToken()
+{
+    return *(tp++);
+}
+
+void Compiler::compile(bool optimise, bool deadcode, bool verify, std::string graphOutput, bool gb, std::string outputfile)
 {
     //for (auto& t : stream) cout << TypeEnumNames[t.type] << endl;
     //exit(0);
@@ -45,26 +51,43 @@ void Compiler::compile(stringstream& out)
     cfg.setFirst(mainFuncSym->getFirstNode()->getName());
     cfg.setLast(mainFuncSym->getLastNode()->getName());
 
-    Optimise::optimise(symbolTable, functionTable, cfg);
+    if (optimise) Optimise::optimise(symbolTable, functionTable, cfg);
 
-    SymbolicExecution::SymbolicExecutionManager symbolicExecutionManager
-            = SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter);
-    unordered_map<string, SRPointer>& tags
-            = symbolicExecutionManager.search();
+    if (verify)
+    {
+        if (!graphOutput.empty() && gb)
+        {
+            ofstream fout(graphOutput);
+            if (!fout.good()) throw runtime_error("Unable to open DOT graph output file '" + graphOutput + "'");
+            fout << cfg.getDotGraph();
+            fout.close();
+        }
 
-    vector<unique_ptr<Loop>> loops = LengTarj(cfg).findLoops();
-    for (auto& loop : loops) loop->validate(tags);
-    return;
-    cout << cfg.getStructuredSource() << endl;
+        SymbolicExecution::SymbolicExecutionManager symbolicExecutionManager
+                = SymbolicExecution::SymbolicExecutionManager(cfg, symbolTable, reporter);
+        unordered_map<string, SRPointer>& tags
+                = symbolicExecutionManager.search(deadcode);
 
-    Optimise::optimise(symbolTable, functionTable, cfg);
+        if (!graphOutput.empty() && !gb)
+        {
+            ofstream fout(graphOutput);
+            if (!fout.good()) throw runtime_error("Unable to open DOT graph output file '" + graphOutput + "'");
+            fout << cfg.getDotGraph();
+            fout.close();
+        }
 
-   // cout << cfg.destroyStructureAndGetFinalSource();
-}
+        vector<unique_ptr<Loop>> loops = LengTarj(cfg).findLoops();
+        for (auto& loop : loops) loop->validate(tags);
+        cout << cfg.getStructuredSource() << endl;
+    }
 
-Token Compiler::nextToken()
-{
-    return *(tp++);
+    if (!outputfile.empty())
+    {
+        fstream fout(outputfile);
+        if (!fout.good()) throw runtime_error("Could not open filename '" + outputfile + "' for produced output.");
+        fout << cfg.getStructuredSource();
+        fout.close();
+    }
 }
 
 Identifier* Compiler::findVariable(VarWrapper* vg, VariableType* vtype)

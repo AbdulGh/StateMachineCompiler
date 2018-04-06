@@ -88,7 +88,6 @@ string CFGNode::getDotEdges()
     }
     else
     {
-        //if (!isLast) throw std::runtime_error("should be last"); debug
         for (CFGNode* nodePointer : parentFunction->getNodesReturnedTo())
         {
             outs << name << "->" << nodePointer->getName()
@@ -149,21 +148,14 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                 if (eec->term1.isHolding())
                 {
                     unordered_map<string, Atom>::const_iterator t1it = assignments.find(eec->term1.getVarWrapper()->getFullName());
-                    if (t1it != assignments.end())
-                    {
-                        auto debug = string(t1it->second);
-                        eec->term1 = Atom(t1it->second);
-                    }
+                    if (t1it != assignments.end()) eec->term1 = Atom(t1it->second);
+
                 }
     
                 if (eec->term2.isHolding())
                 {
                     unordered_map<string, Atom>::const_iterator t2it = assignments.find(eec->term2.getVarWrapper()->getFullName());
-                    if (t2it != assignments.end())
-                    {
-                        auto debug = string(t2it->second);
-                        eec->term2 = Atom(t2it->second);
-                    }
+                    if (t2it != assignments.end()) eec->term2 = Atom(t2it->second);
                 }
     
                 if (eec->term1 == eec->term2 && eec->term1.isHolding())
@@ -223,7 +215,6 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                 {
                     if (pushc->getAtom().isHolding())
                     {
-                        auto debug = pushc->getAtom();
                         auto pushedVarIt = assignments.find(pushc->getAtom().getVarWrapper()->getFullName());
                         if (pushedVarIt != assignments.end()) current->setAtom(pushedVarIt->second);
                     }
@@ -281,28 +272,16 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
 
     if (comp != nullptr)
     {
-        auto debug1 = comp->translation("");
         if (comp->term1.isHolding())
         {
             auto it = assignments.find(comp->term1.getVarWrapper()->getFullName());
-            if (it != assignments.end())
-            {
-                auto& debug = it->second;
-                comp->term1.become(it->second);
-            }
+            if (it != assignments.end()) comp->term1.become(it->second);
         }
         if (comp->term2.getType() == StringType::ID)
         {
             auto it = assignments.find(comp->term2.getVarWrapper()->getFullName());
-            if (it != assignments.end())
-            {
-                auto& debug = it->second;
-                auto& dname = it->first;
-                comp->term2.become(it->second);
-            }
+            if (it != assignments.end()) comp->term2.become(it->second);
         }
-        auto debug2 = comp->translation("");
-
 
         //check for const comparison
         if (comp->term1.getType() != StringType::ID
@@ -613,11 +592,6 @@ FunctionSymbol* CFGNode::calledFunction()
 
 void CFGNode::setCompFail(CFGNode* compareFail)
 {
-    if (name == "F1_ack_3")
-    {
-        int debug;
-        debug = 2;
-    }
     compFail = compareFail;
     if (compFail != nullptr) compFail->addParent(this);
 }

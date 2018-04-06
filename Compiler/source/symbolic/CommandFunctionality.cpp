@@ -318,22 +318,12 @@ AssignVarCommand::AssignVarCommand(unique_ptr<VarWrapper> lh, unique_ptr<VarWrap
         AbstractCommand(linenum), vs(move(lh)), atom(move(rh))
 {
     setType(CommandType::ASSIGNVAR);
-    if (vs->getFullName() == "LHS" && string(atom) == "_3_0_y")
-    {
-        int debug;
-        debug = 2;
-    }
 }
 
 AssignVarCommand::AssignVarCommand(unique_ptr<VarWrapper> lh, Atom rh, int linenum):
         AbstractCommand(linenum), vs(move(lh)), atom(move(rh))
 {
     setType(CommandType::ASSIGNVAR);
-    if (vs->getFullName() == "LHS" && string(atom) == "_3_0_y")
-    {
-        int debug;
-        debug = 2;
-    }
 }
 
 void AssignVarCommand::setVarWrapper(std::unique_ptr<VarWrapper> sv)

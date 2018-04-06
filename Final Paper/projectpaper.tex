@@ -702,7 +702,8 @@ afforded by symbolic execution (i.e. the simulation of stacks and memory) but gi
 
 \textbf{Memory.} The method could be easily extended to search for null pointer dereferences and memory leaks. Some more work, possibly using similar techniques to the ones used to simulate arrays, could be used to simulate the contents of memory and allow for pointers to be used just like other variables.
 
-\textbf{Decomposition, summarisation, and re-compilation.}
+\textbf{Decomposition, summarisation, and re-compilation.} At present we run the method on the entire CFG of the input program. This would take a very long time for
+large, real world programs. 
 \bibliography{projectpaper}
 
 \end{document}
