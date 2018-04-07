@@ -71,7 +71,7 @@ void Compiler::body()
 bool Compiler::statement(FunctionSymbol* fs)
 {
     bool finishedState = false;
-    if (lookahead.type == LBRACE)
+    if (lookahead.type == LBRACE) //todo make switch
     {
         match(LBRACE);
         symbolTable.pushScope();
@@ -81,6 +81,15 @@ bool Compiler::statement(FunctionSymbol* fs)
         symbolTable.popScope();
         fs->popScope();
         match(RBRACE);
+    }
+    else if (lookahead.type == NONDET)
+    {
+        match(NONDET);
+        Identifier* id;
+        unique_ptr<VarWrapper> vw = wrappedIdent(&id);
+        id->setDefined();
+        if (id->getType() == VariableType::ARRAY) fs->genNondet(id->getLexeme(), lookahead.line);
+        else fs->genNondet(move(vw), lookahead.line);
     }
     else if (lookahead.type == PRINT)
     {

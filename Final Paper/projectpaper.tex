@@ -134,7 +134,7 @@ The solution was implemented successfully. We managed to verify the termination 
 A well founded partial order is a partial order where there are no infinitely decending chains. If we can find a \emph{ranking function} that maps successive loop iterations into a strictly decending chain we know that the loop must always halt.
 This method was popularised by Floyd \citep{floyd}.
 
-This method, although powerful and simple, is hard to automate. One attempt \citep{colon} begins by generalising the idea of a ranking function to strongly connected components (SCS) in a control flow graph - where now the ranking function is defined on the edges of the SCS, never increases on any edge, and strictly decreases on at least one edge. Every potentially infinite loop must live in an SCS, and if we succeed in finding such a ranking function we know that an infinite execution cannot use any decreasing edges. We can then remove those edges - if the remainder of the component is not acyclic, we repeat the procedure.
+This method, although powerful and simple, is hard to automate. One attempt \citep{colon} begins by generalising the idea of a ranking function to strongly connected components (SCS) in a control flow graph - where now the ranking function is defined on the edges of an SCS, never increases on any edge, and strictly decreases on at least one edge. Every potentially loop must live in an SCS, as we can reach any node in the loop by following it around. We start by finding a ranking function (actually, a cone of such ranking functions, as if one exists there are infinitely many) for all the SCSs in a graph. We remove the edges where the ranking function decreases, as a nonterminating loop cannot use any of these edges. If the remainder of the component is not acyclic, we repeat the procedure.
 
 This method is `sound' in the sense that if it succeeds in finding a ranking function for every SCS the program always halts. It may fail to find ranking functions
 for programs that do infact halt.
@@ -167,8 +167,8 @@ use conditionals with inequalities between a variable and another variable or co
 will be compiled down into these simple conditions. We will then only maintain possible ranges for each variable. If a range of
 a variable becomes empty, the path is not feasable.\\
 
-\item \textbf{Path divergence.} Innacuracies will be inevitably introduced by modelling complex software with a simpler representation. Path divergence refers to the difference between the path followed by a symbolic execution of said model vs the path that
-should be followed in the code a programmer wrote. The simplifications used to help with the last two issues will be paid for here. Not only will variables have different names (as the state machine has no scope, variables will be renamed) but it is very
+\item \textbf{Path divergence.} Innacuracies will be inevitably introduced by modelling complex software with a simpler representation. Path divergence refers to the difference between the path followed by a symbolic execution of said model and the path that
+should be followed in the code a programmer wrote. In our case, variables will have different names (as the state machine has no scope, variables will be renamed) and also it is
 likely that compilation and optimisation will change the structure of the program to a significant degree. That being said, the representation
 itself can be directly executed and so detected bugs will apply to the running program.
 \end{enumerate}
@@ -585,6 +585,7 @@ function m(double n) double
 This function is a standard exercise for automated termination analysis methods. Changing the expression in line $5$ into subtraction of a negative constant,
 or inverting the condition in line $3$, result in nonterminating programs that are successfully detected by the method.
 
+\begin{minipage}
 \subsubsection{Greatest common divisor}
 \begin{wrapfigure}{r}{0.4\textwidth}
 \centering
@@ -606,6 +607,7 @@ This is correctly determined as halting, as each parameter moves in a direction 
 
 Reversing the inequality on line $9$, or the order of the parameters in either of the recursive calls, is picked up as nonterminating - but not if we remove the nonnegativity condition
 imposed on line $2$.
+\end{minipage}
 \pagebreak
 \section{Evaluation}
 \subsection{Evaulation of the method}
@@ -648,17 +650,17 @@ while (x < y){
 
 The solution would declare $x$ decreasing and the loop nonterminating, although this is not the case.\\
 
-\textbf{Integers and equalities/inequalities.} Our method currently deals with every numerical type as if it was a double. This introduces innacuracies. For example, it accepts as halting
-the probematic code fragment
+\textbf{Inequalities.} Our method declares an inequality condition eventually broken if there is any relative change between the left and right hand sides.
+It's correct to say that if all there is no relative change between both sides of an equality it will hold forever, however this is not necessary for a nonterminating loop.
+For example, the method accepts as halting the probematic code fragment
 \begin{center}
 \begin{minipage}{6.5cm}
 \begin{lstlisting}[language=myLang, frame=tlrb, numbers=none, linewidth=6cm]
-double x = 1;
-while (x != 0) x = x - 2;
+double x = 1; double y = 0;
+while (x != y) x = x - 2;
 \end{lstlisting}
 \end{minipage}
 \end{center}
-as $x$ begins above the inequality and moves towards it.\\
 
 \textbf{Type 1 and 2 errors.} In this paper we have given an example of a nonterminating fragment that the program accepts as terminating (our modification to the
 Ackermann function) and a terminating fragment we deem nonterminating (\cref{lst:termin}). This unfortunately means that you cannot believe either decision and must
@@ -681,8 +683,8 @@ The issues began when I came to implement the loop validation phase. In this pha
 base class which have empty implementations in derived classes. This probably could have been prevented via more thoughtful OOP design, but the best solution would
 have been to not implement them in the first place.
 
-At the very end of the development of the project I decided to remove the functionality entirely. The relevant git commit registers
-$1349$ insertions and $2199$ deletions - such an invasive surgery has left its scars on the quality of the code.
+Towards the very end of the development of the project I decided to remove the functionality entirely. The relevant git commit registers
+$1349$ insertions and $2199$ deletions - such an invasive operation has left its scars on the quality of the code.
 \\
 
 \textbf{Implementing a compiler.} For this project I decided to write my own compiler. This was a valuable learning experience. It also did not take much time and effort, as the compiler is small

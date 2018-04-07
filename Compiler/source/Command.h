@@ -65,7 +65,7 @@ public:
     virtual std::unique_ptr<AbstractCommand> clone() = 0;
 
     //returns true if the symbolic execution of this command went through
-    virtual bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat = false);
+    virtual bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat = false);
 
     virtual const std::string& getString() const {throw std::runtime_error("no state");}
     virtual void setString(const std::string& data) {throw std::runtime_error("no state");}
@@ -234,7 +234,7 @@ public:
     InputVarCommand(std::unique_ptr<VarWrapper> into, int linenum);
     std::string translation(const std::string& delim) const override;
     std::unique_ptr<AbstractCommand> clone() override;
-    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
+    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat) override;
 };
 
 class FunctionSymbol;
@@ -258,7 +258,7 @@ public:
 
     PushCommand(Atom in, int linenum);
     std::unique_ptr<AbstractCommand> clone() override;
-    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
+    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat) override;
 
     inline bool pushesState() const
     {
@@ -295,7 +295,7 @@ public:
     std::unique_ptr<AbstractCommand> clone() override;
     bool isEmpty() const {return vs == nullptr;}
     std::string translation(const std::string& delim) const override;
-    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
+    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat) override;
 };
 
 class AssignVarCommand: public AbstractCommand
@@ -313,7 +313,7 @@ public:
     void setVarWrapper(std::unique_ptr<VarWrapper> sv) override;
     std::unique_ptr<AbstractCommand> clone() override;
     std::string translation(const std::string& delim) const override;
-    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
+    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat) override;
 };
 
 class
@@ -369,7 +369,7 @@ public:
 
     const std::string& getBaseName() const override {return name;}
 
-    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> svs, bool repeat) override;
+    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat) override;
 };
 
 class DeclareArrayCommand: public DeclareCommand
@@ -399,5 +399,27 @@ public:
 
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat) override;
 };
+
+class NondetCommand : public AbstractCommand
+{
+    union
+    {
+        std::string s;
+        std::unique_ptr<VarWrapper> varWrapper;
+    };
+    bool holding;
+
+public:
+    NondetCommand(std::unique_ptr<VarWrapper> vw, int linenum) : varWrapper(move(vw)), holding(true)
+    {}
+
+    NondetCommand(std::string stringie, int linenum) : s(move(stringie)), holding(false)
+    {}
+
+    std::unique_ptr<AbstractCommand> clone() override;
+    std::string translation(const std::string& delim) const override;
+    bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat) override;
+};
+
 
 #endif

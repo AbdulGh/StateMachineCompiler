@@ -25,9 +25,9 @@ private:
 public:
     SymbolicArray(std::string id, unsigned int n, Reporter& r): size(n), reporter(r), name(std::move(id))
     {
-        auto uninit = std::make_unique<SymbolicDouble>("uninit", reporter);
-        uninit->define();
-        myVars.push_back(move(uninit));
+        auto init = std::make_unique<SymbolicDouble>("init", reporter);
+        init->define();
+        myVars.push_back(move(init));
         indicies.push_back(size);
         indexVars.push_back(myVars.begin()->get());
     }
@@ -349,16 +349,28 @@ public:
 
     void nondet(unsigned int i)
     {
-        std::unique_ptr<SymbolicDouble> undet = std::make_unique<SymbolicDouble>("undet", reporter);
-        undet->nondet();
-        set(i, move(undet));
+        std::unique_ptr<SymbolicDouble> init = std::make_unique<SymbolicDouble>("init", reporter);
+        init->nondet();
+        set(i, move(init));
     }
 
     void nondet(SymbolicDouble* index)
     {
-        SymbolicDouble undet("undet", reporter);
-        undet.nondet();
-        set(index, &undet);
+        SymbolicDouble init("init", reporter);
+        init.nondet();
+        set(index, &init);
+    }
+    
+    void nondet()
+    {
+        myVars.clear();
+        indexVars.clear();
+        indicies.clear();
+        std::unique_ptr<SymbolicDouble> sd = std::make_unique<SymbolicDouble>("init", reporter);
+        sd->nondet();
+        indicies.push_back(size);
+        indexVars.push_back(sd.get());
+        myVars.push_back(move(sd));
     }
 
     bool unionArray(const SymbolicArray* other)

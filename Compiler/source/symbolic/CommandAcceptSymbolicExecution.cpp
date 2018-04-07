@@ -447,3 +447,13 @@ bool DeclareArrayCommand::acceptSymbolicExecution(std::shared_ptr<SymbolicExecut
     return true;
 }
 
+bool NondetCommand::acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
+{
+    if (holding) getVarWrapper()->nondet(sef.get());
+    else
+    {
+        SymbolicArray* sa = sef->symbolicVarSet->findArray(s);
+        if (!sa) throw runtime_error("Unknown array '" + s + "'");
+        sa->nondet(); //todo next
+    }
+}

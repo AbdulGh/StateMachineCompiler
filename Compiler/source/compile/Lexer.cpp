@@ -19,6 +19,7 @@ Lexer::Lexer()
     resWords["return"] = Token(RETURN);
     resWords["void"] = Token(VOID);
     resWords["else"] = Token(ELSE);
+    resWords["nondet"] = Token(NONDET);
 }
 
 vector<Token> Lexer::tokenize(string str)

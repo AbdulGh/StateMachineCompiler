@@ -514,6 +514,17 @@ void FunctionSymbol::genAssignment(unique_ptr<VarWrapper> LHS, unique_ptr<VarWra
     currentInstrs.push_back(make_unique<AssignVarCommand>(move(LHS), move(RHS), linenum));
 }
 
+void FunctionSymbol::genNondet(std::unique_ptr<VarWrapper> vw, int linenum)
+{
+    if (endedState) throw std::runtime_error("No state to add to");
+    currentInstrs.push_back(make_unique<NondetCommand>(move(vw), linenum));
+}
+
+void FunctionSymbol::genNondet(std::string s, int linenum)
+{
+
+}
+
 void FunctionSymbol::addCommands(vector<unique_ptr<AbstractCommand>>& acs)
 {
     if (endedState) throw std::runtime_error("No state to add to");

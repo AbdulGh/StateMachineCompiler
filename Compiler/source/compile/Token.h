@@ -11,7 +11,7 @@ enum Type {IDENT, OP, RELOP, LBRACE, RBRACE,
             RETURN, ASSIGN, END, NUMBER,
             INPUT, PRINT, NOT, ENDIF, COMMA,
             COMPAND, COMPOR, ELSE,
-            LSQPAREN, RSQPAREN};
+            LSQPAREN, RSQPAREN, NONDET};
 
 extern std::string TypeEnumNames[];
 

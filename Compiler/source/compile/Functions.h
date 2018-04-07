@@ -99,6 +99,8 @@ public:
     void genArrayDecl(std::string name, unsigned long int size, int linenum);
     void genAssignment(std::unique_ptr<VarWrapper> LHS, double RHS, int linenum);
     void genAssignment(std::unique_ptr<VarWrapper> LHS, std::unique_ptr<VarWrapper> RHS, int linenum);
+    void genNondet(std::unique_ptr<VarWrapper> vw, int linenum);
+    void genNondet(std::string s, int linenum);
     void addCommand(std::unique_ptr<AbstractCommand> ac);
     void addCommands(std::vector<std::unique_ptr<AbstractCommand>>& acs);
 };

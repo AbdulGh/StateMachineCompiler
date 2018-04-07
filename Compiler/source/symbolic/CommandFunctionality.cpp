@@ -384,3 +384,15 @@ std::unique_ptr<AbstractCommand> PushCommand::clone()
     else return std::make_unique<PushCommand>(atom, getLineNum());
 }
 
+//Nondet command
+std::unique_ptr<AbstractCommand> NondetCommand::clone()
+{
+    if (holding) return std::make_unique<NondetCommand>(getVarWrapper()->clone(), AbstractCommand::getLineNum());
+    else return std::make_unique<NondetCommand>(s, AbstractCommand::getLineNum());
+}
+
+std::string NondetCommand::translation(const std::string& delim) const
+{
+    if (holding) return "nondet " + getVarWrapper()->getFullName() + ";" + delim;
+    else return "nondet " + s + ";" + delim;
+}
