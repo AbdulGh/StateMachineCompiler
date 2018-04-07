@@ -105,6 +105,11 @@ public:
     double getRepeatLowerBound() const;
     double getRepeatUpperBound() const;
 
+    bool operator==(const SymbolicDouble& o)
+    {
+        return upperBound == o.upperBound && lowerBound == o.lowerBound
+               && repeatUpper == o.repeatUpper && repeatLower == o.repeatLower;
+    }
 
     double getConstValue() const;
     bool isDetermined() const;

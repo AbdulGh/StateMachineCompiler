@@ -202,12 +202,12 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
 
     visitOrder.push_back(nodeName);
 
-    if (!jocc) pathConditions.insert({nodeName, Condition()}); //unconditional
+    if (!jocc) pathConditions.insert({nodeName, Condition(nodeName)}); //unconditional
     else
     {
         if (jocc->term1.getType() != StringType::ID) throw std::runtime_error("lhs should be ID");
         Relations::Relop op = negate ? Relations::negateRelop(jocc->op) : jocc->op;
-        pathConditions.insert({nodeName, Condition(jocc->term1, op, jocc->term2)});
+        pathConditions.insert({nodeName, Condition(nodeName, jocc->term1, op, jocc->term2)});
         auto t1var = jocc->term1.getVarWrapper()->getSymbolicDouble(this);
         if (!t1var) throw std::runtime_error("comparing unknown var or constants");
         bool t1constructed = jocc->term1.getVarWrapper()->getSymbolicDouble(this).constructed();
@@ -289,6 +289,7 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
     if (!osef->isFeasable()) return;
 
     unique_ptr<SearchResult>& thisNodeSR = tags[n->getName()];
+
     bool change = thisNodeSR->unionSVS(osef->symbolicVarSet.get());
     if (thisNodeSR->unionStack(osef->symbolicStack.get())) change = true;
     if (!visitedNodes.insert(n->getName()).second && !change) return; //seen before
@@ -366,6 +367,7 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
                     if (Relations::evaluateRelop<double>(LHS->getConstValue(), jocc->op, RHS->getConstValue()))
                     {
                         LHS->setRepeatBoundsFromComparison(jocc->op, RHS.get());
+                        RHS->setRepeatBoundsFromComparison(Relations::mirrorRelop(jocc->op), RHS.get());
                         visitNode(sef, n->getCompSuccess());
                         return;
                     }
@@ -374,7 +376,9 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
                         CFGNode* nextnode = getFailNode(sef, n);
                         if (nextnode != nullptr)
                         {
-                            LHS->setRepeatBoundsFromComparison(Relations::negateRelop(jocc->op), RHS.get());
+                            Relations::Relop neg = Relations::negateRelop(jocc->op);
+                            LHS->setRepeatBoundsFromComparison(neg, RHS.get());
+                            RHS->setRepeatBoundsFromComparison(Relations::mirrorRelop(neg), LHS.get());
                             visitNode(sef, nextnode);
                         }
                         return;
@@ -382,13 +386,17 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
                 }
                 else //rhs undetermined, lhs determined
                 {
+                    LHS->setRepeatBoundsFromComparison(jocc->op, RHS.get());
                     Relations::Relop mirroredOp = Relations::mirrorRelop(jocc->op);
+                    RHS->setRepeatBoundsFromComparison(mirroredOp, LHS->getConstValue());
                     branch(sef, n, jocc->term2.getVarWrapper(), mirroredOp, LHS->getConstValue(), true);
                     return;
                 }
             }
             else if (RHS->isDetermined())
             {
+                LHS->setRepeatBoundsFromComparison(jocc->op, RHS->getConstValue());
+                RHS->setRepeatBoundsFromComparison(Relations::mirrorRelop(jocc->op), LHS.get());
                 branch(sef, n, jocc->term1.getVarWrapper(), jocc->op, RHS->getConstValue(), false);
                 return;
             }
@@ -676,6 +684,7 @@ void SymbolicExecutionManager::branchGE(shared_ptr<SymbolicExecutionFringe> sef,
     GottenVarPtr<SymbolicDouble> gvpGE = lhsvar->getSymbolicDouble(sefge.get());
     if (gvpGE->setLowerBound(rhsconst))
     {
+        gvpGE->setRepeatLowerBound(rhsconst);
         if (gvpGE.constructed()) lhsvar->setSymbolicDouble(sefge.get(), gvpGE.get());
 
         if (reverse)
@@ -771,7 +780,7 @@ void SymbolicExecutionManager::varBranchGT(shared_ptr<SymbolicExecutionFringe> s
 
     shared_ptr<SymbolicExecutionFringe> sefgt = make_shared<SymbolicExecutionFringe>(sef);
     GottenVarPtr<SymbolicDouble> lhgv = lhsvar->getSymbolicDouble(sefgt.get());
-    if (lhgv->addGE(rhsvar, sefgt.get(), lhgv.constructed())) visitNode(sefgt, n->getCompSuccess());
+    if (lhgv->addGT(rhsvar, sefgt.get(), lhgv.constructed())) visitNode(sefgt, n->getCompSuccess());
 }
 
 void SymbolicExecutionManager::varBranchLT(shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,

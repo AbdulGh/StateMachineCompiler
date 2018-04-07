@@ -632,6 +632,16 @@ bool SymbolicDouble::unionVar(const SymbolicDouble* other)
 {
     bool ret = unionLowerBound(other->getLowerBound());
     if (unionUpperBound(other->getUpperBound())) ret = true;
+    if (other->minChange < minChange)
+    {
+        minChange = other->minChange;
+        ret = true;
+    }
+    if (other->maxChange > maxChange)
+    {
+        maxChange = other->maxChange;
+        ret = true;
+    }
     return ret;
 }
 

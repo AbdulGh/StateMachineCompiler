@@ -314,18 +314,17 @@ This will be combatted by attempting to extrapolate the current motion of variab
 which the variable ranges forbid us from taking. So we first visit the second branch. If any execution of this branch always moves us towards meeting
 this condition, we will go ahead and take it.
 
-\paragraph{Nested loops and laminar sets}
+\paragraph{Nested loops}
 It may be that one loop is nested inside another. We form an `inclusion tree', where the nodes are loops and an edge represents proper nesting. When we come to verify a loop in this tree we first recursively verify its children.
-If we decide that they're bug-free we then verify the outer loop, treating the nodes in nested loops as if they may be executed an arbitrary number of times.
+If we decide that they're bug-free we then verify the outer loop. When encountering the header of a nested loop, we update our symbolic variables with the overestimation formed during
+the symbolic execution.\\
 
-Now we describe the method used to build the inclusion tree. A family of subsets is called \emph{laminar} if every pair is either disjoint,
-or one is a superset of another. Loops are an example - either two loops are disjoint, or one is nested inside
-the other. We can adapt a bioinformatical algorithm usually used to find perfect phylogenies \citep{gusfield}:
+The method used to find the inclusion tree is adapted from a bioinformatical algorithm usually used to find perfect phylogenies \citep{gusfield}:
 
 \begin{enumerate}
 \item Assign each loop a bitvector, where the $i$th bit is $1$ iff the $i$th node appears in this loop.
 \item Sort these bitvectors using radix sort.
-\item For each loop, find any index set to $1$ and add that loop as the child of the next highest loop with a $1$ in that position (if it exists).
+\item For each loop, find the next highest loop that is is a superset and (if it exists) add this loop as a child. 
 \end{enumerate}
 
 \paragraph{Bug detection for arrays}
@@ -585,6 +584,28 @@ function m(double n) double
 \end{wrapfigure}
 This function is a standard exercise for automated termination analysis methods. Changing the expression in line $5$ into subtraction of a negative constant,
 or inverting the condition in line $3$, result in nonterminating programs that are successfully detected by the method.
+
+\subsubsection{Greatest common divisor}
+\begin{wrapfigure}{r}{0.4\textwidth}
+\centering
+\begin{lstlisting}[frame=tlrb,language=myLang]
+...
+	if (m <= 0 || n <= 0) return -1;
+	double result = gcd(m, n);
+...
+
+function gcd(double m, double n) double
+{
+	if (m == n) return m;
+	else if (m > n) return gcd(m - n, n);
+	else return gcd(m, n - m);
+}
+\end{lstlisting}
+\end{wrapfigure}
+This is correctly determined as halting, as each parameter moves in a direction that takes us out of that control path (i.e., if $m > n$ and $m$ is decreasing eventually $m \leq n$).
+
+Reversing the inequality on line $9$, or the order of the parameters in either of the recursive calls, is picked up as nonterminating - but not if we remove the nonnegativity condition
+imposed on line $2$.
 \pagebreak
 \section{Evaluation}
 \subsection{Evaulation of the method}
@@ -645,11 +666,9 @@ inspect any diagnostic output manually.\\
 
 \textbf{Division and multiplication.} Our method works well with linear increments. It does not perform as well with multiplication and division, as it only extrapolates
 from the change that occurs first iteration. For example, in the multiplication example given above (\cref{mult}) it sees that $y$ increases from $1$ to $2$
-and assumes wrongly this will continue forever. More generally, if a variable must be in the range $[l, u]$ and it is multiplied by a nonnegative constant $c$ it is now in the range $[cl, cu]$. If $l$ is nonnegative the method will correctly deduce that that variable is increasing but incorrectly proceed as if that variable is increasing by the same increment each loop. This is an area where a true, high resolution, symbolic representation would be useful.
+and assumes wrongly this will continue forever. More generally, if a variable must be in the range $[l, u]$ and it is multiplied by a nonnegative constant $c$ it is now in the range $[cl, cu]$. If $l$ is nonnegative the method will correctly deduce that that variable is increasing but incorrectly proceed as if that variable is increasing by the same increment each loop. This is an area where a true, high resolution symbolic representation would be useful.
 
 \subsection{Issues during the implementation and development process. Lessons learned.}
-This section is more personal and I have changed my tone of voice accordingly.\\
-
 
 \textbf{Adding unused generality.} The biggest and most painful lesson I learned during the project was the harm caused by the addition of extraneous and unnecessary features (known in the SE community
 by various related dicta such as Feature Creep, Keep It Simple Stupid, and You Ain't Gonna Need It).
@@ -678,7 +697,7 @@ Also, for comparison purposes it would have been interesting to see how this met
 compares to other methods. The benchmark of choice is SV-COMP \citep{svcomp}, which publishes their test set as well as previous results and running times. These
 test sets are written in C, which I could have tried the method on if I used a toolchain.\\
 
-My supervisor was sceptical about both of these things - there is probably a third lesson to be learned here, too.
+My supervisor was sceptical about both of these things - there is a third lesson to be learned here, too.
 
 \section{Conclusions}
 This paper has described a method that catches a wide range of program errors. For diagnostic and correction purposes it produces annotated execution traces that lead
@@ -700,10 +719,13 @@ exchange for accuracy and thoroughness. In these cases it may be profitable to c
 afforded by symbolic execution (i.e. the simulation of stacks and memory) but give us much more power to detect feasible/infeasible paths and monotonically changing variables. The assertions just discussed could be enriched with the constraint language chosen, and we would be able to check additional, custom properties (such as
 `Bubblesort actually sorts').\\
 
-\textbf{Memory.} The method could be easily extended to search for null pointer dereferences and memory leaks. Some more work, possibly using similar techniques to the ones used to simulate arrays, could be used to simulate the contents of memory and allow for pointers to be used just like other variables.
+\textbf{Memory.} The method could be easily extended to search for null pointer dereferences and memory leaks. Some more work, possibly using similar techniques to the ones used to simulate arrays, could be used to simulate the contents of memory and allow for pointers to be used just like other variables.\\
 
 \textbf{Decomposition, summarisation, and re-compilation.} At present we run the method on the entire CFG of the input program. This would take a very long time for
-large, real world programs. 
+large, real world programs. If we change a single line in the program we are forced to re-verify its entirety.
+ 
+ A better approach might split up the program into constituent functions, loops, or otherwise dense subgraphs of the CFG. It might then verify each independently, finding some way to approximate
+ the sparse interactions between the segments. An approach like this is `loop summarisation' as discussed in \citep{summary}, where nested loops are replaced by summaries that over-approximate their effect on the state. 
 \bibliography{projectpaper}
 
 \end{document}

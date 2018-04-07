@@ -21,14 +21,15 @@ namespace SymbolicExecution
         Atom lhs;
         Relations::Relop comp;
         Atom rhs;
+        std::string location;
         bool unconditional = false;
         
-        Condition() : unconditional(true) {}
+        Condition(std::string nodename) : unconditional(true), location(nodename) {}
 
-        Condition(Atom l, Relations::Relop c, Atom r):
-                lhs(std::move(l)), comp(c), rhs(std::move(r)) {}
+        Condition(std::string nodename, Atom l, Relations::Relop c, Atom r):
+                lhs(std::move(l)), comp(c), rhs(std::move(r)), location(nodename) {}
 
-        Condition(const Condition& o): unconditional(o.unconditional)
+        Condition(const Condition& o): unconditional(o.unconditional), location(o.location)
         {
             if (!unconditional)
             {

@@ -23,14 +23,14 @@ void doHelp()
 
 int main(int argc, char* argv[])
 {
-    Lexer lexer;
-    vector<Token> st = lexer.tokenize("/home/abdul/CLionProjects/Compiler/examples/loop examples/multiplication.f");
+    Lexer lexer2;
+    vector<Token> st2 = lexer2.tokenize("/home/abdul/CLionProjects/Compiler/examples/report examples/array.f");
     ofstream warnings("../warnings.txt");
-    Reporter r(warnings.rdbuf());
-    Compiler c(st, r);
-    stringstream pleaseWork;
-    c.compile(true, true, true, "", true, "");
-    cout << pleaseWork.str();
+    Reporter r2(warnings.rdbuf());
+    Compiler c2(st2, r2);
+    stringstream pleaseWork2;
+    c2.compile(true, true, true, "", true, "");
+    cout << pleaseWork2.str();
     return 0;
 
     if (argc == 1 || argv[1] == "-h")

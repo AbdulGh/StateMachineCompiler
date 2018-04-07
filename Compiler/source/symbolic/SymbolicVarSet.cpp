@@ -43,6 +43,7 @@ bool SymbolicVarSet::isFeasable()
 void SymbolicVarSet::setLoopInit()
 {
     for (auto& variable : variables) variable.second->loopInit();
+    for (auto& array : arrays) array.second->loopInit();
     if (parent != nullptr) parent->setLoopInit();
 }
 

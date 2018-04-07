@@ -58,6 +58,11 @@ public:
     {
         return std::make_unique<SymbolicArray>(*this);
     }
+
+    void loopInit()
+    {
+        for (auto& var : myVars) var->loopInit();
+    }
     
     bool checkIndex(long index)
     {

@@ -78,14 +78,13 @@ void Compiler::compile(bool optimise, bool deadcode, bool verify, std::string gr
 
         vector<unique_ptr<Loop>> loops = LengTarj(cfg).findLoops();
         for (auto& loop : loops) loop->validate(tags);
-        cout << cfg.getStructuredSource() << endl;
     }
 
     if (!outputfile.empty())
     {
         fstream fout(outputfile);
         if (!fout.good()) throw runtime_error("Could not open filename '" + outputfile + "' for produced output.");
-        fout << cfg.getStructuredSource();
+        fout << cfg.getStructuredSource() << "\n";
         fout.close();
     }
 }
