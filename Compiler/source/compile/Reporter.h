@@ -20,7 +20,6 @@ public:
                     ZERODIVISION, USELESS_OP, BAD_STACK_USE, ARRAY_BOUNDS, COMPILER, DEADCODE, };
 
     Reporter(std::streambuf* sbuf);
-    Reporter(const Reporter& r);
     void setWarning(AlertType type, bool toReport);
     void warn(AlertType type, const std::string& details, int linenum = -1);
     void error(AlertType type, const std::string& details, int linenum = -1);

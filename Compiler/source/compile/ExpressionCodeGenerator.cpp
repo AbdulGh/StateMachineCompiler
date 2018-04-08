@@ -107,7 +107,7 @@ AbstractExprNode* ExpressionCodeGenerator::factor(FunctionSymbol* fs)
     {
         parent.genFunctionCall(fs, DOUBLE);
         unique_ptr<VarWrapper> uni = genUnique(fs);
-        fs->genAssignment(uni->clone(), make_unique<SVByName>("retD"), parent.lookahead.line);
+        fs->genAssignment(uni->clone(), make_unique<SDByName>("retD"), parent.lookahead.line);
         return withNeg(new AtomNode(move(uni)));
     }
     else parent.error("Expected identifier or double in expression");
@@ -122,10 +122,10 @@ std::unique_ptr<VarWrapper> ExpressionCodeGenerator::genTemp(FunctionSymbol* fs,
     {
         string s = "temp" + to_string(nextTemp++);
         fs->genVariableDecl(s, parent.lookahead.line);
-        return make_unique<SVByName>(s);
+        return make_unique<SDByName>(s);
     }
     if (i > nextTemp) throw std::runtime_error("Something went wrong somehow");
-    return make_unique<SVByName>("temp" + to_string(i));
+    return make_unique<SDByName>("temp" + to_string(i));
 }
 
 unsigned int ExpressionCodeGenerator::nextUnique = 0;
@@ -137,10 +137,10 @@ std::unique_ptr<VarWrapper> ExpressionCodeGenerator::genUnique(FunctionSymbol* f
         ++currentUnique;
 
         parent.cfg.getFirst()->getInstrs().push_back(make_unique<DeclareVarCommand>(s, -1));
-        return make_unique<SVByName>(s);
+        return make_unique<SDByName>(s);
     }
     else if (currentUnique > nextUnique) throw std::runtime_error("Something went wrong somehow");
-    return make_unique<SVByName>("unique" + to_string(currentUnique++));
+    return make_unique<SDByName>("unique" + to_string(currentUnique++));
 }
 
 bool ExpressionCodeGenerator::translateTree(AbstractExprNode* p, FunctionSymbol* fs, unsigned int reg, double& ret)

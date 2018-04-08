@@ -50,6 +50,8 @@ public:
     SymbolicDouble(const SymbolicDouble& o);
     SymbolicDouble(SymbolicDouble* o);
     SymbolicDouble(const SymbolicDouble&& other) = delete;
+    SymbolicDouble& operator=(const SymbolicDouble& o);
+
     ~SymbolicDouble();
     Reporter& getReporter() const {return reporter;}
 

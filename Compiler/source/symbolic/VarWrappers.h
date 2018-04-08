@@ -118,10 +118,10 @@ public:
 };
 
 
-class SVByName: public VarWrapper
+class SDByName: public VarWrapper
 {
 public:
-    SVByName(std::string n)
+    SDByName(std::string n)
     {
         setName(move(n));
     }

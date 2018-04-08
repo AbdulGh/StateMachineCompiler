@@ -290,9 +290,30 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
 
     unique_ptr<SearchResult>& thisNodeSR = tags[n->getName()];
 
+    if (n->getName() == "F0_main_9")
+    {
+        auto debug = osef->symbolicVarSet->findVar("_2_0_i");
+        if (!debug) printf("null\n");
+        else printf("%f %f %f %f\n", debug->getLowerBound(), debug->getUpperBound(), debug->getRepeatLowerBound(),
+                    debug->getRepeatUpperBound());
+
+        debug = thisNodeSR->getInitSVS()->findVar("_2_0_i");
+        if (!debug) printf("null\n");
+        else printf("%f %f %f %f\n", debug->getLowerBound(), debug->getUpperBound(), debug->getRepeatLowerBound(),
+                    debug->getRepeatUpperBound());
+    }
+
     bool change = thisNodeSR->unionSVS(osef->symbolicVarSet.get());
     if (thisNodeSR->unionStack(osef->symbolicStack.get())) change = true;
     if (!visitedNodes.insert(n->getName()).second && !change) return; //seen before
+
+    if (n->getName() == "F0_main_9")
+    {
+        auto debug = thisNodeSR->getInitSVS()->findVar("_2_0_i");
+        if (!debug) printf("null\n");
+        else printf("%f %f %f %f\n", debug->getLowerBound(), debug->getUpperBound(), debug->getRepeatLowerBound(),
+                    debug->getRepeatUpperBound());
+    }
 
     shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(osef);
 

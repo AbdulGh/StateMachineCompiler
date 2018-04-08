@@ -214,6 +214,9 @@ vector<unique_ptr<Loop>> LengTarj::findNesting(std::vector<unique_ptr<Loop>>& lo
             }
         }
     }
+
+    for (int i = 0; i < numLoops; ++i) delete[] bitVectors[i];
+    delete[] bitVectors;
     return unnested;
 }
 

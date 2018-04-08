@@ -30,6 +30,11 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
         {
             switch (instr->getType())
             {
+                case CommandType::NONDET:
+                {
+                    auto nc = static_cast<NondetCommand*>(instr.get());
+                    if (!nc->holding) continue;
+                } //meant to fall through here
                 case CommandType::INPUTVAR:
                 case CommandType::EXPR:
                 case CommandType::POP:
@@ -163,6 +168,16 @@ LiveVariableDataFlow::LiveVariableDataFlow(ControlFlowGraph& cfg, SymbolTable& s
                     killSet.insert(instr->getVarWrapper()->getBaseName());
                     break;
                 }
+                case CommandType::NONDET:
+                {
+                    auto nc = static_cast<NondetCommand*>(instr.get());
+                    const string& bname = (nc->holding) ? nc->getVarWrapper()->getBaseName() : nc->getString();
+                    usedVars.insert(bname);
+                    genSet.insert(bname);
+                    killSet.insert(bname);
+                    break;
+                }
+                
                 //simple commands that just read some variable
                 case CommandType::PUSH:
                 {
@@ -241,11 +256,20 @@ void LiveVariableDataFlow::finish()
 
             switch (ac->getType())
             {
+                case CommandType::NONDET:
+                {
+                    auto ndc = static_cast<NondetCommand*>(ac.get());
+                    if (ndc->holding) name = ac->getVarWrapper()->getBaseName();
+                    else name = ndc->getString();
+                    break;
+                }
                 case CommandType::ASSIGNVAR:
                 case CommandType::EXPR:
                 case CommandType::INPUTVAR:
+                {
                     name = ac->getVarWrapper()->getBaseName();
                     break;
+                }
 
                 case CommandType::DECLAREVAR:
                 {

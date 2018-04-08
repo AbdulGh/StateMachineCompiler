@@ -37,9 +37,9 @@ void Compiler::body()
             Identifier* vid = symbolTable.declare(t, s, line);
             vid->setDefined();
             const string& vidName = vid->getUniqueID();
-            argumentStack.push(make_unique<PopCommand>(make_unique<SVByName>(vidName), lookahead.line));
+            argumentStack.push(make_unique<PopCommand>(make_unique<SDByName>(vidName), lookahead.line));
             argumentStack.push(make_unique<DeclareVarCommand>(vidName, lookahead.line));
-            fs->addVar(new SVByName(vid->getUniqueID()));
+            fs->addVar(new SDByName(vid->getUniqueID()));
             if (lookahead.type == COMMA)
             {
                 match(COMMA);
@@ -88,8 +88,9 @@ bool Compiler::statement(FunctionSymbol* fs)
         Identifier* id;
         unique_ptr<VarWrapper> vw = wrappedIdent(&id);
         id->setDefined();
-        if (id->getType() == VariableType::ARRAY) fs->genNondet(id->getLexeme(), lookahead.line);
+        if (id->getType() == VariableType::ARRAY) fs->genNondet(id->getUniqueID(), lookahead.line);
         else fs->genNondet(move(vw), lookahead.line);
+        match(SEMIC);
     }
     else if (lookahead.type == PRINT)
     {
@@ -142,7 +143,7 @@ bool Compiler::statement(FunctionSymbol* fs)
             {
                 if (t == ARRAY) error("Cannot assign into entire array");
                 match(ASSIGN);
-                unique_ptr<VarWrapper> vs = make_unique<SVByName>(idPtr->getUniqueID());
+                unique_ptr<VarWrapper> vs = make_unique<SDByName>(idPtr->getUniqueID());
                 expression(fs, move(vs));
                 idPtr->setDefined();
             }
@@ -174,7 +175,7 @@ bool Compiler::statement(FunctionSymbol* fs)
     {
         finishedState = true;
         match(RETURN);
-        if (lookahead.type != SEMIC) ExpressionCodeGenerator(*this, make_unique<SVByName>("retD")).compileExpression(fs);
+        if (lookahead.type != SEMIC) ExpressionCodeGenerator(*this, make_unique<SDByName>("retD")).compileExpression(fs);
         else if (fs->getReturnType() != VOID) error("Void function '" + fs->getIdent() + "' returns some value");
         match(SEMIC);
         fs->genReturn(lookahead.line);
@@ -238,7 +239,7 @@ unique_ptr<VarWrapper> Compiler::wrappedIdent(Identifier** idp)
             return make_unique<SDByIndexVar>(s, move(indexVar));
         }
     }
-    else return make_unique<SVByName>(s);
+    else return make_unique<SDByName>(s);
 }
 
 std::string Compiler::plainIdent()

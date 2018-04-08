@@ -18,14 +18,22 @@ SymbolicDouble::SymbolicDouble(string name, Reporter& r):
 
 SymbolicDouble::SymbolicDouble(const SymbolicDouble& o):
     varN(o.varN), reporter(o.reporter), upperBound(o.upperBound), lowerBound(o.lowerBound), repeatLower(o.repeatLower),
-    repeatUpper(o.repeatUpper), minChange(o.minChange), maxChange(o.maxChange), defined(o.defined) {}
+    repeatUpper(o.repeatUpper), minChange(o.minChange), maxChange(o.maxChange), defined(o.defined),
+    lt(o.lt), le(o.le), eq(o.eq), gt(o.gt), ge(o.ge)
+{}
 
+SymbolicDouble& SymbolicDouble::operator=(const SymbolicDouble& o)
+{
+    clearAll();
+    varN = o.varN; upperBound = o.upperBound; lowerBound = o.lowerBound; repeatLower = o.repeatLower;
+    repeatUpper = o.repeatUpper; minChange = o.minChange; maxChange = o.maxChange;
+    defined = o.defined; lt = o.lt; le = o.le; eq = o.eq; gt = o.gt; ge = o.ge;
+    return *this;
+}
 
 SymbolicDouble::~SymbolicDouble()
 {
-    clearEQ();
-    clearGreater();
-    clearLess();
+    clearAll();
 }
 
 const string& SymbolicDouble::getName() const
@@ -531,6 +539,12 @@ SymbolicDouble::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, double rh
 
 bool SymbolicDouble::setLowerBound(double d, short direction)
 {
+    if (d < -100)
+    {
+        int debug;
+        debug = 2;
+    }
+
     if (d < lowerBound) clearGreater();
     if (direction == -1 && d != numeric_limits<double>::lowest()) lowerBound = nextafter(d, numeric_limits<double>::lowest());
     else if (direction == 1 && d != numeric_limits<double>::max()) lowerBound = nextafter(d, numeric_limits<double>::max());

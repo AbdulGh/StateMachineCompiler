@@ -487,7 +487,7 @@ void FunctionSymbol::genVariableDecl( string n, int linenum)
     currentInstrs.push_back(make_unique<DeclareVarCommand>(n, linenum));
 
     //find wont work for whatever reason
-    currentVarScope->addVar(new SVByName(n));
+    currentVarScope->addVar(new SDByName(n));
 }
 
 void FunctionSymbol::genArrayDecl(string name, unsigned long int size, int linenum)
@@ -522,7 +522,8 @@ void FunctionSymbol::genNondet(std::unique_ptr<VarWrapper> vw, int linenum)
 
 void FunctionSymbol::genNondet(std::string s, int linenum)
 {
-
+    if (endedState) throw std::runtime_error("No state to add to");
+    currentInstrs.push_back(make_unique<NondetCommand>(move(s), linenum));
 }
 
 void FunctionSymbol::addCommands(vector<unique_ptr<AbstractCommand>>& acs)

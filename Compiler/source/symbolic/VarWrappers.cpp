@@ -7,48 +7,48 @@
 #include "VarWrappers.h"
 #include "SymbolicExecution.h"
 
-//SVByName
-GottenVarPtr<SymbolicDouble> SVByName::getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const
+//SDByName
+GottenVarPtr<SymbolicDouble> SDByName::getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const
 {
     SymbolicDouble* foundsv = sef->symbolicVarSet->findVar(name);
     return GottenVarPtr<SymbolicDouble>(foundsv);
 }
 
-void SVByName::setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sv)
+void SDByName::setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sv)
 {
     std::unique_ptr<SymbolicDouble> sv2 = sv->clone();
     sv2->setName(name);
     sef->symbolicVarSet->addVar(move(sv2));
 }
 
-void SVByName::setConstValue(SymbolicExecution::SymbolicExecutionFringe *sef, double d)
+void SDByName::setConstValue(SymbolicExecution::SymbolicExecutionFringe *sef, double d)
 {
     auto var = sef->symbolicVarSet->findVar(name);
     if (!var) throw std::runtime_error("Undefined variable '" + name + "'");
     var->setConstValue(d);
 }
 
-void SVByName::nondet(SymbolicExecution::SymbolicExecutionFringe* sef)
+void SDByName::nondet(SymbolicExecution::SymbolicExecutionFringe* sef)
 {
     auto var = sef->symbolicVarSet->findVar(name);
     if (!var) throw std::runtime_error("Undefined variable '" + name + "'");
     var->nondet();
 }
 
-bool SVByName::check(SymbolicExecution::SymbolicExecutionFringe *sef) const
+bool SDByName::check(SymbolicExecution::SymbolicExecutionFringe *sef) const
 {
     auto var = sef->symbolicVarSet->findVar(name);
     return var != nullptr;
 }
 
-std::string SVByName::getFullName() const
+std::string SDByName::getFullName() const
 {
     return name;
 }
 
-std::unique_ptr<VarWrapper> SVByName::clone() const
+std::unique_ptr<VarWrapper> SDByName::clone() const
 {
-    return std::make_unique<SVByName>(name);
+    return std::make_unique<SDByName>(name);
 }
 
 //SDByArrayIndex

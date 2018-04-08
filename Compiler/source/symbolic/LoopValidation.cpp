@@ -60,7 +60,7 @@ void Loop::validate(unordered_map<string, unique_ptr<SearchResult>>& tags)
     ChangeMap varChanges; //node->varname->known path through that node where the specified change happens
     SEFPointer sef = make_shared<SymbolicExecution::SymbolicExecutionFringe>(cfg.getReporter());
     unique_ptr<SearchResult>& headerSR = tags[headerNode->getName()];
-    sef->symbolicVarSet = move(headerSR->getInitSVS());
+    sef->symbolicVarSet = headerSR->getInitSVS();
     sef->setLoopInit();
 
     /*if (stackBased) todo

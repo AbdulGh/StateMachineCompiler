@@ -8,9 +8,9 @@
 class VarWrapper;
 namespace SymbolicExecution {class SymbolicExecutionFringe;}; //symbolic/SymbolicExecution.cpp
 
-enum class CommandType{JUMP, CONDJUMP, RETURN, DECLAREVAR, PUSH, POP, ASSIGNVAR, EXPR, PRINT, INPUTVAR};
+enum class CommandType{JUMP, CONDJUMP, RETURN, DECLAREVAR, PUSH, POP, ASSIGNVAR, EXPR, PRINT, INPUTVAR, NONDET};
 
-enum class StringType{ID, STRINGLIT, DOUBLELIT};
+enum class StringType{ID, DOUBLELIT};
 StringType getStringType(const std::string& str);
 
 class Atom
@@ -407,18 +407,34 @@ class NondetCommand : public AbstractCommand
         std::string s;
         std::unique_ptr<VarWrapper> varWrapper;
     };
-    bool holding;
-
 public:
-    NondetCommand(std::unique_ptr<VarWrapper> vw, int linenum) : varWrapper(move(vw)), holding(true)
-    {}
+    const bool holding;
 
-    NondetCommand(std::string stringie, int linenum) : s(move(stringie)), holding(false)
-    {}
+    NondetCommand(std::unique_ptr<VarWrapper> vw, int linenum);
+
+    NondetCommand(std::string stringie, int linenum):
+            AbstractCommand(linenum), s(move(stringie)), holding(false)
+    {setType(CommandType::NONDET);}
+
+    ~NondetCommand();
 
     std::unique_ptr<AbstractCommand> clone() override;
     std::string translation(const std::string& delim) const override;
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat) override;
+
+    const std::unique_ptr<VarWrapper>& getVarWrapper() const override
+    {
+        if (!holding) throw std::runtime_error("i fall ovre");
+        return varWrapper;
+    }
+
+    const std::string& getString() const override
+    {
+        if (holding) throw std::runtime_error("nondet-ing var");
+        return s;
+    }
+
+    void setVarWrapper(std::unique_ptr<VarWrapper> sv) override;
 };
 
 

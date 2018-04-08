@@ -14,7 +14,7 @@
 class SymbolicArray
 {
 private:
-    std::vector<std::unique_ptr<SymbolicDouble>> myVars;
+    std::vector<std::unique_ptr<SymbolicDouble>> myVars; //todo make this keep track of # of appearances
     //<u_0, u_1... > where vars[i] is in indicies [u_{i-1}, u_i)
     std::list<int> indicies;
     std::list<SymbolicDouble*> indexVars;
@@ -325,21 +325,21 @@ public:
         {
             if (*it == ub + 1)
             {
-                (*varit)->unionVar(sdr);
+                **varit = *sdr;
                 return true;
             }
             else if (*it > ub)
             {
                 indicies.insert(it, ub + 1);
                 std::unique_ptr<SymbolicDouble> newSD = (*varit)->clone();
-                newSD->unionVar(sdr);
+                *newSD = *sdr;
                 indexVars.insert(varit, newSD.get());
                 myVars.push_back(move(newSD));
                 return true;
             }
             else
             {
-                (*varit)->unionVar(sdr);
+                **varit = *sdr;
                 ++it;
                 ++varit;
             }

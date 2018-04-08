@@ -8,30 +8,9 @@
 
 using namespace std;
 
-StringType getStringType(const std::string& str)
-{
-    if (str.length() == 0) throw std::runtime_error("Asked to find StringType of empty string");
-    else if (str.length() > 1 && str[0] == '\"') return StringType::STRINGLIT;
-    else
-    try
-    {
-        stod(str);
-        return StringType::DOUBLELIT;
-    }
-    catch (std::invalid_argument&)
-    {
-        return StringType::ID;
-    }
-}
-
 unique_ptr<VarWrapper> parseAccess(const string& toParse, StringType* st = nullptr)
 {
     if (toParse.empty()) throw std::runtime_error("Can't parse an empty string");
-    if (toParse[0] == '\"')
-    {
-        if (st) *st = StringType::STRINGLIT;
-        return nullptr;
-    }
     else try
     {
         stod(toParse);
@@ -42,7 +21,7 @@ unique_ptr<VarWrapper> parseAccess(const string& toParse, StringType* st = nullp
     {
         if (st) *st = StringType::ID;
         size_t first = toParse.find('[');
-        if (first == -1) return make_unique<SVByName>(toParse);
+        if (first == -1) return make_unique<SDByName>(toParse);
         string index = toParse.substr(first + 1, toParse.size() - first - 2);
         try
         {
@@ -385,6 +364,12 @@ std::unique_ptr<AbstractCommand> PushCommand::clone()
 }
 
 //Nondet command
+NondetCommand::NondetCommand(std::unique_ptr<VarWrapper> vw, int linenum):
+        AbstractCommand(linenum), varWrapper(move(vw)), holding(true)
+{
+    setType(CommandType::NONDET);
+}
+
 std::unique_ptr<AbstractCommand> NondetCommand::clone()
 {
     if (holding) return std::make_unique<NondetCommand>(getVarWrapper()->clone(), AbstractCommand::getLineNum());
@@ -395,4 +380,15 @@ std::string NondetCommand::translation(const std::string& delim) const
 {
     if (holding) return "nondet " + getVarWrapper()->getFullName() + ";" + delim;
     else return "nondet " + s + ";" + delim;
+}
+
+NondetCommand::~NondetCommand()
+{
+    if (holding) varWrapper.reset();
+}
+
+void NondetCommand::setVarWrapper(std::unique_ptr<VarWrapper> sv)
+{
+    if (!holding) throw std::runtime_error("holding array");
+    varWrapper = move(sv);
 }

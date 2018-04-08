@@ -74,7 +74,7 @@ void Compiler::genFunctionCall(FunctionSymbol* fromFS, VariableType expectedType
             throw runtime_error("Trying to assign output of void function '" + toFS->getIdent() + "' into var '"
                                   + uid->getFullName() + "'");
         }
-        fromFS->genAssignment(move(uid), make_unique<SVByName>("retD"), lookahead.line);
+        fromFS->genAssignment(move(uid), make_unique<SDByName>("retD"), lookahead.line);
     }
 }
 
@@ -218,11 +218,11 @@ void Compiler::ands(FunctionSymbol* fs, string success, string fail)
 
 void Compiler::condition(FunctionSymbol* fs, string success, string fail)
 {
-    expression(fs, make_unique<SVByName>("LHS"));
+    expression(fs, make_unique<SDByName>("LHS"));
     Relations::Relop r = relop();
-    expression(fs, make_unique<SVByName>("RHS"));
+    expression(fs, make_unique<SDByName>("RHS"));
 
-    fs->genConditionalJump(move(success), make_unique<SVByName>("LHS"), r, make_unique<SVByName>("RHS"), lookahead.line);
+    fs->genConditionalJump(move(success), make_unique<SDByName>("LHS"), r, make_unique<SDByName>("RHS"), lookahead.line);
     fs->genJump(move(fail), lookahead.line);
     fs->genEndState();
 }

@@ -111,6 +111,13 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
         unique_ptr<AbstractCommand> current = move(*it);
         switch (current->getType())
         {
+            case CommandType::NONDET:
+            {
+                auto ndc = static_cast<NondetCommand *>(current.get());
+                if (ndc->holding) assignments.erase(current->getVarWrapper()->getBaseName());
+                newInstrs.push_back(move(current));
+                break;
+            }
             case CommandType::INPUTVAR:
             {
                 assignments.erase(current->getVarWrapper()->getFullName());

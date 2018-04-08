@@ -29,7 +29,7 @@ private:
     SymbolTable symbolTable;
     FunctionTable functionTable;
     ControlFlowGraph cfg;
-    Reporter reporter;
+    Reporter& reporter;
 
     void error(std::string);
     void warning(std::string);

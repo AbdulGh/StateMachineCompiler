@@ -12,7 +12,7 @@ using namespace std;
 
 Compiler::Compiler(vector<Token>& st, Reporter& r):
         stream(st), reporter(r), functionTable(*this),
-        cfg(reporter, functionTable, symbolTable) {}
+        cfg(r, functionTable, symbolTable) {}
 
 void Compiler::error(string err)
 {
@@ -38,9 +38,6 @@ Token Compiler::nextToken()
 
 void Compiler::compile(bool optimise, bool deadcode, bool verify, std::string graphOutput, bool gb, std::string outputfile)
 {
-    //for (auto& t : stream) cout << TypeEnumNames[t.type] << endl;
-    //exit(0);
-
     tp = stream.cbegin();
     findGlobalsAndMakeStates();
     tp = stream.cbegin();
@@ -183,7 +180,7 @@ void Compiler::findGlobalsAndMakeStates()
                 {
                     match(ASSIGN);
                     i->setDefined();
-                    auto iptr = make_unique<SVByName>(i->getUniqueID());
+                    auto iptr = make_unique<SDByName>(i->getUniqueID());
                     if (t == DOUBLE && lookahead.type == NUMBER)
                     {
                         initialState.push_back(make_unique<AssignVarCommand>

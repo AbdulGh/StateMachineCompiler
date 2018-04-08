@@ -1,8 +1,8 @@
 \documentclass[12pt,a4paper]{article}
 \usepackage{times}
 \usepackage{durhampaper}
-\usepackage{natbib}
-\bibliographystyle{agsm}
+\usepackage[round]{natbib}
+\bibliographystyle{plainnat}
 
 \usepackage{graphicx}
 \usepackage{float}
@@ -274,7 +274,7 @@ backwards analysis).
 Symbolic execution is an umbrella term encompassing many different techniques. The most careful maintain sets of symbolic equations of relationships between variables and employ solvers to see if the set is feasable. To reduce the running time of our program, and to ease implementation, we will instead maintain only simple relationships between variables (equalities and inequalities) as well as upper/lower bounds. Statements will then be allowed to manipulate this data. By a \textit{symbolic variable} we mean one of these indeterminate variables.
 
 A symbolic execution of the program will be a search through the CFG. During the search we will maintain a \textit{state} which is just a set of symbolic variables and a symbolic stack. As we progress through a basic block we will affect the state as appropriate. 
-When we reach a branch - which are the edges leaving a node - we may have to clone the state. This is because we cannot allow searches down independent paths to influence each other. Cloning the entire state on every branch would be wasteful and instead we adopt a `copy-on-write' approach discussed in~\cref{app:spaghetti.}
+When we reach a branch - which are the edges leaving a node - we may have to clone the state. This is because we cannot allow searches down independent paths to influence each other. Cloning the entire state on every branch would be wasteful and instead we adopt a `copy-on-write' approach discussed in~\cref{app:spaghetti} below.
 
 The verification procedure will consist of two searches. The first ignores how variables change and simply tracks the possible ranges of variables at each basic block of the CFG. A non-idempotent operation will affect the state as if it could be executed an arbitrary number of times. Similarly to data-flow analysis, we will carry on a search to the successors of some node $n$ only if we learn something new whilst searching $n$. Each node is tagged with the union of the ranges of variables in each visit. (For example, if a variable always happens to be nonnegative in a basic block this will be known.) Nodes that are never visited are then removed. After this stage, we carry out a more detailed
 search through detected loops in order to produce certificates of termination/non-termination.
@@ -302,6 +302,9 @@ node in the loop.) The path is called `good' if it moves towards any such loop c
 
 It may be the case that for some number of loop iterations all relevant variables may be moving \textit{away} from the 
 condition but eventually meet some \texttt{if} condition that kicks us out of the loop:
+
+\begin{center}
+\begin{minipage}{6.5cm}
 \begin{lstlisting}[frame=tlrb,language=myLang,label={lst:trickloop}, mathescape=true, numbers=none]
 double n = 9;
 while (n < 10)
@@ -310,6 +313,9 @@ while (n < 10)
   if (n $\leq$ 0) n = 11;
 }
 \end{lstlisting}
+\end{minipage}
+\end{center}
+
 This will be combatted by attempting to extrapolate the current motion of variables into the future. During a search we may encounter some condition
 which the variable ranges forbid us from taking. So we first visit the second branch. If any execution of this branch always moves us towards meeting
 this condition, we will go ahead and take it.
@@ -317,7 +323,7 @@ this condition, we will go ahead and take it.
 \paragraph{Nested loops}
 It may be that one loop is nested inside another. We form an `inclusion tree', where the nodes are loops and an edge represents proper nesting. When we come to verify a loop in this tree we first recursively verify its children.
 If we decide that they're bug-free we then verify the outer loop. When encountering the header of a nested loop, we update our symbolic variables with the overestimation formed during
-the symbolic execution.\\
+the symbolic execution - this simulates an arbitrary number of iterations of the inner loop.\\
 
 The method used to find the inclusion tree is adapted from a bioinformatical algorithm usually used to find perfect phylogenies \citep{gusfield}:
 
@@ -455,7 +461,7 @@ eval(v): &\text{ If $v$ is the root of it's connected component, return $v$.}\\
    &\text{ such that $n \xrightarrow{*} v$,  not including the root.}
 \end{align*}
 Now $S_w$ is $\argmin\{semiNum(eval(n)) |n \to w\}$.\\
- After finding $S_w$ we place $w$ in $bucket(S_w)$. We then call $link(w)$ and link $w$ with its parent $parent(w)$ in the forest. Now we can implicitly find the immediate dominators of unprocessed nodes semidominated by $parent(w)$ (the nodes currently in its bucket) using~\cref{thm:imdominators.} 
+ After finding $S_w$ we place $w$ in $bucket(S_w)$. We then call $link(w)$ and link $w$ with its parent $parent(w)$ in the forest. Now we can implicitly find the immediate dominators of unprocessed nodes semidominated by $parent(w)$ (the nodes currently in its bucket) using~\cref{thm:imdominators}. 
  For each such node $v$ we calculate $u = eval(v)$. If $S_u = S_v$ then $idom(v) = parent(w)$. Otherwise, $idom(v) = idom(u)$. Note that in the second case we have only calculated $idom(v)$ \textit{implicitly} as we have not yet found $idom(u)$. 
  The bucket is then emptied.\\
 Finally, after all the semidominators have been computed and the immediate dominators implicitly computed, we process the nodes in increacing DF order to fill in the blanks.\par
@@ -480,7 +486,7 @@ The solution was exercised on various examples from the literature. Some of the 
 Most of the following examples are taken from the appendix of \citep{tra}, itself a collection of examples from other papers.  All the examples given in this paper terminate, so we also introduced mistakes in order to test detection of nontermination.
 
 \subsubsection{Bubblesort}
-\begin{wrapfigure}{r}{0.4\textwidth}
+\begin{wrapfigure}{r}{0.3\textwidth}
 \centering
 \begin{lstlisting}[frame=tlrb,language=myLang]
 while (x > 0){
@@ -542,7 +548,7 @@ while (x >= 0) {
 \end{lstlisting}
 \end{wrapfigure}
 In this example, the inner loop is seen to terminate (as y is increasing) and then the outer loop follows (as x is decreasing).
-Replacing the $2$ in line $4$ with a positive constant less than $1$, or inverting any of the comparisons, results in a detected nonterminating program.
+Replacing the $2$ in line $3$ with a positive constant less than $1$, or inverting any of the comparisons, results in a detected nonterminating program.
 
 \subsection{Calls and recursion}
 \subsubsection{The Ackermann function}\label{example:ack}
@@ -565,7 +571,7 @@ This function halts, as it is always called on strictly decreasing pairs (in the
 Changing the decrement in lines $5$ and $7$ into an an addition of a nonnegative constant is correctly seen to be nonterminating,
 however the method fails to detect the same when line $8$ is modified.
 
-This function is normally defined on the natural number, and the inequalities are given as equalities - doing so here results in a potentially
+This function is normally defined on the natural numbers, and the inequalities are given as equalities - doing so here results in a potentially
 nonterminating input, as $m$ and $n$ might both be negative.
 
 \subsubsection{McCarthy's 91 function}
@@ -584,10 +590,11 @@ function m(double n) double
 \end{wrapfigure}
 This function is a standard exercise for automated termination analysis methods. Changing the expression in line $5$ into subtraction of a negative constant,
 or inverting the condition in line $3$, result in nonterminating programs that are successfully detected by the method.
+\vspace{.8cm}
 
-\begin{minipage}
 \subsubsection{Greatest common divisor}
-\begin{wrapfigure}{r}{0.4\textwidth}
+\begin{minipage}{\textwidth}
+\begin{wrapfigure}{r}{0.5\textwidth}
 \centering
 \begin{lstlisting}[frame=tlrb,language=myLang]
 ...
@@ -604,12 +611,13 @@ function gcd(double m, double n) double
 \end{lstlisting}
 \end{wrapfigure}
 This is correctly determined as halting, as each parameter moves in a direction that takes us out of that control path (i.e., if $m > n$ and $m$ is decreasing eventually $m \leq n$).
-
 Reversing the inequality on line $9$, or the order of the parameters in either of the recursive calls, is picked up as nonterminating - but not if we remove the nonnegativity condition
-imposed on line $2$.
+imposed on line $2$. 
 \end{minipage}
-\pagebreak
+\newpage
+\begin{minipage}{\textwidth}
 \section{Evaluation}
+\end{minipage}
 \subsection{Evaulation of the method}
 \subsubsection{Pluses}
 As shown in the previous section the solution successfully verified a diverse range of programs, and did not struggle with array usage and/or function calls.
@@ -679,7 +687,7 @@ Initially I planned to only allow programs with the single variable type
 of double precision floating point. However, after writing the symbolic execution engine, I noticed that it would not take much work to extend the symbolic execution phase to work with any
 data type that can be ordered. This was indeed true and the implementation of the extention was made easy by the use of templates.
 
-The issues began when I came to implement the loop validation phase. In this phase we try to determine the motion of variables - however not every ordered type can be `incremented' in the way doubles can (i.e. strings). This lead to the use of type flags, downcasting to subclasses according those type flags, and methods in the
+The issues began when I came to implement the loop validation phase. In this phase we try to determine the motion of variables - however not every ordered type (i.e. strings) are `incremented' in the way doubles are. This lead to the use of type flags, downcasting to subclasses according those type flags, and methods in the
 base class which have empty implementations in derived classes. This probably could have been prevented via more thoughtful OOP design, but the best solution would
 have been to not implement them in the first place.
 
@@ -728,6 +736,8 @@ large, real world programs. If we change a single line in the program we are for
  
  A better approach might split up the program into constituent functions, loops, or otherwise dense subgraphs of the CFG. It might then verify each independently, finding some way to approximate
  the sparse interactions between the segments. An approach like this is `loop summarisation' as discussed in \citep{summary}, where nested loops are replaced by summaries that over-approximate their effect on the state. 
+ 
+ \emergencystretch=10em
 \bibliography{projectpaper}
 
 \end{document}
