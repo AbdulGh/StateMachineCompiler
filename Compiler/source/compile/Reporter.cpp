@@ -7,15 +7,8 @@ const std::string Reporter::enumNames[NUM_ALERTS] =
         {"", "OVERFLOW", "UNINITIALISED USE", "UNDECLARED USE",
          "TYPE", "ZERO DIVISION", "USELESS OP", "STACK USE", "ARRAY BOUNDS", "COMPILER", "DEAD CODE"};
 
-
-bool debug = false;
 Reporter::Reporter(std::streambuf* sbuf) : output(sbuf)
 {
-    if (debug == true)
-    {
-        throw "aaaaaaaa";
-    }
-    debug = true;
     for (int i = 0; i < NUM_ALERTS; ++i) toWarn[i] = true;
 }
 

@@ -93,12 +93,6 @@ bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Sym
 
 bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
-    if (!repeat)
-    {
-        int debug;
-        debug = 2;
-    }
-
     if (op == AND || op == OR) throw runtime_error("Bitwise operations not supported by verifier");
     else if (op == PLUS || op == MULT)
     {

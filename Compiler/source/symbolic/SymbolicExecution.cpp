@@ -210,7 +210,7 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
         pathConditions.insert({nodeName, Condition(nodeName, jocc->term1, op, jocc->term2)});
         auto t1var = jocc->term1.getVarWrapper()->getSymbolicDouble(this);
         if (!t1var) throw std::runtime_error("comparing unknown var or constants");
-        bool t1constructed = jocc->term1.getVarWrapper()->getSymbolicDouble(this).constructed();
+        bool t1constructed = t1var.constructed();
         if (jocc->term2.isHolding())
         {
             auto t2var = jocc->term2.getVarWrapper()->getSymbolicDouble(this);
@@ -236,26 +236,32 @@ bool SymbolicExecutionFringe::addPathCondition(const std::string& nodeName, Jump
         else
         {
             short direction = 0;
+            bool feasible = true;
             switch(op)
             {
                 case Relations::LT:
                     direction = -1;
                 case Relations::LE:
                     t1var->setRepeatUpperBound(jocc->term2.getLiteral(), direction);
-                    return t1var->clipUpperBound(jocc->term2.getLiteral(), direction);
+                    feasible = t1var->clipUpperBound(jocc->term2.getLiteral(), direction);
+                    break;
                 case Relations::GT:
-                    direction = false;
+                    direction = 1;
                 case Relations::GE:
                     t1var->setRepeatLowerBound(jocc->term2.getLiteral(), direction);
-                    return t1var->clipLowerBound(jocc->term2.getLiteral(), direction);
+                    feasible = t1var->clipLowerBound(jocc->term2.getLiteral(), direction);
+                    break;
                 case Relations::EQ:
                     t1var->setConstValue(jocc->term2.getLiteral());
-                    return true;
+                    break;
                 case Relations::NEQ: //todo neq consts
-                    return true;
+                    break;
                 default:
                     throw std::runtime_error("unknown relop");
             }
+
+            if (t1constructed) jocc->term1.getVarWrapper()->setSymbolicDouble(this, t1var.get());
+            return feasible;
         }
     }
 }
@@ -290,30 +296,9 @@ void SymbolicExecutionManager::visitNode(shared_ptr<SymbolicExecutionFringe> ose
 
     unique_ptr<SearchResult>& thisNodeSR = tags[n->getName()];
 
-    if (n->getName() == "F0_main_9")
-    {
-        auto debug = osef->symbolicVarSet->findVar("_2_0_i");
-        if (!debug) printf("null\n");
-        else printf("%f %f %f %f\n", debug->getLowerBound(), debug->getUpperBound(), debug->getRepeatLowerBound(),
-                    debug->getRepeatUpperBound());
-
-        debug = thisNodeSR->getInitSVS()->findVar("_2_0_i");
-        if (!debug) printf("null\n");
-        else printf("%f %f %f %f\n", debug->getLowerBound(), debug->getUpperBound(), debug->getRepeatLowerBound(),
-                    debug->getRepeatUpperBound());
-    }
-
     bool change = thisNodeSR->unionSVS(osef->symbolicVarSet.get());
     if (thisNodeSR->unionStack(osef->symbolicStack.get())) change = true;
     if (!visitedNodes.insert(n->getName()).second && !change) return; //seen before
-
-    if (n->getName() == "F0_main_9")
-    {
-        auto debug = thisNodeSR->getInitSVS()->findVar("_2_0_i");
-        if (!debug) printf("null\n");
-        else printf("%f %f %f %f\n", debug->getLowerBound(), debug->getUpperBound(), debug->getRepeatLowerBound(),
-                    debug->getRepeatUpperBound());
-    }
 
     shared_ptr<SymbolicExecutionFringe> sef = make_shared<SymbolicExecutionFringe>(osef);
 

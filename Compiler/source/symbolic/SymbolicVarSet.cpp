@@ -91,27 +91,27 @@ bool SymbolicVarSet::unionSVS(SymbolicVarSet* other)
     return change;
 }
 
-vector<pair<const string, SymbolicDouble*>> SymbolicVarSet::getAllVars()
+std::unordered_map<std::string, SymbolicDouble*> SymbolicVarSet::getAllVars()
 {
-    vector<pair<const string, SymbolicDouble*>> toReturn = {};
+    std::unordered_map<std::string, SymbolicDouble*> toReturn = {};
     if (parent != nullptr) toReturn = parent->getAllVars();
 
     for (const auto& v : variables)
     {
-        toReturn.emplace_back(pair<const string, SymbolicDouble*>(v.first, v.second.get()));
+        toReturn[v.first] = v.second.get();
     }
 
     return toReturn;
 }
 
-vector<pair<const string, SymbolicArray*>> SymbolicVarSet::getAllArrays()
+std::unordered_map<std::string, SymbolicArray*> SymbolicVarSet::getAllArrays()
 {
-    vector<pair<const string, SymbolicArray*>> toReturn = {};
+    std::unordered_map<std::string, SymbolicArray*> toReturn = {};
     if (parent != nullptr) toReturn = parent->getAllArrays();
 
     for (const auto& v : arrays)
     {
-        toReturn.emplace_back(pair<const string, SymbolicArray*>(v.first, v.second.get()));
+        toReturn[v.first] = v.second.get();
     }
 
     return toReturn;

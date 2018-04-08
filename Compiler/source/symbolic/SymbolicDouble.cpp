@@ -539,12 +539,6 @@ SymbolicDouble::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, double rh
 
 bool SymbolicDouble::setLowerBound(double d, short direction)
 {
-    if (d < -100)
-    {
-        int debug;
-        debug = 2;
-    }
-
     if (d < lowerBound) clearGreater();
     if (direction == -1 && d != numeric_limits<double>::lowest()) lowerBound = nextafter(d, numeric_limits<double>::lowest());
     else if (direction == 1 && d != numeric_limits<double>::max()) lowerBound = nextafter(d, numeric_limits<double>::max());
