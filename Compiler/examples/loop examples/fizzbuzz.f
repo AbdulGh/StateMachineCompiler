@@ -1,23 +1,21 @@
 function main() void
 {
-    print("Limit?\n>");
     double limit;
     input limit;
     double current = 1;
 
     while (current < limit)
     {
-        if (current % 15 == 0) print("FizzBuzz");
+        if (current % 15 == 0) double FizzBuzz;
         else
         {
-            if (current % 3 == 0) print("Fizz");
+            if (current % 3 == 0) double Fizz;
             else
             {
-                if (current % 5 == 0)  print("Buzz");
+                if (current % 5 == 0) double Buzz;
                 else print(current);
             }
         }
-        print("\n");
         current = current + 1;
     }
 }

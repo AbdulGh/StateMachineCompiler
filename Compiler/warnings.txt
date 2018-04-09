@@ -1,5 +1,16 @@
 WARNING : OVERFLOW : _2_0_i could possibly exceed double limits
+WARNING : ARRAY BOUNDS : Asked to access possibly negative index
 WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
-WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
-WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
-WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
+Potential bad path through the following loop:
+------------
+|Header: F0_main_5
+|Nodes:
+|F0_main_5
+|F0_main_9
+|F0_main_6
+
+Example:
+Visit F0_main_5, branch _2_0_i < 100.000000
+Visit F0_main_9, branch _2_0_a[_2_0_i] >= 0.000000
+
+-----

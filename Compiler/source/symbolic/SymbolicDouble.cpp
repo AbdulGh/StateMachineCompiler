@@ -310,16 +310,22 @@ bool SymbolicDouble::guaranteedLT(SymbolicDouble* searchFor, SymbolicDouble* sea
             return true;
         }
     }
-    for (SymbolicDouble* optr : le) if (optr->guaranteedLT(searchFor, searchInit, seen))
+    for (SymbolicDouble* optr : le)
+    {
+        if (optr->guaranteedLT(searchFor, searchInit, seen))
         {
             addLT();
             return true;
         }
-    for (SymbolicDouble* optr : eq) if (optr->guaranteedLT(searchFor, searchInit, seen))
+    }
+    for (SymbolicDouble* optr : eq)
+    {
+        if (optr->guaranteedLT(searchFor, searchInit, seen))
         {
             addLT();
             return true;
         }
+    }
     return false;
 }
 
@@ -345,16 +351,22 @@ bool SymbolicDouble::guaranteedLE(SymbolicDouble* searchFor, SymbolicDouble* sea
             return true;
         }
     }
-    for (SymbolicDouble* optr : le) if (optr->guaranteedLE(searchFor, searchInit, seen))
+    for (SymbolicDouble* optr : le)
+    {
+        if (optr->guaranteedLE(searchFor, searchInit, seen))
         {
             addLE();
             return true;
         }
-    for (SymbolicDouble* optr : eq) if (optr->guaranteedLE(searchFor, searchInit, seen))
+    }
+    for (SymbolicDouble* optr : eq)
+    {
+        if (optr->guaranteedLE(searchFor, searchInit, seen))
         {
             addLE();
             return true;
         }
+    }
     return false;
 }
 
@@ -473,10 +485,9 @@ void SymbolicDouble::loopInit()
     uniformlyChanging = true;
 }
 
-SymbolicDouble::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, SymbolicDouble* r) const
+SymbolicDouble::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, SymbolicDouble* rhs) const
 {
-    if (r->isDetermined()) return canMeet(rel, r->getConstValue());
-    SymbolicDouble* rhs = static_cast<SymbolicDouble*>(r);
+    if (rhs->isDetermined()) return canMeet(rel, rhs->getConstValue());
 
     switch(rel)
     {
@@ -965,13 +976,13 @@ void SymbolicDouble::minusSymbolicDouble(SymbolicDouble& other, bool increment)
 
     if (increment)
     {
-        minChange -= other.minChange;
-        maxChange -= other.maxChange;
+        minChange += other.getLowerBound();
+        maxChange += other.getUpperBound();
     }
     else
     {
-        minChange -= other.getLowerBound();
-        maxChange -= other.getUpperBound();
+        minChange += other.minChange;
+        maxChange += other.maxChange;
     }
 }
 

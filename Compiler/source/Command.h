@@ -316,8 +316,7 @@ public:
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat) override;
 };
 
-class
-EvaluateExprCommand: public WrapperHoldingCommand
+class EvaluateExprCommand: public WrapperHoldingCommand
 {
 public:
     Atom term1;

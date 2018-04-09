@@ -337,12 +337,11 @@ The method used to find the inclusion tree is adapted from a bioinformatical alg
 Arrays could be `symbolically simulated' by creating a symbolic variable for each cell - however this is obviously very wasteful. We instead maintain two lists - 
 the first a list of indicies pointing to contiguous ranges which (as far as we can tell) have the same value, and the second a list of pointers to symbolic variables corresponding to those ranges.\\
 For example, say the user creates an array of $10,000$ doubles. This array is represented
-by a single symbolic double $init$ set to 0. Now the user adds $10$ to the cell with index $x$, $20 \leq x \leq 100$. We create a new symbolic double $nd$ with possible values $0 \leq nd \leq 10$.
-The index list becomes $(20, 100)$ and the value list $(init, nd, init)$.
+by a single symbolic double $init$ set to 0. Now the user adds $10$ to the cell with index $x$, $20 \leq x \leq 100$. We create a new determined symbolic double $nd$ with value $10$.
+The index list becomes $(20, 100, 10000)$ and the value list $(init, nd, init)$. 
 
-Given a undetermined index $i$ this symbolic array can then build a symbolic variable which represents our belief about the range of values present in the indicies spanned by $i$. It
-can also emit a warning in the cases of potential out of bounds accesses.
-
+Given a undetermined index $i$ this symbolic array can then build a symbolic variable which represents our belief about the range of values present in the indicies spanned by $i$. Continuing with the example,
+if we ask for the variable with index $i \in [15, 25]$ we receive a constructed variable $c  \in [0, 10]$. We emit a warning in the cases where $i$ could be negative or exceed the size of the array. 
 \subsection{Symbol tables and spaghetti stacks} \label{app:spaghetti}
 \subsubsection{The symbol table}
 An easy way of handling scoped variables is to use a so-called \textit{spaghetti stack} \citep{dragon}. A spaghetti stack is usually a set of linked lists of hashtables (scopes), but during parsing we discard old scopes and only need a single linked list.\\
@@ -489,9 +488,9 @@ Most of the following examples are taken from the appendix of \citep{tra}, itsel
 \begin{wrapfigure}{r}{0.3\textwidth}
 \centering
 \begin{lstlisting}[frame=tlrb,language=myLang]
-while (x > 0){
+while (x > 0) {
  double y = 0;
- while (y < x){
+ while (y < x) {
   if (a[y] > a[y+1])
     swap (a[y], a[y+1])
   y = y + 1;
@@ -507,7 +506,7 @@ This bubblesort implementation was correctly determined as halting. The programs
 \begin{wrapfigure}{r}{0.3\textwidth}
 \centering
 \begin{lstlisting}[frame=tlrb,language=myLang]
-while (x > y + z){
+while (x > y + z) {
  y = y + 1;
  z = z + 1;
 }
@@ -524,9 +523,9 @@ Changing any of the increments in lines $2-3$ to decrements, and inverting the i
 \begin{wrapfigure}{r}{0.3\textwidth}
 \centering
 \begin{lstlisting}[frame=tlrb,language=myLang]
-while (x > y){
- x = x + 1;
- y = y + 2;
+while (x > y) {
+  x = x + 1;
+  y = y + 2;
 }
 \end{lstlisting}
 \end{wrapfigure}
@@ -541,14 +540,32 @@ results in a nonterminating program that is detected.
 \centering
 \begin{lstlisting}[frame=tlrb,language=myLang]
 while (x >= 0) {
- double y = 1;
- while (x > y) y = 2 * y;
- x = x - 1;
+  double y = 1;
+  while (x > y) y = 2 * y;
+  x = x - 1;
 }
 \end{lstlisting}
 \end{wrapfigure}
 In this example, the inner loop is seen to terminate (as y is increasing) and then the outer loop follows (as x is decreasing).
 Replacing the $2$ in line $3$ with a positive constant less than $1$, or inverting any of the comparisons, results in a detected nonterminating program.
+
+\subsubsection{Arrays \cite{svcomp}}
+\begin{wrapfigure}{r}{0.35\textwidth}
+\centering
+\begin{lstlisting}[frame=tlrb,language=myLang]
+if (i > 0) {
+  while (i < 100 && a[i] >= 0) {
+    i = i + a[i];
+    a[i] = a[i] - i;
+    }
+}
+\end{lstlisting}
+\end{wrapfigure}
+In this example $a$ is an array of size $100$ with fully undetermined  entries.
+
+This example is accepted as halting, however the user is warned that $i$ could overflow or exceed the size of the array (as each $a[i]$ can be any positive number).
+Swapping lines $3$ and $4$ leads to similar warnings but is not accepted as halting - a `potentially bad' path is flagged, where no variables make guaranteed progress towards 
+relevant conditions.
 
 \subsection{Calls and recursion}
 \subsubsection{The Ackermann function}\label{example:ack}
@@ -582,8 +599,8 @@ function m(double n) double
 {
     if (n > 100) return n-10;
     else{
-        n = n + 11;
-        return m(m(n));
+      n = n + 11;
+      return m(m(n));
     }
 }
 \end{lstlisting}
@@ -598,15 +615,15 @@ or inverting the condition in line $3$, result in nonterminating programs that a
 \centering
 \begin{lstlisting}[frame=tlrb,language=myLang]
 ...
-	if (m <= 0 || n <= 0) return -1;
-	double result = gcd(m, n);
+  if (m <= 0 || n <= 0) return -1;
+  double result = gcd(m, n);
 ...
 
 function gcd(double m, double n) double
 {
-	if (m == n) return m;
-	else if (m > n) return gcd(m - n, n);
-	else return gcd(m, n - m);
+  if (m == n) return m;
+  else if (m > n) return gcd(m - n, n);
+  else return gcd(m, n - m);
 }
 \end{lstlisting}
 \end{wrapfigure}
