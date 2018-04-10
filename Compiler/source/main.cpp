@@ -1,5 +1,6 @@
 #include <iostream>
 #include <limits>
+#include <cstring>
 
 #include "compile/Compiler.h"
 #include "compile/Lexer.h"
@@ -23,7 +24,7 @@ void doHelp()
 
 int main(int argc, char* argv[])
 {
-    Lexer lexer2;
+    /*Lexer lexer2;
     vector<Token> st2 = lexer2.tokenize("/home/abdul/CLionProjects/Compiler/examples/report examples/array.f");
     ofstream warnings("../warnings.txt");
     Reporter r2(warnings.rdbuf());
@@ -31,12 +32,12 @@ int main(int argc, char* argv[])
     stringstream pleaseWork2;
     c2.compile(true, true, true, "", true, "");
     cout << pleaseWork2.str();
-    return 0;
+    return 0;*/
 
     if (argc == 1 || argv[1] == "-h")
     {
         doHelp();
-        return -1;
+        return 0;
     }
 
     string inputfile = "";
@@ -49,38 +50,38 @@ int main(int argc, char* argv[])
     bool deadcode = true;
 
     int counter = 1;
-    --argc;
+
     while (counter < argc)
     {
-        if (argv[counter] == "-f")
+        if (strcmp(argv[counter], "-f") == 0)
         {
             ++counter;
             if (counter == argc) throw runtime_error("Expected filename after -f (-h for help)");
             inputfile = argv[counter];
         }
-        else if (argv[counter] == "-w")
+        else if (strcmp(argv[counter], "-w") == 0)
         {
             ++counter;
             if (counter == argc) throw runtime_error("Expected filename after -w (-h for help)");
             warningfile = argv[counter];
         }
-        else if (argv[counter] == "-o")
+        else if (strcmp(argv[counter], "-o") == 0)
         {
             ++counter;
             if (counter == argc) throw runtime_error("Expected filename after -o (-h for help)");
             outputfile = argv[counter];
         }
-        else if (argv[counter] == "-g")
+        else if (strcmp(argv[counter], "-g") == 0)
         {
             if (counter >= argc - 2) throw runtime_error("Not enough parrameters given to -g (-h for help)");
             ++counter;
-            graphbefore = argv[counter] == "b";
+            graphbefore = strcmp(argv[counter], "b") == 0;
             ++counter;
             graphfile = argv[counter];
         }
-        else if (argv[counter] == "-no") opt = false;
-        else if (argv[counter] == "-nv") verify = false;
-        else if (argv[counter] == "-nd") deadcode = false;
+        else if (strcmp(argv[counter], "-no") == 0) opt = false;
+        else if (strcmp(argv[counter], "-nv") == 0) verify = false;
+        else if (strcmp(argv[counter], "-nd") == 0) deadcode = false;
         ++counter;
     }
 

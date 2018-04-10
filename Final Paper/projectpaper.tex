@@ -98,7 +98,7 @@ This has been identified by Hoare as a `A grand challenge for computing research
 
 Software has become the backbone of modern society.
 The inevitable failures can be anything from annoying to costly to fatal - infamous examples are the failed Ariane 5 launch in 1996
-(costing an estimated 7 billion dollars) and the patriot missile system (costing 28 lives).
+(costing an estimated \$500 million) and the patriot missile system (costing 28 lives).
 
 Many diverse methods have been developed in order to detect them. The method of choice will depend on factors such as concurrency,
 desired level of coverage, type 1 vs. type 2 errors, the size of the program, etc. The most thorough approaches invoke constraint solvers or satisfiability modulo theories engines. These approaches, although successful, are computationally expensive and may be overkill for non-safety-critical applications.
@@ -480,7 +480,8 @@ etc.
 \section{Results}
 The solution was exercised on various examples from the literature. Some of the examples have been reformatted (in superficial ways only)
  for brevity and readability.
-
+Execution time was recorded using the UNIX \texttt{time} command. Maximum Resident Set Size (the peak amount of RAM allocated to the process) was also recorded using the same command. The computer used to gather these results was a dual core Intel Pentium 4405U with a clock speed $2.1$ GHz and
+equipped with $8$GB of RAM.
 \subsection{No functions}
 Most of the following examples are taken from the appendix of \citep{tra}, itself a collection of examples from other papers.  All the examples given in this paper terminate, so we also introduced mistakes in order to test detection of nontermination.
 
@@ -499,6 +500,7 @@ while (x > 0) {
 }
 \end{lstlisting}
 \end{wrapfigure}
+\textbf{Time:} $8$ms.\\ \textbf{Maximum Resident Set Size:} $4548$KB.\\
 This bubblesort implementation was correctly determined as halting. The programs obtained by removing any of the update lines, or moving either of the variables the wrong way, or inverting any of the equalities on lines $1$ and $3$, were correctly detected as nonterminating with an explanation given. Changing the comparitor in line $3$ from $<$ to $\leq$ results in an out of bounds access, which was successfully picked up.\\
 
 \subsubsection{Two variables \cite[A.6]{tra}}
@@ -512,12 +514,14 @@ while (x > y + z) {
 }
 \end{lstlisting}
 \end{wrapfigure}
+\textbf{Time:} 6ms.\\ \textbf{Maximum Resident Set Size:} $4620$KB.\\
 This example was correctly detected as terminating. It also picked up the potential overflow in all three additions.
 The comparison in line $3$ is compiled into the three-address-code \texttt{RHS = y + z, jumpif x > RHS ...}
-We then need to use `transitivity properties' to classify this sample as halting - the inequalities \texttt{x > RHS = y + z},
+We then need to use two transitivity properties to classify this sample as halting - the inequalities \texttt{x > RHS = y + z},
 and the fact that if \texttt{y} and \texttt{z} are increasing then so is \texttt{RHS.}
 Changing any of the increments in lines $2-3$ to decrements, and inverting the inequality in line $1$, are detected as infinite loops with good reasons given.
 
+\newpage
 \subsubsection{Relative change \cite[A.8]{tra}}
 
 \begin{wrapfigure}{r}{0.3\textwidth}
@@ -529,11 +533,10 @@ while (x > y) {
 }
 \end{lstlisting}
 \end{wrapfigure}
-Both variables in this example are increasing - the loop only halts as \texttt{y} is increasing faster than \texttt{x.}
-This is noted by the program and it is classified as termiating. Inverting the condition, or swapping the constants in the addition,
+\textbf{Time:} 6ms.\\ \textbf{Maximum Resident Set Size:} $4488$KB.\\
+Both variables in this example are increasing - the loop only halts as \texttt{y} is increasing faster than \texttt{x.} This is noted by the program and it is classified as termiating. Inverting the condition, or swapping the constants in the addition,
 results in a nonterminating program that is detected.
 
-\pagebreak
 \subsubsection{Multiplication \cite[C.1]{tra}} \label{mult}
 
 \begin{wrapfigure}{r}{0.35\textwidth}
@@ -546,23 +549,24 @@ while (x >= 0) {
 }
 \end{lstlisting}
 \end{wrapfigure}
-In this example, the inner loop is seen to terminate (as y is increasing) and then the outer loop follows (as x is decreasing).
-Replacing the $2$ in line $3$ with a positive constant less than $1$, or inverting any of the comparisons, results in a detected nonterminating program.
+\textbf{Time:} 8ms.\\ \textbf{Maximum Resident Set Size:} $4472$KB.\\
+In this example, the inner loop is seen to terminate (as y is increasing) and then the outer loop follows (as x is decreasing). Replacing the $2$ in line $3$ with a positive constant less than $1$, or inverting any of the comparisons, results in a detected nonterminating program. The multiplication
+in line $3$ always gives an overflow warning, so long as the constant is greater than $1$.
 
-\subsubsection{Arrays \cite{svcomp}}
-\begin{wrapfigure}{r}{0.35\textwidth}
+\subsubsection{Arrays \citep{svcomp}}
+\begin{wrapfigure}{r}{0.43\textwidth}
 \centering
 \begin{lstlisting}[frame=tlrb,language=myLang]
 if (i > 0) {
   while (i < 100 && a[i] >= 0) {
     i = i + a[i];
     a[i] = a[i] - i;
-    }
+  }
 }
 \end{lstlisting}
 \end{wrapfigure}
+\textbf{Time:} 8ms.\\ \textbf{Maximum Resident Set Size:} $4412$KB.\\
 In this example $a$ is an array of size $100$ with fully undetermined  entries.
-
 This example is accepted as halting, however the user is warned that $i$ could overflow or exceed the size of the array (as each $a[i]$ can be any positive number).
 Swapping lines $3$ and $4$ leads to similar warnings but is not accepted as halting - a `potentially bad' path is flagged, where no variables make guaranteed progress towards 
 relevant conditions.
@@ -584,13 +588,14 @@ function ack(double m, double n) double
 }
 \end{lstlisting}
 \end{wrapfigure}
+\textbf{Time:} 19ms.\\ \textbf{Maximum Resident Set Size:} $4808$KB.\\
 This function halts, as it is always called on strictly decreasing pairs (in the lexicographic ordering).
 Changing the decrement in lines $5$ and $7$ into an an addition of a nonnegative constant is correctly seen to be nonterminating,
 however the method fails to detect the same when line $8$ is modified.
-
 This function is normally defined on the natural numbers, and the inequalities are given as equalities - doing so here results in a potentially
 nonterminating input, as $m$ and $n$ might both be negative.
 
+\newpage
 \subsubsection{McCarthy's 91 function}
 \begin{wrapfigure}{r}{0.4\textwidth}
 \centering
@@ -605,6 +610,7 @@ function m(double n) double
 }
 \end{lstlisting}
 \end{wrapfigure}
+\textbf{Time:} 12ms.\\ \textbf{Maximum Resident Set Size:} $4680$KB.\\
 This function is a standard exercise for automated termination analysis methods. Changing the expression in line $5$ into subtraction of a negative constant,
 or inverting the condition in line $3$, result in nonterminating programs that are successfully detected by the method.
 \vspace{.8cm}
@@ -615,18 +621,20 @@ or inverting the condition in line $3$, result in nonterminating programs that a
 \centering
 \begin{lstlisting}[frame=tlrb,language=myLang]
 ...
-  if (m <= 0 || n <= 0) return -1;
-  double result = gcd(m, n);
+ if (m <= 0 || n <= 0) return -1;
+ double result = gcd(m, n);
 ...
 
 function gcd(double m, double n) double
 {
-  if (m == n) return m;
-  else if (m > n) return gcd(m - n, n);
-  else return gcd(m, n - m);
+ if (m == n) return m;
+ else if (m > n) return gcd(m - n, n);
+ else return gcd(m, n - m);
 }
 \end{lstlisting}
 \end{wrapfigure}
+\textbf{Time:} 11ms.\\
+{\textbf{Maximum Resident Set Size:} $4624$KB.}\\
 This is correctly determined as halting, as each parameter moves in a direction that takes us out of that control path (i.e., if $m > n$ and $m$ is decreasing eventually $m \leq n$).
 Reversing the inequality on line $9$, or the order of the parameters in either of the recursive calls, is picked up as nonterminating - but not if we remove the nonnegativity condition
 imposed on line $2$. 
