@@ -136,7 +136,7 @@ bool CFGNode::constProp(unordered_map<string,Atom> assignments)
                     if (constit != assignments.end())
                     {
                         Atom found = constit->second;
-                        if (found.isHolding()) break; //todo
+                        //if (found.isHolding()) break; //todo
                         assignments.emplace(lhsname, Atom(found));
                         avc->getAtom().become(found);
                     }

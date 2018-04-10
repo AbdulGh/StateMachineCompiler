@@ -224,14 +224,6 @@ Atom::operator std::string() const
     else return to_string(d);
 }
 
-void Atom::resetRepeatBounds(SymbolicExecution::SymbolicExecutionFringe* sef)
-{
-    if (!isHolding()) throw runtime_error("not holding unique ptr");
-    GottenVarPtr<SymbolicDouble> gsv = vptr->getSymbolicDouble(sef);
-    gsv->resetRepeatBounds();
-    if (gsv.constructed()) vptr->setSymbolicDouble(sef, gsv.get());
-}
-
 //JumpOnComparisonCommand
 JumpOnComparisonCommand::JumpOnComparisonCommand(const string& st, unique_ptr<VarWrapper> t1,
                                                  unique_ptr<VarWrapper> t2, Relations::Relop o, int linenum)
@@ -305,9 +297,9 @@ AssignVarCommand::AssignVarCommand(unique_ptr<VarWrapper> lh, Atom rh, int linen
     setType(CommandType::ASSIGNVAR);
 }
 
-void AssignVarCommand::setVarWrapper(std::unique_ptr<VarWrapper> sv)
+void AssignVarCommand::setVarWrapper(std::unique_ptr<VarWrapper> sd)
 {
-    vs = move(sv);
+    vs = move(sd);
 }
 
 string AssignVarCommand::translation(const string& delim) const
@@ -387,8 +379,8 @@ NondetCommand::~NondetCommand()
     if (holding) varWrapper.reset();
 }
 
-void NondetCommand::setVarWrapper(std::unique_ptr<VarWrapper> sv)
+void NondetCommand::setVarWrapper(std::unique_ptr<VarWrapper> sd)
 {
     if (!holding) throw std::runtime_error("holding array");
-    varWrapper = move(sv);
+    varWrapper = move(sd);
 }

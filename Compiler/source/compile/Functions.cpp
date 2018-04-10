@@ -42,7 +42,7 @@ FunctionSymbol::FunctionSymbol(VariableType rt, vector<VariableType> types, stri
     currentStateNum(1), endedState(false), cfg(c), lastNode{nullptr}, currentVarScope(make_unique<FunctionVars>())
     {
         currentNode = cfg.createNode(prefix + "0", false, false, this); firstNode = currentNode;
-        if (ident == "main") cfg.setFirst(prefix + "0");
+        if (ident == "main") cfg.setFirst(currentNode->getName());
     }
 
 bool FunctionSymbol::mergeInto(FunctionSymbol* to)

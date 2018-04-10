@@ -36,16 +36,23 @@ namespace Optimise
 {
     void optimise(SymbolTable& symbolTable, FunctionTable& functionTable, ControlFlowGraph& controlFlowGraph)
     {
-
         bool changes = true;
         while (changes)
         {
             changes = false;
             Optimise::collapseSmallStates(controlFlowGraph, functionTable);
+
+            auto debug = controlFlowGraph.getNode("F1_main_8")->getSource();
+
             for (const auto& node : controlFlowGraph.getCurrentNodes())
             {
                 if (node.second->constProp()) changes = true;
             }
+
+            auto debug3 = controlFlowGraph.getNode("F1_main_8")->getSource();
+            int debug2;
+            debug2 = 3;
+
         }
         DataFlow::AssignmentPropogationDataFlow(controlFlowGraph, symbolTable).worklist();
         DataFlow::LiveVariableDataFlow(controlFlowGraph, symbolTable).worklist();

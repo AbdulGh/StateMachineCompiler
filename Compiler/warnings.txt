@@ -1,19 +1,30 @@
-WARNING : OVERFLOW : _2_0_i could possibly exceed double limits
-WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
-WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
-WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
-WARNING : ARRAY BOUNDS : Could access index up to 1.797693135e+308 in array of size 100
 Potential bad path through the following loop:
 ------------
-|Header: F0_main_5
+|Header: F0_gcd_0
 |Nodes:
-|F0_main_5
-|F0_main_9
-|F0_main_6
+|F0_gcd_0
+|F0_gcd_2
+|F0_gcd_5
 
 Example:
-Visit F0_main_5, branch _2_0_i < 100.000000
-Visit F0_main_9, branch _2_0_a[_2_0_i] >= 0.000000
-(_2_0_a[_2_0_i] increasing compared to RHS)
+Visit F0_gcd_0, branch _1_0_m != _1_0_n
+(_1_0_m unchanging compared to RHS)
+Visit F0_gcd_2, branch _1_0_m > _1_0_n
+(_1_0_m unchanging compared to RHS)
+
+-----
+Potential bad path through the following loop:
+------------
+|Header: F0_gcd_0
+|Nodes:
+|F0_gcd_0
+|F0_gcd_2
+|F0_gcd_6
+
+Example:
+Visit F0_gcd_0, branch _1_0_m != _1_0_n
+(_1_0_m unchanging compared to RHS)
+Visit F0_gcd_2, branch _1_0_m <= _1_0_n
+(_1_0_m unchanging compared to RHS)
 
 -----

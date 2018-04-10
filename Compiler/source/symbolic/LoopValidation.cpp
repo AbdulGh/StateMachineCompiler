@@ -121,7 +121,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
             if (sef->symbolicStack->isEmpty())
             {
                 unique_ptr<SymbolicDouble> popped = thisNodeSR->popVar();
-                instr->getVarWrapper()->setSymbolicDouble(sef.get(), popped.get());
+                instr->getVarWrapper()->setSymbolicDouble(sef.get(), popped.get(), instr->getLineNum());
             }
             else
             {
@@ -193,7 +193,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                 badExample += "Visit " + condition.location + ", branch " + condition.toString() + "\n";
 
                 GottenVarPtr<SymbolicDouble> varInQuestion
-                        = condition.lhs.getVarWrapper()->getSymbolicDouble(sef.get());
+                        = condition.lhs.getVarWrapper()->getSymbolicDouble(sef.get(), condition.linenum);
                 //check if this is a good path
                 //first check if we must break a loop condition
 
@@ -205,7 +205,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                 else
                 {
                     GottenVarPtr<SymbolicDouble> rhVar
-                            = condition.rhs.getVarWrapper()->getSymbolicDouble(sef.get());
+                            = condition.rhs.getVarWrapper()->getSymbolicDouble(sef.get(), condition.linenum);
                     meetStat = varInQuestion->canMeet(condition.comp, rhVar.get());
                 }
 
@@ -218,7 +218,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                     {
                         long double slowest; long double fastest;
                         const VarWrapper* rhsVW = condition.rhs.getVarWrapper();
-                        GottenVarPtr<SymbolicDouble> rhs = rhsVW->getSymbolicDouble(sef.get());
+                        GottenVarPtr<SymbolicDouble> rhs = rhsVW->getSymbolicDouble(sef.get(), condition.linenum);
                         varInQuestion->getRelativeVelocity(rhs.get(), slowest, fastest);
                         if (slowest == 0 && fastest == 0) change = SymbolicDouble::MonotoneEnum::FRESH;
                         else if (slowest >= 0) change = SymbolicDouble::MonotoneEnum::INCREASING;
@@ -318,14 +318,16 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
         {
             JumpOnComparisonCommand* jocc = node->getComp();
             CFGNode* succNode = node->getCompSuccess();
-            GottenVarPtr<SymbolicDouble> lhVar = jocc->term1.getVarWrapper()->getSymbolicDouble(sef.get());
+            GottenVarPtr<SymbolicDouble> lhVar
+                    = jocc->term1.getVarWrapper()->getSymbolicDouble(sef.get(), jocc->getLineNum());
             if (!lhVar) throw std::runtime_error("not found");
 
             GottenVarPtr<SymbolicDouble> rhVar(nullptr);
             bool rhconst = true;
             if (jocc->term2.getType() == StringType::ID)
             {
-                auto lvalue = jocc->term2.getVarWrapper()->getSymbolicDouble(sef.get());
+                auto lvalue
+                        = jocc->term2.getVarWrapper()->getSymbolicDouble(sef.get(), jocc->getLineNum());
                 rhVar.become(lvalue);
                 if (!rhVar) throw runtime_error("Unknown var '" + string(jocc->term2) + "'");
                 rhconst = rhVar->isDetermined();
@@ -380,7 +382,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                             else
                                             {
                                                 jocc->term1.getVarWrapper()->getSymbolicDouble(
-                                                        sefFailure.get())->iterateTo(RHS);
+                                                        sefFailure.get(), jocc->getLineNum())->iterateTo(RHS);
                                                 if (searchNode(failNode, varChanges, tags, sef))
                                                 {
                                                     mergeMaps(varChanges.at(node), varChanges.at(failNode));
@@ -430,7 +432,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                             } else
                                             {
                                                 jocc->term1.getVarWrapper()->getSymbolicDouble(
-                                                        sefSucc.get())->iterateTo(RHS);
+                                                        sefSucc.get(), jocc->getLineNum())->iterateTo(RHS);
                                                 if (searchNode(succNode, varChanges, tags, sefSucc))
                                                 {
                                                     mergeMaps(varChanges.at(node), varChanges.at(succNode));
@@ -534,7 +536,7 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                             shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefFail
                                     = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
                             short direction = jocc->op == Relations::LE || jocc->op == Relations::GE; //todo
-                            jocc->term1.getVarWrapper()->getSymbolicDouble(sefFail.get())->iterateTo(rhVar.get());
+                            jocc->term1.getVarWrapper()->getSymbolicDouble(sefFail.get(), jocc->getLineNum())->iterateTo(rhVar.get());
                             if (sefFail->addPathCondition(node->getName(), jocc, true))
                             {
                                 searchNode(failNode, varChanges, tags, sefFail);
@@ -578,7 +580,8 @@ bool Loop::searchNode(CFGNode* node, ChangeMap& varChanges, unordered_map<string
                                 shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sefSucc
                                         = make_shared<SymbolicExecution::SymbolicExecutionFringe>(sef);
                                 short direction = jocc->op == Relations::LE || jocc->op == Relations::GE;
-                                jocc->term1.getVarWrapper()->getSymbolicDouble(sefSucc.get())->iterateTo(rhVar.get());
+                                jocc->term1.getVarWrapper()
+                                        ->getSymbolicDouble(sefSucc.get(), jocc->getLineNum())->iterateTo(rhVar.get());
                                 if (sefSucc->addPathCondition(node->getName(), jocc))
                                 {
                                     searchNode(succNode, varChanges, tags, sefSucc);

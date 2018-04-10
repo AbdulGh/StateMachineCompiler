@@ -33,7 +33,7 @@ public:
         else rp = o.rp;
     }
     explicit GottenVarPtr(T* pointTo) : rp(pointTo), owns(false) {}
-    explicit GottenVarPtr(std::unique_ptr<T> sv) : up(move(sv)), owns(true) {}
+    explicit GottenVarPtr(std::unique_ptr<T> sd) : up(move(sd)), owns(true) {}
     ~GottenVarPtr() {if (owns) up.reset();}
     GottenVarPtr(GottenVarPtr& o) = delete;
     GottenVarPtr& operator=(GottenVarPtr<T> rhs) = delete;
@@ -107,14 +107,14 @@ public:
     virtual std::string getFullName() const {return name;}
     virtual const std::string& getBaseName() const {return name;}
     bool isCompound() const {return compound;}
-    virtual GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const  = 0; //todo clone symbolic double
-    virtual bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const = 0;
+    virtual GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, int linenum) const  = 0; //todo clone symbolic double
+    virtual bool check(SymbolicExecution::SymbolicExecutionFringe* sef, int linenum) const = 0;
     virtual std::unique_ptr<VarWrapper> clone() const  = 0;
-    virtual void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sv) = 0;
-    virtual void setConstValue(SymbolicExecution::SymbolicExecutionFringe *sef, double d) = 0;
+    virtual void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sd, int linenum) = 0;
+    virtual void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, double d, int linenum) = 0; //todo test
     virtual std::vector<const std::string*> getAllNames() const = 0;
 
-    virtual void nondet(SymbolicExecution::SymbolicExecutionFringe* sef) = 0;
+    virtual void nondet(SymbolicExecution::SymbolicExecutionFringe* sef, int linenum) = 0;
 };
 
 
@@ -131,11 +131,11 @@ public:
         toRet.push_back(&name);
         return toRet;
     }
-    GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
-    void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sv) override;
-    void setConstValue(SymbolicExecution::SymbolicExecutionFringe *sef, double d) override;
-    void nondet(SymbolicExecution::SymbolicExecutionFringe* sef) override;
-    bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
+    GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, int linenum) const override;
+    void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sd, int linenum) override;
+    void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, double d, int linenum) override;
+    void nondet(SymbolicExecution::SymbolicExecutionFringe* sef, int linenum) override;
+    bool check(SymbolicExecution::SymbolicExecutionFringe* sef, int linenum) const override;
     std::string getFullName() const override;
     std::unique_ptr<VarWrapper> clone() const override;
 };
@@ -160,11 +160,11 @@ public:
         toRet.push_back(&name);
         return toRet;
     }
-    GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
-    bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
-    void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sv) override;
-    void setConstValue(SymbolicExecution::SymbolicExecutionFringe *sef, double d) override;
-    void nondet(SymbolicExecution::SymbolicExecutionFringe* sef) override;
+    GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, int linenum) const override;
+    bool check(SymbolicExecution::SymbolicExecutionFringe* sef, int linenum) const override;
+    void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sd, int linenum) override;
+    void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, double d, int linenum) override;
+    void nondet(SymbolicExecution::SymbolicExecutionFringe* sef, int linenum) override;
     std::unique_ptr<VarWrapper> clone() const override;
 };
 
@@ -192,11 +192,11 @@ public:
         return names;
     }
 
-    GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
-    bool check(SymbolicExecution::SymbolicExecutionFringe* sef) const override;
-    void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sv) override;
-    void setConstValue(SymbolicExecution::SymbolicExecutionFringe *sef, double d) override;
-    void nondet(SymbolicExecution::SymbolicExecutionFringe* sef) override;
+    GottenVarPtr<SymbolicDouble> getSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, int linenum) const override;
+    bool check(SymbolicExecution::SymbolicExecutionFringe* sef, int linenum) const override;
+    void setSymbolicDouble(SymbolicExecution::SymbolicExecutionFringe* sef, SymbolicDouble* sd, int linenum) override;
+    void setConstValue(SymbolicExecution::SymbolicExecutionFringe* sef, double d, int linenum) override;
+    void nondet(SymbolicExecution::SymbolicExecutionFringe* sef, int linenum) override;
     std::unique_ptr<VarWrapper> clone() const override;
 };
 

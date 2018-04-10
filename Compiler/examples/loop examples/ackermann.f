@@ -15,7 +15,7 @@ function ack(double x, double y) double
     else
     {
         double xMinus1 = x-1;
-        double yMinus1 = y;
+        double yMinus1 = y-1;
         double a2 = call ack(x, yMinus1);
         return call ack(xMinus1, a2);
     }

@@ -23,13 +23,14 @@ namespace SymbolicExecution
         Atom rhs;
         std::string location;
         bool unconditional = false;
+        int linenum;
         
-        Condition(std::string nodename) : unconditional(true), location(nodename) {}
+        Condition(std::string nodename) : unconditional(true), location(move(nodename)), linenum(-1) {}
 
         Condition(std::string nodename, Atom l, Relations::Relop c, Atom r):
-                lhs(std::move(l)), comp(c), rhs(std::move(r)), location(nodename) {}
+                lhs(std::move(l)), comp(c), rhs(std::move(r)), location(move(nodename)) {}
 
-        Condition(const Condition& o): unconditional(o.unconditional), location(o.location)
+        Condition(const Condition& o): unconditional(o.unconditional), location(o.location), linenum(o.linenum)
         {
             if (!unconditional)
             {
@@ -150,46 +151,46 @@ namespace SymbolicExecution
         void visitNode(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n);
         //the below don't check if the ranges are disjoint - this is done in visitNode
         void branch(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n, VarWrapper* lhsvar,
-                    Relations::Relop op, double rhsconst, bool reverse = false);
+                    Relations::Relop op, double rhsconst, int linenum, bool reverse = false);
         
         void branchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, double rhsconst, bool reverse = false);
+                      VarWrapper* lhsvar, double rhsconst, int linenum, bool reverse = false);
         
         void branchNE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, double rhsconst, bool reverse = false);
+                      VarWrapper* lhsvar, double rhsconst, int linenum, bool reverse = false);
         
         void branchLE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, double rhsconst, bool reverse = false);
+                      VarWrapper* lhsvar, double rhsconst, int linenum, bool reverse = false);
         
         void branchLT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, double rhsconst, bool reverse = false);
+                      VarWrapper* lhsvar, double rhsconst, int linenum, bool reverse = false);
         
         void branchGE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                           VarWrapper* lhsvar, double rhsconst, bool reverse = false);
+                           VarWrapper* lhsvar, double rhsconst, int linenum, bool reverse = false);
         
         void branchGT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, double rhsconst, bool reverse = false);
+                      VarWrapper* lhsvar, double rhsconst, int linenum, bool reverse = false);
         
         void varBranch(std::shared_ptr<SymbolicExecutionFringe>& sef, CFGNode* n,
-                       VarWrapper* lhsvar, Relations::Relop op, VarWrapper* rhsvar);
+                       VarWrapper* lhsvar, Relations::Relop op, VarWrapper* rhsvar, int linenum);
         
         void varBranchEQ(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, VarWrapper* rhsvar);
+                      VarWrapper* lhsvar, VarWrapper* rhsvar, int linenum);
         
         void varBranchNE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, VarWrapper* rhsvar);
+                      VarWrapper* lhsvar, VarWrapper* rhsvar, int linenum);
         
         void varBranchLE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, VarWrapper* rhsvar);
+                      VarWrapper* lhsvar, VarWrapper* rhsvar, int linenum);
         
         void varBranchLT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, VarWrapper* rhsvar);
+                      VarWrapper* lhsvar, VarWrapper* rhsvar, int linenum);
         
         void varBranchGE(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, VarWrapper* rhsvar);
+                      VarWrapper* lhsvar, VarWrapper* rhsvar, int linenum);
         
         void varBranchGT(std::shared_ptr<SymbolicExecutionFringe> sef, CFGNode* n,
-                      VarWrapper* lhsvar, VarWrapper* rhsvar);
+                      VarWrapper* lhsvar, VarWrapper* rhsvar, int linenum);
 
         static CFGNode* getFailNode(std::shared_ptr<SymbolicExecutionFringe> returningSEF, CFGNode* n);
     };

@@ -14,9 +14,9 @@ bool AbstractCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symb
 
 bool InputVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
-    if (vs->check(sef.get()))
+    if (vs->check(sef.get(), getLineNum()))
     {
-        vs->nondet(sef.get());
+        vs->nondet(sef.get(), getLineNum());
         return true;
     }
     else return false;
@@ -28,16 +28,11 @@ bool PushCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::Symbolic
 
     else if (atom.isHolding())
     {
-        if (atom.getVarWrapper()->check(sef.get()))
+        if (atom.getVarWrapper()->check(sef.get(), getLineNum()))
         {
-            GottenVarPtr<SymbolicDouble> found = atom.getVarWrapper()->getSymbolicDouble(sef.get());
+            GottenVarPtr<SymbolicDouble> found = atom.getVarWrapper()->getSymbolicDouble(sef.get(), getLineNum());
 
             if (!found->isFeasable()) throw std::runtime_error("should be feasable");
-            else if (!found->isDefined())
-            {
-                sef->warn(Reporter::UNINITIALISED_USE, "'" + found->getName() + "' pushed without being defined", getLineNum());
-            }
-
             sef->symbolicStack->pushVar(move(found));
         }
         else return false;
@@ -67,9 +62,9 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
     }
 
     unique_ptr<SymbolicDouble> popped = sef->symbolicStack->popVar();
-    if (vs->check(sef.get()))
+    if (vs->check(sef.get(), getLineNum()))
     {
-        vs->setSymbolicDouble(sef.get(), popped.get());
+        vs->setSymbolicDouble(sef.get(), popped.get(), getLineNum());
         return true;
     }
     else return false;
@@ -77,16 +72,16 @@ bool PopCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicE
 
 bool AssignVarCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
-    if (!vs->check(sef.get())) return false;
+    if (!vs->check(sef.get(), getLineNum())) return false;
     if (atom.isHolding())
     {
-        if (!atom.getVarWrapper()->check(sef.get())) return false;
-        GottenVarPtr<SymbolicDouble> svp = atom.getVarWrapper()->getSymbolicDouble(sef.get());
-        if (!svp->isFeasable()) return false;
-        svp->define();
-        vs->setSymbolicDouble(sef.get(), svp.get());
+        if (!atom.getVarWrapper()->check(sef.get(), getLineNum())) return false;
+        GottenVarPtr<SymbolicDouble> sdp = atom.getVarWrapper()->getSymbolicDouble(sef.get(), getLineNum());
+        if (!sdp->isFeasable()) return false;
+        sdp->define();
+        vs->setSymbolicDouble(sef.get(), sdp.get(), getLineNum());
     }
-    else vs->getSymbolicDouble(sef.get())->setConstValue(atom.getLiteral());
+    else vs->getSymbolicDouble(sef.get(), getLineNum())->setConstValue(atom.getLiteral());
 
     return true;
 }
@@ -132,10 +127,11 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
 
         if (term1.isHolding() && term2.isHolding())
         {
-            if (!term1.getVarWrapper()->check(sef.get()) || !term2.getVarWrapper()->check(sef.get())) return false;
+            if (!term1.getVarWrapper()->check(sef.get(), getLineNum()) 
+                || !term2.getVarWrapper()->check(sef.get(), getLineNum())) return false;
 
-            unique_ptr<SymbolicDouble> result = term1.getVarWrapper()->getSymbolicDouble(sef.get())->clone();
-            GottenVarPtr<SymbolicDouble> t2 = term2.getVarWrapper()->getSymbolicDouble(sef.get());
+            unique_ptr<SymbolicDouble> result = term1.getVarWrapper()->getSymbolicDouble(sef.get(), getLineNum())->clone();
+            GottenVarPtr<SymbolicDouble> t2 = term2.getVarWrapper()->getSymbolicDouble(sef.get(), getLineNum());
 
             if (result->isDetermined())
             {
@@ -166,7 +162,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 }
             }
             result->define();
-            vs->setSymbolicDouble(sef.get(), result.get());
+            vs->setSymbolicDouble(sef.get(), result.get(), getLineNum());
             return true;
         }
         else
@@ -174,24 +170,24 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
             double constTerm; VarWrapper* varWrapper;
             if (term1.isHolding())
             {
-                if (!term1.getVarWrapper()->check(sef.get())) return false;
+                if (!term1.getVarWrapper()->check(sef.get(), getLineNum())) return false;
                 varWrapper = term1.getVarWrapper();
                 constTerm = term2.getLiteral();
             }
             else
             {
-                if (!term2.getVarWrapper()->check(sef.get())) return false;
+                if (!term2.getVarWrapper()->check(sef.get(), getLineNum())) return false;
                 varWrapper = term2.getVarWrapper();
                 constTerm = term1.getLiteral();
             }
 
-            unique_ptr<SymbolicDouble> result = varWrapper->getSymbolicDouble(sef.get())->clone();
+            unique_ptr<SymbolicDouble> result = varWrapper->getSymbolicDouble(sef.get(), getLineNum())->clone();
 
             if (op == PLUS) addConst(result.get(), constTerm);
             else multConst(result.get(), constTerm);
 
             result->define();
-            vs->setSymbolicDouble(sef.get(), result.get());
+            vs->setSymbolicDouble(sef.get(), result.get(), getLineNum());
             return true;
         }
     }
@@ -211,15 +207,15 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
 
         if (term1.isHolding())
         {
-            unique_ptr<SymbolicDouble> result = term1.getVarWrapper()->getSymbolicDouble(sef.get())->clone();
+            unique_ptr<SymbolicDouble> result = term1.getVarWrapper()->getSymbolicDouble(sef.get(), getLineNum())->clone();
             if (repeat)
             {
                 double t2c;
 
                 if (term2.isHolding())
                 {
-                    if (!term2.getVarWrapper()->check(sef.get())) return false;
-                    GottenVarPtr<SymbolicDouble> t2v = term2.getVarWrapper()->getSymbolicDouble(sef.get());
+                    if (!term2.getVarWrapper()->check(sef.get(), getLineNum())) return false;
+                    GottenVarPtr<SymbolicDouble> t2v = term2.getVarWrapper()->getSymbolicDouble(sef.get(), getLineNum());
                     if (t2v->isDetermined()) t2c = t2v->getConstValue();
                     else
                     {
@@ -275,7 +271,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                         else throw runtime_error("Strange op encountered");
 
                         result->define();
-                        vs->setSymbolicDouble(sef.get(), result.get());
+                        vs->setSymbolicDouble(sef.get(), result.get(), getLineNum());
                         return true;
                     }
                 }
@@ -312,15 +308,15 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 }
                 else throw runtime_error("Strange op encountered");
                 result->define();
-                vs->setSymbolicDouble(sef.get(), result.get());
+                vs->setSymbolicDouble(sef.get(), result.get(), getLineNum());
                 return true;
             }
 
-            if (!term1.getVarWrapper()->check(sef.get())) return false;
+            if (!term1.getVarWrapper()->check(sef.get(), getLineNum())) return false;
             if (term2.isHolding()) //var and var
             {
-                if (!term2.getVarWrapper()->check(sef.get())) return false;
-                GottenVarPtr<SymbolicDouble> t2 = term2.getVarWrapper()->getSymbolicDouble(sef.get());
+                if (!term2.getVarWrapper()->check(sef.get(), getLineNum())) return false;
+                GottenVarPtr<SymbolicDouble> t2 = term2.getVarWrapper()->getSymbolicDouble(sef.get(), getLineNum());
 
                 if (op == MINUS) result->minusSymbolicDouble(*t2, vs->getFullName() == term1.getVarWrapper()->getFullName());
                 else if (op == MOD) result->modSymbolicDouble(*t2);
@@ -328,7 +324,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 else throw runtime_error("Strange op encountered");
 
                 result->define();
-                vs->setSymbolicDouble(sef.get(), result.get());
+                vs->setSymbolicDouble(sef.get(), result.get(), getLineNum());
                 return true;
             }
             else //var and const
@@ -347,15 +343,15 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 else throw runtime_error("Strange op encountered");
                 result->define();
 
-                vs->setSymbolicDouble(sef.get(), result.get());
+                vs->setSymbolicDouble(sef.get(), result.get(), getLineNum());
                 return true;
             }
         }
         else //const and var
         {
-            if (!term2.getVarWrapper()->check(sef.get())) return false;
-            GottenVarPtr<SymbolicDouble> rhs = term2.getVarWrapper()->getSymbolicDouble(sef.get());
-            GottenVarPtr<SymbolicDouble> result = vs->getSymbolicDouble(sef.get());
+            if (!term2.getVarWrapper()->check(sef.get(), getLineNum())) return false;
+            GottenVarPtr<SymbolicDouble> rhs = term2.getVarWrapper()->getSymbolicDouble(sef.get(), getLineNum());
+            GottenVarPtr<SymbolicDouble> result = vs->getSymbolicDouble(sef.get(), getLineNum());
 
             if (op == MINUS)
             {
@@ -428,7 +424,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
             else throw runtime_error("Strange op encountered");
             result->define();
 
-            vs->setSymbolicDouble(sef.get(), result.get());
+            vs->setSymbolicDouble(sef.get(), result.get(), getLineNum());
             return true;
         }
     }
@@ -449,7 +445,7 @@ bool DeclareArrayCommand::acceptSymbolicExecution(std::shared_ptr<SymbolicExecut
 
 bool NondetCommand::acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat)
 {
-    if (holding) getVarWrapper()->nondet(sef.get());
+    if (holding) getVarWrapper()->nondet(sef.get(), getLineNum());
     else
     {
         SymbolicArray* sa = sef->symbolicVarSet->findArray(s);

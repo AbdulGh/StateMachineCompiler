@@ -38,7 +38,6 @@ public:
     void become(const Atom& a);
     void set(double sptr);
     void set(std::unique_ptr<VarWrapper> sptr);
-    void resetRepeatBounds(SymbolicExecution::SymbolicExecutionFringe* sef);
     operator std::string() const;
     //used to put assignments in maps in dataflow
     bool operator<(const Atom& right) const;
@@ -72,7 +71,7 @@ public:
     virtual Atom& getAtom() {throw std::runtime_error("no atom");}
     virtual void setAtom(Atom data) {throw std::runtime_error("no atom");}
     virtual const std::unique_ptr<VarWrapper>& getVarWrapper() const {throw std::runtime_error("doesn't set var");}
-    virtual void setVarWrapper(std::unique_ptr<VarWrapper> sv) {throw std::runtime_error("doesn't set var");}
+    virtual void setVarWrapper(std::unique_ptr<VarWrapper> sd) {throw std::runtime_error("doesn't set var");}
 
     CommandType getType() const
     {
@@ -310,7 +309,7 @@ public:
     Atom& getAtom() override {return atom;}
     void setAtom(Atom data) override {atom = std::move(data);}
     const std::unique_ptr<VarWrapper>& getVarWrapper() const override {return vs;}
-    void setVarWrapper(std::unique_ptr<VarWrapper> sv) override;
+    void setVarWrapper(std::unique_ptr<VarWrapper> sd) override;
     std::unique_ptr<AbstractCommand> clone() override;
     std::string translation(const std::string& delim) const override;
     bool acceptSymbolicExecution(std::shared_ptr<SymbolicExecution::SymbolicExecutionFringe> sef, bool repeat) override;
@@ -433,7 +432,7 @@ public:
         return s;
     }
 
-    void setVarWrapper(std::unique_ptr<VarWrapper> sv) override;
+    void setVarWrapper(std::unique_ptr<VarWrapper> sd) override;
 };
 
 

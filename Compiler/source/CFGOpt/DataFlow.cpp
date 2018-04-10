@@ -102,6 +102,13 @@ void AssignmentPropogationDataFlow::finish()
 
         unordered_map<string, Atom> mapToPass;
         for (const Assignment& ass : inAss) mapToPass.emplace(ass.lhs, ass.rhs);
+
+        if (node->getName() == "F1_main_8")
+        {
+            auto debug2 = node->getSource();
+            int debug;
+            debug =2;
+        }
         node->constProp(move(mapToPass));
     }
 }

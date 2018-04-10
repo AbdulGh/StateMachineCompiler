@@ -116,174 +116,174 @@ void SymbolicDouble::removeRepeatLowerBound()
 
 bool SymbolicDouble::addGT(const VarWrapper* vg, SymbolicExecutionFringe* sef, bool constructed)
 {
-    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef);
-    SymbolicDouble* sv = other.get();
+    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef, -1);
+    SymbolicDouble* sd = other.get();
 
     if (!other.constructed())
     {
-        if (!gt.insert(sv).second) return isFeasable() && sv->isFeasable();
+        if (!gt.insert(sd).second) return isFeasable() && sd->isFeasable();
     }
 
-    if (!constructed) sv->lt.insert(this);
+    if (!constructed) sd->lt.insert(this);
 
-    if (sv->isBoundedBelow())
+    if (sd->isBoundedBelow())
     {
-        clipLowerBound(sv->getLowerBound(), 1);
-        setRepeatLowerBound(sv->repeatLower, 1);
+        clipLowerBound(sd->getLowerBound(), 1);
+        setRepeatLowerBound(sd->repeatLower, 1);
     }
     else removeRepeatLowerBound();
 
     if (isBoundedAbove())
     {
-        sv->clipUpperBound(getUpperBound(), -1);
-        sv->setRepeatLowerBound(repeatUpper, -1);
+        sd->clipUpperBound(getUpperBound(), -1);
+        sd->setRepeatLowerBound(repeatUpper, -1);
     }
-    else sv->removeRepeatUpperBound();
-    return isFeasable() && sv->isFeasable();
+    else sd->removeRepeatUpperBound();
+    return isFeasable() && sd->isFeasable();
 }
 
 bool SymbolicDouble::addGE(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
 {
-    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef);
-    SymbolicDouble* sv = other.get();
+    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef, -1);
+    SymbolicDouble* sd = other.get();
 
     if (!other.constructed())
     {
-        if (!ge.insert(sv).second) return isFeasable() && sv->isFeasable();
+        if (!ge.insert(sd).second) return isFeasable() && sd->isFeasable();
     }
-    if (!constructed) sv->le.insert(this);
+    if (!constructed) sd->le.insert(this);
 
-    if (sv->isBoundedBelow())
+    if (sd->isBoundedBelow())
     {
-        clipLowerBound(sv->getLowerBound());
-        setRepeatLowerBound(sv->repeatLower);
+        clipLowerBound(sd->getLowerBound());
+        setRepeatLowerBound(sd->repeatLower);
     }
     else removeRepeatLowerBound();
     if (isBoundedAbove())
     {
-        sv->clipUpperBound(getUpperBound());
-        sv->setRepeatUpperBound(repeatUpper);
+        sd->clipUpperBound(getUpperBound());
+        sd->setRepeatUpperBound(repeatUpper);
     }
-    else sv->removeRepeatUpperBound();
-    return isFeasable() && sv->isFeasable();
+    else sd->removeRepeatUpperBound();
+    return isFeasable() && sd->isFeasable();
 }
 
 bool SymbolicDouble::addLT(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
 {
-    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef);
-    SymbolicDouble* sv = other.get();
+    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef, -1);
+    SymbolicDouble* sd = other.get();
     if (!constructed && !other.constructed())
     {
         set<SymbolicDouble*> seen;
-        if (guaranteedLT(sv, this, seen)) return isFeasable() && sv->isFeasable();
-        lt.insert(sv);
-        sv->gt.insert(this);
+        if (guaranteedLT(sd, this, seen)) return isFeasable() && sd->isFeasable();
+        lt.insert(sd);
+        sd->gt.insert(this);
     }
 
-    if (sv->isBoundedAbove())
+    if (sd->isBoundedAbove())
     {
-        clipUpperBound(sv->getUpperBound(), -1);
-        setRepeatUpperBound(sv->repeatUpper, -1);
+        clipUpperBound(sd->getUpperBound(), -1);
+        setRepeatUpperBound(sd->repeatUpper, -1);
     }
     else removeRepeatUpperBound();
     if (isBoundedBelow())
     {
-        sv->clipLowerBound(getLowerBound());
-        sv->setRepeatLowerBound(repeatLower);
+        sd->clipLowerBound(getLowerBound());
+        sd->setRepeatLowerBound(repeatLower);
     }
-    else sv->removeRepeatLowerBound();
+    else sd->removeRepeatLowerBound();
 
-    return isFeasable() && sv->isFeasable();
+    return isFeasable() && sd->isFeasable();
 }
 
 bool SymbolicDouble::addLE(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
 {
-    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef);
-    SymbolicDouble* sv = other.get();
+    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef, -1);
+    SymbolicDouble* sd = other.get();
 
     if (!constructed && !other.constructed())
     {
-        setRepeatUpperBound(sv->getUpperBound());
-        sv->setRepeatLowerBound(getLowerBound());
+        setRepeatUpperBound(sd->getUpperBound());
+        sd->setRepeatLowerBound(getLowerBound());
         set<SymbolicDouble*> seen;
-        if (guaranteedLE(sv, this, seen)) return isFeasable() && sv->isFeasable();
-        lt.insert(sv);
-        sv->gt.insert(this);
+        if (guaranteedLE(sd, this, seen)) return isFeasable() && sd->isFeasable();
+        lt.insert(sd);
+        sd->gt.insert(this);
     }
-    if (sv->isBoundedAbove())
+    if (sd->isBoundedAbove())
     {
-        clipUpperBound(sv->getUpperBound());
-        setRepeatUpperBound(sv->repeatUpper);
+        clipUpperBound(sd->getUpperBound());
+        setRepeatUpperBound(sd->repeatUpper);
     }
     else removeRepeatUpperBound();
     if (isBoundedBelow())
     {
-        sv->clipLowerBound(getLowerBound());
-        sv->setRepeatLowerBound(repeatLower);
+        sd->clipLowerBound(getLowerBound());
+        sd->setRepeatLowerBound(repeatLower);
     }
-    else sv->removeRepeatLowerBound();
+    else sd->removeRepeatLowerBound();
 
-    return isFeasable() && sv->isFeasable();
+    return isFeasable() && sd->isFeasable();
 }
 
 bool SymbolicDouble::addEQ(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
 {
-    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef);
-    SymbolicDouble* sv = other.get();
+    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef, -1);
+    SymbolicDouble* sd = other.get();
     if (!other.constructed() && !constructed)
     {
         set<SymbolicDouble*> seen;
-        if (guaranteedEQ(sv, this, seen)) return isFeasable() && sv->isFeasable();
-        eq.insert(sv);
-        sv->eq.insert(this);
+        if (guaranteedEQ(sd, this, seen)) return isFeasable() && sd->isFeasable();
+        eq.insert(sd);
+        sd->eq.insert(this);
     }
 
-    if (sv->isDetermined()) setConstValue(sv->getConstValue());
-    else if (isDetermined()) sv->setConstValue(getConstValue());
+    if (sd->isDetermined()) setConstValue(sd->getConstValue());
+    else if (isDetermined()) sd->setConstValue(getConstValue());
     else
     {
-        if (sv->isBoundedAbove())
+        if (sd->isBoundedAbove())
         {
-            clipUpperBound(sv->getUpperBound());
-            setRepeatUpperBound(sv->repeatUpper);
+            clipUpperBound(sd->getUpperBound());
+            setRepeatUpperBound(sd->repeatUpper);
         }
         else removeRepeatUpperBound();
 
-        if (sv->isBoundedBelow())
+        if (sd->isBoundedBelow())
         {
-            clipLowerBound(sv->getLowerBound());
-            setRepeatLowerBound(sv->repeatLower);
+            clipLowerBound(sd->getLowerBound());
+            setRepeatLowerBound(sd->repeatLower);
         }
         else removeRepeatLowerBound();
 
         if (isBoundedAbove())
         {
-            sv->clipUpperBound(getUpperBound());
-            sv->setRepeatUpperBound(getUpperBound());
+            sd->clipUpperBound(getUpperBound());
+            sd->setRepeatUpperBound(getUpperBound());
         }
-        else sv->removeRepeatUpperBound();
+        else sd->removeRepeatUpperBound();
 
         if (isBoundedBelow())
         {
-            sv->clipLowerBound(getLowerBound());
-            sv->setRepeatLowerBound(getLowerBound());
+            sd->clipLowerBound(getLowerBound());
+            sd->setRepeatLowerBound(getLowerBound());
         }
-        else sv->removeRepeatUpperBound();
+        else sd->removeRepeatUpperBound();
     }
 
-    return isFeasable() && sv->isFeasable();
+    return isFeasable() && sd->isFeasable();
 }
 
 bool SymbolicDouble::addNEQ(const VarWrapper* vg, SymbolicExecutionFringe* sef,  bool constructed)
 {
-    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef);
-    SymbolicDouble* sv = other.get();
+    GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef, -1);
+    SymbolicDouble* sd = other.get();
     if (!other.constructed())
     {
-        if (!neq.insert(sv).second) return isFeasable() && sv->isFeasable();
+        if (!neq.insert(sd).second) return isFeasable() && sd->isFeasable();
     }
-    if (!constructed) sv->neq.insert(this);
-    return isFeasable() && sv->isFeasable();
+    if (!constructed) sd->neq.insert(this);
+    return isFeasable() && sd->isFeasable();
 }
 
 bool SymbolicDouble::guaranteedLT(SymbolicDouble* searchFor, SymbolicDouble* searchInit, set<SymbolicDouble*>& seen)
@@ -841,7 +841,10 @@ SymbolicDouble::MonotoneEnum SymbolicDouble::getMonotonicity() const
 
 void SymbolicDouble::addConstToLower(const double diff)
 {
-    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    if (!defined)
+    {
+        reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    }
 
     if (!isBoundedBelow())
     {

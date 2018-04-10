@@ -4,9 +4,10 @@
 
 using namespace std;
 
-int main()
+int main(int argc, char** argv)
 {
-    string filename = "../misc/ackermann.fs";
+    if (argc != 2) throw runtime_error("Exactly one argument reqiured (filename)");
+    string filename = argv[1];
     FSM test(filename);
     test.run();
     return 0;

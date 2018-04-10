@@ -2,6 +2,7 @@
 // Created by abdul on 10/08/17.
 //
 #include <iostream>
+#include <cstring>
 
 #include "Compiler.h"
 #include "../CFGOpt/Optimiser.h"
@@ -45,10 +46,11 @@ void Compiler::compile(bool optimise, bool deadcode, bool verify, std::string gr
     while (lookahead.type != END) body();
 
     FunctionSymbol* mainFuncSym = functionTable.getFunction("main");
-    cfg.setFirst(mainFuncSym->getFirstNode()->getName());
     cfg.setLast(mainFuncSym->getLastNode()->getName());
 
     if (optimise) Optimise::optimise(symbolTable, functionTable, cfg);
+
+    cout << cfg.getDotGraph();
 
     if (verify)
     {
@@ -197,6 +199,10 @@ void Compiler::findGlobalsAndMakeStates()
     if (!functionTable.containsFunction("main")) error("Function 'main' must be defined");
     FunctionSymbol* mainSymbol = functionTable.getFunction("main");
     mainSymbol->addCommands(initialState);
+    string nextState = mainSymbol->newStateName();
+    mainSymbol->genJump(nextState, -1);
+    mainSymbol->genEndState();
+    mainSymbol->genNewState(nextState);
 }
 
 void Compiler::match(Type t)

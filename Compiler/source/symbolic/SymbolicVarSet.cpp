@@ -65,16 +65,16 @@ bool SymbolicVarSet::unionSVS(SymbolicVarSet* other)
     bool change = false;
     for (auto& pair : other->getAllVars())
     {
-        SymbolicDouble* svp = findVar(pair.first);
-        if (svp == nullptr)
+        SymbolicDouble* sdp = findVar(pair.first);
+        if (sdp == nullptr)
         {
             change = true;
             variables[pair.first] = pair.second->clone();
         }
         else
         {
-            if (svp->unionUpperBound(pair.second->getUpperBound())) change = true;
-            if (svp->unionLowerBound(pair.second->getLowerBound())) change = true;
+            if (sdp->unionUpperBound(pair.second->getUpperBound())) change = true;
+            if (sdp->unionLowerBound(pair.second->getLowerBound())) change = true;
         }
     }
 

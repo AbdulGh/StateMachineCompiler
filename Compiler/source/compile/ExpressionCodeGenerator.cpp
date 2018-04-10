@@ -135,8 +135,8 @@ std::unique_ptr<VarWrapper> ExpressionCodeGenerator::genUnique(FunctionSymbol* f
     {
         string s = "unique" + to_string(nextUnique++);
         ++currentUnique;
-
         parent.cfg.getFirst()->getInstrs().push_back(make_unique<DeclareVarCommand>(s, -1));
+
         return make_unique<SDByName>(s);
     }
     else if (currentUnique > nextUnique) throw std::runtime_error("Something went wrong somehow");
