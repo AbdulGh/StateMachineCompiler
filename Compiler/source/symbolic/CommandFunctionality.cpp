@@ -193,9 +193,12 @@ void Atom::set(unique_ptr<VarWrapper> vg)
 
 bool Atom::operator<(const Atom& right) const
 {
-    if (holding != right.holding) return holding;
-    else if (holding) return vptr->getFullName() < right.vptr->getFullName();
-    else return d < right.d;
+    //if (holding != right.holding) return holding;
+    //else if (holding) return vptr->getFullName() < right.vptr->getFullName();
+    //else return d < right.d;
+
+    return (!holding? to_string(d) : vptr->getFullName())
+           < (!right.holding? to_string(right.d) : right.vptr->getFullName());
 }
 
 bool Atom::operator==(const Atom& right) const

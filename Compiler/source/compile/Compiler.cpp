@@ -50,8 +50,6 @@ void Compiler::compile(bool optimise, bool deadcode, bool verify, std::string gr
 
     if (optimise) Optimise::optimise(symbolTable, functionTable, cfg);
 
-    cout << cfg.getDotGraph();
-
     if (verify)
     {
         if (!graphOutput.empty() && gb)

@@ -24,8 +24,9 @@ void Reporter::warn(AlertType type, const std::string& details, int linenum)
     {
         output << "WARNING : ";
         if (type != GENERIC) output << enumNames[type] << " : ";
+        output << details;
         if (linenum != -1) output << " (line " << linenum << ")";
-        output << details << '\n';
+        output << '\n';
     }
 }
 

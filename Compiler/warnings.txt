@@ -8,9 +8,8 @@ Potential bad path through the following loop:
 
 Example:
 Visit F0_gcd_0, branch _1_0_m != _1_0_n
-(_1_0_m unchanging compared to RHS)
-Visit F0_gcd_2, branch _1_0_m > _1_0_n
-(_1_0_m unchanging compared to RHS)
+Visit F0_gcd_2, branch _1_0_m < _1_0_n
+(_1_0_m decreasing compared to RHS)
 
 -----
 Potential bad path through the following loop:
@@ -23,8 +22,7 @@ Potential bad path through the following loop:
 
 Example:
 Visit F0_gcd_0, branch _1_0_m != _1_0_n
-(_1_0_m unchanging compared to RHS)
-Visit F0_gcd_2, branch _1_0_m <= _1_0_n
-(_1_0_m unchanging compared to RHS)
+Visit F0_gcd_2, branch _1_0_m >= _1_0_n
+(_1_0_m increasing compared to RHS)
 
 -----

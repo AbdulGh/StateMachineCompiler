@@ -346,7 +346,8 @@ if we ask for the variable with index $i \in [15, 25]$ we receive a constructed 
 \subsubsection{The symbol table}
 An easy way of handling scoped variables is to use a so-called \textit{spaghetti stack} \citep{dragon}. A spaghetti stack is usually a set of linked lists of hashtables (scopes), but during parsing we discard old scopes and only need a single linked list.\\
 When a new scope is entered - which is marked by a \texttt{\{} - we create a new hash table and set it up to point to the previous one. New variable declarations are put in this table. If we declare a variable with the same name multiple times in the same scope, we will find that variable in the current scope and raise an error.\\
-When we search for a variable, we first check the present scope. If it is not found there, we recursively search for it in the parent scope. If we end up running into a \texttt{nullptr}, we are trying to find a variable that has not been declared. Otherwise we will find and return the `most recent' declaration of that variable. Variables can be tagged with various data - some necessary for finding errors (i.e. type) and some useful for warnings (i.e. whether or not that variable has been defined).\\
+When we search for a variable, we first check the present scope. If it is not found there, we recursively search for it in the parent scope. If we end up running into a \texttt{nullptr}, we are trying to find a variable that has not been declared.
+Otherwise we will find and return the `most recent' declaration of that variable. Variables can be tagged with various data - some necessary for finding errors (i.e. type) and some useful for warnings (i.e. whether that variable has been defined).\\
 When leaving a scope we delete the head of the spaghetti stack and forget every declaration that was inside. The symbol table keeps track of its current depth and the number of scopes it has processed in that depth in order to uniquely name each variable.
 
 \subsubsection{Adapting the spaghetti stack for symbolic execution}
@@ -552,6 +553,25 @@ while (x >= 0) {
 \textbf{Time:} 8ms.\\ \textbf{Maximum Resident Set Size:} $4472$KB.\\
 In this example, the inner loop is seen to terminate (as y is increasing) and then the outer loop follows (as x is decreasing). Replacing the $2$ in line $3$ with a positive constant less than $1$, or inverting any of the comparisons, results in a detected nonterminating program. The multiplication
 in line $3$ always gives an overflow warning, so long as the constant is greater than $1$.
+    
+ \subsubsection{Extrapolation} \label{extra}
+\begin{wrapfigure}{r}{0.43\textwidth}
+\centering
+\begin{lstlisting}[frame=tlrb,language=myLang]
+while (x > 0) {
+  x = x + 1;
+  if (x > 50) x = -1;
+}
+\end{lstlisting}
+\end{wrapfigure}
+\textbf{Time:} 6ms.\\ \textbf{Maximum Resident Set Size:} $4448$KB.\\
+This is an example that demonstrates the extrapolation of variable motion. $x$ is increasing away from the loop header condition, however
+we know it is increasing towards the condition in line 3 and therefore will leave the loop. This is accepted as halting. Flipping the condition in line 1,
+or turning line 2 into a decrement, result in programs that are still correctly classified as halting. Flipping the condition in line 3 results in a nonterminating
+loop that is detected with the correct annotated trace given.
+
+The method does make some mistakes. An invalid overflow warning is emitted for line 2. Also, changing the \texttt{x = -1} on line 3 into \texttt{x = 1}
+results in a nonterminating loop that is not detected - the reason for this failure is given in the next section.
 
 \subsubsection{Arrays \citep{svcomp}}
 \begin{wrapfigure}{r}{0.43\textwidth}
@@ -595,7 +615,6 @@ however the method fails to detect the same when line $8$ is modified.
 This function is normally defined on the natural numbers, and the inequalities are given as equalities - doing so here results in a potentially
 nonterminating input, as $m$ and $n$ might both be negative.
 
-\newpage
 \subsubsection{McCarthy's 91 function}
 \begin{wrapfigure}{r}{0.4\textwidth}
 \centering
@@ -646,22 +665,23 @@ imposed on line $2$.
 \subsection{Evaulation of the method}
 \subsubsection{Pluses}
 As shown in the previous section the solution successfully verified a diverse range of programs, and did not struggle with array usage and/or function calls.
-We also managed to detect a variety of bugs - overflows, out of bounds accesses, and potential infinite loops. The method is especially good at detecting simple (yet common) errors - such as off by one errors, wrongly assuming that variables are in a certain range
+We also managed to detect a variety of bugs - overflows, out of bounds accesses, division by zero, and potential infinite loops. The method is especially good at detecting simple (yet common) errors - such as off by one errors, wrongly assuming that variables are in a certain range
 (i.e. that a user input is nonnegative), equalities that are the wrong way around, and forgotten/misplaced loop counter increments.
 
 It is also worth noting that this method is mostly independent of the source language itself, as long as it is imperative. It requires only a control flow graph of the produced target machine code (which is
 constructed in every compilation process that the author knows of) and the effects of each machine code statement on the state of the machine, which only need to be programmed once.
 
 The fact that the method only needs a data structure produced anyways during compilation means that it is easily built into the compilation process. Symbolic execution
-itself can me used to further optimise code, for example by detecting infeasible code or useless operations.
+itself can be used to further optimise code, for example by detecting infeasible code or useless operations.
 
-Finally this method is very easy to use, as the only input it requires from the user is the source program, and it runs automatically in the background. It does
+Finally this method is very easy to use, as the only input it requires from the user is the source program and it runs automatically in the background. It does
 not require any modifications to the source code (i.e. annotations given in first order logic), and it does not have any learning curve (i.e. it is not a separate
 program with many commands and operating modes \`a la Valgrind/GDB). 
 
 \subsubsection{Minuses}
 \textbf{Path dependencies.} As long as we think we can leave a path we call it terminating. Consider now two paths that can alternate forever, or
-one path that once entered can be left but will be revisited infinitely often - our method falsely accepts these cases as terminating.
+one path that once entered can be left but will be revisited infinitely often - our method falsely accepts these cases as terminating. This is the case with the example given in
+\cref{extra}. If $x$ is set to 1 we must infact leave that path in the next iteration, however we will eventually re-enter the path and repeat the cycle.
 
 An approach discussed earlier \citep{loopster} builds a graph where the nodes are loop paths and the edges possible transitions between the paths, annotated with
 conditions that must be met for this transition to take place. Our method ony looks for nodes with only self loops - a better approach would look for feasible cycles.

@@ -45,6 +45,7 @@ AssignmentPropogationDataFlow::AssignmentPropogationDataFlow(ControlFlowGraph& c
                                       { return ass.lhs == data; });
                     if (it != genSet.end()) genSet.erase(it);
                     killSet.insert(data);
+
                     break;
                 }
                 case CommandType::ASSIGNVAR:
@@ -102,14 +103,7 @@ void AssignmentPropogationDataFlow::finish()
 
         unordered_map<string, Atom> mapToPass;
         for (const Assignment& ass : inAss) mapToPass.emplace(ass.lhs, ass.rhs);
-
-        if (node->getName() == "F1_main_8")
-        {
-            auto debug2 = node->getSource();
-            int debug;
-            debug =2;
-        }
-        node->constProp(move(mapToPass));
+        //node->constProp(move(mapToPass));
     }
 }
 
@@ -259,7 +253,6 @@ void LiveVariableDataFlow::finish()
         for (auto& ac : node->getInstrs())
         {
             std::string name;
-            CommandType acType = ac->getType();
 
             switch (ac->getType())
             {

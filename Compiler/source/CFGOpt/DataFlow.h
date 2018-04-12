@@ -4,6 +4,7 @@
 #include <set>
 #include <unordered_map>
 #include <stack>
+#include <algorithm>
 
 #include "CFG.h"
 #include "../compile/Functions.h"
@@ -21,6 +22,23 @@ namespace DataFlow
         auto setIterator = sets.begin();
         std::set<T> intersect = **setIterator;
         ++setIterator;
+
+        //debug
+        while (!intersect.empty() && setIterator != sets.end())
+        {
+            std::set<T>* secondPtr = *setIterator;
+            for (auto it = intersect.begin(); it != intersect.end();)
+            {
+                if (secondPtr->find(*it) == secondPtr->end())
+                {
+                    it = intersect.erase(it);
+                }
+                else ++it;
+            }
+            ++setIterator;
+        }
+        return intersect;
+
         //sets are sorted so this works and is reasonably fast
         while (!intersect.empty() && setIterator != sets.end())
         {
@@ -46,6 +64,7 @@ namespace DataFlow
     std::set<T> intersectPredecessors(CFGNode* node, std::unordered_map<std::string, std::set<T>>& outSets)
     {
         std::vector <std::set<T>*> predSets; //by reference!
+
         for (const auto& pair : node->getPredecessorMap())
         {
             std::set<T>& parentOut = outSets[pair.first];

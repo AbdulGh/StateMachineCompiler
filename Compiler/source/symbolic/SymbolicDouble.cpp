@@ -430,17 +430,10 @@ void SymbolicDouble::clearEQ()
 
 void SymbolicDouble::clearLess()
 {
-    for (auto& ptr : lt) ptr->lt.erase(this);
+    for (auto& ptr : lt) ptr->gt.erase(this);
     lt.clear();
     for (auto& ptr : le) ptr->ge.erase(this);
     le.clear();
-}
-
-void SymbolicDouble::clearAll()
-{
-    clearEQ();
-    clearEQ();
-    clearLess();
 }
 
 void SymbolicDouble::clearGreater()
@@ -449,6 +442,13 @@ void SymbolicDouble::clearGreater()
     gt.clear();
     for (auto& ptr : ge) ptr->le.erase(this);
     ge.clear();
+}
+
+void SymbolicDouble::clearAll()
+{
+    clearEQ();
+    clearEQ();
+    clearLess();
 }
 
 SymbolicDouble::SymbolicDouble(SymbolicDouble* other): SymbolicDouble(*static_cast<SymbolicDouble*>(other)) {}
@@ -669,6 +669,7 @@ void SymbolicDouble::setConstValue(double d)
     clearAll();
     lowerBound = upperBound = repeatLower = repeatUpper = d;
     defined = true;
+    minChange = maxChange = 0;
     uniformlyChanging = false;
 }
 
@@ -979,8 +980,8 @@ void SymbolicDouble::minusSymbolicDouble(SymbolicDouble& other, bool increment)
 
     if (increment)
     {
-        minChange += other.getLowerBound();
-        maxChange += other.getUpperBound();
+        minChange -= otherUpperBound;
+        maxChange -= otherLowerBound;
     }
     else
     {

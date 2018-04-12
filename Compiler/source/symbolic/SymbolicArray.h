@@ -19,6 +19,8 @@ private:
     std::list<int> indicies;
     std::list<SymbolicDouble*> indexVars;
     const unsigned int size;
+    bool warnedLower = false;
+    bool warnedUpper = false;
     Reporter& reporter;
     std::string name;
 
@@ -66,13 +68,28 @@ public:
     
     bool checkIndex(long index, int linenum)
     {
-        if (index < 0) reporter.error(Reporter::ARRAY_BOUNDS, "Asked for negative index from array", linenum);
+        if (index < 0)
+        {
+            if (!warnedLower)
+            {
+                reporter.error(Reporter::ARRAY_BOUNDS, "Asked for negative index from array", linenum);
+                warnedLower = true;
+            }
+            return false;
+        }
         else if (index >= size)
         {
-            reporter.error(Reporter::ARRAY_BOUNDS,
-                           "Asked to get index " + std::to_string(index) + " in array of size " + std::to_string(size),
-                            linenum);
+            if (!warnedUpper)
+            {
+                warnedUpper = true;
+                reporter.error(Reporter::ARRAY_BOUNDS,
+                               "Asked to get index " + std::to_string(index) + " in array of size " +
+                               std::to_string(size),
+                               linenum);
+            }
+            return false;
         }
+        return true;
     }
     
     bool checkBounds(double lbd, double ubd, double& lb, double& ub, int linenum)
@@ -94,9 +111,13 @@ public:
             std::ostringstream precision;
             precision << std::setprecision(10);
             precision << lb;
-            reporter.error(Reporter::ARRAY_BOUNDS,
-                           "Asked to get index >= " + precision.str() + " in array of size " + std::to_string(size),
-                            linenum);
+            if (!warnedUpper)
+            {
+                warnedUpper = true;
+                reporter.error(Reporter::ARRAY_BOUNDS,
+                               "Asked to get index >= " + precision.str() + " in array of size " + std::to_string(size),
+                               linenum);
+            }
             return false;
         }
 
@@ -111,9 +132,14 @@ public:
             precision << std::setprecision(10);
             precision << ub;
 
-            reporter.warn(Reporter::ARRAY_BOUNDS,
-                          "Could access index up to " + precision.str() + " in array of size " + std::to_string(size),
-                          linenum);
+            if (!warnedUpper)
+            {
+                warnedUpper = true;
+                reporter.warn(Reporter::ARRAY_BOUNDS,
+                              "Could access index up to " + precision.str() + " in array of size " +
+                              std::to_string(size),
+                              linenum);
+            }
             ub = size - 1;
         }
         
@@ -127,22 +153,36 @@ public:
 
         if (ubd < 0)
         {
-            reporter.error(Reporter::ARRAY_BOUNDS,
-                           "Asked to get index <= " + std::to_string(ubd) + " in array", linenum);
+            if (!warnedLower)
+            {
+                warnedLower = true;
+                reporter.error(Reporter::ARRAY_BOUNDS,
+                               "Asked to get index <= " + std::to_string(ubd) + " in array", linenum);
+            }
             return false;
         }
         if (lbd >= size)
         {
-            reporter.error(Reporter::ARRAY_BOUNDS,
-                           "Asked to get index >= " + std::to_string(lbd) + " in array of size " + std::to_string(size),
-                            linenum);
+            if (!warnedUpper)
+            {
+                warnedUpper = true;
+                reporter.error(Reporter::ARRAY_BOUNDS,
+                               "Asked to get index >= " + std::to_string(lbd) + " in array of size " +
+                               std::to_string(size),
+                               linenum);
+            }
             return false;
         }
 
-        if (lbd < 0) reporter.warn(Reporter::ARRAY_BOUNDS, "Asked to access possibly negative index", linenum);
-
-        if (ubd >= size)
+        if (lbd < 0 && !warnedLower)
         {
+            warnedLower = true;
+            reporter.warn(Reporter::ARRAY_BOUNDS, "Asked to access possibly negative index", linenum);
+        }
+
+        if (ubd >= size && !warnedUpper)
+        {
+            warnedUpper = true;
             std::ostringstream precision;
             precision << std::setprecision(10);
             precision << ubd;
@@ -158,9 +198,24 @@ public:
     {
         if (n >= size)
         {
-            reporter.error(Reporter::ARRAY_BOUNDS,
-                           "Asked to get index " + std::to_string(n) + " in array of size " + std::to_string(size),
-                            linenum);
+            if (!warnedUpper)
+            {
+                warnedUpper = true;
+                reporter.error(Reporter::ARRAY_BOUNDS,
+                               "Asked to get index " + std::to_string(n) + " in array of size " + std::to_string(size),
+                               linenum);
+            }
+            return nullptr;
+        }
+        if (n < size)
+        {
+            if (!warnedLower)
+            {
+                warnedLower = true;
+                reporter.error(Reporter::ARRAY_BOUNDS,
+                               "Asked to get index " + std::to_string(n) + " in array of size " + std::to_string(size),
+                               linenum);
+            }
             return nullptr;
         }
 
@@ -221,9 +276,13 @@ public:
     {
         if (n >= size)
         {
-            reporter.error(Reporter::ARRAY_BOUNDS,
-                           "Asked to set index " + std::to_string(n) + " in array of size " + std::to_string(size),
-                            linenum);
+            if (!warnedUpper)
+            {
+                warnedUpper = true;
+                reporter.error(Reporter::ARRAY_BOUNDS,
+                               "Asked to set index " + std::to_string(n) + " in array of size " + std::to_string(size),
+                               linenum);
+            }
             return false;
         }
 
@@ -274,43 +333,9 @@ public:
             }
             return set(intpart, sdr, linenum);
         }
-        double lb = ceil(index->getLowerBound());
-        double ub = floor(index->getUpperBound());
-        if (ub < 0)
-        {
-            std::ostringstream precision;
-            precision << std::setprecision(10);
-            precision << ub;
-            reporter.error(Reporter::ARRAY_BOUNDS,
-                           "Asked to set index <= " + precision.str() + " in array", linenum);
-            return false;
-        }
-        if (lb >= size)
-        {
-            std::ostringstream precision;
-            precision << std::setprecision(10);
-            precision << lb;
-            reporter.error(Reporter::ARRAY_BOUNDS,
-                           "Asked to set index >= " + precision.str() + " in array of size " + std::to_string(size),
-                            linenum);
-            return false;
-        }
 
-        if (lb < 0)
-        {
-            reporter.warn(Reporter::ARRAY_BOUNDS, "Asked to access possibly negative index", linenum);
-            lb = 0;
-        }
-        if (ub >= size)
-        {
-            std::ostringstream precision;
-            precision << std::setprecision(10);
-            precision << ub;
-            reporter.warn(Reporter::ARRAY_BOUNDS,
-                          "Could access index up to " + precision.str() + " in array of size " + std::to_string(size),
-                            linenum);
-            ub = size - 1;
-        }
+        double lb, ub;
+        if (!checkBounds(index->getLowerBound(), index->getUpperBound(), lb, ub, linenum)) return false;
 
         auto it = indicies.begin();
         auto varit = indexVars.begin();
