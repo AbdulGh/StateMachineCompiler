@@ -20,6 +20,11 @@ void Reporter::setWarning(AlertType type, bool toReport)
 
 void Reporter::warn(AlertType type, const std::string& details, int linenum)
 {
+    if (linenum == 0)
+    {
+        int debug;
+        debug = 2;
+    }
     if (toWarn[type])
     {
         output << "WARNING : ";

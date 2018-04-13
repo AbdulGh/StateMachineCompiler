@@ -103,7 +103,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 {
                     result->maxUpperBound();
                     result->minLowerBound();
-                    result->multConst(c);
+                    result->multConst(c, getLineNum());
                 }
                 else
                 {
@@ -111,7 +111,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                     if (result->getUpperBound() < 0) result->setUpperBound(0);
                 }
             }
-            else result->multConst(c);
+            else result->multConst(c, getLineNum());
         };
 
         auto addConst = [&, this, sef, repeat] (SymbolicDouble* result, double c) -> void
@@ -122,7 +122,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 if (c > 0) result->maxUpperBound();
                 else result->minLowerBound();
             }
-            result->addConst(c);
+            result->addConst(c, getLineNum());
         };
 
         if (term1.isHolding() && term2.isHolding())
@@ -131,6 +131,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 || !term2.getVarWrapper()->check(sef.get(), getLineNum())) return false;
 
             unique_ptr<SymbolicDouble> result = term1.getVarWrapper()->getSymbolicDouble(sef.get(), getLineNum())->clone();
+            result->setName(vs->getFullName());
             GottenVarPtr<SymbolicDouble> t2 = term2.getVarWrapper()->getSymbolicDouble(sef.get(), getLineNum());
 
             if (result->isDetermined())
@@ -156,9 +157,9 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                     {
                         std::string vsName = vs->getFullName();
                         bool increment = vsName == term1.getVarWrapper()->getFullName() || vsName == term2.getVarWrapper()->getFullName();
-                        result->addSymbolicDouble(*t2, increment);
+                        result->addSymbolicDouble(*t2, getLineNum(), increment);
                     }
-                    else result->multSymbolicDouble(*t2);
+                    else result->multSymbolicDouble(*t2, getLineNum());
                 }
             }
             result->define();
@@ -208,6 +209,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
         if (term1.isHolding())
         {
             unique_ptr<SymbolicDouble> result = term1.getVarWrapper()->getSymbolicDouble(sef.get(), getLineNum())->clone();
+            result->setName(vs->getFullName());
             if (repeat)
             {
                 double t2c;
@@ -281,9 +283,9 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 {
                     if (t2c > 0) result->minLowerBound();
                     else if (t2c < 0) result->maxUpperBound();
-                    result->addConst(-t2c);
+                    result->addConst(-t2c, getLineNum());
                 }
-                else if (op == MOD) result->modConst(t2c);
+                else if (op == MOD) result->modConst(t2c, getLineNum());
                 else if (op == DIV)
                 {
                     if (t2c == 0)
@@ -318,9 +320,9 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                 if (!term2.getVarWrapper()->check(sef.get(), getLineNum())) return false;
                 GottenVarPtr<SymbolicDouble> t2 = term2.getVarWrapper()->getSymbolicDouble(sef.get(), getLineNum());
 
-                if (op == MINUS) result->minusSymbolicDouble(*t2, vs->getFullName() == term1.getVarWrapper()->getFullName());
-                else if (op == MOD) result->modSymbolicDouble(*t2);
-                else if (op == DIV) result->divSymbolicDouble(*t2);
+                if (op == MINUS) result->minusSymbolicDouble(*t2, getLineNum(), vs->getFullName() == term1.getVarWrapper()->getFullName());
+                else if (op == MOD) result->modSymbolicDouble(*t2, getLineNum());
+                else if (op == DIV) result->divSymbolicDouble(*t2, getLineNum());
                 else throw runtime_error("Strange op encountered");
 
                 result->define();
@@ -329,8 +331,8 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
             }
             else //var and const
             {
-                if (op == MINUS) result->addConst(-term2.getLiteral());
-                else if (op == MOD) result->modConst(term2.getLiteral());
+                if (op == MINUS) result->addConst(-term2.getLiteral(), getLineNum());
+                else if (op == MOD) result->modConst(term2.getLiteral(), getLineNum());
                 else if (op == DIV)
                 {
                     if (term2.getLiteral() == 0)
@@ -338,7 +340,7 @@ bool EvaluateExprCommand::acceptSymbolicExecution(shared_ptr<SymbolicExecution::
                         sef->error(Reporter::ZERODIVISION, "", getLineNum());
                         return false;
                     }
-                    else result->divConst(term2.getLiteral());
+                    else result->divConst(term2.getLiteral(), getLineNum());
                 }
                 else throw runtime_error("Strange op encountered");
                 result->define();

@@ -22,25 +22,24 @@ private:
     std::string varN;
     Reporter& reporter;
 
-    std::set<SymbolicDouble*> lt;
+    /*std::set<SymbolicDouble*> lt;
     std::set<SymbolicDouble*> le;
     std::set<SymbolicDouble*> ge;
     std::set<SymbolicDouble*> gt;
     std::set<SymbolicDouble*> eq;
-    std::set<SymbolicDouble*> neq;
+    std::set<SymbolicDouble*> neq;*/
 
-    void reportError(Reporter::AlertType type, std::string err);
+    void reportError(Reporter::AlertType type, std::string err, int linenum);
 
     double upperBound;
     double lowerBound;
     double repeatUpper;
     double repeatLower;
-    std::set<double> neqConsts;
     long double minChange = 0; //most negative possible movement since initiation
     long double maxChange = 0; //most positive possible movement since initiation
     bool uniformlyChanging = true;
-    void addConstToLower(const double d);
-    void addConstToUpper(const double d);
+    void addConstToLower(const double d, int linenum);
+    void addConstToUpper(const double d, int linenum);
     
 public:
     enum MonotoneEnum{INCREASING, DECREASING, FRESH, NONE, UNKNOWN};
@@ -52,22 +51,23 @@ public:
     SymbolicDouble(const SymbolicDouble&& other) = delete;
     SymbolicDouble& operator=(const SymbolicDouble& o);
 
-    ~SymbolicDouble();
-    Reporter& getReporter() const {return reporter;}
-
     const std::string& getName() const;
     void setName(const std::string& newName);
     bool isDefined() const;
     virtual bool getRelativeVelocity(SymbolicDouble* o,long double& slowest, long double& fastest) const;
-    bool wasUserAffected() const;
     void define();
     
-    virtual bool guaranteedLT(SymbolicDouble* searchFor, SymbolicDouble* searchInit, std::set<SymbolicDouble*>& seen);
+    /*virtual bool guaranteedLT(SymbolicDouble* searchFor, SymbolicDouble* searchInit, std::set<SymbolicDouble*>& seen);
     virtual bool guaranteedLE(SymbolicDouble* searchFor, SymbolicDouble* searchInit, std::set<SymbolicDouble*>& seen);
     virtual bool guaranteedGT(SymbolicDouble* searchFor, SymbolicDouble* searchInit, std::set<SymbolicDouble*>& seen);
     virtual bool guaranteedGE(SymbolicDouble* searchFor, SymbolicDouble* searchInit, std::set<SymbolicDouble*>& seen);
     virtual bool guaranteedEQ(SymbolicDouble* searchFor, SymbolicDouble* searchInit, std::set<SymbolicDouble*>& seen);
     virtual bool guaranteedNEQ(SymbolicDouble* searchFor, SymbolicDouble* searchInit, std::set<SymbolicDouble*>& seen);
+    virtual void clearLess();
+    virtual void clearGreater();
+    virtual void clearEQ();
+    virtual void clearAll();
+    */
 
     virtual bool addLT(const VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
     virtual bool addLE(const VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
@@ -75,10 +75,6 @@ public:
     virtual bool addGE(const VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
     virtual bool addEQ(const VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
     virtual bool addNEQ(const VarWrapper* other, SymbolicExecution::SymbolicExecutionFringe* sef, bool constructed);
-    virtual void clearLess();
-    virtual void clearGreater();
-    virtual void clearEQ();
-    virtual void clearAll();
 
     //these return true if there has been a change
     virtual bool isFeasable();
@@ -86,7 +82,6 @@ public:
     MeetEnum canMeet(Relations::Relop rel, double rhs) const;
     SymbolicDouble::MeetEnum canMeet(Relations::Relop rel, SymbolicDouble* rhs) const;
     std::unique_ptr<SymbolicDouble> clone();
-    SymbolicDouble* cloneRaw();
 
     void maxUpperBound(); void removeUpperBound();
     void minLowerBound(); void removeLowerBound();
@@ -132,15 +127,15 @@ public:
     bool isBoundedBelow() const;
     bool isBoundedAbove() const;
     MonotoneEnum getMonotonicity() const;
-    void addConst(double);
-    void multConst(double);
-    void divConst(double);
-    void modConst(double);
-    void addSymbolicDouble(SymbolicDouble& other, bool increment = false);
-    void minusSymbolicDouble(SymbolicDouble& other, bool increment = false);
-    void multSymbolicDouble(SymbolicDouble& other);
-    void divSymbolicDouble(SymbolicDouble& other);
-    void modSymbolicDouble(SymbolicDouble& other);
+    void addConst(double, int linenum);
+    void multConst(double, int linenum);
+    void divConst(double, int linenum);
+    void modConst(double, int linenum);
+    void addSymbolicDouble(SymbolicDouble& other, int linenum, bool increment = false);
+    void minusSymbolicDouble(SymbolicDouble& other, int linenum, bool increment = false);
+    void multSymbolicDouble(SymbolicDouble& other, int linenum);
+    void divSymbolicDouble(SymbolicDouble& other, int linenum);
+    void modSymbolicDouble(SymbolicDouble& other, int linenum);
 };
 
 #endif

@@ -18,22 +18,15 @@ SymbolicDouble::SymbolicDouble(string name, Reporter& r):
 
 SymbolicDouble::SymbolicDouble(const SymbolicDouble& o):
     varN(o.varN), reporter(o.reporter), upperBound(o.upperBound), lowerBound(o.lowerBound), repeatLower(o.repeatLower),
-    repeatUpper(o.repeatUpper), minChange(o.minChange), maxChange(o.maxChange), defined(o.defined),
-    lt(o.lt), le(o.le), eq(o.eq), gt(o.gt), ge(o.ge)
+    repeatUpper(o.repeatUpper), minChange(o.minChange), maxChange(o.maxChange), defined(o.defined)
 {}
 
 SymbolicDouble& SymbolicDouble::operator=(const SymbolicDouble& o)
 {
-    clearAll();
     varN = o.varN; upperBound = o.upperBound; lowerBound = o.lowerBound; repeatLower = o.repeatLower;
     repeatUpper = o.repeatUpper; minChange = o.minChange; maxChange = o.maxChange;
-    defined = o.defined; lt = o.lt; le = o.le; eq = o.eq; gt = o.gt; ge = o.ge;
+    defined = o.defined;
     return *this;
-}
-
-SymbolicDouble::~SymbolicDouble()
-{
-    clearAll();
 }
 
 const string& SymbolicDouble::getName() const
@@ -46,20 +39,15 @@ void SymbolicDouble::setName(const string& newName)
     varN = newName;
 }
 
-void SymbolicDouble::reportError(Reporter::AlertType type, string err)
+void SymbolicDouble::reportError(Reporter::AlertType type, string err, int linenum)
 {
-    reporter.error(type, err);
+    reporter.error(type, err, linenum);
     feasable = false;
 }
 
 bool SymbolicDouble::isDefined() const
 {
     return defined;
-}
-
-bool SymbolicDouble::wasUserAffected() const
-{
-    return userAffected;
 }
 
 void SymbolicDouble::define()
@@ -119,13 +107,6 @@ bool SymbolicDouble::addGT(const VarWrapper* vg, SymbolicExecutionFringe* sef, b
     GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef, -1);
     SymbolicDouble* sd = other.get();
 
-    if (!other.constructed())
-    {
-        if (!gt.insert(sd).second) return isFeasable() && sd->isFeasable();
-    }
-
-    if (!constructed) sd->lt.insert(this);
-
     if (sd->isBoundedBelow())
     {
         clipLowerBound(sd->getLowerBound(), 1);
@@ -146,13 +127,6 @@ bool SymbolicDouble::addGE(const VarWrapper* vg, SymbolicExecutionFringe* sef,  
 {
     GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef, -1);
     SymbolicDouble* sd = other.get();
-
-    if (!other.constructed())
-    {
-        if (!ge.insert(sd).second) return isFeasable() && sd->isFeasable();
-    }
-    if (!constructed) sd->le.insert(this);
-
     if (sd->isBoundedBelow())
     {
         clipLowerBound(sd->getLowerBound());
@@ -172,14 +146,6 @@ bool SymbolicDouble::addLT(const VarWrapper* vg, SymbolicExecutionFringe* sef,  
 {
     GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef, -1);
     SymbolicDouble* sd = other.get();
-    if (!constructed && !other.constructed())
-    {
-        set<SymbolicDouble*> seen;
-        if (guaranteedLT(sd, this, seen)) return isFeasable() && sd->isFeasable();
-        lt.insert(sd);
-        sd->gt.insert(this);
-    }
-
     if (sd->isBoundedAbove())
     {
         clipUpperBound(sd->getUpperBound(), -1);
@@ -200,16 +166,6 @@ bool SymbolicDouble::addLE(const VarWrapper* vg, SymbolicExecutionFringe* sef,  
 {
     GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef, -1);
     SymbolicDouble* sd = other.get();
-
-    if (!constructed && !other.constructed())
-    {
-        setRepeatUpperBound(sd->getUpperBound());
-        sd->setRepeatLowerBound(getLowerBound());
-        set<SymbolicDouble*> seen;
-        if (guaranteedLE(sd, this, seen)) return isFeasable() && sd->isFeasable();
-        lt.insert(sd);
-        sd->gt.insert(this);
-    }
     if (sd->isBoundedAbove())
     {
         clipUpperBound(sd->getUpperBound());
@@ -230,14 +186,6 @@ bool SymbolicDouble::addEQ(const VarWrapper* vg, SymbolicExecutionFringe* sef,  
 {
     GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef, -1);
     SymbolicDouble* sd = other.get();
-    if (!other.constructed() && !constructed)
-    {
-        set<SymbolicDouble*> seen;
-        if (guaranteedEQ(sd, this, seen)) return isFeasable() && sd->isFeasable();
-        eq.insert(sd);
-        sd->eq.insert(this);
-    }
-
     if (sd->isDetermined()) setConstValue(sd->getConstValue());
     else if (isDetermined()) sd->setConstValue(getConstValue());
     else
@@ -278,14 +226,10 @@ bool SymbolicDouble::addNEQ(const VarWrapper* vg, SymbolicExecutionFringe* sef, 
 {
     GottenVarPtr<SymbolicDouble> other = vg->getSymbolicDouble(sef, -1);
     SymbolicDouble* sd = other.get();
-    if (!other.constructed())
-    {
-        if (!neq.insert(sd).second) return isFeasable() && sd->isFeasable();
-    }
-    if (!constructed) sd->neq.insert(this);
     return isFeasable() && sd->isFeasable();
 }
 
+/*
 bool SymbolicDouble::guaranteedLT(SymbolicDouble* searchFor, SymbolicDouble* searchInit, set<SymbolicDouble*>& seen)
 {
     auto addLT = [&, this, searchFor] () -> void
@@ -449,18 +393,13 @@ void SymbolicDouble::clearAll()
     clearEQ();
     clearEQ();
     clearLess();
-}
+}*/
 
-SymbolicDouble::SymbolicDouble(SymbolicDouble* other): SymbolicDouble(*static_cast<SymbolicDouble*>(other)) {}
+SymbolicDouble::SymbolicDouble(SymbolicDouble* other): SymbolicDouble(*other) {}
 
 unique_ptr<SymbolicDouble> SymbolicDouble::clone()
 {
     return make_unique<SymbolicDouble>(this);
-}
-
-SymbolicDouble* SymbolicDouble::cloneRaw()
-{
-    return new SymbolicDouble(this);
 }
 
 void SymbolicDouble::userInput()
@@ -550,7 +489,6 @@ SymbolicDouble::MeetEnum SymbolicDouble::canMeet(Relations::Relop rel, double rh
 
 bool SymbolicDouble::setLowerBound(double d, short direction)
 {
-    if (d < lowerBound) clearGreater();
     if (direction == -1 && d != numeric_limits<double>::lowest()) lowerBound = nextafter(d, numeric_limits<double>::lowest());
     else if (direction == 1 && d != numeric_limits<double>::max()) lowerBound = nextafter(d, numeric_limits<double>::max());
     else lowerBound = d;
@@ -561,7 +499,6 @@ bool SymbolicDouble::setLowerBound(double d, short direction)
 
 bool SymbolicDouble::setUpperBound(double d, short direction)
 {
-    if (d > upperBound) clearLess();
     if (direction == -1 && d != numeric_limits<double>::lowest()) upperBound = nextafter(d, numeric_limits<double>::lowest());
     else if (direction == 1 && d != numeric_limits<double>::max()) upperBound = nextafter(d, numeric_limits<double>::max());
     else upperBound = d;
@@ -666,7 +603,6 @@ bool SymbolicDouble::unionVar(const SymbolicDouble* other)
 
 void SymbolicDouble::setConstValue(double d)
 {
-    clearAll();
     lowerBound = upperBound = repeatLower = repeatUpper = d;
     defined = true;
     minChange = maxChange = 0;
@@ -675,7 +611,6 @@ void SymbolicDouble::setConstValue(double d)
 
 bool SymbolicDouble::unionConstValue(double cv, short direction)
 {
-    clearAll();
     bool change = false;
     if (cv < lowerBound)
     {
@@ -840,30 +775,30 @@ SymbolicDouble::MonotoneEnum SymbolicDouble::getMonotonicity() const
     else return UNKNOWN;
 }
 
-void SymbolicDouble::addConstToLower(const double diff)
+void SymbolicDouble::addConstToLower(const double diff, int linenum)
 {
     if (!defined)
     {
-        reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+        reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised", linenum);
     }
 
     if (!isBoundedBelow())
     {
-        if (diff < 0) reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly drop below limit");
+        if (diff < 0) reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly drop below limit", linenum);
         else lowerBound = numeric_limits<double>::lowest() + diff; //kind of assuming diff is not too big
     }
     else
     {
         if (diff > 0)
         {
-            if (lowerBound > numeric_limits<double>::max() - diff) reportError(Reporter::AlertType::RANGE, varN + " will overflow");
+            if (lowerBound > numeric_limits<double>::max() - diff) reportError(Reporter::AlertType::RANGE, varN + " will overflow", linenum);
             else lowerBound += diff;
         }
         else
         {
             if (lowerBound < numeric_limits<double>::lowest() - diff)
             {
-                reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits");
+                reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits", linenum);
             }
             else lowerBound += diff;
         }
@@ -872,13 +807,13 @@ void SymbolicDouble::addConstToLower(const double diff)
     repeatUpper += diff;
 }
 
-void SymbolicDouble::addConstToUpper(const double diff)
+void SymbolicDouble::addConstToUpper(const double diff, int linenum)
 {
-    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised", linenum);
 
     if (!isBoundedAbove())
     {
-        if (diff > 0) reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits");
+        if (diff > 0) reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits", linenum);
         else upperBound = numeric_limits<double>::max() + diff;
     }
     else
@@ -887,14 +822,14 @@ void SymbolicDouble::addConstToUpper(const double diff)
         {
             if (upperBound > numeric_limits<double>::max() - diff)
             {
-                reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits");
+                reporter.warn(Reporter::AlertType::RANGE, varN + " could possibly exceed double limits", linenum);
                 upperBound = numeric_limits<double>::max();
             }
             else upperBound += diff;
         }
         else
         {
-            if (upperBound < numeric_limits<double>::lowest() - diff) reportError(Reporter::AlertType::RANGE, varN + " will overflow");
+            if (upperBound < numeric_limits<double>::lowest() - diff) reportError(Reporter::AlertType::RANGE, varN + " will overflow", linenum);
             else upperBound += diff;
         }
     }
@@ -902,27 +837,36 @@ void SymbolicDouble::addConstToUpper(const double diff)
     repeatUpper += diff;
 }
 
-void SymbolicDouble::addConst(double diff)
+void SymbolicDouble::addConst(double diff, int linenum)
 {
-    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    if (!defined)
+    {
+        reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised", linenum);
+    }
 
     if (diff == 0)
     {
-        reporter.warn(Reporter::AlertType::USELESS_OP, "Zero added to " + varN);
+        reporter.warn(Reporter::AlertType::USELESS_OP, "Zero added to " + varN, linenum);
         return;
     }
 
     if (!isDetermined())
     {
-        addConstToLower(diff);
-        addConstToUpper(diff);
+        addConstToLower(diff, linenum);
+        addConstToUpper(diff, linenum);
     }
 
     else
     {
         double oldT = lowerBound;
-        if (diff > 0 && oldT > numeric_limits<double>::max() - diff) reportError(Reporter::AlertType::RANGE, varN + " will overflow");
-        else if (diff < 0 && oldT < numeric_limits<double>::lowest() - diff)  reportError(Reporter::AlertType::RANGE, varN + " will overflow");
+        if (diff > 0 && oldT > numeric_limits<double>::max() - diff)
+        {
+            reportError(Reporter::AlertType::RANGE, varN + " will overflow", linenum);
+        }
+        else if (diff < 0 && oldT < numeric_limits<double>::lowest() - diff)
+        {
+            reportError(Reporter::AlertType::RANGE, varN + " will overflow", linenum);
+        }
         upperBound = lowerBound = oldT + diff;
     }
 
@@ -930,23 +874,29 @@ void SymbolicDouble::addConst(double diff)
     maxChange += diff;
 }
 
-void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other, bool increment)
+void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other, int linenum, bool increment)
 {
-    if (!other.defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
+    if (!other.defined)
+    {
+        reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised", linenum);
+    }
 
     if (other.isDetermined())
     {
-        addConst(other.getConstValue());
+        addConst(other.getConstValue(), linenum);
         return;
     }
 
-    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    if (!defined)
+    {
+        reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised", linenum);
+    }
 
     double otherLowerBound = other.getLowerBound();
     double otherUpperBound = other.getUpperBound();
 
-    addConstToLower(otherLowerBound);
-    addConstToUpper(otherUpperBound);
+    addConstToLower(otherLowerBound, linenum);
+    addConstToUpper(otherUpperBound, linenum);
 
     if (!increment)
     {
@@ -960,13 +910,13 @@ void SymbolicDouble::addSymbolicDouble(SymbolicDouble& other, bool increment)
     }
 }
 
-void SymbolicDouble::minusSymbolicDouble(SymbolicDouble& other, bool increment)
+void SymbolicDouble::minusSymbolicDouble(SymbolicDouble& other, int linenum, bool increment)
 {
     if (!other.defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
 
     if (other.isDetermined())
     {
-        addConst(other.getConstValue());
+        addConst(other.getConstValue(), linenum);
         return;
     }
 
@@ -975,8 +925,8 @@ void SymbolicDouble::minusSymbolicDouble(SymbolicDouble& other, bool increment)
     double otherLowerBound = other.getLowerBound();
     double otherUpperBound = other.getUpperBound();
 
-    addConstToLower(-otherUpperBound);
-    addConstToUpper(-otherLowerBound);
+    addConstToLower(-otherUpperBound, linenum);
+    addConstToUpper(-otherLowerBound, linenum);
 
     if (increment)
     {
@@ -1018,7 +968,7 @@ ArithResult safeMultiply(double a, double b, double& result)
     return ArithResult::FINE;
 }
 
-void SymbolicDouble::multConst(double mul)
+void SymbolicDouble::multConst(double mul, int linenum)
 {
     double change1 = upperBound * (mul - 1);
     double change2 = lowerBound * (mul - 1);
@@ -1033,16 +983,26 @@ void SymbolicDouble::multConst(double mul)
         minChange += change1;
     }
 
-    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    if (!defined)
+    {
+        reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised", linenum);
+    }
     if (mul == 0) setConstValue(0);
-    else if (mul == 1) reporter.warn(Reporter::AlertType::USELESS_OP, varN + "multiplied by 1");
+    else if (mul == 1)
+    {
+        reporter.warn(Reporter::AlertType::USELESS_OP, varN + "multiplied by 1", linenum);
+    }
     else
     {
         if (isDetermined())
         {
             double temp;
             ArithResult result = safeMultiply(getConstValue(), mul, temp);
-            if (result != FINE) reportError(Reporter::AlertType::RANGE, to_string(getConstValue()) + " * " + to_string(mul) + " = overflow");
+            if (result != FINE)
+            {
+                reportError(Reporter::AlertType::RANGE,
+                            to_string(getConstValue()) + " * " + to_string(mul) + " = overflow", linenum);
+            }
             else setConstValue(temp);
         }
         else
@@ -1071,8 +1031,16 @@ void SymbolicDouble::multConst(double mul)
                 else alwaysabove = false;
             }
 
-            if (alwaysabove || alwaysbelow) reportError(Reporter::AlertType::RANGE, varN + " guaranteed to overflow when multiplied by " + to_string(mul));
-            else if (bad) reporter.warn(Reporter::AlertType::RANGE, varN + " might overflow when multiplied by " + to_string(mul));
+            if (alwaysabove || alwaysbelow)
+            {
+                reportError(Reporter::AlertType::RANGE,
+                            varN + " guaranteed to overflow when multiplied by " + to_string(mul), linenum);
+            }
+            else if (bad)
+            {
+                reporter.warn(Reporter::AlertType::RANGE,
+                              varN + " might overflow when multiplied by " + to_string(mul), linenum);
+            }
 
             if (lowerResult <= upperResult)
             {
@@ -1088,18 +1056,22 @@ void SymbolicDouble::multConst(double mul)
     }
 }
 
-void SymbolicDouble::multSymbolicDouble(SymbolicDouble &other)
+void SymbolicDouble::multSymbolicDouble(SymbolicDouble& other, int linenum)
 {
     if (!other.defined)
     {
-        reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
+        reporter.warn(Reporter::AlertType::UNINITIALISED_USE,
+                      other.varN + " used before explicitly initialised", linenum);
     }
     if (other.isDetermined())
     {
-        multConst(other.getConstValue());
+        multConst(other.getConstValue(), linenum);
         return;
     }
-    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    if (!defined)
+    {
+        reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised", linenum);
+    }
 
     double otherLowerBound = other.getLowerBound();
     double otherUpperBound = other.getUpperBound();
@@ -1163,9 +1135,14 @@ void SymbolicDouble::multSymbolicDouble(SymbolicDouble &other)
 
     if (alwaysabove || alwaysbelow)
     {
-        reportError(Reporter::AlertType::RANGE, varN + " guaranteed to overflow when multiplied by " + other.varN);
+        reportError(Reporter::AlertType::RANGE,
+                    varN + " guaranteed to overflow when multiplied by " + other.varN, linenum);
     }
-    else if (bad) reporter.warn(Reporter::AlertType::RANGE, varN + " might overflow when multiplied by " + other.varN);
+    else if (bad)
+    {
+        reporter.warn(Reporter::AlertType::RANGE,
+                      varN + " might overflow when multiplied by " + other.varN, linenum);
+    }
 
 
     double oldLower = lowerBound;
@@ -1179,11 +1156,11 @@ void SymbolicDouble::multSymbolicDouble(SymbolicDouble &other)
     maxChange += lowerBound - oldLower;
 }
 
-void SymbolicDouble::modConst(double modulus)
+void SymbolicDouble::modConst(double modulus, int linenum)
 {
     if (modulus == 0)
     {
-        reportError(Reporter::AlertType::ZERODIVISION, varN + " divided by zero");
+        reportError(Reporter::AlertType::ZERODIVISION, varN + " divided by zero", linenum);
         return;
     }
 
@@ -1202,17 +1179,17 @@ void SymbolicDouble::modConst(double modulus)
     }
 }
 
-void SymbolicDouble::modSymbolicDouble(SymbolicDouble &other)
+void SymbolicDouble::modSymbolicDouble(SymbolicDouble& other, int linenum)
 {
     if (other.isDetermined())
     {
         double otherVal = other.getConstValue();
         if (otherVal == 0)
         {
-            reportError(Reporter::ZERODIVISION, varN + " divided by " + other.varN + " ( = 0)");
+            reportError(Reporter::ZERODIVISION, varN + " divided by " + other.varN + " ( = 0)", linenum);
             return;
         }
-        else modConst(otherVal);
+        else modConst(otherVal, linenum);
     }
 
     else
@@ -1221,7 +1198,8 @@ void SymbolicDouble::modSymbolicDouble(SymbolicDouble &other)
         setLowerBound(0);
         if (other.lowerBound <= 0 && other.upperBound >= 0)
         {
-            reporter.warn(Reporter::ZERODIVISION,  varN + " divided by " + other.varN + " which could possibly be zero");
+            reporter.warn(Reporter::ZERODIVISION,
+                          varN + " divided by " + other.varN + " which could possibly be zero", linenum);
         }
         setUpperBound(max(upperBound, max(abs(other.lowerBound), abs(other.upperBound))));
     }
@@ -1248,9 +1226,12 @@ ArithResult safeDivide(double a, double b, double& result)
     return ArithResult::FINE;
 }
 
-void SymbolicDouble::divConst(double denom)
+void SymbolicDouble::divConst(double denom, int linenum)
 {
-    if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
+    if (!defined)
+    {
+        reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised", linenum);
+    }
 
     double change1 = upperBound * (1/denom - 1);
     double change2 = lowerBound * (1/denom - 1);
@@ -1265,14 +1246,26 @@ void SymbolicDouble::divConst(double denom)
         minChange += change1;
     }
 
-    if (denom == 0) reportError(Reporter::AlertType::ZERODIVISION, varN + "divided by 0");
-    else if (denom == 1) reporter.warn(Reporter::AlertType::USELESS_OP, varN + "divided by 1");
+    if (denom == 0)
+    {
+        reportError(Reporter::AlertType::ZERODIVISION, varN + "divided by 0", linenum);
+        return;
+    }
+    else if (denom == 1)
+    {
+        reporter.warn(Reporter::AlertType::USELESS_OP, varN + "divided by 1", linenum);
+        return;
+    }
     else if (isDetermined())
     {
         double temp;
         ArithResult result = safeDivide(getConstValue(), denom, temp);
-        if (result != FINE) reportError(Reporter::AlertType::RANGE, to_string(getConstValue()) + " / " + to_string(denom) + " = overflow");
+        if (result != FINE)
+        {
+            reportError(Reporter::AlertType::RANGE, to_string(getConstValue()) + " / " + to_string(denom) + " = overflow", linenum);
+        }
         else setConstValue(temp);
+        return;
     }
     else
     {
@@ -1302,8 +1295,14 @@ void SymbolicDouble::divConst(double denom)
             else alwaysabove = false;
         }
 
-        if (alwaysabove || alwaysbelow) reportError(Reporter::AlertType::RANGE, varN + " guaranteed to overflow when divided by " + to_string(denom));
-        else if (bad) reporter.warn(Reporter::AlertType::RANGE, varN + " might overflow when divided by " + to_string(denom));
+        if (alwaysabove || alwaysbelow)
+        {
+            reportError(Reporter::AlertType::RANGE, varN + " guaranteed to overflow when divided by " + to_string(denom), linenum);
+        }
+        else if (bad)
+        {
+            reporter.warn(Reporter::AlertType::RANGE, varN + " might overflow when divided by " + to_string(denom), linenum);
+        }
 
         if (lowerResult <= upperResult)
         {
@@ -1319,12 +1318,12 @@ void SymbolicDouble::divConst(double denom)
     }
 }
 
-void SymbolicDouble::divSymbolicDouble(SymbolicDouble &other)
+void SymbolicDouble::divSymbolicDouble(SymbolicDouble& other, int linenum)
 {
     if (!other.defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, other.varN + " used before explicitly initialised");
     if (other.isDetermined())
     {
-        divConst(other.getConstValue());
+        divConst(other.getConstValue(), linenum);
         return;
     }
     if (!defined) reporter.warn(Reporter::AlertType::UNINITIALISED_USE, varN + " used before explicitly initialised");
@@ -1376,14 +1375,18 @@ void SymbolicDouble::divSymbolicDouble(SymbolicDouble &other)
         else alwaysabove = false;
     }
 
-    if (alwaysabove || alwaysbelow) reportError(Reporter::AlertType::RANGE, varN + " guaranteed to overflow when divided by " + other.varN);
-    else if (bad) reporter.warn(Reporter::AlertType::RANGE, varN + " might overflow when divided by " + other.varN);
-
+    if (alwaysabove || alwaysbelow)
+    {
+        reportError(Reporter::AlertType::RANGE, varN + " guaranteed to overflow when divided by " + other.varN, linenum);
+    }
+    else if (bad)
+    {
+        reporter.warn(Reporter::AlertType::RANGE, varN + " might overflow when divided by " + other.varN, linenum);
+    }
 
     setLowerBound(min(lowerlower, min(lowerupper, min(upperlower, upperupper))));
     setUpperBound(max(lowerlower, max(lowerupper, max(upperlower, upperupper))));
 
-    //todo make this more accurate
     minChange += upperBound - oldUpper;
     maxChange += lowerBound - oldLower;
 }
