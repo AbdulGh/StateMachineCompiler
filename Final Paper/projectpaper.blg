@@ -1,0 +1,50 @@
+This is BibTeX, Version 0.99d (TeX Live 2017/Arch Linux)
+Capacity: max_strings=100000, hash_size=100000, hash_prime=85009
+The top-level auxiliary file: projectpaper.aux
+The style file: plainnat.bst
+Database file #1: projectpaper.bib
+Warning--empty booktitle in anand
+Warning--empty booktitle in klee
+Warning--empty booktitle in kildall
+You've used 16 entries,
+            2773 wiz_defined-function locations,
+            686 strings with 7293 characters,
+and the built_in function-call counts, 7353 in all, are:
+= -- 667
+> -- 356
+< -- 16
++ -- 124
+- -- 108
+* -- 516
+:= -- 1100
+add.period$ -- 59
+call.type$ -- 16
+change.case$ -- 81
+chr.to.int$ -- 16
+cite$ -- 35
+duplicate$ -- 383
+empty$ -- 654
+format.name$ -- 130
+if$ -- 1595
+int.to.chr$ -- 1
+int.to.str$ -- 1
+missing$ -- 18
+newline$ -- 94
+num.names$ -- 64
+pop$ -- 201
+preamble$ -- 1
+purify$ -- 68
+quote$ -- 0
+skip$ -- 285
+stack$ -- 0
+substring$ -- 237
+swap$ -- 66
+text.length$ -- 5
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 161
+warning$ -- 3
+while$ -- 68
+width$ -- 0
+write$ -- 224
+(There were 3 warnings)

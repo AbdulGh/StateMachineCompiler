@@ -34,7 +34,8 @@ public:
         indexVars.push_back(myVars.begin()->get());
     }
 
-    SymbolicArray(const SymbolicArray& other): reporter(other.reporter), size(other.size)
+    SymbolicArray(const SymbolicArray& other):
+            reporter(other.reporter), size(other.size), warnedUpper(other.warnedUpper), warnedLower(other.warnedLower)
     {
         indicies = other.indicies;
 

@@ -103,5 +103,7 @@ int main(int argc, char* argv[])
     c.compile(opt, deadcode, verify, graphfile, graphbefore, outputfile);
 
     fout.close();
+
+    cout << "Finished\n";
     return 0;
 }

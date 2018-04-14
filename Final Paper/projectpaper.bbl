@@ -1,0 +1,110 @@
+\begin{thebibliography}{16}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[Aho et~al.(2006)Aho, Lam, Sethi, and Ullman]{dragon}
+Alfred~V. Aho, Monica~S. Lam, Ravi Sethi, and Jeffrey~D. Ullman.
+\newblock \emph{Compilers: Principles, Techniques, and Tools (2nd Edition)}.
+\newblock Addison-Wesley Longman Publishing Co., Inc., Boston, MA, USA, 2006.
+\newblock ISBN 0321486811.
+
+\bibitem[Anand(2012)]{anand}
+Saswat Anand.
+\newblock Techniques to facilitate symbolic execution of real-world programs.
+\newblock 2012.
+
+\bibitem[Beyer(2012)]{svcomp}
+Dirk Beyer.
+\newblock Competition on software verification (sv-comp), 2012.
+
+\bibitem[Cadar et~al.(2008)Cadar, Dunbar, and Engler]{klee}
+Cristian Cadar, Daniel Dunbar, and Dawson Engler.
+\newblock Klee: Unassisted and automatic generation of high-coverage tests for
+  complex systems programs.
+\newblock 2008.
+
+\bibitem[Col{\'o}n and Sipma(2002)]{colon}
+Michael~A Col{\'o}n and Henny~B Sipma.
+\newblock Practical methods for proving program termination.
+\newblock In \emph{International Conference on Computer Aided Verification},
+  pages 442--454. Springer, 2002.
+
+\bibitem[Falke and Kapur(2009)]{tra}
+Stephan Falke and Deepak Kapur.
+\newblock A term rewriting approach to the automated termination analysis of
+  imperative programs.
+\newblock In \emph{International Conference on Automated Deduction}, pages
+  277--293. Springer, 2009.
+
+\bibitem[Floyd(1967)]{floyd}
+Robert~W Floyd.
+\newblock Assigning meanings to programs.
+\newblock \emph{Mathematical aspects of computer science}, 19\penalty0
+  (19-32):\penalty0 1, 1967.
+
+\bibitem[Gupta et~al.(2008)Gupta, Henzinger, Majumdar, Rybalchenko, and
+  Xu]{gupta}
+Ashutosh Gupta, Thomas~A Henzinger, Rupak Majumdar, Andrey Rybalchenko, and
+  Ru-Gang Xu.
+\newblock Proving non-termination.
+\newblock \emph{ACM Sigplan Notices}, 43\penalty0 (1):\penalty0 147--158, 2008.
+
+\bibitem[Gusfield(1997)]{gusfield}
+Dan Gusfield.
+\newblock \emph{Algorithms on Strings, Trees, and Sequences: Computer Science
+  and Computational Biology}.
+\newblock Cambridge University Press, New York, NY, USA, 1997.
+\newblock ISBN 0-521-58519-8.
+
+\bibitem[Hoare(2003)]{hoare}
+Tony Hoare.
+\newblock The verifying compiler: A grand challenge for computing research.
+\newblock In \emph{International Conference on Compiler Construction}, pages
+  262--272. Springer, 2003.
+
+\bibitem[Kildall(1973)]{kildall}
+Gary~A. Kildall.
+\newblock A unified approach to global program optimization.
+\newblock POPL '73, pages 194--206. ACM, 1973.
+\newblock \doi{10.1145/512927.512945}.
+
+\bibitem[Lengauer and Tarjan(1979)]{lengtarj}
+Thomas Lengauer and Robert~Endre Tarjan.
+\newblock A fast algorithm for finding dominators in a flowgraph.
+\newblock \emph{ACM Trans. Program. Lang. Syst.}, 1\penalty0 (1):\penalty0
+  121--141, January 1979.
+\newblock ISSN 0164-0925.
+\newblock \doi{10.1145/357062.357071}.
+
+\bibitem[Terese(2003)]{zantema}
+Terese.
+\newblock \emph{Term Rewriting Systems (Cambridge Tracts in Theoretical
+  Computer Science)}.
+\newblock Cambridge University Press, 2003.
+\newblock ISBN 0521391156.
+
+\bibitem[Tsitovich et~al.(2011)Tsitovich, Sharygina, Wintersteiger, and
+  Kroening]{summary}
+Aliaksei Tsitovich, Natasha Sharygina, Christoph~M Wintersteiger, and Daniel
+  Kroening.
+\newblock Loop summarization and termination analysis.
+\newblock In \emph{International Conference on Tools and Algorithms for the
+  Construction and Analysis of Systems}, pages 81--95. Springer, 2011.
+
+\bibitem[Xie et~al.(2017)Xie, Chen, Zou, Lin, Liu, and Li]{loopster}
+Xiaofei Xie, Bihuan Chen, Liang Zou, Shang-Wei Lin, Yang Liu, and Xiaohong Li.
+\newblock Loopster: Static loop termination analysis.
+\newblock In \emph{Proceedings of the 2017 11th Joint Meeting on Foundations of
+  Software Engineering}, 2017.
+
+\bibitem[Zhang(2001)]{zhang}
+Jian Zhang.
+\newblock A path-based approach to the detection of infinite looping.
+\newblock \emph{Proceedings Second Asia-Pacific Conference on Quality
+  Software}, Dec 2001.
+\newblock \doi{10.1109/apaqs.2001.990006}.
+
+\end{thebibliography}
